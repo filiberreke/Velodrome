@@ -16,6 +16,11 @@ CONFIG_PATH = Path(__file__).with_name('simulation_config.json')
 def finite_number(value, minimum, maximum):
     return type(value) in (int, float) and minimum <= value <= maximum and math.isfinite(value)
 
+def validate_aero_scale(value):
+    if not finite_number(value, 0, 1):
+        raise ValueError('aero_scale moet een eindig getal van 0..1 zijn')
+    return float(value)
+
 def grade_units(value):
     if not finite_number(value, -20, 20):
         raise ValueError('grade_pct moet een eindig getal van -20.00 t/m 20.00 zijn')
@@ -71,6 +76,7 @@ class RoadSimulation:
     def reset(self):
         self.grade = 0.0
         self.factor = 1.0
+        self.aero_scale = 1.0
         self.last_time = self.clock()
         self.last_packet = None
 
@@ -84,7 +90,8 @@ class RoadSimulation:
         return {'grade_pct': grade / 100, 'wind_mps': wind / 1000,
                 'crr': crr / 10000, 'cw': cw / 100}
 
-    async def tick(self, controller, target_grade, gear):
+    async def tick(self, controller, target_grade, gear, aero_scale=1.0):
+        aero_scale = validate_aero_scale(aero_scale)
         now = self.clock()
         dt = min(0.35, max(0.0, now - self.last_time))
         self.last_time = now
@@ -93,9 +100,13 @@ class RoadSimulation:
             return current + max(-step, min(step, target - current))
         grade = approach(self.grade, target_grade, self.rate * dt)
         factor = approach(self.factor, target_factor, self.factor_rate * dt)
-        packet = encode_simulation(*model(grade, factor, self.crr, self.cw))
+        # Scale only air resistance; gravity, rolling resistance and gearing stay intact.
+        # Slew in either direction to avoid a step when entering/leaving a wheel.
+        aero = approach(self.aero_scale, aero_scale, 2.0 * dt)
+        packet = encode_simulation(*model(grade, factor, self.crr, self.cw * aero))
         if packet != self.last_packet:
             await controller.command(packet)
             self.last_packet = packet
-        self.grade, self.factor = grade, factor
-        return abs(grade - target_grade) < 1e-8 and abs(factor - target_factor) < 1e-8
+        self.grade, self.factor, self.aero_scale = grade, factor, aero
+        return abs(grade - target_grade) < 1e-8 and abs(factor - target_factor) < 1e-8 and abs(aero - aero_scale) < 1e-8
+

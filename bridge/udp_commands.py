@@ -12,7 +12,7 @@ MAX_PACKET = 1024
 CACHE_SECONDS, CACHE_SIZE = 60.0, 2048
 log = logging.getLogger(__name__)
 SCHEMA = {'set_mode': {'mode'}, 'set_target_power': {'watts', 'ramp_w_per_s'},
-          'set_grade': {'grade_pct', 'ramp_pct_per_s'},
+          'set_grade': {'grade_pct', 'ramp_pct_per_s', 'aero_scale'},
           'stop': set(), 'status': set(), 'heartbeat': set()}
 REQUIRED = {'set_mode': {'mode'}, 'set_target_power': {'watts'}, 'set_grade': {'grade_pct'}}
 
@@ -110,3 +110,4 @@ class CommandProtocol(asyncio.DatagramProtocol):
     def error(self, command_id, exc):
         return {'type': 'error', 'v': 1, 'id': command_id, 'ok': False,
                 'code': exc.code, 'message': str(exc), 'state': self.combined.status()}
+

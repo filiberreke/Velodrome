@@ -1,5 +1,8 @@
 extends Node3D
-# Velodrome 250: single-lap sprint beta. No trainer control commands.
+# Velodrome 250: banked track simulation and local bridge SIM control.
+const TrainerControl := preload("res://trainer_control.gd")
+var trainer_control = TrainerControl.new()
+var trainer_road_grade := 0.0
 const LAP := 250.0
 const ScratchRules := preload("res://scratch_lap_rules.gd")
 var scratch_rules = ScratchRules.new()
@@ -487,6 +490,7 @@ func _physics_process(delta: float) -> void:
 			finish_overlay.show()
 			_set_race_hud_visible(false)
 			_refresh_fullscreen_results()
+	_update_trainer_control()
 	_update_visuals(delta)
 	_update_boost_dog(delta)
 	_update_countdown_display()
@@ -678,6 +682,8 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _reset() -> void:
+	trainer_control.release(_now_s())
+	trainer_road_grade = 0.0
 	_save_recording("restart")
 	ride_records = []
 	demo_fit_records = []
@@ -1084,7 +1090,19 @@ func _winner_index() -> int:
 			best = i
 	return best
 
+func _update_trainer_control() -> void:
+	var active: bool = trainer_seen and connected and trainer_ready and running and not finished and start_state == "RACING"
+	# Existing ERG sessions are preserved by the client's initial status check.
+	trainer_control.tick(active, trainer_road_grade, 1.0 - _draft_drag_reduction(0), _now_s())
+
 func _update_race(dt: float) -> void:
+	var previous: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
+	_advance_race(dt)
+	var current: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
+	var grade: float = TrainerControl.route_grade(previous, current)
+	trainer_road_grade = lerpf(trainer_road_grade, grade, 1.0 - exp(-8.0 * maxf(dt, 0.0)))
+
+func _advance_race(dt: float) -> void:
 	if race_mode == 5:
 		team_race.step(self, dt)
 		return
@@ -1892,6 +1910,7 @@ func _confirm_start() -> void:
 			team_race.prepare(self, replay, float(options.cp_input.value))
 	else:
 		_tt_prepare_event()
+	trainer_control.arm()
 	start_state = "WAIT_STOP"
 	zero_stable = 0.0
 	_set_menu_visible(false)
@@ -2082,6 +2101,7 @@ func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		trainer_control.close()
 		_save_recording("exit")
 
 func _show_results() -> void:
@@ -2732,3 +2752,4 @@ func _register_performance() -> void:
 	performance_recorded = performance_records.add(performance_context)
 	if not performance_recorded and pursuit_save_status != null:
 		pursuit_save_status.text = performance_records.last_error
+

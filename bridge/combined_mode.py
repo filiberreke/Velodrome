@@ -5,7 +5,7 @@ import time
 from virtual_shift import VirtualShifter, RAMP_PERIOD
 from erg_protocol import encode_target_power, parse_power_range, POWER_RANGE, TARGET_POWER_FEATURE
 from resistance import FEATURE
-from simulation import RoadSimulation, SIMULATION_FEATURE, grade_units, validate_grade_rate
+from simulation import RoadSimulation, SIMULATION_FEATURE, grade_units, validate_grade_rate, validate_aero_scale
 
 log = logging.getLogger(__name__)
 LEASE_SECONDS = 5.0
@@ -33,6 +33,7 @@ class CombinedMode:
         self.simulation_supported = False
         self.sim_backend = self.desired_sim_backend = 'resistance'
         self.grade_pct = 0.0
+        self.aero_scale = 1.0
         self.road = RoadSimulation(clock=clock)
         self.power_range = None
         self.range_state = 'unknown'
@@ -119,6 +120,7 @@ class CombinedMode:
                 'range_state': self.range_state, 'last_error': self.last_error,
                 'simulation_supported': self.simulation_supported,
                 'sim_backend': self.sim_backend, 'desired_sim_backend': self.desired_sim_backend,
+                'aero_scale_supported': True, 'aero_scale': self.aero_scale,
                 'grade_pct': self.grade_pct, 'grade_ramp_pct_per_s': self.road.rate,
                 'gear_factor': self.road.factors[self.shifter.gear - 1],
                 'effective_grade_pct': round(self.road.target(self.grade_pct, self.shifter.gear)[0], 2),
@@ -155,6 +157,7 @@ class CombinedMode:
             self.desired_mode = mode
             self.desired_sim_backend = 'resistance'
             self.grade_pct = 0.0
+            self.aero_scale = 1.0
         elif command == 'set_grade':
             if self.desired_mode != 'SIM':
                 raise CommandError('wrong_mode', 'Helling alleen in SIM; schakel eerst expliciet naar SIM')
@@ -163,9 +166,10 @@ class CombinedMode:
             try:
                 grade = grade_units(params.get('grade_pct')) / 100
                 rate = validate_grade_rate(params.get('ramp_pct_per_s', self.road.rate))
+                aero = validate_aero_scale(params.get('aero_scale', 1.0))
             except ValueError as exc:
                 raise CommandError('invalid_grade', str(exc)) from exc
-            self.grade_pct, self.road.rate = grade, rate
+            self.grade_pct, self.road.rate, self.aero_scale = grade, rate, aero
             self.desired_sim_backend = 'simulation'
         elif command == 'set_target_power':
             watts = params.get('watts')
@@ -267,7 +271,7 @@ class CombinedMode:
             return
         if self.mode == 'SIM':
             if self.sim_backend == 'simulation':
-                complete = await self.road.tick(controller, self.grade_pct, self.shifter.gear)
+                complete = await self.road.tick(controller, self.grade_pct, self.shifter.gear, self.aero_scale)
                 if complete and revision == self.revision:
                     self.applied_revision = revision
                 return
@@ -303,3 +307,4 @@ class CombinedMode:
         log.info('FTMS bevestigd ERG=%s W revision=%s', next_w, revision)
         if next_w == self.target_w and revision == self.revision:
             self.applied_revision = revision
+

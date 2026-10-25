@@ -1,5 +1,30 @@
 # Velodrome Bridge v0.15 — lokaal UDP-protocol v1
 
+## Spelkoppeling: optionele luchtweerstandsfactor
+
+`set_grade` accepteert daarnaast optioneel `aero_scale`: eindig JSON-getal 0..1,
+geen boolean/string/null. Weglaten betekent 1 (volledige ingestelde luchtweerstand),
+ook als een eerdere aanvraag een lagere factor had. Ongeldig: `invalid_grade`,
+zonder gedeeltelijke wijziging. Schema, lease, deduplicatie en modusregels blijven gelijk.
+
+```json
+{"type":"command","v":1,"id":"race-21","command":"set_grade","grade_pct":3.25,"ramp_pct_per_s":10,"aero_scale":0.31}
+```
+
+Status adverteert `aero_scale_supported=true` en toont de gewenste `aero_scale`.
+De actuele FTMS-bevestigde coëfficiënt staat in `confirmed_simulation.cw`.
+`Cw_effective = Cw_config * aero_scale * gear_factor^3`; Crr en helling worden
+niet met de aerofactor vermenigvuldigd. De factor heeft een vaste ramp van 2/s,
+met hetzelfde maximale tickbudget van 0,35 s. `applied_revision` wacht ook tot
+de aerofactor bereikt is. 0 betekent geen aerodynamische belasting, geen vrijgave.
+De windsnelheid in de FTMS-bytes blijft 0; de coëfficiënt modelleert beschutting.
+
+Het spel gebruikt `1 - _draft_drag_reduction(0)` en controleert de capability
+voordat het nieuwe veld wordt verzonden. De eerdere v0.15 blijft daardoor met
+helling alleen bruikbaar. Zie [spelkoppeling](../game/README_trainer_control.md)
+voor routehelling, lifecycle en tests. Hardwarewerking blijft te bevestigen.
+
+
 ## Transport en envelope
 
 Eén UTF-8 JSON-object per datagram van 1..1024 bytes, geen BOM. IPv4 bestemming
@@ -201,3 +226,4 @@ geen authenticatie tegen lokale processen.
 Telemetrie op 127.0.0.1:51723 en interne HR op 51724 veranderen niet. Geen ERG-
 statusvelden toegevoegd aan telemetrie: gebruik status op 51725. gear blijft 1..12
 in actieve SIM, anders null; Ride-knopberichten blijven behouden.
+

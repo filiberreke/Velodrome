@@ -19,6 +19,17 @@ Console-equivalent: `grade 5.25`, optioneel `grade 5.25 2` met ramp in procentpu
 Vraag `status` op voor het gewenste en bevestigde resultaat. `sim` / set_mode SIM
 herstelt de oude weerstandstabel. Helling in ERG wordt geweigerd; ERG blijft op watts sturen.
 
+## Luchtweerstand vanuit het spel
+
+De optionele `aero_scale` in `set_grade` schaalt uitsluitend Cw met een eindige factor
+0..1 (standaard 1 wanneer weggelaten). Het spel stuurt 1 min de actuele relatieve
+slipstreamreductie. De factor loopt met maximaal 2/s in beide richtingen; het
+maximale tickbudget blijft 0,35 s. De ingestelde Cw en de k³-versnellingsfactor
+blijven beide van toepassing. Crr en helling veranderen hierdoor niet.
+Status meldt `aero_scale_supported=true`, de gewenste `aero_scale` en de werkelijk
+FTMS-bevestigde Cw in `confirmed_simulation.cw`. Een aerofactor van 0 is geen vrijgave.
+Zie [spelkoppeling](../game/README_trainer_control.md).
+
 ## Hoe de versnellingen werken
 
 FTMS 0x11 bevat wegparameters, geen gestandaardiseerd virtueel versnellingsnummer.
@@ -41,7 +52,7 @@ theta = atan(game_grade_pct / 100)
 theta_effective = asin(k * sin(theta))
 trainer_grade_pct = 100 * tan(theta_effective)
 trainer_Crr = Crr * k * cos(theta) / cos(theta_effective)
-trainer_Cw = Cw * k^3
+trainer_Cw = Cw * aero_scale * k^3
 wind_speed = 0
 ```
 
@@ -100,3 +111,4 @@ Referentie: [Bluetooth SIG FTMS 1.0.1](https://www.bluetooth.com/specifications/
 en [FTMS-test suite: procedure 0x11 / target-feature bit 13](https://files.bluetooth.com/wp-content/uploads/dlm_uploads/2024/10/FTMS.TS_.p6.pdf).
 Het versnellingsmodel hierboven is een implementatiekeuze van deze bridge.
 Hardwarewerking en rijgevoel van v0.15 zijn nog niet getest.
+
