@@ -54,8 +54,8 @@ original=people.pose_joints
 def banner_pose(spec):
     j=original(spec)
     for side in [-1,1]:
-        elbow,wrist=two_bone(j[f'sh{side}'],D(side*.46,.28,1.43),j['dm']['ua'],j['dm']['fa'],D(side*.8,-.4,-.2))
-        j[f'elb{side}']=elbow;j[f'wr{side}']=wrist;j[f'hdir{side}']=D(0,1,0)
+        elbow,wrist=two_bone(j[f'sh{side}'],D(side*.31,.15,2.00),j['dm']['ua'],j['dm']['fa'],D(side*.8,-.4,-.2))
+        j[f'elb{side}']=elbow;j[f'wr{side}']=wrist;j[f'hdir{side}']=D(0,.6,.8).normalized()
     return j
 people.pose_joints=banner_pose
 spec=dict(sex='m',pose='stand_relaxed',hair='short',top='longsleeve',bottom='trousers',glasses=True)
@@ -63,8 +63,8 @@ mb,j,bones=people.build_person(spec,0)
 tags=['skin','grey','navy','trousers','shoe','eye','white','mouth','navy','glasses','navy','dish','mouth','grey']
 mb.ft=[tags[tag] for tag in mb.ft]
 build_object(mb,'OudereWoutSupporter',mode='materials',colors=colors)
-cloth=MB();box(cloth,D(0,.34,1.38),(1.50,.025,.40),'white',None)
-for side in [-1,1]:cyl(cloth,D(side*.73,.33,1.15),D(side*.73,.33,1.65),.012,'navy',None,10)
+cloth=MB();box(cloth,D(0,.17,2.12),(1.50,.025,.40),'white',None)
+for side in [-1,1]:cyl(cloth,D(side*.73,.17,1.91),D(side*.73,.17,2.37),.012,'navy',None,10)
 build_object(cloth,'SpandoekDoek',mode='materials',colors=colors)
 bpy.ops.export_scene.gltf(filepath=str(OUT/'supporter_wout.glb'),export_format='GLB',export_yup=True,export_normals=True,export_animations=False)
 print('TOUR_SPECTATORS_EXPORTED')

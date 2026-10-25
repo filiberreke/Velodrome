@@ -20,7 +20,7 @@ func build(arena: Node3D) -> void:
 	text.text = "WOUT WOUT WOUT!";text.font_size = 72;text.pixel_size = 0.00195
 	text.modulate = Color("172d40");text.outline_size = 0
 	text.no_depth_test = false; text.billboard = BaseMaterial3D.BILLBOARD_DISABLED
-	fan.add_child(text);text.position = Vector3(0,1.38,0.358)
+	fan.add_child(text);text.position = Vector3(0,2.12,0.188)
 	text.shaded = true; text.double_sided = false
 	details.set_meta("bend", "Tour d'Ambiance")
 

@@ -9,6 +9,13 @@ func run_test() -> void:
 	dog.free()
 	var fan := preload("res://assets/people/supporter_wout.glb").instantiate()
 	check(fan.find_child("OudereWoutSupporter",true,false)!=null and fan.find_child("SpandoekDoek",true,false)!=null,"Supporter and held banner exported together")
+	root.add_child(fan)
+	var banner: MeshInstance3D = fan.find_child("SpandoekDoek",true,false)
+	var min_banner_height := 10.0
+	for surface in range(banner.mesh.get_surface_count()):
+		for point in banner.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]:
+			min_banner_height = minf(min_banner_height,(banner.global_transform*point).y)
+	check(min_banner_height>1.89,"Banner raised above head, face and torso remain visible")
 	fan.free()
 	var game = preload("res://main.gd").new();root.add_child(game);game.set_physics_process(false);await process_frame
 	var arena: Node3D = game.arena
@@ -20,6 +27,7 @@ func run_test() -> void:
 	check(spectator.get_meta("tier")==0 and spectator.get_meta("row")==0,"Supporter is in front row")
 	check(not arena._aisle(152.4),"Supporter does not block stair")
 	check(spectator.get_node("WoutSpandoekTekst").text=="WOUT WOUT WOUT!","Exact banner wording")
+	check(spectator.get_node("WoutSpandoekTekst").position.y>2.0,"Text follows raised banner")
 	var inward: Vector3 = -arena._outward(152.4)
 	check(spectator.basis.z.dot(inward)>0.99,"Banner faces piste")
 	game.free()
