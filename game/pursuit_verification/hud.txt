@@ -1,0 +1,230 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Velodrome 250 middenterrein: 528 personen
+Velodrome 250 arena: 8712 procedurele stoeltjes, 5079 toeschouwers, MultiMesh
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider: actieve animatie sprint_seated
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider: actieve animatie sprint_seated
+Geen KICKR-metingen opgenomen; controleer LIVE-verbinding en start wedstrijd.
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Geen KICKR-metingen opgenomen; controleer LIVE-verbinding en start wedstrijd.
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 0 morphs [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 3 morphs [-0.52, -0.48, -0.38, -0.48, -0.45, -0.38]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 1 morphs [-0.24, -0.18, -0.15, -0.2, -0.18, -0.12]
+Velodrome rider - geimporteerde animaties: ["cruise", "sprint_seated", "sprint_standing", "victory"]
+Velodrome rider: actieve animatie cruise
+Velodrome rider: profiel 2 morphs [0.75, 0.6, 0.23, 0.9, 0.75, 0.57]
+Geen KICKR-metingen opgenomen; controleer LIVE-verbinding en start wedstrijd.
+RACE_HUD_OK
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)

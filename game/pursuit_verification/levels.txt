@@ -1,0 +1,15 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PURSUIT_LEVEL cp=50 distance=1000 watts=216.03 predicted_s=118.05
+PURSUIT_LEVEL cp=50 distance=4000 watts=80.25 predicted_s=647.85
+PURSUIT_LEVEL cp=100 distance=1000 watts=283.87 predicted_s=106.60
+PURSUIT_LEVEL cp=100 distance=4000 watts=137.62 predicted_s=521.05
+PURSUIT_LEVEL cp=250 distance=1000 watts=471.07 predicted_s=88.66
+PURSUIT_LEVEL cp=250 distance=4000 watts=300.44 predicted_s=388.56
+PURSUIT_LEVEL cp=500 distance=1000 watts=762.33 predicted_s=74.71
+PURSUIT_LEVEL cp=500 distance=4000 watts=563.18 predicted_s=310.22
+PURSUIT_LEVEL cp=800 distance=1000 watts=1097.94 predicted_s=65.78
+PURSUIT_LEVEL cp=800 distance=4000 watts=873.70 predicted_s=265.93
+PURSUIT_LEVELS_OK

@@ -1,0 +1,1142 @@
+--- a/main.gd
++++ b/main.gd
+@@ -5,6 +5,18 @@
+ var scratch_rules = ScratchRules.new()
+ const XScratchAI := preload("res://x_scratch_ai.gd")
+ var x_ai = XScratchAI.new()
++const PursuitPacer := preload("res://pursuit_pacer.gd")
++const PursuitRecords := preload("res://pursuit_records.gd")
++var pursuit_library = PursuitRecords.new()
++var pursuit_pacer = PursuitPacer.new()
++var pursuit_replay: Dictionary = {}
++var pursuit_trace: Array[Dictionary] = []
++var pursuit_saved_id := ""
++var pursuit_save_box: VBoxContainer
++var pursuit_save_name: LineEdit
++var pursuit_save_button: Button
++var pursuit_save_status: Label
++var finish_subtitle: Label
+ # Track art: original, algorithmically generated warm pine and blue apron.
+ # UV values run along the banked 250 m oval; no change to _at() or race physics.
+ const WOOD_TEXTURE: Texture2D = preload("res://assets/textures/velodrome_wood_pine.png")
+@@ -17,6 +29,7 @@
+ const FRONT_WHEEL_TIP_M := 1.110
+ const RADIUS := 18.0
+ const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
++const PURSUIT_START_M := LAP - STRAIGHT * 0.5
+ const UDP_PORT := 51723
+ const LANES := [1.18, 2.38, 3.58, 4.78, 5.98, 7.18]
+ const GRAVITY := 9.81
+@@ -89,6 +102,8 @@
+ 	return rider_forms[i] if i < rider_forms.size() else 1.0
+ 
+ func _configure_peloton() -> void:
++	if race_mode == 4:
++		rider_count = 2
+ 	# Deterministic inside each event; new race = new day form.
+ 	form_rng.randomize()
+ 	_load_rider_config()
+@@ -100,9 +115,11 @@
+ 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
+ 		# 1 = TT, 2 = sprinter, 3 = attacker.
+ 		var configured: Dictionary = _configured_rider(i, kind) if i > 0 else {"profile": 0, "name": player_display_name}
++		if race_mode == 4:
++			configured = {"profile": 0 if i == 0 else 1, "name": player_display_name if i == 0 else "Tegenstander"}
+ 		rider_profiles.append(int(configured["profile"]))
+ 		rider_names.append(String(configured["name"]))
+-		rider_forms.append(1.0 if i == 0 else form_rng.randf_range(0.95, 1.05))
++		rider_forms.append(1.0 if i == 0 or race_mode == 4 else form_rng.randf_range(0.95, 1.05))
+ 		var kit: Dictionary = configured.get("jersey", {})
+ 		kit = kit.duplicate()
+ 		kit["number"] = clampi(int(kit.get("number", i + 1)), 1, 99)
+@@ -133,7 +150,7 @@
+ 	lane_offsets.resize(count)
+ 	ai_lane_targets.resize(count)
+ 	for i in range(count):
+-		var lane: float = LANES[i % LANES.size()]
++		var lane: float = LANES[0] if race_mode == 4 else LANES[i % LANES.size()]
+ 		lane_offsets[i] = lane
+ 		ai_lane_targets[i] = lane
+ 		var type_id := _profile(i)
+@@ -533,7 +550,7 @@
+ 				else:
+ 					demo_launch_watts = maxf(0.0, demo_launch_watts - 25.0)
+ 		KEY_SPACE:
+-			if not trainer_seen and running and not finished and not boost_used:
++			if not trainer_seen and running and not finished and not boost_used and race_mode != 4:
+ 				boost_left = BOOST_DURATION
+ 				boosted_speed = speeds[0]
+ 				baseline_speed = speeds[0]
+@@ -615,9 +632,9 @@
+ 	zero_stable = 0.0
+ 	if setup_panel != null:
+ 		setup_panel.show()
+-	if laps_input != null:
++	if laps_input != null and race_mode != 4:
+ 		laps_input.value = race_laps
+-	if rider_count_input != null:
++	if rider_count_input != null and race_mode != 4:
+ 		rider_count_input.value = rider_count
+ 	if not trainer_seen:
+ 		watts = 0.0
+@@ -625,6 +642,12 @@
+ 	finished = false
+ 	player_lane = 0
+ 	camera_roll = 0.0
++	pursuit_trace.clear()
++	pursuit_saved_id = ""
++	if pursuit_save_box != null:
++		pursuit_save_box.hide()
++		pursuit_save_button.disabled = false
++		pursuit_save_status.text = ""
+ 	_configure_peloton()
+ 	_tt_prepare_event()
+ 	ai_think_timer = 0.0
+@@ -659,6 +682,9 @@
+ # An opponent in front and approximately on the same line shields a rider.
+ # The game has no collisions yet: gaps < 1.2m are excluded to avoid rewarding overlap.
+ func _draft_target(rider: int) -> float:
++	if race_mode == 4:
++		draft_leaders[rider] = -1
++		return 0.0
+ 	# Non-scratch modes retain the exact prior drafting model.
+ 	if race_mode != 0:
+ 		if speeds[rider] < DRAFT_MIN_SPEED_MPS:
+@@ -729,6 +755,8 @@
+ # Effective (speed-adjusted) draft is shared by physics, AI planning, HUD and CSV.
+ # Only scratch uses the new speed ramp. Legacy modes remain unchanged.
+ func _effective_draft_strength(rider: int) -> float:
++	if race_mode == 4:
++		return 0.0
+ 	var strength: float = clampf(draft_strengths[rider], 0.0, 1.0)
+ 	if race_mode != 0:
+ 		return strength
+@@ -736,12 +764,16 @@
+ 	return strength * lerpf(SCRATCH_DRAFT_LOW_SPEED_SCALE, 1.0, speed_ratio)
+ 
+ func _draft_drag_reduction(rider: int) -> float:
++	if race_mode == 4:
++		return 0.0
+ 	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode == 0 else DRAFT_MAX_DRAG_REDUCTION
+ 	return limit * _effective_draft_strength(rider)
+ 
+ func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
++	if race_mode == 4:
++		draft_strength = 0.0
+ 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
+-	if race_mode == 0:
++	if race_mode in [0, 4]:
+ 		var v: float = maxf(current_speed, 0.0)
+ 		var aero_factor: float = maxf(1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION, 1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION * draft_strength)
+ 		var drag: float = 0.5 * 1.20 * 0.334 * v * v * aero_factor
+@@ -923,6 +955,8 @@
+ 	return ai_power_w[i] * (ai_difficulty / 80.0)
+ 
+ func _move_lanes(dt: float) -> Array[float]:
++	if race_mode == 4:
++		return _pursuit_move_lanes(dt)
+ 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
+ 	if race_mode != 0:
+ 		_ai_decide_lanes(dt)
+@@ -977,6 +1011,9 @@
+ 	return best
+ 
+ func _update_race(dt: float) -> void:
++	if race_mode == 4:
++		_update_pursuit(dt)
++		return
+ 	if trainer_seen:
+ 		boost_left = 0.0
+ 		recovery_left = 0.0
+@@ -1127,7 +1164,7 @@
+ 	return fraction * fraction * (3.0 - 2.0 * fraction)
+ 
+ func _visual_lean(i: int) -> float:
+-	var curve: float = _curve_factor(distances[i])
++	var curve: float = _curve_factor(_rider_distance(i, distances[i]))
+ 	if curve <= 0.0:
+ 		return 0.0
+ 	var speed_factor: float = clampf((speeds[i] * 3.6 - LEAN_MIN_SPEED_KMH) / (LEAN_FULL_SPEED_KMH - LEAN_MIN_SPEED_KMH), 0.0, 1.0)
+@@ -1145,15 +1182,15 @@
+ 			continue
+ 		var old_speed: float = coast_speeds[i]
+ 		coast_speeds[i] = maxf(0.0, old_speed - COAST_BRAKE_MPS2 * dt)
+-		coast_distances[i] += (old_speed + coast_speeds[i]) * 0.5 * dt / _path_metric(coast_distances[i], lane_offsets[i])
++		coast_distances[i] += (old_speed + coast_speeds[i]) * 0.5 * dt / _path_metric(_rider_distance(i, coast_distances[i]), lane_offsets[i])
+ 
+ func _place_finish_camera() -> void:
+ 	# Fixed on the infield, pointing slightly past the finish line along travel direction.
+-	var line: Vector3 = _at(_race_length(), LANES[1])
+-	var next_point: Vector3 = _at(_race_length() + 7.0, LANES[1])
++	var line: Vector3 = _at(_rider_distance(0, _race_length()), LANES[1])
++	var next_point: Vector3 = _at(_rider_distance(0, _race_length()) + 7.0, LANES[1])
+ 	var direction: Vector3 = Vector3(next_point.x - line.x, 0.0, next_point.z - line.z).normalized()
+-	var inner: Vector3 = _at(_race_length(), 0.3)
+-	var outward: Vector3 = _at(_race_length(), 7.5)
++	var inner: Vector3 = _at(_rider_distance(0, _race_length()), 0.3)
++	var outward: Vector3 = _at(_rider_distance(0, _race_length()), 7.5)
+ 	var infield: Vector3 = Vector3(inner.x - outward.x, 0.0, inner.z - outward.z).normalized()
+ 	camera.global_position = line + infield * 10.0 - direction * 4.0 + Vector3.UP * 4.3
+ 	camera.fov = 68.0
+@@ -1178,7 +1215,8 @@
+ 	for i in range(rider_count):
+ 		var lateral: float = lane_offsets[i]
+ 		var display_distance: float = coast_distances[i] if finish_times[i] >= 0.0 else distances[i]
+-		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished else 0.0
++		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode != 4 else 0.0
++		display_distance = _rider_distance(i, display_distance)
+ 		var position: Vector3 = _at(display_distance - FRONT_WHEEL_TIP_M - starting_grid, lateral)
+ 		# Imported Blender wheel mesh reaches local ground at y=0.  On the
+ 		# bank, visual lean can otherwise push the inboard tyre below the track.
+@@ -1203,7 +1241,7 @@
+ 		_place_finish_camera()
+ 		return
+ 	var offset: float = lane_offsets[0]
+-	var t: Vector3 = _direction(distances[0], offset)
++	var t: Vector3 = _direction(_rider_distance(0, distances[0]), offset)
+ 	var start_view: bool = start_state != "RACING" and not finished
+ 	var follow_position: Vector3 = bikes[0].position
+ 	var desired: Vector3
+@@ -1214,8 +1252,8 @@
+ 		# Rearward view from just ahead of the rider: follow the curved track,
+ 		# so other riders behind remain visible even through the banking.
+ 		# No changes to bike movement, lane choice, or race physics.
+-		desired = _at(distances[0] + 3.0, offset) + Vector3(0.0, 2.65, 0.0)
+-		target = _at(distances[0] - 13.0, offset) + Vector3(0.0, 1.10, 0.0)
++		desired = _at(_rider_distance(0, distances[0]) + 3.0, offset) + Vector3(0.0, 2.65, 0.0)
++		target = _at(_rider_distance(0, distances[0]) - 13.0, offset) + Vector3(0.0, 1.10, 0.0)
+ 		target_fov = 77.0
+ 	elif camera_mode == 2:
+ 		# Very subtle POV sway synchronized to the standing sprint crank phase.
+@@ -1229,8 +1267,8 @@
+ 		target_fov = 78.0
+ 	elif camera_mode == 3:
+ 		# Infield side camera to inspect rider posture and bike shape.
+-		var inner_probe: Vector3 = _at(distances[0], maxf(0.2, offset - 1.8))
+-		var outer_probe: Vector3 = _at(distances[0], minf(8.4, offset + 1.8))
++		var inner_probe: Vector3 = _at(_rider_distance(0, distances[0]), maxf(0.2, offset - 1.8))
++		var outer_probe: Vector3 = _at(_rider_distance(0, distances[0]), minf(8.4, offset + 1.8))
+ 		# IMPORTANT: lateral track probe includes vertical banking height.
+ 		# Taking its 3D normal pulled the camera BELOW the infield floor in bends.
+ 		# Use a horizontal-only inward direction and independent camera height.
+@@ -1245,9 +1283,9 @@
+ 		# Follow the actual track arc rather than extending the current tangent.
+ 		# This keeps the chase camera inboard of the external advertising wall.
+ 		var safe_lane: float = clampf(offset - 0.75, 1.1, 6.3)
+-		var back_on_track: Vector3 = _at(distances[0] - back, safe_lane)
++		var back_on_track: Vector3 = _at(_rider_distance(0, distances[0]) - back, safe_lane)
+ 		desired = back_on_track + Vector3(0.0, height, 0.0)
+-		target = _at(distances[0] + (7.0 if close_mode else 9.0), offset) + Vector3(0.0, 1.1, 0.0)
++		target = _at(_rider_distance(0, distances[0]) + (7.0 if close_mode else 9.0), offset) + Vector3(0.0, 1.1, 0.0)
+ 		target_fov = (72.0 if close_mode else 77.0) if start_view else (69.0 if close_mode else 72.0)
+ 	if boost_left > 0.0:
+ 		target_fov += 4.0
+@@ -1260,7 +1298,7 @@
+ 	# Camera looks along local -Z while the bicycle faces local +Z.
+ 	# Their roll signs therefore differ; negate to follow the visible rider lean.
+ 	var pov_rock_roll: float = deg_to_rad(1.8) * pov_sway if camera_mode == 2 and not look_back_held else 0.0
+-	camera_roll = lerp_angle(camera_roll, -visual_rolls[0] * follow_ratio + pov_rock_roll, clampf(dt * (12.0 if _curve_factor(distances[0]) == 0.0 else 8.0), 0.0, 1.0))
++	camera_roll = lerp_angle(camera_roll, -visual_rolls[0] * follow_ratio + pov_rock_roll, clampf(dt * (12.0 if _curve_factor(_rider_distance(0, distances[0])) == 0.0 else 8.0), 0.0, 1.0))
+ 	camera.rotate_object_local(Vector3(0.0, 0.0, 1.0), camera_roll)
+ 
+ func _update_boost_dog(dt: float) -> void:
+@@ -1477,6 +1515,7 @@
+ 	minimap = race_overlay.map
+ 	# Separate mode gallery and race configuration, above a quiet arena.
+ 	var menu = preload("res://race_menu.gd").new()
++	menu.library = pursuit_library
+ 	setup_panel = menu
+ 	layer.add_child(menu)
+ 	rider_count_input = menu.count_input
+@@ -1545,6 +1584,7 @@
+ 	finish_heading.add_theme_color_override("font_color", Color("fff6e8"))
+ 	heading_stack.add_child(finish_heading)
+ 	var subtitle := Label.new()
++	finish_subtitle = subtitle
+ 	subtitle.text = "S P R I N T   2 5 0 M     |     OFFICIELE WEDSTRIJDRESULTATEN"
+ 	subtitle.add_theme_font_size_override("font_size", 14)
+ 	subtitle.add_theme_color_override("font_color", Color("42daed"))
+@@ -1578,6 +1618,29 @@
+ 	finish_table.add_theme_constant_override("h_separation", 3)
+ 	finish_table.add_theme_constant_override("v_separation", 4)
+ 	table_scroll.add_child(finish_table)
++	pursuit_save_box = VBoxContainer.new()
++	pursuit_save_box.add_theme_constant_override("separation", 8)
++	sheet.add_child(pursuit_save_box)
++	var save_row := HBoxContainer.new()
++	save_row.add_theme_constant_override("separation", 16)
++	pursuit_save_box.add_child(save_row)
++	pursuit_save_name = LineEdit.new()
++	pursuit_save_name.placeholder_text = "Geef je rit een naam"
++	pursuit_save_name.max_length = 48
++	pursuit_save_name.custom_minimum_size = Vector2(550, 52)
++	pursuit_save_name.add_theme_font_size_override("font_size", 22)
++	save_row.add_child(pursuit_save_name)
++	pursuit_save_button = Button.new()
++	pursuit_save_button.text = "Rit opslaan"
++	pursuit_save_button.custom_minimum_size = Vector2(220, 52)
++	_style_finish_button(pursuit_save_button, Color("51d7df"), Color("092a39"))
++	pursuit_save_button.pressed.connect(_save_pursuit_ride)
++	save_row.add_child(pursuit_save_button)
++	pursuit_save_status = Label.new()
++	pursuit_save_status.add_theme_font_size_override("font_size", 18)
++	pursuit_save_status.add_theme_color_override("font_color", Color("a8bdce"))
++	pursuit_save_box.add_child(pursuit_save_status)
++	pursuit_save_box.hide()
+ 	var buttons := HBoxContainer.new()
+ 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+ 	buttons.add_theme_constant_override("separation", 12)
+@@ -1650,7 +1713,7 @@
+ 		return
+ 	finish_photo_taken = true
+ 	finish_photo_rider = winner
+-	var line_d: float = _race_length()
++	var line_d: float = _rider_distance(winner, _race_length())
+ 	var lane: float = lane_offsets[winner] if winner < lane_offsets.size() else 1.0
+ 	# Photographer: infield side, a few metres past the line, camera above the handrail, aiming back at the line.
+ 	var spot: Vector3 = _at(line_d + FINISH_PHOTO_AFTER_LINE_M, FINISH_PHOTO_INFIELD_OFFSET)
+@@ -1705,18 +1768,32 @@
+ 	difficulty_label.text = "AI-sterkte · %d%%" % int(ai_difficulty)
+ 
+ func _confirm_start() -> void:
+-	if setup_panel == null or int(setup_panel.get("selected")) != 0:
+-		return
+-	if start_state != "SETUP":
+-		return
++	if setup_panel == null or start_state != "SETUP":
++		return
++	var choice: int = int(setup_panel.get("selected"))
++	if choice not in [0, 1]:
++		return
++	var replay: Dictionary = {}
++	if choice == 1:
++		var options = setup_panel.get("pursuit_options")
++		if not options.can_start():
++			return
++		if options.is_replay():
++			replay = pursuit_library.load_ride(options.selected_ride_id())
++			if replay.is_empty() or replay["distance_m"] != options.distance_m():
++				options.refresh_rides()
++				setup_panel.get("status_label").text = "Deze rit is niet meer beschikbaar. Kies een andere tegenstander."
++				return
+ 	if not trainer_seen:
+ 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
+-	race_laps = clampi(int(laps_input.value), 1, 30)
+-	rider_count = clampi(int(rider_count_input.value), 6, 12)
+-	if race_mode != 0:
+-		return
++	race_mode = 4 if choice == 1 else 0
++	race_laps = int(setup_panel.get("pursuit_options").distance_m() / LAP) if choice == 1 else clampi(int(laps_input.value), 1, 30)
++	rider_count = 2 if choice == 1 else clampi(int(rider_count_input.value), 6, 12)
+ 	_configure_peloton()
+-	_tt_prepare_event()
++	if race_mode == 4:
++		_prepare_pursuit(replay, float(setup_panel.get("pursuit_options").cp_input.value))
++	else:
++		_tt_prepare_event()
+ 	start_state = "WAIT_STOP"
+ 	zero_stable = 0.0
+ 	_set_menu_visible(false)
+@@ -2002,7 +2079,10 @@
+ 	minimap.set_progress(distances)
+ 	# camera changes do not alter race state
+ 	if arena != null:
+-		arena.call("set_ranking", distances)
++		if race_mode == 4:
++			arena.get("board").text = "ACHTERVOLGING\n%s: %.0f m\n%s: %.0f m" % [_rider_name(0), distances[0], _rider_name(1), distances[1]]
++		else:
++			arena.call("set_ranking", distances)
+ 	# The original result panel is intentionally hidden during the finish replay.
+ 	# All results move to the dedicated full-screen page after 10 seconds.
+ 	if finished:
+@@ -2054,11 +2134,13 @@
+ func _update_compact_hud(order: Array[int]) -> void:
+ 	if race_overlay == null:
+ 		return
++	var physical_positions: Array[float] = []
+ 	var names: Array[String] = []
+ 	var gaps: Array[String] = []
+ 	var colours: Array[Color] = []
+ 	var palette := [Color("ffdc46"), Color("54d39b"), Color("52b5fa"), Color("ff7676")]
+ 	for id in range(rider_count):
++		physical_positions.append(_rider_distance(id, distances[id]))
+ 		names.append(_rider_name(id))
+ 		var delta: float = distances[id] - distances[0]
+ 		var gap_text: String = "JIJ" if id == 0 else "%+d m" % roundi(delta)
+@@ -2081,7 +2163,11 @@
+ 	elif finished:
+ 		notice = "Finish · %.2f s" % finish_times[0]
+ 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
+-	race_overlay.update_race({"speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode == 0 else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": rider_count, "leader_gap": _hud_leader_gap(order), "order": order, "distances": distances, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
++	var markers: Array[float] = [_rider_distance(0, 0.0)]
++	if race_mode == 4:
++		markers.append(_rider_distance(1, 0.0))
++	minimap.set("start_lines", markers)
++	race_overlay.update_race({"draft_enabled": race_mode != 4, "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode == 0 else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": rider_count, "leader_gap": _hud_leader_gap(order), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+ 
+ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
+ 	var panel := PanelContainer.new()
+@@ -2107,7 +2193,11 @@
+ 	for n in range(rider_count): ordered.append(n)
+ 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
+ 	var player_place: int = ordered.find(0) + 1
+-	finish_heading.text = "VELODROME 250  |  UITSLAG"
++	finish_heading.text = "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else "VELODROME 250  |  UITSLAG"
++	if finish_subtitle != null:
++		finish_subtitle.text = "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
++	if pursuit_save_box != null:
++		pursuit_save_box.visible = race_mode == 4 and finish_times[0] >= 0.0
+ 	finish_badge.text = "#%d / %d" % [player_place, rider_count]
+ 	var complete: bool = _all_riders_finished()
+ 	var status: String = "Alle renners gefinisht" if complete else "Nog renners onderweg - uitslag wordt automatisch aangevuld"
+@@ -2169,6 +2259,130 @@
+ 		_result_cell(display_time, white, row_bg, 120, true)
+ 		_result_cell(gap, gold if rank == 0 else white, row_bg, 110, true)
+ 		_result_cell(laps_display, white, row_bg, 300)
++
++func _rider_distance(rider: int, progress: float) -> float:
++	return progress + PURSUIT_START_M + float(rider) * LAP * 0.5 if race_mode == 4 else progress
++
++func _prepare_pursuit(replay: Dictionary, cp: float) -> void:
++	pursuit_replay = replay.duplicate(true)
++	pursuit_trace.clear()
++	pursuit_trace.append({"t": 0.0, "d": 0.0, "p": 0.0, "lane": LANES[0]})
++	pursuit_saved_id = ""
++	baseline_speed = 0.0
++	boost_left = 0.0
++	recovery_left = 0.0
++	pursuit_pacer = PursuitPacer.new()
++	if pursuit_replay.is_empty():
++		pursuit_pacer.prepare(self, _race_length(), cp, _rider_distance(1, 0.0), LANES[0])
++		rider_names[1] = "AI-tegenstander"
++	else:
++		rider_names[1] = "Rit: " + String(pursuit_replay["name"]).left(24)
++	if bikes.size() > 1 and bikes[1].get_child_count() > 1:
++		bikes[1].get_child(1).text = _rider_name(1)
++	if pursuit_save_box != null:
++		pursuit_save_box.hide()
++		pursuit_save_name.text = ""
++		pursuit_save_button.disabled = false
++		pursuit_save_status.text = "Bewaar deze rit om er later tegen te rijden."
++
++func _pursuit_move_lanes(dt: float) -> Array[float]:
++	var heights: Array[float] = [0.0, 0.0]
++	var position: float = _rider_distance(0, distances[0])
++	var previous: float = _at(position, lane_offsets[0]).y
++	lane_offsets[0] = move_toward(lane_offsets[0], LANES[player_lane], LANE_CHANGE_MPS * dt)
++	heights[0] = _at(position, lane_offsets[0]).y - previous
++	# The opponent is always on the lowest line, including saved-ride playback.
++	lane_offsets[1] = LANES[0]
++	ai_lane_targets[1] = LANES[0]
++	return heights
++
++func _record_pursuit_sample(seconds: float, distance: float, force: bool = false) -> void:
++	if not force and seconds - float(pursuit_trace[-1]["t"]) < 0.2:
++		return
++	var sample := {"t": seconds, "d": distance, "p": maxf(0.0, watts), "lane": lane_offsets[0]}
++	if seconds > float(pursuit_trace[-1]["t"]) + 0.000001:
++		pursuit_trace.append(sample)
++
++func _update_pursuit(dt: float) -> void:
++	if dt <= 0.0:
++		return
++	boost_left = 0.0
++	recovery_left = 0.0
++	var previous_lanes: Array[float] = lane_offsets.duplicate()
++	var lateral_height: Array[float] = _pursuit_move_lanes(dt)
++	draft_strengths.fill(0.0)
++	draft_leaders.fill(-1)
++	var new_finisher := false
++	for i in range(2):
++		if finish_times[i] >= 0.0:
++			continue
++		var previous: float = distances[i]
++		var power: float = watts if i == 0 else 0.0
++		var step: float
++		var end_time: float = clock
++		if i == 1 and not pursuit_replay.is_empty():
++			var sample: Dictionary = PursuitRecords.at_time(pursuit_replay, clock)
++			step = maxf(0.0, float(sample["d"]) - previous)
++			speeds[i] = float(sample["speed"]) * _path_metric(_rider_distance(i, float(sample["d"])), LANES[0])
++			power = sample["p"]
++			while lap_times[i].size() < race_laps and float(lap_times[i].size() + 1) * LAP <= float(sample["d"]) + 0.00001:
++				var crossing: float = PursuitRecords.time_at_distance(pursuit_replay, float(lap_times[i].size() + 1) * LAP)
++				lap_times[i].append(crossing - last_lap_crossing[i])
++				last_lap_crossing[i] = crossing
++			if clock >= float(pursuit_replay["time_s"]):
++				end_time = float(pursuit_replay["time_s"])
++		else:
++			if i == 1:
++				power = pursuit_pacer.power(dt)
++			var result: Dictionary = PursuitPacer.advance(self, previous, speeds[i], power, dt, lane_offsets[i], _rider_distance(i, 0.0), lateral_height[i], absf(lane_offsets[i] - previous_lanes[i]))
++			speeds[i] = result["speed"]
++			step = result["step"]
++			_register_lap_crossings(i, previous, step, dt)
++			if previous + step >= _race_length():
++				end_time = clock - dt + dt * (_race_length() - previous) / maxf(step, 0.000001)
++		distances[i] = minf(_race_length(), previous + step)
++		var crossed: bool = distances[i] >= _race_length() - 0.000001
++		if crossed:
++			distances[i] = _race_length()
++		if i == 0:
++			baseline_speed = speeds[i]
++			player_power_integral += watts * (maxf(0.0, end_time - (clock - dt)) if crossed else dt)
++			player_peak_watts = maxf(player_peak_watts, watts)
++			player_speed_peak_kmh = maxf(player_speed_peak_kmh, speeds[i] * 3.6)
++			if player_samples.is_empty() or distances[i] - player_samples[-1].x >= 2.5 or crossed:
++				player_samples.append(Vector2(distances[i], watts))
++			_record_pursuit_sample(end_time if crossed else clock, distances[i], crossed)
++			if not trainer_seen:
++				_capture_demo_fit_sample()
++		else:
++			ai_power_w[i] = power
++			ai_energy_j[i] = pursuit_pacer.reserve_j
++			tt_effort_remaining = pursuit_pacer.reserve_j / PursuitPacer.WPRIME_J
++		if crossed:
++			finish_times[i] = end_time
++			coast_distances[i] = _race_length()
++			coast_speeds[i] = speeds[i]
++			new_finisher = true
++	if new_finisher:
++		_take_finish_photo(_winner_index())
++	if finish_times[0] >= 0.0 and not finished:
++		finished = true
++		running = false
++		finish_elapsed = 0.0
++		_save_recording("finish")
++
++func _save_pursuit_ride() -> void:
++	if race_mode != 4 or finish_times[0] < 0.0 or not pursuit_saved_id.is_empty():
++		return
++	var result: Dictionary = pursuit_library.save(pursuit_save_name.text, int(_race_length()), finish_times[0], pursuit_trace)
++	if result.has("error"):
++		pursuit_save_status.text = result["error"]
++		return
++	pursuit_saved_id = result["id"]
++	pursuit_save_status.text = "Opgeslagen: %s · beschikbaar bij deze afstand als tegenstander." % result["name"]
++	pursuit_save_button.disabled = true
++	if setup_panel != null:
++		setup_panel.get("pursuit_options").refresh_rides()
+ 
+ func _style_finish_button(button: Button, fill: Color, ink: Color, outline: Color = Color.TRANSPARENT) -> void:
+ 	button.add_theme_font_size_override("font_size", 17)
+--- a/minimap.gd
++++ b/minimap.gd
+@@ -4,6 +4,7 @@
+ const COLORS := [Color("ffdc46"), Color("54d39b"), Color("52b5fa"), Color("ff7676")]
+ const TRACK_LENGTH := 250.0
+ var rider_colours: Array[Color] = []
++var start_lines: Array[float] = [0.0]
+ 
+ func set_colors(values: Array[Color]) -> void:
+     rider_colours = values
+@@ -45,8 +46,9 @@
+         draw_line(last, next, Color("50758b"), 10.0, true)
+         draw_line(last, next, Color("183347"), 5.0, true)
+         last = next
+-    var finish: Vector2 = _point(0.0)
+-    draw_circle(finish, 2.0, Color.WHITE)
++    for start in start_lines:
++        var finish: Vector2 = _point(start)
++        draw_line(finish - Vector2(0, 6), finish + Vector2(0, 6), Color.WHITE, 2.0, true)
+     # Other riders first, player last, making the yellow dot easy to spot.
+     for i in range(progress.size() - 1, 0, -1):
+         _draw_rider_dot(i)
+--- /dev/null
++++ b/pursuit_options.gd
+@@ -0,0 +1,92 @@
++extends VBoxContainer
++signal changed
++const Records := preload("res://pursuit_records.gd")
++var library = Records.new()
++var distance_choice: OptionButton
++var opponent_choice: OptionButton
++var cp_input: SpinBox
++var cp_box: VBoxContainer
++var ride_box: VBoxContainer
++var ride_choice: OptionButton
++var rides: Array[Dictionary] = []
++
++func _label(value: String) -> Label:
++	var node := Label.new()
++	node.text = value
++	node.add_theme_font_size_override("font_size", 22)
++	node.add_theme_color_override("font_color", Color("f3f5fa"))
++	return node
++
++func _choice() -> OptionButton:
++	var node := OptionButton.new()
++	node.custom_minimum_size.y = 46
++	node.add_theme_font_size_override("font_size", 22)
++	node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
++	return node
++
++func _ready() -> void:
++	add_theme_constant_override("separation", 10)
++	add_child(_label("Afstand"))
++	distance_choice = _choice()
++	distance_choice.add_item("1 km · 4 ronden", 1000)
++	distance_choice.add_item("4 km · 16 ronden", 4000)
++	add_child(distance_choice)
++	add_child(_label("Tegenstander"))
++	opponent_choice = _choice()
++	opponent_choice.add_item("AI-tegenstander")
++	opponent_choice.add_item("Een vorige rit")
++	add_child(opponent_choice)
++	cp_box = VBoxContainer.new()
++	cp_box.add_child(_label("CP tegenstander (W)"))
++	cp_input = SpinBox.new()
++	cp_input.min_value = 50
++	cp_input.max_value = 800
++	cp_input.value = 250
++	cp_input.step = 1
++	cp_input.custom_minimum_size.y = 52
++	cp_input.get_line_edit().add_theme_font_size_override("font_size", 24)
++	cp_box.add_child(cp_input)
++	add_child(cp_box)
++	ride_box = VBoxContainer.new()
++	ride_box.add_child(_label("Opgeslagen rit"))
++	ride_choice = _choice()
++	ride_box.add_child(ride_choice)
++	add_child(ride_box)
++	distance_choice.item_selected.connect(func(_index: int) -> void: refresh_rides())
++	opponent_choice.item_selected.connect(func(_index: int) -> void: refresh_state())
++	ride_choice.item_selected.connect(func(_index: int) -> void: changed.emit())
++	refresh_rides()
++
++func distance_m() -> int:
++	return distance_choice.get_selected_id()
++
++func is_replay() -> bool:
++	return opponent_choice.selected == 1
++
++func selected_ride_id() -> String:
++	return str(ride_choice.get_item_metadata(ride_choice.selected)) if ride_choice.selected >= 0 and not rides.is_empty() else ""
++
++func can_start() -> bool:
++	return not is_replay() or not selected_ride_id().is_empty()
++
++func refresh_rides() -> void:
++	var previous: String = selected_ride_id()
++	rides = library.list_rides(distance_m())
++	ride_choice.clear()
++	for ride in rides:
++		ride_choice.add_item("%s · %.2f s" % [ride["name"], ride["time_s"]])
++		var index: int = ride_choice.item_count - 1
++		ride_choice.set_item_metadata(index, ride["id"])
++		if ride["id"] == previous:
++			ride_choice.select(index)
++	if rides.is_empty():
++		ride_choice.add_item("Nog geen rit van deze afstand opgeslagen")
++		ride_choice.disabled = true
++	else:
++		ride_choice.disabled = false
++	refresh_state()
++
++func refresh_state() -> void:
++	cp_box.visible = not is_replay()
++	ride_box.visible = is_replay()
++	changed.emit()
+--- /dev/null
++++ b/pursuit_pacer.gd
+@@ -0,0 +1,54 @@
++extends RefCounted
++## One constant, distance-budgeted effort; no draft, randomness or final sprint.
++const WPRIME_J := 20000.0
++const BUDGET_FRACTION := 0.98
++var cp_w := 250.0
++var target_w := 250.0
++var reserve_j := WPRIME_J
++var predicted_seconds := 0.0
++
++static func advance(game: Node3D, progress: float, speed: float, power: float, dt: float, lane: float, origin: float, lateral_height: float = 0.0, lateral_travel: float = 0.0) -> Dictionary:
++	var position: float = origin + progress
++	var next: float = game._next_speed(speed, power, dt, 0.0)
++	var metric: float = game._path_metric(position, lane)
++	var estimate: float = next * dt / metric
++	var height: float = game._at(position + estimate, lane).y - game._at(position, lane).y
++	next = game._banked_speed(next, height, lateral_height, lateral_travel, dt, power)
++	return {"speed": next, "step": next * dt / metric}
++
++static func duration(game: Node3D, distance: float, power: float, origin: float, lane: float) -> float:
++	var progress := 0.0
++	var speed := 0.0
++	var clock := 0.0
++	var dt := 0.1
++	while progress < distance and clock < 3600.0:
++		var result: Dictionary = advance(game, progress, speed, power, dt, lane, origin)
++		speed = result["speed"]
++		var step: float = result["step"]
++		if progress + step >= distance:
++			return clock + dt * (distance - progress) / maxf(step, 0.000001)
++		progress += step
++		clock += dt
++	return INF
++
++func prepare(game: Node3D, distance: float, cp: float, origin: float, lane: float) -> void:
++	cp_w = clampf(cp, 50.0, 800.0)
++	reserve_j = WPRIME_J
++	var low: float = cp_w
++	var high: float = cp_w + 550.0
++	for iteration in range(22):
++		var candidate: float = (low + high) * 0.5
++		var seconds: float = duration(game, distance, candidate, origin, lane)
++		if (candidate - cp_w) * seconds <= WPRIME_J * BUDGET_FRACTION:
++			low = candidate
++		else:
++			high = candidate
++	target_w = low
++	predicted_seconds = duration(game, distance, target_w, origin, lane)
++
++func power(dt: float) -> float:
++	if dt <= 0.0:
++		return target_w
++	var expenditure: float = minf(reserve_j, maxf(0.0, target_w - cp_w) * dt)
++	reserve_j -= expenditure
++	return cp_w + expenditure / dt
+--- /dev/null
++++ b/pursuit_records.gd
+@@ -0,0 +1,123 @@
++extends RefCounted
++## Local named attempts. Names never become paths; only completed compatible rides load.
++const VERSION := 1
++const PHYSICS := "pursuit_v1"
++var directory := "user://pursuit_rides"
++
++static func valid(record: Dictionary) -> bool:
++	if record.get("version", 0) != VERSION or record.get("physics", "") != PHYSICS:
++		return false
++	# JSON restores numeric fields as floats; Array membership is type-sensitive.
++	var distance = record.get("distance_m")
++	if not _number(distance) or (float(distance) != 1000.0 and float(distance) != 4000.0):
++		return false
++	var time_value = record.get("time_s")
++	if not _number(time_value) or time_value <= 0.0 or time_value > 3600.0:
++		return false
++	if not record.get("name", null) is String or String(record["name"]).strip_edges().is_empty():
++		return false
++	var samples = record.get("samples")
++	if not samples is Array or samples.size() < 2 or samples.size() > 40000:
++		return false
++	var last_t := -1.0
++	var last_d := -1.0
++	for sample in samples:
++		if not sample is Dictionary:
++			return false
++		for field in ["t", "d", "p", "lane"]:
++			if not _number(sample.get(field)):
++				return false
++		if sample["t"] <= last_t or sample["d"] < last_d or sample["d"] < 0.0 or sample["d"] > record["distance_m"] + 0.001 or sample["p"] < 0.0 or sample["lane"] < 1.0 or sample["lane"] > 8.0:
++			return false
++		last_t = sample["t"]
++		last_d = sample["d"]
++	return absf(samples[0]["t"]) < 0.0001 and absf(samples[0]["d"]) < 0.0001 and absf(last_t - time_value) < 0.0001 and absf(last_d - record["distance_m"]) < 0.001
++
++static func _number(value: Variant) -> bool:
++	return (typeof(value) == TYPE_FLOAT or typeof(value) == TYPE_INT) and is_finite(float(value))
++
++func save(name: String, distance: int, seconds: float, samples: Array[Dictionary]) -> Dictionary:
++	var title: String = name.strip_edges().replace("\n", " ").replace("\r", " ").left(48)
++	if title.is_empty():
++		return {"error": "Geef je rit eerst een naam."}
++	var id: String = Crypto.new().generate_random_bytes(12).hex_encode()
++	var record := {"version": VERSION, "physics": PHYSICS, "id": id, "name": title, "distance_m": distance, "time_s": seconds, "created_at": Time.get_unix_time_from_system(), "samples": samples.duplicate(true)}
++	if not valid(record):
++		return {"error": "Alleen een volledig afgewerkte achtervolging kan worden bewaard."}
++	var absolute: String = ProjectSettings.globalize_path(directory)
++	if DirAccess.make_dir_recursive_absolute(absolute) != OK:
++		return {"error": "De map voor opgeslagen ritten kon niet worden gemaakt."}
++	var path: String = directory.path_join(id + ".json")
++	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
++	if file == null:
++		return {"error": "De rit kon niet worden opgeslagen. Probeer opnieuw."}
++	file.store_string(JSON.stringify(record))
++	file.flush()
++	var error: Error = file.get_error()
++	file.close()
++	if error != OK or DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path)) != OK:
++		return {"error": "Opslaan is niet voltooid. Probeer opnieuw."}
++	return {"id": id, "name": title}
++
++func load_ride(id: String) -> Dictionary:
++	var pattern := RegEx.new()
++	pattern.compile("^[0-9a-f]{24}$")
++	if pattern.search(id) == null:
++		return {}
++	var file := FileAccess.open(directory.path_join(id + ".json"), FileAccess.READ)
++	if file == null:
++		return {}
++	if file.get_length() > 12000000:
++		return {}
++	var value = JSON.parse_string(file.get_as_text())
++	if value is Dictionary and value.get("id", "") == id and valid(value):
++		return value
++	return {}
++
++func list_rides(distance: int) -> Array[Dictionary]:
++	var result: Array[Dictionary] = []
++	var folder := DirAccess.open(directory)
++	if folder == null:
++		return result
++	for filename in folder.get_files():
++		if not filename.ends_with(".json"):
++			continue
++		var record: Dictionary = load_ride(filename.trim_suffix(".json"))
++		if not record.is_empty() and int(record["distance_m"]) == distance:
++			result.append(record)
++	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.get("created_at", 0.0)) > float(b.get("created_at", 0.0)))
++	return result
++
++static func at_time(record: Dictionary, seconds: float) -> Dictionary:
++	var samples: Array = record["samples"]
++	var time: float = clampf(seconds, 0.0, float(record["time_s"]))
++	var low := 0
++	var high: int = samples.size() - 1
++	while low + 1 < high:
++		var middle: int = (low + high) / 2
++		if float(samples[middle]["t"]) <= time:
++			low = middle
++		else:
++			high = middle
++	var a: Dictionary = samples[low]
++	var b: Dictionary = samples[high]
++	var dt: float = float(b["t"]) - float(a["t"])
++	var mix: float = clampf((time - float(a["t"])) / dt, 0.0, 1.0)
++	return {"d": lerpf(float(a["d"]), float(b["d"]), mix), "speed": (float(b["d"]) - float(a["d"])) / dt, "p": lerpf(float(a["p"]), float(b["p"]), mix), "lane": lerpf(float(a["lane"]), float(b["lane"]), mix)}
++
++static func time_at_distance(record: Dictionary, distance: float) -> float:
++	if distance <= 0.0:
++		return 0.0
++	var samples: Array = record["samples"]
++	var low := 0
++	var high: int = samples.size() - 1
++	while low + 1 < high:
++		var middle: int = (low + high) / 2
++		if float(samples[middle]["d"]) < distance:
++			low = middle
++		else:
++			high = middle
++	var a: Dictionary = samples[low]
++	var b: Dictionary = samples[high]
++	var fraction: float = clampf((distance - float(a["d"])) / maxf(0.000001, float(b["d"]) - float(a["d"])), 0.0, 1.0)
++	return lerpf(float(a["t"]), float(b["t"]), fraction)
+--- a/race_hud.gd
++++ b/race_hud.gd
+@@ -8,6 +8,7 @@
+ var speed_label: Label
+ var slipstream_bar: ProgressBar
+ var slipstream_label: Label
++var slipstream_heading: HBoxContainer
+ var left_stack: VBoxContainer
+ var map_panel: PanelContainer
+ var heart_label: Label
+@@ -125,7 +126,7 @@
+ 	gear_label.clip_text = true
+ 	gear_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+ 	gear_label.tooltip_text = "Gekozen versnelling uit de trainerbridge, wanneer beschikbaar"
+-	var slipstream_heading := HBoxContainer.new()
++	slipstream_heading = HBoxContainer.new()
+ 	column.add_child(slipstream_heading)
+ 	var slipstream_caption := text("SLIPSTREAM", 16, MUTED)
+ 	slipstream_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+@@ -295,6 +296,8 @@
+ 	return result
+ 
+ func update_race(data: Dictionary) -> void:
++	slipstream_heading.visible = bool(data.get("draft_enabled", true))
++	slipstream_bar.visible = bool(data.get("draft_enabled", true))
+ 	power_label.text = "%.0f" % float(data["watts"])
+ 	speed_label.text = "%.1f" % float(data.get("speed_kmh", 0.0))
+ 	var maximum: float = maxf(0.01, float(data.get("draft_max", 0.69)) * 100.0)
+--- a/race_menu.gd
++++ b/race_menu.gd
+@@ -2,6 +2,10 @@
+ signal start_requested
+ signal difficulty_changed(value: float)
+ const Preview := preload("res://mode_preview.gd")
++const Records := preload("res://pursuit_records.gd")
++var library = Records.new()
++var pursuit_options
++var demo_settings: VBoxContainer
+ const MODES := [
+ 	{"key": "scratch", "title": "Scratch", "hint": "Eén peloton. Eén finish.", "detail": "Blijf uit de wind, kies je moment en sprint als eerste over de meet.", "race_id": 0},
+ 	{"key": "pursuit", "title": "Achtervolging", "hint": "Jij, je tegenstander en de klok.", "detail": "Twee renners starten tegenover elkaar. Jaag op de beste tijd of haal je tegenstander in.", "race_id": 4},
+@@ -118,7 +122,7 @@
+ 		var mode_title := label(MODES[i]["title"], 25)
+ 		mode_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ 		heading.add_child(mode_title)
+-		heading.add_child(label("SPEEL" if i == 0 else "BINNENKORT", 13, ACCENT if i == 0 else MUTED))
++		heading.add_child(label("SPEEL" if i in [0, 1] else "BINNENKORT", 13, ACCENT if i in [0, 1] else MUTED))
+ 		var hint := label(MODES[i]["hint"], 19, MUTED)
+ 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ 		content.add_child(hint)
+@@ -178,7 +182,14 @@
+ 	difficulty_slider.value_changed.connect(func(value: float) -> void:
+ 		difficulty_label.text = "AI-sterkte · %d%%" % int(value)
+ 		difficulty_changed.emit(value))
+-	demo_power_input = _number(race_settings, "Demo-startvermogen · zonder trainer (W)", 0, 900, 300)
++	pursuit_options = preload("res://pursuit_options.gd").new()
++	pursuit_options.library = library
++	options.add_child(pursuit_options)
++	pursuit_options.changed.connect(_pursuit_changed)
++	demo_settings = VBoxContainer.new()
++	demo_settings.add_theme_constant_override("separation", 8)
++	options.add_child(demo_settings)
++	demo_power_input = _number(demo_settings, "Demo-startvermogen · zonder trainer (W)", 0, 900, 300)
+ 	demo_power_input.step = 25
+ 	var navigation := HBoxContainer.new()
+ 	navigation.add_theme_constant_override("separation", 14)
+@@ -197,7 +208,7 @@
+ 	start_button.add_theme_stylebox_override("normal", panel_style(ACCENT))
+ 	start_button.add_theme_stylebox_override("hover", panel_style(Color("89eef0")))
+ 	start_button.pressed.connect(func() -> void:
+-		if selected == 0:
++		if selected == 0 or (selected == 1 and pursuit_options.can_start()):
+ 			start_requested.emit())
+ 	navigation.add_child(start_button)
+ 
+@@ -235,10 +246,20 @@
+ 	selected_description.text = MODES[selected]["detail"]
+ 	selected_art.texture = previews[selected].get_texture()
+ 	race_settings.visible = selected == 0
+-	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected == 0 else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+-	start_button.disabled = selected != 0
+-	start_button.text = "Start wedstrijd  →" if selected == 0 else "Binnenkort"
++	pursuit_options.visible = selected == 1
++	demo_settings.visible = selected in [0, 1]
++	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
++	start_button.disabled = selected not in [0, 1]
++	start_button.text = "Start wedstrijd  →" if selected in [0, 1] else "Binnenkort"
++	if selected == 1:
++		pursuit_options.refresh_rides()
+ 	back_button.grab_focus.call_deferred()
++
++func _pursuit_changed() -> void:
++	if selected != 1 or start_button == null:
++		return
++	start_button.disabled = not pursuit_options.can_start()
++	status_label.text = "Kies je afstand en tegenstander." if pursuit_options.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
+ 
+ func _unhandled_key_input(event: InputEvent) -> void:
+ 	if visible and page == 2 and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+--- a/tests/test_menu.gd
++++ b/tests/test_menu.gd
+@@ -34,7 +34,7 @@
+ 	check(people.size() > 0, "Stadium crowd is available for race restoration")
+ 	for person in people:
+ 		check(not person.visible, "Stadium empty in menus")
+-	for index in range(1, 6):
++	for index in range(2, 6):
+ 		menu.cards[index].pressed.emit()
+ 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
+ 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")
+--- /dev/null
++++ b/tests/test_pursuit.gd
+@@ -0,0 +1,182 @@
++extends SceneTree
++const Records := preload("res://pursuit_records.gd")
++const Pacer := preload("res://pursuit_pacer.gd")
++class Model extends "res://main.gd":
++	func _ready() -> void:
++		set_physics_process(false)
++	func _spawn_peloton() -> void:
++		pass
++	func _take_finish_photo(_winner: int) -> void:
++		pass
++	func _save_recording(_reason: String) -> void:
++		pass
++	func _capture_demo_fit_sample() -> void:
++		pass
++
++class Screen extends "res://main.gd":
++	func _take_finish_photo(_winner: int) -> void:
++		pass
++
++var failures := 0
++var directory: String
++var metrics: Array[Dictionary] = []
++
++func check(ok: bool, message: String) -> void:
++	if not ok:
++		failures += 1
++		push_error(message)
++
++func _initialize() -> void:
++	directory = "res://tests/tmp_pursuit_" + str(Time.get_ticks_usec())
++	call_deferred("run_test")
++
++func ride(distance: int, replay: Dictionary = {}, dt: float = 0.05) -> Dictionary:
++	var game = Model.new()
++	root.add_child(game)
++	game.race_mode = 4
++	game.race_laps = distance / 250
++	game._configure_peloton()
++	game._prepare_pursuit(replay, 250.0)
++	game.watts = 340.0 if replay.is_empty() else 500.0
++	game.running = true
++	game.start_state = "RACING"
++	check(game.rider_count == 2, "Exactly two pursuit starters")
++	var a: Vector3 = game._at(game._rider_distance(0, 0.0), game.LANES[0])
++	var b: Vector3 = game._at(game._rider_distance(1, 0.0), game.LANES[0])
++	check(absf(a.x + b.x) < 0.001 and absf(a.z + b.z) < 0.001, "Start lines exactly opposite")
++	check(absf(a.z) < 0.001 and absf(a.x) > 18.0, "Player starts at the existing straight-centre pursuit marking")
++	check(game._at(game._rider_distance(0, distance), game.LANES[0]).distance_to(a) < 0.001, "Player finishes at own start line")
++	check(game._at(game._rider_distance(1, distance), game.LANES[0]).distance_to(b) < 0.001, "Opponent finishes at opposite own start line")
++	game.draft_strengths.fill(1.0)
++	check(game._draft_target(0) == 0.0 and game._draft_drag_reduction(0) == 0.0 and game._effective_draft_strength(1) == 0.0, "No draft for either pursuit rider")
++	check(is_equal_approx(game._next_speed(12.0, 300.0, 0.1, 0.0), game._next_speed(12.0, 300.0, 0.1, 1.0)), "Pursuit force balance ignores even supplied drafting")
++	var constant: float = game.pursuit_pacer.target_w
++	var varied := false
++	var lane_error := false
++	while not game._all_riders_finished() and game.clock < 2000.0:
++		if game.clock > 25.0 and game.clock < 40.0:
++			game.player_lane = 1
++		else:
++			game.player_lane = 0
++		game.ai_lane_targets[1] = game.LANES[-1] # Tactics must not pull AI outwards.
++		var opponent_active: bool = game.finish_times[1] < 0.0
++		game.clock += dt
++		game._update_race(dt)
++		if not is_equal_approx(game.lane_offsets[1], game.LANES[0]):
++			lane_error = true
++		if replay.is_empty() and opponent_active and absf(game.ai_power_w[1] - constant) > 0.01:
++			varied = true
++	check(game._all_riders_finished(), "Both riders complete %d m" % distance)
++	check(not varied, "AI power stays constant for the entire distance")
++	check(not lane_error, "Opponent stays on the lowest line for the entire race")
++	check(game.lap_times[0].size() == distance / 250 and game.lap_times[1].size() == distance / 250, "Each rider has own complete lap timing")
++	check(game.pursuit_pacer.reserve_j >= 0.0, "AI never spends unavailable reserve")
++	var data := {"version": Records.VERSION, "physics": Records.PHYSICS, "name": "Testpoging", "time_s": game.finish_times[0], "distance_m": distance, "samples": game.pursuit_trace.duplicate(true)}
++	check(Records.valid(data), "Complete player attempt has valid replay samples")
++	if not replay.is_empty():
++		check(absf(game.finish_times[1] - float(replay["time_s"])) < 0.000001, "Replay finish time exactly matches saved attempt with a different timestep")
++		for lap in range(game.race_laps):
++			check(absf(game.last_lap_crossing[1] - float(replay["time_s"])) < 0.000001, "Replay final lap crossing is exact")
++	metrics.append({"distance_m": distance, "opponent": "AI" if replay.is_empty() else "saved ride", "cp_w": 250.0, "constant_w": constant if replay.is_empty() else 0.0, "player_s": game.finish_times[0], "opponent_s": game.finish_times[1], "predicted_s": game.pursuit_pacer.predicted_seconds, "reserve_j": game.pursuit_pacer.reserve_j, "dt": dt})
++	game.free()
++	return data
++
++func run_test() -> void:
++	var library = Records.new()
++	library.directory = directory.path_join("records")
++	var one: Dictionary = ride(1000)
++	var four: Dictionary = ride(4000)
++	check(metrics[0]["constant_w"] > metrics[1]["constant_w"] and metrics[1]["constant_w"] > 250.0, "Constant power is highest for the shorter distance, both above CP using finite reserve")
++	var model = Model.new()
++	model.race_mode = 4
++	var stronger = Pacer.new()
++	stronger.prepare(model, 1000.0, 300.0, model._rider_distance(1, 0.0), model.LANES[0])
++	check(stronger.target_w > float(metrics[0]["constant_w"]), "Higher chosen CP gives a stronger constant opponent")
++	model.free()
++	var saved: Dictionary = library.save("Eerste 1 km", 1000, one["time_s"], one["samples"])
++	check(not saved.has("error"), "Completed attempt can be named and saved")
++	if saved.has("error"):
++		quit(1)
++		return
++	var restarted = Records.new()
++	restarted.directory = library.directory
++	var loaded: Dictionary = restarted.load_ride(saved["id"])
++	check(not loaded.is_empty() and loaded["name"] == "Eerste 1 km", "Ride persists across library restart")
++	check(restarted.list_rides(1000).size() == 1 and restarted.list_rides(4000).is_empty(), "Replay menu filters distances")
++	check(library.save(" ", 1000, one["time_s"], one["samples"]).has("error"), "Name required")
++	var incomplete: Array[Dictionary] = one["samples"].duplicate(true)
++	incomplete.pop_back()
++	check(library.save("Onvolledig", 1000, one["time_s"], incomplete).has("error"), "Incomplete rides cannot be saved")
++	check(restarted.load_ride("../anything").is_empty(), "Ride IDs cannot address arbitrary paths")
++	var bad: Dictionary = loaded.duplicate(true)
++	bad["samples"][1]["t"] = -1.0
++	check(not Records.valid(bad), "Broken sample sequence rejected")
++	var now: Dictionary = Records.at_time(loaded, float(loaded["time_s"]) * 0.5)
++	check(now["d"] > 0.0 and now["d"] < 1000.0, "Replay interpolates race progress by time")
++	check(is_equal_approx(Records.time_at_distance(loaded, 1000.0), loaded["time_s"]), "Distance-to-time replay inversion")
++	ride(1000, loaded, 0.073)
++	var saved_four: Dictionary = library.save("Eerste 4 km", 4000, four["time_s"], four["samples"])
++	check(not saved_four.has("error"), "4 km attempt can be saved independently")
++	var loaded_four: Dictionary = restarted.load_ride(saved_four.get("id", ""))
++	check(not loaded_four.is_empty() and restarted.list_rides(4000).size() == 1, "4 km library reload and distance selection")
++	if not loaded_four.is_empty():
++		ride(4000, loaded_four, 0.11)
++	# Real menu, start wiring, result save controls and persistence selection.
++	var screen = Screen.new()
++	screen.pursuit_library.directory = directory.path_join("screen")
++	root.add_child(screen)
++	screen.set_physics_process(false)
++	await process_frame
++	await process_frame
++	var menu = screen.setup_panel
++	menu.select_mode(1)
++	var options = menu.pursuit_options
++	check(options.distance_m() == 1000 and options.cp_input.value == 250.0 and not menu.start_button.disabled, "Pursuit defaults: 1 km, AI, CP 250 W")
++	options.opponent_choice.select(1)
++	options.refresh_state()
++	check(menu.start_button.disabled, "Missing saved ride disables replay start")
++	options.distance_choice.select(1)
++	options.refresh_rides()
++	check(options.distance_m() == 4000, "4 km is available")
++	options.opponent_choice.select(0)
++	options.distance_choice.select(0)
++	options.refresh_rides()
++	await process_frame
++	await process_frame
++	check(menu.start_button.get_global_rect().end.y <= 1080.1, "Pursuit configuration fits reference screen")
++	screen._confirm_start()
++	check(screen.race_mode == 4 and screen.rider_count == 2 and screen.race_laps == 4 and screen.start_state == "WAIT_STOP", "Pursuit uses existing standing-start/countdown flow")
++	screen._update_hud()
++	check(not screen.race_overlay.slipstream_bar.visible and screen.minimap.start_lines.size() == 2, "Pursuit hides slipstream and marks both start lines")
++	check(absf(screen.minimap.progress[1] - screen.minimap.progress[0] - 125.0) < 0.0001, "Minimap shows true opposite positions, not progress tied at zero")
++	for frame in range(65):
++		screen._physics_process(0.1)
++	check(screen.start_state == "RACING" and screen.clock > 0.0 and screen.distances[0] > 0.0 and screen.distances[1] > 0.0, "Actual countdown launches both riders from a standing start")
++	screen.pursuit_trace.assign(one["samples"])
++	screen.finish_times[0] = one["time_s"]
++	screen.distances[0] = 1000.0
++	screen._refresh_fullscreen_results()
++	check(screen.pursuit_save_box.visible, "Finish results offer named save")
++	screen.pursuit_save_name.text = "Mijn opgeslagen rit"
++	screen._save_pursuit_ride()
++	check(not screen.pursuit_saved_id.is_empty() and screen.pursuit_save_button.disabled, "Save button persists a named ride and prevents duplicate click")
++	screen._reset()
++	menu.select_mode(1)
++	options.opponent_choice.select(1)
++	options.refresh_state()
++	check(not menu.start_button.disabled and options.rides.size() == 1, "Saved attempt becomes selectable opponent")
++	screen._confirm_start()
++	check(screen.pursuit_replay.get("name", "") == "Mijn opgeslagen rit", "Start loads the selected attempt")
++	screen._reset()
++	menu.select_mode(0)
++	check(menu.count_input.value == 8, "Pursuit reset preserves separate Scratch participant settings")
++	menu.count_input.value = 8
++	screen._confirm_start()
++	screen._update_hud()
++	check(screen.race_mode == 0 and screen.rider_count == 8 and screen.race_overlay.slipstream_bar.visible and screen.minimap.start_lines.size() == 1, "Switching back restores Scratch configuration and HUD")
++	screen.free()
++	var file := FileAccess.open("res://tests/pursuit_results.json", FileAccess.WRITE)
++	file.store_string(JSON.stringify(metrics, "\t"))
++	file.close()
++	print("PURSUIT_OK" if failures == 0 else "PURSUIT_FAILED: %d" % failures)
++	quit(0 if failures == 0 else 1)
+--- /dev/null
++++ b/tests/test_pursuit_levels.gd
+@@ -0,0 +1,22 @@
++extends SceneTree
++const Pacer := preload("res://pursuit_pacer.gd")
++class Model extends "res://main.gd":
++	func _ready() -> void:
++		pass
++	func _save_recording(_reason: String) -> void:
++		pass
++
++func _initialize() -> void:
++	var game = Model.new()
++	game.race_mode = 4
++	var failed := false
++	for cp in [50.0, 100.0, 250.0, 500.0, 800.0]:
++		for distance in [1000.0, 4000.0]:
++			var pacer = Pacer.new()
++			pacer.prepare(game, distance, cp, game._rider_distance(1, 0.0), game.LANES[0])
++			print("PURSUIT_LEVEL cp=%.0f distance=%.0f watts=%.2f predicted_s=%.2f" % [cp, distance, pacer.target_w, pacer.predicted_seconds])
++			if not is_finite(pacer.predicted_seconds) or pacer.predicted_seconds <= 0.0:
++				failed = true
++	game.free()
++	print("PURSUIT_LEVELS_OK" if not failed else "PURSUIT_LEVELS_FAILED")
++	quit(1 if failed else 0)

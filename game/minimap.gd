@@ -1,0 +1,62 @@
+extends Control
+# Deliberately small: race progress only; no lane markings.
+var progress: Array[float] = [0.0, 0.0, 0.0, 0.0]
+const COLORS := [Color("ffdc46"), Color("54d39b"), Color("52b5fa"), Color("ff7676")]
+const TRACK_LENGTH := 250.0
+var rider_colours: Array[Color] = []
+var start_lines: Array[float] = [0.0]
+
+func set_colors(values: Array[Color]) -> void:
+    rider_colours = values
+    queue_redraw()
+
+func set_progress(values: Array[float]) -> void:
+    progress = values.duplicate()
+    queue_redraw()
+
+func _point(distance: float) -> Vector2:
+    var t: float = fposmod(distance / TRACK_LENGTH, 1.0)
+    var center := Vector2(size.x * 0.5, size.y * 0.53)
+    var radius_x: float = size.x * 0.38
+    var radius_y: float = size.y * 0.30
+    # Oval stadium: two straights connected by semicircular turns.
+    var corner_r: float = radius_y
+    var straight_length: float = 2.0 * (radius_x - corner_r)
+    var perim: float = 2.0 * straight_length + TAU * corner_r
+    var d: float = fposmod(t * perim + straight_length, perim) # Start/finish at the end of the straight, before a bend
+    var left_x: float = center.x - (radius_x - corner_r)
+    var right_x: float = center.x + (radius_x - corner_r)
+    if d < straight_length:
+        return Vector2(right_x - d, center.y - corner_r)
+    d -= straight_length
+    if d < PI * corner_r:
+        var theta: float = -PI * 0.5 - d / corner_r
+        return Vector2(left_x + corner_r * cos(theta), center.y + corner_r * sin(theta))
+    d -= PI * corner_r
+    if d < straight_length:
+        return Vector2(left_x + d, center.y + corner_r)
+    d -= straight_length
+    var theta: float = PI * 0.5 - d / corner_r
+    return Vector2(right_x + corner_r * cos(theta), center.y + corner_r * sin(theta))
+
+func _draw() -> void:
+    var last: Vector2 = _point(0.0)
+    for j in range(1, 129):
+        var next: Vector2 = _point(TRACK_LENGTH * float(j) / 128.0)
+        draw_line(last, next, Color("50758b"), 10.0, true)
+        draw_line(last, next, Color("183347"), 5.0, true)
+        last = next
+    for start in start_lines:
+        var finish: Vector2 = _point(start)
+        draw_line(finish - Vector2(0, 6), finish + Vector2(0, 6), Color.WHITE, 2.0, true)
+    # Other riders first, player last, making the yellow dot easy to spot.
+    for i in range(progress.size() - 1, 0, -1):
+        _draw_rider_dot(i)
+    if not progress.is_empty():
+        _draw_rider_dot(0)
+
+func _draw_rider_dot(i: int) -> void:
+        var pos: Vector2 = _point(progress[i])
+        draw_circle(pos, 7.0 if i == 0 else 5.6, Color.WHITE if i == 0 else Color("0a1725"))
+        var colour: Color = rider_colours[i] if i < rider_colours.size() else COLORS[i % COLORS.size()]
+        draw_circle(pos, 4.8 if i == 0 else 4.0, colour)

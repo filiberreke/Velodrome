@@ -1,0 +1,138 @@
+{
+  "date": "2026-10-23",
+  "base_archive": "ai_baseline_snapshot.zip",
+  "base_sha256": "1811b0a11f5d99a060ec281fb547ae95dc00d2666d41d570e3c5f8b6ee4f567e",
+  "engine": "Godot 4.7.2 stable",
+  "ui_code_changed_or_added": [
+    "main.gd",
+    "crowd_kit.gd",
+    "infield_details.gd",
+    "race_menu.gd",
+    "mode_preview.gd",
+    "tests/test_menu.gd"
+  ],
+  "race_functions_unchanged": [
+    "_draft_target",
+    "_update_drafting",
+    "_effective_draft_strength",
+    "_draft_drag_reduction",
+    "_next_speed",
+    "_bank_angle",
+    "_path_metric",
+    "_banked_speed",
+    "_move_lanes",
+    "_register_lap_crossings",
+    "_race_better",
+    "_update_race"
+  ],
+  "protected_scripts_unchanged": [
+    "x_scratch_ai.gd",
+    "scratch_lap_rules.gd",
+    "rider_visual.gd"
+  ],
+  "assets_unchanged": [
+    "assets/bikes/track_bike.glb",
+    "assets/crowd/crowd_people.glb",
+    "assets/crowd/flag_official.glb",
+    "assets/crowd/infield_props.glb",
+    "assets/dog/boost_dog.glb",
+    "assets/riders/decals/decal_back_1.png",
+    "assets/riders/decals/decal_back_2.png",
+    "assets/riders/decals/decal_back_3.png",
+    "assets/riders/decals/decal_back_4.png",
+    "assets/riders/decals/decal_chest.png",
+    "assets/riders/decals/decal_thigh.png",
+    "assets/riders/track_rider.glb",
+    "assets/riders/velodrome_rider.glb",
+    "assets/riders/velodrome_rider_decal_back_1.png",
+    "assets/riders/velodrome_rider_decal_chest.png",
+    "assets/riders/velodrome_rider_decal_thigh.png",
+    "assets/source/build_track_bike.py",
+    "assets/source/generate_track_textures.py",
+    "assets/source_blender/.gdignore",
+    "assets/source_blender/build_rider.py",
+    "assets/source_blender/crowd/build_crowd.py",
+    "assets/source_blender/crowd/build_dog.py",
+    "assets/source_blender/crowd/build_flag_official.py",
+    "assets/source_blender/crowd/build_infield_props.py",
+    "assets/source_blender/crowd/people.py",
+    "assets/source_blender/crowd/vlib.py",
+    "assets/source_blender/decals/decal_back_1.png",
+    "assets/source_blender/decals/decal_back_2.png",
+    "assets/source_blender/decals/decal_back_3.png",
+    "assets/source_blender/decals/decal_back_4.png",
+    "assets/source_blender/decals/decal_chest.png",
+    "assets/source_blender/decals/decal_thigh.png",
+    "assets/source_blender/decals/make_decal_images.py",
+    "assets/source_blender/README.md",
+    "assets/source_blender/rider_animator.gd",
+    "assets/source_blender/rider_animator.gd.uid",
+    "assets/source_blender/RIDER_README.md",
+    "assets/source_blender/velodrome_rider_rig.blend",
+    "assets/textures/velodrome_cote_azur.png",
+    "assets/textures/velodrome_wood_pine.png"
+  ],
+  "checks": [
+    {
+      "name": "import",
+      "passed": true,
+      "marker": null
+    },
+    {
+      "name": "parse_main",
+      "passed": true,
+      "marker": null
+    },
+    {
+      "name": "menu",
+      "passed": true,
+      "marker": "MENU_FLOW_OK"
+    },
+    {
+      "name": "ai",
+      "passed": true,
+      "marker": "X_SCRATCH_AI_OK"
+    },
+    {
+      "name": "wheel",
+      "passed": true,
+      "marker": "X_WHEEL_FOLLOW_OK"
+    },
+    {
+      "name": "laps",
+      "passed": true,
+      "marker": "SCRATCH_LAP_RULES_OK"
+    },
+    {
+      "name": "race_rules",
+      "passed": true,
+      "marker": "PASS: 8 race rule checks"
+    },
+    {
+      "name": "economy",
+      "passed": true,
+      "marker": "SPRINTER_ECONOMY_OK"
+    },
+    {
+      "name": "gameplay",
+      "passed": true,
+      "marker": "GAMEPLAY_HEADLESS_OK"
+    },
+    {
+      "name": "scene_smoke",
+      "passed": true,
+      "marker": "Velodrome rider"
+    }
+  ],
+  "visual_validation": "Not performed; headless checks verify logic and calculated layout only",
+  "playable_modes": [
+    "Scratch"
+  ],
+  "planned_cards": [
+    "Achtervolging",
+    "Ploegenachtervolging",
+    "Puntenkoers",
+    "Ploegkoers",
+    "Keirin"
+  ]
+}

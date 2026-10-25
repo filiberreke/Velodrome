@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-23",
+  "baseline": "retained source snapshot of velodrome_250_X_nieuwe_HUD_2310",
+  "baseline_main_sha256": "9396f71f17e89f8af05db09c41b90881b5931c5f6df1d50407cd613a8c376a94",
+  "engine": "Godot 4.7.2 stable",
+  "changed_or_added_scripts": [
+    "main.gd",
+    "race_hud.gd",
+    "tests/test_hud.gd"
+  ],
+  "unchanged_race_functions": [
+    "_draft_target",
+    "_update_drafting",
+    "_effective_draft_strength",
+    "_draft_drag_reduction",
+    "_next_speed",
+    "_bank_angle",
+    "_path_metric",
+    "_banked_speed",
+    "_move_lanes",
+    "_register_lap_crossings",
+    "_race_better",
+    "_update_race"
+  ],
+  "unchanged_scripts": [
+    "x_scratch_ai.gd",
+    "scratch_lap_rules.gd",
+    "race_menu.gd",
+    "mode_preview.gd",
+    "rider_visual.gd"
+  ],
+  "unchanged_assets": [
+    "assets/bikes/track_bike.glb",
+    "assets/crowd/crowd_people.glb",
+    "assets/crowd/flag_official.glb",
+    "assets/crowd/infield_props.glb",
+    "assets/dog/boost_dog.glb",
+    "assets/riders/track_rider.glb",
+    "assets/riders/velodrome_rider.glb",
+    "assets/riders/velodrome_rider_decal_back_1.png",
+    "assets/riders/velodrome_rider_decal_chest.png",
+    "assets/riders/velodrome_rider_decal_thigh.png",
+    "assets/source/build_track_bike.py",
+    "assets/source/generate_track_textures.py",
+    "assets/source_blender/.gdignore",
+    "assets/source_blender/build_rider.py",
+    "assets/source_blender/README.md",
+    "assets/source_blender/rider_animator.gd",
+    "assets/source_blender/rider_animator.gd.uid",
+    "assets/source_blender/RIDER_README.md",
+    "assets/source_blender/velodrome_rider_rig.blend",
+    "assets/textures/velodrome_cote_azur.png",
+    "assets/textures/velodrome_wood_pine.png",
+    "assets/riders/decals/decal_back_1.png",
+    "assets/riders/decals/decal_back_2.png",
+    "assets/riders/decals/decal_back_3.png",
+    "assets/riders/decals/decal_back_4.png",
+    "assets/riders/decals/decal_chest.png",
+    "assets/riders/decals/decal_thigh.png",
+    "assets/source_blender/crowd/build_crowd.py",
+    "assets/source_blender/crowd/build_dog.py",
+    "assets/source_blender/crowd/build_flag_official.py",
+    "assets/source_blender/crowd/build_infield_props.py",
+    "assets/source_blender/crowd/people.py",
+    "assets/source_blender/crowd/vlib.py",
+    "assets/source_blender/decals/decal_back_1.png",
+    "assets/source_blender/decals/decal_back_2.png",
+    "assets/source_blender/decals/decal_back_3.png",
+    "assets/source_blender/decals/decal_back_4.png",
+    "assets/source_blender/decals/decal_chest.png",
+    "assets/source_blender/decals/decal_thigh.png",
+    "assets/source_blender/decals/make_decal_images.py"
+  ],
+  "checks": [
+    {
+      "name": "import",
+      "passed": true,
+      "marker": null
+    },
+    {
+      "name": "parse_main",
+      "passed": true,
+      "marker": null
+    },
+    {
+      "name": "hud",
+      "passed": true,
+      "marker": "RACE_HUD_OK"
+    },
+    {
+      "name": "menu",
+      "passed": true,
+      "marker": "MENU_FLOW_OK"
+    },
+    {
+      "name": "scene_smoke",
+      "passed": true,
+      "marker": "Velodrome rider"
+    }
+  ],
+  "visual_validation": "Not performed; headless validation covers data, visibility, navigation and calculated reference-screen bounds",
+  "telemetry": {
+    "heart_rate": "placeholder",
+    "gear": "optional gear/gear_label field; no gear generated in demo or without live data"
+  }
+}

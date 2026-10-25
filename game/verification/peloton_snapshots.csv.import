@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ceybkfxj5iu73"
+
+[deps]
+
+files=["res://verification/peloton_snapshots.test.translation", "res://verification/peloton_snapshots.leader.translation", "res://verification/peloton_snapshots.clock.translation", "res://verification/peloton_snapshots.rider.translation", "res://verification/peloton_snapshots.profile.translation", "res://verification/peloton_snapshots.distance.translation", "res://verification/peloton_snapshots.gap.translation", "res://verification/peloton_snapshots.speed.translation", "res://verification/peloton_snapshots.lane.translation", "res://verification/peloton_snapshots.wprime.translation", "res://verification/peloton_snapshots.mode.translation", "res://verification/peloton_snapshots.lap.translation"]
+
+source_file="res://verification/peloton_snapshots.csv"
+dest_files=["res://verification/peloton_snapshots.test.translation", "res://verification/peloton_snapshots.leader.translation", "res://verification/peloton_snapshots.clock.translation", "res://verification/peloton_snapshots.rider.translation", "res://verification/peloton_snapshots.profile.translation", "res://verification/peloton_snapshots.distance.translation", "res://verification/peloton_snapshots.gap.translation", "res://verification/peloton_snapshots.speed.translation", "res://verification/peloton_snapshots.lane.translation", "res://verification/peloton_snapshots.wprime.translation", "res://verification/peloton_snapshots.mode.translation", "res://verification/peloton_snapshots.lap.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

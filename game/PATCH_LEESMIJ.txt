@@ -1,0 +1,12 @@
+PATCH voor de versie van je grafische vriend (velodrome_211026.zip)
+
+Pak deze ZIP UIT OVER DE ROOT VAN ZIJN GODOT PROJECT (waar project.godot staat).
+Er worden alleen simulator/ en tests/ toegevoegd plus SIMULATOR_README.md.
+Er wordt GEEN main.gd, boost_dog.gd, GLB, Strava-config of andere gamecode overschreven.
+
+Testen vanuit de projectmap:
+python -m unittest discover -s tests -p test_simulator.py -v
+python simulator/simulate.py --mode points --laps 25 --riders 8 --races 100 --out simulator/results.csv
+
+Dit is een referentiesimulator in Python, nog niet dezelfde runtime als Godot main.gd.
+De grafische upgrade en hond blijven onveranderd.

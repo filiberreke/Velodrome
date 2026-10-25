@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-23",
+  "engine": "Godot 4.7.2 stable",
+  "package_type": "changed and new files only; apply over HUD v2",
+  "code_files": [
+    "main.gd",
+    "minimap.gd",
+    "pursuit_options.gd",
+    "pursuit_pacer.gd",
+    "pursuit_records.gd",
+    "race_hud.gd",
+    "race_menu.gd",
+    "tests/test_menu.gd",
+    "tests/test_pursuit.gd",
+    "tests/test_pursuit_levels.gd"
+  ],
+  "shared_functions_unchanged": [
+    "_track_s",
+    "_at",
+    "_curve_factor",
+    "_bank_angle",
+    "_path_metric",
+    "_banked_speed",
+    "_register_lap_crossings",
+    "_race_better",
+    "_update_drafting",
+    "_build_realistic_track",
+    "_ai_choose_power",
+    "_ai_decide_lanes"
+  ],
+  "scratch_paths_unchanged_after_pursuit_guards": [
+    "_update_race",
+    "_move_lanes",
+    "_draft_target",
+    "_effective_draft_strength",
+    "_draft_drag_reduction",
+    "_next_speed"
+  ],
+  "protected_scripts": [
+    "x_scratch_ai.gd",
+    "scratch_lap_rules.gd",
+    "rider_visual.gd"
+  ],
+  "default_cp_w": 250,
+  "distances_m": [
+    1000,
+    4000
+  ],
+  "drafting": "disabled for both riders at geometry, effective draft, HUD and force-balance levels",
+  "opponent_lane": "lowest lane throughout AI and replay",
+  "checks": [
+    {
+      "name": "import",
+      "passed": true,
+      "marker": null
+    },
+    {
+      "name": "parse_main",
+      "passed": true,
+      "marker": null
+    },
+    {
+      "name": "pursuit",
+      "passed": true,
+      "marker": "PURSUIT_OK"
+    },
+    {
+      "name": "hud",
+      "passed": true,
+      "marker": "RACE_HUD_OK"
+    },
+    {
+      "name": "menu",
+      "passed": true,
+      "marker": "MENU_FLOW_OK"
+    },
+    {
+      "name": "ai",
+      "passed": true,
+      "marker": "X_SCRATCH_AI_OK"
+    },
+    {
+      "name": "wheel",
+      "passed": true,
+      "marker": "X_WHEEL_FOLLOW_OK"
+    },
+    {
+      "name": "laps",
+      "passed": true,
+      "marker": "SCRATCH_LAP_RULES_OK"
+    },
+    {
+      "name": "race_rules",
+      "passed": true,
+      "marker": "PASS: 8 race rule checks"
+    },
+    {
+      "name": "economy",
+      "passed": true,
+      "marker": "SPRINTER_ECONOMY_OK"
+    },
+    {
+      "name": "gameplay",
+      "passed": true,
+      "marker": "GAMEPLAY_HEADLESS_OK"
+    },
+    {
+      "name": "scene_smoke",
+      "passed": true,
+      "marker": "Velodrome rider"
+    },
+    {
+      "name": "cp_levels",
+      "passed": true,
+      "marker": "PURSUIT_LEVELS_OK"
+    }
+  ],
+  "limitations": "Headless only. No rendered playtest, live trainer/Bluetooth, Strava or TCX/FIT export validation."
+}

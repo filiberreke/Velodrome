@@ -1,0 +1,350 @@
+--- a/test_x_wheel_follow.gd
++++ b/test_x_wheel_follow.gd
+@@ -7,7 +7,7 @@
+ 	var model = Brain.new()
+ 	var profiles: Array[int] = [0, 1, 2, 3, 1]
+ 	var forms: Array[float] = [1.0, 1.0, 1.0, 1.0, 1.0]
+-	var lanes: Array[float] = [3.85, 1.28, 2.45, 5.55, 1.28]
++	var lanes: Array[float] = [3.58, 1.18, 2.38, 5.98, 1.18]
+ 	var finished: Array[float] = [-1.0, -1.0, -1.0, -1.0, -1.0]
+ 	var credits: Array[int] = [0, 0, 0, 0, 0]
+ 	var drafts: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
+@@ -28,6 +28,6 @@
+ 	model.mode_until[1] = 100.0
+ 	positions = [280.0, 325.0, 280.0, 281.0, 282.0]
+ 	model.step(0.1, 20.0, positions, speeds, lanes, drafts, finished, profiles, 25, 80.0, credits)
+-	assert(is_equal_approx(model.lane_targets[1], 1.28), "Solo rider must choose shortest legal lane")
++	assert(is_equal_approx(model.lane_targets[1], Brain.TRACK_LANE_POSITIONS[0]), "Solo rider must choose shortest legal lane")
+ 	print("X_WHEEL_FOLLOW_OK")
+ 	quit(0)
+--- a/x_scratch_ai.gd
++++ b/x_scratch_ai.gd
+@@ -9,7 +9,7 @@
+ const MASS := 80.0
+ const CRR := 0.004
+ const G := 9.81
+-const CP := [0.0, 270.86, 235.0, 224.37]
++const CP := [0.0, 270.86, 235.0, 250.0]
+ const WMAX := [0.0, 24120.4, 30638.0, 32658.4]
+ const PMAX := [0.0, 856.79, 1661.88, 1149.10]
+ const MODE_DRAFT := 0
+@@ -38,6 +38,8 @@
+ var cooperation: Array[float] = []
+ var aggression: Array[float] = []
+ var sprint_started: Array[bool] = []
++var shelter_wheel: Array[int] = []
++var economical_sprinter_wheels := true # A/B diagnostic; enabled for normal gameplay.
+ var last_role_change: Array[float] = []
+ var turns: Dictionary = {}
+ var tactic_clock := 0.0
+@@ -64,6 +66,7 @@
+ 	attacks.resize(count); lane_targets.resize(count); lane_lock.resize(count)
+ 	pull_off_until.resize(count); idle_since.resize(count); power_w.resize(count)
+ 	cooperation.resize(count); aggression.resize(count); sprint_started.resize(count)
++	shelter_wheel.resize(count); shelter_wheel.fill(-1)
+ 	last_role_change.resize(count)
+ 	rng.randomize()
+ 	turns.clear()
+@@ -116,6 +119,20 @@
+ 	last_role_change[i] = clock
+ 
+ const TRACK_LANE_POSITIONS := [1.18, 2.38, 3.58, 4.78, 5.98, 7.18]
++
++# Variant L in the supplied Python simulator: small corrections must not
++# repeatedly spend sprint reserve. Real gaps still permit a stronger catch-up.
++static func economical_closing(gap: float, reserve: float) -> float:
++	if gap > 5.5:
++		return clampf(0.34 * (gap - 1.8), 0.0, 2.0 if reserve > 0.30 else 1.5)
++	return clampf(0.18 * (gap - 2.7), -0.8, 1.2)
++
++static func economical_overhead(gap: float, reserve: float) -> float:
++	if gap <= 4.0:
++		return 60.0 if reserve > 0.28 else (25.0 if reserve > 0.13 else 0.0)
++	if gap <= 6.0:
++		return 115.0 if reserve > 0.28 else (75.0 if reserve > 0.13 else 20.0)
++	return 165.0 if reserve > 0.28 else (90.0 if reserve > 0.13 else 0.0)
+ 
+ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float], lanes: Array[float], drafts: Array[float], finished: Array[float], profiles: Array[int], laps: int, difficulty: float, credits: Array[int]) -> Array[float]:
+ 	var count: int = distances.size()
+@@ -315,6 +332,10 @@
+ 		var wheel_i := -1
+ 		var gap := 1000.0
+ 		var wheel_score := 1000.0
++		var economical: bool = economical_sprinter_wheels and kind == 2 and m == MODE_DRAFT and not sprint_started[i]
++		var retained_wheel := -1
++		var sheltered_wheel := -1
++		var sheltered_score := 1000.0
+ 		for j in range(count):
+ 			if i == j or finished[j] >= 0.0:
+ 				continue
+@@ -323,6 +344,16 @@
+ 				continue
+ 			var lateral_gap: float = absf(lanes[j] - lanes[i])
+ 			var score: float = forward + 0.8 * lateral_gap
++			if economical:
++				# The simulator's economy selection uses a 21 m acquisition range.
++				if forward >= 21.0:
++					continue
++				score = absf(forward - 2.5) + 2.0 * lateral_gap + (0.0 if j == shelter_wheel[i] else 0.9)
++				if j == shelter_wheel[i] and forward > 1.4 and forward < 8.0 and lateral_gap < 0.95:
++					retained_wheel = j
++				if forward < 8.5 and lateral_gap < 1.15 and score < sheltered_score:
++					sheltered_wheel = j
++					sheltered_score = score
+ 			# When chasing a human escape, do not ignore their wheel just because
+ 			# another rider happens to be one or two metres closer.
+ 			if j == 0 and player_escape and distances[0] > distances[i] and distances[0] - distances[i] < 30.0:
+@@ -331,6 +362,16 @@
+ 				wheel_score = score
+ 				gap = forward
+ 				wheel_i = j
++		if economical:
++			if retained_wheel >= 0:
++				wheel_i = retained_wheel
++			elif sheltered_wheel >= 0:
++				wheel_i = sheltered_wheel
++			if wheel_i >= 0:
++				gap = physical_ahead(distances[i], distances[wheel_i])
++			shelter_wheel[i] = wheel_i
++		else:
++			shelter_wheel[i] = -1
+ 		var draft_factor: float = clampf(1.0 - 0.69 * drafts[i], 0.31, 1.0)
+ 		var target: float = cp[i] * (0.76 if drafts[i] > 0.12 else 0.91)
+ 		match m:
+@@ -367,10 +408,14 @@
+ 		# still limited by this rider's finite CP/W' and peak power.
+ 		if m in [MODE_DRAFT, MODE_CHASE, MODE_SOLO, MODE_BREAK_DRAFT] and wheel_i >= 0 and gap < 23.0:
+ 			var closing: float = clampf(0.34 * (gap - 1.7), -1.4, 2.0)
++			if economical:
++				closing = economical_closing(gap, reserve)
+ 			var wanted_v: float = maxf(5.5, speeds[wheel_i] + closing)
+ 			var needed: float = road_power(wanted_v, draft_factor) / DRIVETRAIN
+ 			var reserve_allowance: float = 90.0 if reserve < 0.28 else (165.0 if m == MODE_DRAFT else 220.0)
+-			target = clampf(needed, cp[i] * 0.65, cp[i] + reserve_allowance)
++			if economical:
++				reserve_allowance = economical_overhead(gap, reserve)
++			target = clampf(needed, 0.0 if economical else cp[i] * 0.65, cp[i] + reserve_allowance)
+ 		# Standing-start launch: use available W-prime to accelerate before
+ 		# wheel-following speed control takes over. No free speed or extra W-prime:
+ 		# _phys_power and the normal profile power curve still limit this demand.
+@@ -469,7 +514,7 @@
+ 				var rank_gap: float = head_d - distances[i]
+ 				if final_stage and rank_gap > 6.0:
+ 					target_lane = wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20)
+-				elif gap < 2.0 and lateral_gap < 0.3:
++				elif gap < 2.0 and lateral_gap < 0.3 and not economical:
+ 					target_lane = wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20)
+ 				if absf(target_lane - lane_targets[i]) >= 0.5:
+ 					lane_targets[i] = clampf(target_lane, TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
+@@ -478,7 +523,8 @@
+ 		# local constraint, not a reward for moving into an empty corridor.
+ 		# Re-evaluate wheel alignment even when an old tactical lock is active.
+ 		var shelter_mode: bool = m in [MODE_DRAFT, MODE_BREAK_DRAFT, MODE_CHASE]
+-		if shelter_mode and wheel_i >= 0 and gap > 2.1 and gap < 21.0:
++		var min_align_gap: float = 1.55 if economical else 2.1
++		if shelter_mode and wheel_i >= 0 and gap > min_align_gap and gap < 21.0 and clock >= pull_off_until[i]:
+ 			var desired_wheel_lane: float = clampf(lanes[wheel_i], TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
+ 			if absf(lane_targets[i] - desired_wheel_lane) > 0.4:
+ 				lane_targets[i] = desired_wheel_lane
+--- a/tests/test_race_rules.gd
++++ b/tests/test_race_rules.gd
+@@ -13,12 +13,14 @@
+ 	check(Rules.sprint_laps(50).size() == 10, "50-lap schedule")
+ 	var crossings := Rules.ordered_crossings([249.0, 249.6, 245.0], [251.0, 250.1, 245.3], 0.1, 250.0)
+ 	check(crossings.size() == 2, "exactly two crossings")
+-	check(crossings[0]["rider"] == 1, "interpolated order within same tick")
++	# Rider 0 crosses at 0.05 s; rider 1 at 0.08 s.
++	check(crossings[0]["rider"] == 0, "interpolated order within same tick")
+ 	var points: Array = [0, 0, 0, 0]
+ 	Rules.award(points, [2, 1, 0, 3], false)
+ 	check(points == [1, 2, 3, 0], "intermediate scoring")
+ 	Rules.award(points, [3, 1, 0, 2], true)
+ 	check(points == [3, 6, 4, 6], "final scoring")
+-	check(Rules.standings(points, [2, 1, 3, 0]) == [3, 1, 0, 2], "tie break by finish")
++	# Points [3, 6, 4, 6]: finish rank only resolves riders 1 and 3.
++	check(Rules.standings(points, [2, 1, 3, 0]) == [3, 1, 2, 0], "tie break by finish")
+ 	print("PASS: ", checks, " race rule checks")
+ 	quit(0)
+--- /dev/null
++++ b/tests/test_sprinter_economy.gd
+@@ -0,0 +1,81 @@
++extends SceneTree
++const Brain = preload("res://x_scratch_ai.gd")
++var failures := 0
++
++func check(ok: bool, message: String) -> void:
++	if not ok:
++		failures += 1
++		push_error(message)
++
++func _initialize() -> void:
++	check(is_equal_approx(Brain.economical_closing(2.7, 1.0), 0.0), "No surge at the settled wheel gap")
++	check(Brain.economical_closing(3.0, 1.0) < 0.1, "Small correction stays gentle")
++	check(is_equal_approx(Brain.economical_closing(10.0, 0.31), 2.0), "Real gap permits strong catch-up")
++	check(is_equal_approx(Brain.economical_closing(10.0, 0.30), 1.5), "Low reserve limits closing speed")
++	for row in [[4.0, 0.29, 60.0], [4.0, 0.28, 25.0], [4.0, 0.13, 0.0], [6.0, 0.29, 115.0], [6.0, 0.28, 75.0], [6.0, 0.13, 20.0], [7.0, 0.29, 165.0], [7.0, 0.28, 90.0], [7.0, 0.13, 0.0]]:
++		check(is_equal_approx(Brain.economical_overhead(row[0], row[1]), row[2]), "CP overhead table: " + str(row))
++	var profiles: Array[int] = [0, 1, 2, 3, 1, 1]
++	var forms: Array[float] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
++	var lanes: Array[float] = [7.18, 2.38, 2.38, 3.58, 4.78, 5.98]
++	var distances: Array[float] = [520.0, 503.0, 500.0, 502.0, 498.0, 497.0]
++	var speeds: Array[float] = [5.0, 14.0, 14.0, 14.0, 14.0, 14.0]
++	var drafts: Array[float] = [0.0, 0.0, 0.7, 0.0, 0.0, 0.0]
++	var finished: Array[float] = [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
++	var credits: Array[int] = [0, 0, 0, 0, 0, 0]
++	var model = Brain.new()
++	model.reset(profiles, forms, lanes)
++	check(is_equal_approx(model.cp[3], 250.0), "Attacker base CP is 250 W")
++	model.shelter_wheel[2] = 1
++	var before: float = model.wprime[2]
++	var watts: Array[float] = model.step(0.1, 20.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(model.shelter_wheel[2] == 1, "Keep aligned wheel despite closer adjacent rider")
++	check(watts[2] <= 295.001, "Near wheel uses at most CP + 60 W at 80% difficulty")
++	check(model.wprime[2] < before, "Following above CP still spends actual W-prime")
++	check(is_equal_approx(model.lane_targets[2], lanes[1]), "Keep shelter lane")
++	var economy_watts: float = watts[2]
++	model.reset(profiles, forms, lanes)
++	model.economical_sprinter_wheels = false
++	watts = model.step(0.1, 20.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(watts[2] > economy_watts, "Integrated power request is lower than legacy follow")
++	model.economical_sprinter_wheels = true
++	model.reset(profiles, forms, lanes)
++	# A finished wheel must be released immediately, even across a lap boundary.
++	model.shelter_wheel[2] = 1
++	finished[1] = 10.0
++	distances[3] = 752.7
++	lanes[3] = lanes[2]
++	model.step(0.1, 20.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(model.shelter_wheel[2] == 3, "Release finished wheel; circular acquisition remains valid")
++	finished[1] = -1.0
++	distances[3] = 502.0
++	# Urgent human demarrage response retains the chase controller.
++	model.reset(profiles, forms, lanes)
++	model.modes[2] = Brain.MODE_CHASE
++	model.mode_until[2] = 100.0
++	model.step(0.1, 20.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(model.modes[2] == Brain.MODE_CHASE and model.shelter_wheel[2] == -1, "Economy does not override chase tactics")
++	model.reset(profiles, forms, lanes)
++	model.cooperation[2] = 0.7
++	distances = [503.0, 501.0, 500.0, 499.0, 498.0, 497.0]
++	speeds = [13.0, 11.0, 11.0, 11.0, 11.0, 11.0]
++	model.step(0.1, 20.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(model.modes[2] == Brain.MODE_CHASE, "Nearby sprinter reacts to a real player acceleration")
++	# Shelter preference must never win over a hard occupied corridor.
++	model.reset(profiles, forms, lanes)
++	distances = [520.0, 502.0, 500.0, 500.2, 498.0, 497.0]
++	lanes[3] = lanes[2]
++	model.shelter_wheel[2] = 1
++	model.step(0.1, 20.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(absf(model.lane_targets[2] - lanes[3]) >= 0.85, "Hard conflict overrides wheel retention")
++	# Sprint launch must still exceed the economy overhead when reserves allow.
++	model.reset(profiles, forms, lanes)
++	distances = [12200.0, 12350.0, 12347.0, 12349.0, 12345.0, 12344.0]
++	lanes[3] = 3.58
++	watts = model.step(0.1, 1000.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(model.sprint_started[2] and watts[2] > 295.0, "Individual final sprint overrides conserving watts")
++	model.step(0.1, 1000.1, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
++	check(model.shelter_wheel[2] == -1, "Launched sprint no longer uses economy wheel retention")
++	model.reset(profiles, forms, lanes)
++	check(model.shelter_wheel[2] == -1, "New race clears old target")
++	print("SPRINTER_ECONOMY_OK" if failures == 0 else "SPRINTER_ECONOMY_FAILED: %d" % failures)
++	quit(0 if failures == 0 else 1)
+--- /dev/null
++++ b/tests/test_gameplay_headless.gd
+@@ -0,0 +1,96 @@
++extends SceneTree
++# Runs the actual main.gd race loop and force/banking/drafting calculations.
++# Suppress rendering, trainer networking, recordings and finish-photo capture.
++class TestRace extends "res://main.gd":
++	func _ready() -> void:
++		set_physics_process(false)
++	func _spawn_peloton() -> void:
++		pass
++	func _take_finish_photo(_winner: int) -> void:
++		pass
++	func _save_recording(_reason: String) -> void:
++		pass
++	func _capture_demo_fit_sample() -> void:
++		pass
++
++var failures := 0
++var snapshots: Array[Dictionary] = []
++
++func check(ok: bool, message: String) -> void:
++	if not ok:
++		failures += 1
++		push_error(message)
++
++func _initialize() -> void:
++	call_deferred("run_races")
++
++func run_races() -> void:
++	for scenario in [[8, 10], [12, 50]]:
++		var game = TestRace.new()
++		root.add_child(game)
++		game.rider_count = scenario[0]
++		game.race_laps = scenario[1]
++		game.ai_difficulty = 80.0
++		game._configure_peloton()
++		# Fix forms and RNG after default initialization, before any race steps.
++		game.rider_forms.fill(1.0)
++		game.x_ai.reset(game.rider_profiles, game.rider_forms, game.lane_offsets)
++		game.x_ai.rng.seed = 23102026
++		for i in range(1, game.rider_count):
++			game.x_ai.cooldown[i] = 75.0 + 5.0 * i
++			game.x_ai.cooperation[i] = 0.6
++			game.x_ai.aggression[i] = 0.6
++		game.watts = 300.0
++		game.running = true
++		game.start_state = "RACING"
++		check(game.LANES.size() == 6, "Six riding lines retained")
++		var key := InputEventKey.new()
++		key.keycode = KEY_B
++		key.pressed = true
++		game._unhandled_key_input(key)
++		check(game.look_back_held, "Rear-view key press")
++		key.pressed = false
++		game._unhandled_key_input(key)
++		check(not game.look_back_held and game.camera_mode == 1, "Rear-view release restores camera selection")
++		game.draft_strengths[0] = 1.0
++		game.speeds[0] = 20.0 / 3.6
++		var low: float = game._draft_drag_reduction(0)
++		game.speeds[0] = 50.0 / 3.6
++		check(game._draft_drag_reduction(0) > low, "Speed-dependent aerodynamic shelter")
++		game.draft_strengths[0] = 0.0
++		game.speeds[0] = 0.0
++		check(game._next_speed(16.0, 1700.0, 0.1, 0.6) > 16.0, "Sprint physics has no imposed 16 m/s cap")
++		var next_snapshot := 10
++		var start_checked := false
++		var dt := 0.1
++		var bad_state := false
++		while not game._all_riders_finished() and game.clock < float(game.race_laps) * 90.0:
++			game.clock += dt
++			game._update_race(dt)
++			for i in range(game.rider_count):
++				if not is_finite(game.speeds[i]) or not is_finite(game.distances[i]) or game.speeds[i] < 0.0:
++					bad_state = true
++				if i > 0 and (game.x_ai.wprime[i] < -0.001 or game.x_ai.wprime[i] > game.x_ai.wmax[i] + 0.001):
++					bad_state = true
++			if game.clock >= 10.0 and not start_checked:
++				start_checked = true
++				for i in range(1, game.rider_count):
++					check(game.speeds[i] > 2.0 and game.distances[i] > 10.0, "AI starts under own power")
++			if game.distances.max() >= float(next_snapshot) * 250.0:
++				var riders: Array[Dictionary] = []
++				for i in range(game.rider_count):
++					riders.append({"id": i, "profile": game.rider_profiles[i], "distance_m": game.distances[i], "speed_kmh": game.speeds[i] * 3.6, "lane_m": game.lane_offsets[i], "wprime_pct": 0.0 if i == 0 else 100.0 * game.x_ai.wprime[i] / game.x_ai.wmax[i], "mode": game.x_ai.modes[i], "lap_credit": game.scratch_rules.credits[i]})
++				snapshots.append({"riders": game.rider_count, "laps": game.race_laps, "leader_lap": next_snapshot, "clock_s": game.clock, "positions": riders})
++				next_snapshot += 10
++		check(not bad_state, "Finite speed/distance and bounded reserves for entire race")
++		check(start_checked, "Standing-start assertion executed")
++		check(game._all_riders_finished(), "All riders finish %d-rider/%d-lap race" % scenario)
++		check(game.x_ai.sprint_started.has(true), "At least one individual final sprint")
++		print("GAMEPLAY_RACE: riders=%d laps=%d seconds=%.1f winner=%d" % [scenario[0], scenario[1], game.clock, game._winner_index()])
++		game.free()
++	var snapshot_file := FileAccess.open("res://tests/headless_snapshots.json", FileAccess.WRITE)
++	if snapshot_file != null:
++		snapshot_file.store_string(JSON.stringify(snapshots, "\t"))
++		snapshot_file.close()
++	print("GAMEPLAY_HEADLESS_OK" if failures == 0 else "GAMEPLAY_HEADLESS_FAILED: %d" % failures)
++	quit(0 if failures == 0 else 1)

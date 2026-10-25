@@ -1,0 +1,224 @@
+{
+  "date": "2026-10-23",
+  "engine": "Godot 4.7.2 stable ed1daf0bf",
+  "sources": [
+    {
+      "name": "velodrome_export_2310.zip",
+      "sha256": "655e299995644f6971c56b36034f9cac245da6c89afbae2825b66bc866ffb831"
+    },
+    {
+      "name": "velodrome_250_X_simulator_sprinters_zuinig_wielvolgen_100x50.zip",
+      "sha256": "11ae681173081a814fe92457716eecfdd4c3c7792342309577598de855c6bbd5"
+    }
+  ],
+  "changed_existing_files": [
+    {
+      "path": "README.md",
+      "before_sha256": "07cb65effa9fcd2b40d36fdbc2ed41481a066994b8e7b9c9151ee93c04d035f0",
+      "after_sha256": "07dd75bd4cc925934e30147a3f2921d78d923f26ad973d2dd70edbc2e61703ef"
+    },
+    {
+      "path": "test_x_wheel_follow.gd",
+      "before_sha256": "8379bf928845216498a2756078e8d853af43e831c88886f30bbb804794707eda",
+      "after_sha256": "f45531aeb6a1452b58f29647228fc1ab4ab0c884ad18cdcf046a76d532b4b15e"
+    },
+    {
+      "path": "x_scratch_ai.gd",
+      "before_sha256": "255fe03eb1b85060f5337813a06f6fdadcedf9d363fecc17302a1305c7d3c6de",
+      "after_sha256": "cf665a692359b7296eb380fc870b164d69d2542a19d8a75e74be43252a4398f7"
+    },
+    {
+      "path": "tests/test_race_rules.gd",
+      "before_sha256": "adc3c842cdf24d4375549373a2637402208fc75b2502d46eceb82043db9ccc83",
+      "after_sha256": "47eed4ef0d7f9e883f943d33b0b642684dec6191d1bba7311ab46460b030148c"
+    }
+  ],
+  "unchanged_original_files": [
+    "boost_dog.gd.uid",
+    "crowd.gdshader",
+    "crowd.gdshader.uid",
+    "crowd_kit.gd",
+    "crowd_kit.gd.uid",
+    "display_settings.gd",
+    "display_settings.gd.uid",
+    "fit_export (2).gd",
+    "fit_export (2).gd.uid",
+    "fit_export.gd",
+    "fit_export.gd.uid",
+    "infield_details.gd",
+    "infield_details.gd.uid",
+    "LEESMIJ_ACHTERUITKIJKEN.md",
+    "LEESMIJ_DRAFT_PATCH.md",
+    "LEESMIJ_PATCH_X_FIXES.md",
+    "LEESMIJ_PELOTON_EN_DEMARRAGES.md",
+    "LEESMIJ_STARTVERMOGEN.md",
+    "LEESMIJ_WIEL_OPZOEKEN.md",
+    "LEESMIJ_X_INTEGRATIE.md",
+    "LEESMIJ_ZES_RIJLIJNEN.md",
+    "main.gd",
+    "main.gd.uid",
+    "main.tscn",
+    "minimap.gd",
+    "minimap.gd.uid",
+    "PATCH_LEESMIJ.txt",
+    "project.godot",
+    "README_PATCH.txt",
+    "rider_visual.gd",
+    "rider_visual.gd.uid",
+    "riders_config.example.cfg",
+    "scratch_lap_rules.gd",
+    "scratch_lap_rules.gd.uid",
+    "SIMULATOR_README.md",
+    "stats_graph.gd",
+    "stats_graph.gd.uid",
+    "strava_client.gd",
+    "strava_client.gd.uid",
+    "strava_config.example.cfg",
+    "strava_logo.svg",
+    "strava_logo.svg.import",
+    "test_scratch_lap_rules.gd",
+    "test_scratch_lap_rules.gd.uid",
+    "test_x_scratch_ai.gd",
+    "test_x_scratch_ai.gd.uid",
+    "test_x_wheel_follow.gd.uid",
+    "UPDATE_16_16b.md",
+    "wielerpraat.jpg",
+    "wielerpraat.jpg.import",
+    "x_scratch_ai.gd.uid",
+    "assets/bikes/track_bike.glb",
+    "assets/bikes/track_bike.glb.import",
+    "assets/crowd/crowd_people.glb",
+    "assets/crowd/crowd_people.glb.import",
+    "assets/crowd/flag_official.glb",
+    "assets/crowd/flag_official.glb.import",
+    "assets/crowd/infield_props.glb",
+    "assets/crowd/infield_props.glb.import",
+    "assets/dog/boost_dog.glb",
+    "assets/dog/boost_dog.glb.import",
+    "assets/riders/decals/decal_back_1.png",
+    "assets/riders/decals/decal_back_1.png.import",
+    "assets/riders/decals/decal_back_2.png",
+    "assets/riders/decals/decal_back_2.png.import",
+    "assets/riders/decals/decal_back_3.png",
+    "assets/riders/decals/decal_back_3.png.import",
+    "assets/riders/decals/decal_back_4.png",
+    "assets/riders/decals/decal_back_4.png.import",
+    "assets/riders/decals/decal_chest.png",
+    "assets/riders/decals/decal_chest.png.import",
+    "assets/riders/decals/decal_thigh.png",
+    "assets/riders/decals/decal_thigh.png.import",
+    "assets/riders/track_rider.glb",
+    "assets/riders/track_rider.glb.import",
+    "assets/riders/velodrome_rider.glb",
+    "assets/riders/velodrome_rider.glb.import",
+    "assets/riders/velodrome_rider_decal_back_1.png",
+    "assets/riders/velodrome_rider_decal_back_1.png.import",
+    "assets/riders/velodrome_rider_decal_chest.png",
+    "assets/riders/velodrome_rider_decal_chest.png.import",
+    "assets/riders/velodrome_rider_decal_thigh.png",
+    "assets/riders/velodrome_rider_decal_thigh.png.import",
+    "assets/source/build_track_bike.py",
+    "assets/source/generate_track_textures.py",
+    "assets/source_blender/.gdignore",
+    "assets/source_blender/build_rider.py",
+    "assets/source_blender/crowd/build_crowd.py",
+    "assets/source_blender/crowd/build_dog.py",
+    "assets/source_blender/crowd/build_flag_official.py",
+    "assets/source_blender/crowd/build_infield_props.py",
+    "assets/source_blender/crowd/people.py",
+    "assets/source_blender/crowd/vlib.py",
+    "assets/source_blender/decals/decal_back_1.png",
+    "assets/source_blender/decals/decal_back_2.png",
+    "assets/source_blender/decals/decal_back_3.png",
+    "assets/source_blender/decals/decal_back_4.png",
+    "assets/source_blender/decals/decal_chest.png",
+    "assets/source_blender/decals/decal_thigh.png",
+    "assets/source_blender/decals/make_decal_images.py",
+    "assets/source_blender/README.md",
+    "assets/source_blender/rider_animator.gd",
+    "assets/source_blender/rider_animator.gd.uid",
+    "assets/source_blender/RIDER_README.md",
+    "assets/source_blender/velodrome_rider_rig.blend",
+    "assets/textures/velodrome_cote_azur.png",
+    "assets/textures/velodrome_cote_azur.png.import",
+    "assets/textures/velodrome_wood_pine.png",
+    "assets/textures/velodrome_wood_pine.png.import",
+    "simulator/race_rules.gd",
+    "simulator/race_rules.gd.uid",
+    "simulator/simulate.py",
+    "tests/test_race_rules.gd.uid",
+    "tests/test_simulator.py",
+    "arena.gd",
+    "arena.gd.uid",
+    "boost_dog.gd"
+  ],
+  "new_tests": [
+    "tests/test_sprinter_economy.gd",
+    "tests/test_gameplay_headless.gd"
+  ],
+  "godot_checks": [
+    {
+      "name": "import",
+      "passed": true,
+      "success_marker": null
+    },
+    {
+      "name": "parse_main",
+      "passed": true,
+      "success_marker": null
+    },
+    {
+      "name": "ai",
+      "passed": true,
+      "success_marker": "X_SCRATCH_AI_OK"
+    },
+    {
+      "name": "wheel",
+      "passed": true,
+      "success_marker": "X_WHEEL_FOLLOW_OK"
+    },
+    {
+      "name": "laps",
+      "passed": true,
+      "success_marker": "SCRATCH_LAP_RULES_OK"
+    },
+    {
+      "name": "race_rules",
+      "passed": true,
+      "success_marker": "PASS: 8 race rule checks"
+    },
+    {
+      "name": "economy",
+      "passed": true,
+      "success_marker": "SPRINTER_ECONOMY_OK"
+    },
+    {
+      "name": "gameplay",
+      "passed": true,
+      "success_marker": "GAMEPLAY_HEADLESS_OK"
+    },
+    {
+      "name": "scene_smoke",
+      "passed": true,
+      "success_marker": "Velodrome rider"
+    }
+  ],
+  "python_paired_comparisons": {
+    "pairs": 100,
+    "total_runs": 200,
+    "seeds": [
+      1001,
+      1100
+    ],
+    "matches_supplied_summary_exactly": true
+  },
+  "python_lap_tests": {
+    "passed": 2,
+    "failed": [
+      "test_lap_gain_wins_race",
+      "test_rider_can_draft_after_lap_gain"
+    ],
+    "status": "known failures reproduced; Python reference unchanged"
+  },
+  "limitation": "Offline/headless only; no rendered play test, hardware trainer or network/export integration validation."
+}

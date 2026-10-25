@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://7685wn34v3uh"
+
+[deps]
+
+files=["res://verification/python_100_rerun/checkpoints.checkpoint.translation", "res://verification/python_100_rerun/checkpoints.cp.translation", "res://verification/python_100_rerun/checkpoints.draft.translation", "res://verification/python_100_rerun/checkpoints.dropped.translation", "res://verification/python_100_rerun/checkpoints.fatigue.translation", "res://verification/python_100_rerun/checkpoints.gap.translation", "res://verification/python_100_rerun/checkpoints.mean.translation", "res://verification/python_100_rerun/checkpoints.mode.translation", "res://verification/python_100_rerun/checkpoints.observation.translation", "res://verification/python_100_rerun/checkpoints.rider.translation", "res://verification/python_100_rerun/checkpoints.role.translation", "res://verification/python_100_rerun/checkpoints.scenario.translation", "res://verification/python_100_rerun/checkpoints.seed.translation", "res://verification/python_100_rerun/checkpoints.speed.translation", "res://verification/python_100_rerun/checkpoints.time.translation", "res://verification/python_100_rerun/checkpoints.wprime.translation", "res://verification/python_100_rerun/checkpoints.wprime.translation", "res://verification/python_100_rerun/checkpoints.wprime.translation"]
+
+source_file="res://verification/python_100_rerun/checkpoints.csv"
+dest_files=["res://verification/python_100_rerun/checkpoints.checkpoint.translation", "res://verification/python_100_rerun/checkpoints.cp.translation", "res://verification/python_100_rerun/checkpoints.draft.translation", "res://verification/python_100_rerun/checkpoints.dropped.translation", "res://verification/python_100_rerun/checkpoints.fatigue.translation", "res://verification/python_100_rerun/checkpoints.gap.translation", "res://verification/python_100_rerun/checkpoints.mean.translation", "res://verification/python_100_rerun/checkpoints.mode.translation", "res://verification/python_100_rerun/checkpoints.observation.translation", "res://verification/python_100_rerun/checkpoints.rider.translation", "res://verification/python_100_rerun/checkpoints.role.translation", "res://verification/python_100_rerun/checkpoints.scenario.translation", "res://verification/python_100_rerun/checkpoints.seed.translation", "res://verification/python_100_rerun/checkpoints.speed.translation", "res://verification/python_100_rerun/checkpoints.time.translation", "res://verification/python_100_rerun/checkpoints.wprime.translation", "res://verification/python_100_rerun/checkpoints.wprime.translation", "res://verification/python_100_rerun/checkpoints.wprime.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -1,0 +1,730 @@
+[
+	{
+		"clock_s": 241.699999999991,
+		"laps": 10,
+		"leader_lap": 10,
+		"positions": [
+			{
+				"distance_m": 2500.0,
+				"id": 0,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 0,
+				"speed_kmh": 42.6924024620672,
+				"wprime_pct": 0.0
+			},
+			{
+				"distance_m": 1757.78521958053,
+				"id": 1,
+				"lane_m": 2.215,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 34.3762533579467,
+				"wprime_pct": 90.1756127524244
+			},
+			{
+				"distance_m": 2243.68137178863,
+				"id": 2,
+				"lane_m": 2.215,
+				"lap_credit": -1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 45.5040019173934,
+				"wprime_pct": 70.152764119421
+			},
+			{
+				"distance_m": 2253.33935833852,
+				"id": 3,
+				"lane_m": 2.215,
+				"lap_credit": -1,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 44.9290403432442,
+				"wprime_pct": 70.3421071340143
+			},
+			{
+				"distance_m": 2493.5893772408,
+				"id": 4,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 3,
+				"profile": 1,
+				"speed_kmh": 44.3129634391973,
+				"wprime_pct": 58.592396169794
+			},
+			{
+				"distance_m": 2249.77540430588,
+				"id": 5,
+				"lane_m": 2.215,
+				"lap_credit": -1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 46.2949482907709,
+				"wprime_pct": 59.9711377779421
+			},
+			{
+				"distance_m": 2492.01907438256,
+				"id": 6,
+				"lane_m": 2.215,
+				"lap_credit": 0,
+				"mode": 4,
+				"profile": 3,
+				"speed_kmh": 45.1031787079469,
+				"wprime_pct": 55.3118028282146
+			},
+			{
+				"distance_m": 1833.41368524674,
+				"id": 7,
+				"lane_m": 2.00499999999999,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 38.2745085434115,
+				"wprime_pct": 81.48116706423
+			}
+		],
+		"riders": 8
+	},
+	{
+		"clock_s": 246.09999999999,
+		"laps": 50,
+		"leader_lap": 10,
+		"positions": [
+			{
+				"distance_m": 2500.2784208656,
+				"id": 0,
+				"lane_m": 1.18,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 0,
+				"speed_kmh": 39.8868234870593,
+				"wprime_pct": 0.0
+			},
+			{
+				"distance_m": 1396.25878895631,
+				"id": 1,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 41.7732030982187,
+				"wprime_pct": 74.7831105741145
+			},
+			{
+				"distance_m": 852.998164997643,
+				"id": 2,
+				"lane_m": 2.085,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 22.047933420768,
+				"wprime_pct": 98.4843848899024
+			},
+			{
+				"distance_m": 1012.10818146787,
+				"id": 3,
+				"lane_m": 2.25,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 14.3545230180779,
+				"wprime_pct": 98.980080009195
+			},
+			{
+				"distance_m": 1301.70237029892,
+				"id": 4,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 42.8536645604432,
+				"wprime_pct": 90.1992726718853
+			},
+			{
+				"distance_m": 1543.55592134578,
+				"id": 5,
+				"lane_m": 1.46,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 39.6816149044833,
+				"wprime_pct": 93.868168449137
+			},
+			{
+				"distance_m": 2391.70130275801,
+				"id": 6,
+				"lane_m": 1.46,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 36.2325060753191,
+				"wprime_pct": 86.9431893079567
+			},
+			{
+				"distance_m": 1392.02381575469,
+				"id": 7,
+				"lane_m": 1.575,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 35.9844137340801,
+				"wprime_pct": 82.9458597512584
+			},
+			{
+				"distance_m": 852.998164997643,
+				"id": 8,
+				"lane_m": 2.085,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 22.047933420768,
+				"wprime_pct": 98.4843848899024
+			},
+			{
+				"distance_m": 1012.10818146787,
+				"id": 9,
+				"lane_m": 2.25,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 14.3545230180779,
+				"wprime_pct": 98.980080009195
+			},
+			{
+				"distance_m": 1310.94900358853,
+				"id": 10,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 1,
+				"profile": 1,
+				"speed_kmh": 46.6161006591702,
+				"wprime_pct": 78.3176818754546
+			},
+			{
+				"distance_m": 1621.72647083152,
+				"id": 11,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 40.9659558973432,
+				"wprime_pct": 81.8335653133808
+			}
+		],
+		"riders": 12
+	},
+	{
+		"clock_s": 474.900000000039,
+		"laps": 50,
+		"leader_lap": 20,
+		"positions": [
+			{
+				"distance_m": 5000.52392792411,
+				"id": 0,
+				"lane_m": 1.18,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 0,
+				"speed_kmh": 44.4333323650139,
+				"wprime_pct": 0.0
+			},
+			{
+				"distance_m": 3753.42321376588,
+				"id": 1,
+				"lane_m": 3.005,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 38.3409693789015,
+				"wprime_pct": 64.2919640967765
+			},
+			{
+				"distance_m": 1751.23856105925,
+				"id": 2,
+				"lane_m": 2.085,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 21.1980960995648,
+				"wprime_pct": 99.5616301796783
+			},
+			{
+				"distance_m": 2144.87597251194,
+				"id": 3,
+				"lane_m": 2.25,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 10.6324855695852,
+				"wprime_pct": 99.7058337281389
+			},
+			{
+				"distance_m": 3754.74569435754,
+				"id": 4,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 5,
+				"profile": 1,
+				"speed_kmh": 42.8656769601286,
+				"wprime_pct": 59.1747674675364
+			},
+			{
+				"distance_m": 3997.14865109355,
+				"id": 5,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 3,
+				"profile": 2,
+				"speed_kmh": 43.4290409075552,
+				"wprime_pct": 26.6047243933744
+			},
+			{
+				"distance_m": 4751.51475101058,
+				"id": 6,
+				"lane_m": 2.085,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 43.5913157912237,
+				"wprime_pct": 62.7320894439975
+			},
+			{
+				"distance_m": 3755.6985642233,
+				"id": 7,
+				"lane_m": 2.775,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 37.3732302147967,
+				"wprime_pct": 59.8055493319795
+			},
+			{
+				"distance_m": 1751.23856105925,
+				"id": 8,
+				"lane_m": 2.085,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 21.1980960995648,
+				"wprime_pct": 99.5616301796783
+			},
+			{
+				"distance_m": 2144.87597251194,
+				"id": 9,
+				"lane_m": 2.25,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 10.6324855695852,
+				"wprime_pct": 99.7058337281389
+			},
+			{
+				"distance_m": 3756.83995172958,
+				"id": 10,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 41.0445089502521,
+				"wprime_pct": 51.3148938248127
+			},
+			{
+				"distance_m": 4008.10109510057,
+				"id": 11,
+				"lane_m": 1.18,
+				"lap_credit": 1,
+				"mode": 4,
+				"profile": 2,
+				"speed_kmh": 41.7460695085366,
+				"wprime_pct": 61.6655937269227
+			}
+		],
+		"riders": 12
+	},
+	{
+		"clock_s": 706.200000000092,
+		"laps": 50,
+		"leader_lap": 30,
+		"positions": [
+			{
+				"distance_m": 7500.4942421871,
+				"id": 0,
+				"lane_m": 1.18,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 0,
+				"speed_kmh": 42.1212879947793,
+				"wprime_pct": 0.0
+			},
+			{
+				"distance_m": 6001.59515449435,
+				"id": 1,
+				"lane_m": 1.92,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 40.3032084058818,
+				"wprime_pct": 57.0860132216115
+			},
+			{
+				"distance_m": 2659.78418522414,
+				"id": 2,
+				"lane_m": 1.97,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 11.2791011537668,
+				"wprime_pct": 99.8614554713641
+			},
+			{
+				"distance_m": 3030.85069916088,
+				"id": 3,
+				"lane_m": 2.135,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 10.6291571116266,
+				"wprime_pct": 99.9124882768814
+			},
+			{
+				"distance_m": 5799.6292108599,
+				"id": 4,
+				"lane_m": 2.25,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 36.8916841591597,
+				"wprime_pct": 68.1495930990507
+			},
+			{
+				"distance_m": 6006.32357176296,
+				"id": 5,
+				"lane_m": 1.64,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 32.6707907268904,
+				"wprime_pct": 54.1682354259208
+			},
+			{
+				"distance_m": 6797.24228429571,
+				"id": 6,
+				"lane_m": 2.25,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 31.5302065533383,
+				"wprime_pct": 74.5491764407864
+			},
+			{
+				"distance_m": 6016.7510383508,
+				"id": 7,
+				"lane_m": 2.135,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 36.71074559531,
+				"wprime_pct": 45.3705459991147
+			},
+			{
+				"distance_m": 2659.78418522414,
+				"id": 8,
+				"lane_m": 1.97,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 11.2791011537668,
+				"wprime_pct": 99.8614554713641
+			},
+			{
+				"distance_m": 3030.85069916088,
+				"id": 9,
+				"lane_m": 2.135,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 10.6291571116266,
+				"wprime_pct": 99.9124882768814
+			},
+			{
+				"distance_m": 5980.05087819867,
+				"id": 10,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 39.7818255621166,
+				"wprime_pct": 48.9183518227372
+			},
+			{
+				"distance_m": 6012.45401817384,
+				"id": 11,
+				"lane_m": 1.755,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 32.9375016370613,
+				"wprime_pct": 64.8623816459068
+			}
+		],
+		"riders": 12
+	},
+	{
+		"clock_s": 939.200000000145,
+		"laps": 50,
+		"leader_lap": 40,
+		"positions": [
+			{
+				"distance_m": 10000.2499092695,
+				"id": 0,
+				"lane_m": 1.18,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 0,
+				"speed_kmh": 41.4285631680253,
+				"wprime_pct": 0.0
+			},
+			{
+				"distance_m": 8244.32184623856,
+				"id": 1,
+				"lane_m": 2.38,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 37.1319289396927,
+				"wprime_pct": 61.241156895699
+			},
+			{
+				"distance_m": 3691.34165197621,
+				"id": 2,
+				"lane_m": 2.2,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 25.0943227647761,
+				"wprime_pct": 99.9547529007216
+			},
+			{
+				"distance_m": 3985.38596318978,
+				"id": 3,
+				"lane_m": 2.135,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 22.1337803536502,
+				"wprime_pct": 99.9750646417431
+			},
+			{
+				"distance_m": 7994.23685602004,
+				"id": 4,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 36.9180819882514,
+				"wprime_pct": 76.6699660315845
+			},
+			{
+				"distance_m": 8126.44446972454,
+				"id": 5,
+				"lane_m": 1.18,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 33.6148308023142,
+				"wprime_pct": 62.8606680278838
+			},
+			{
+				"distance_m": 8768.9669619375,
+				"id": 6,
+				"lane_m": 7.18,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 18.7759568385457,
+				"wprime_pct": 83.7318052838275
+			},
+			{
+				"distance_m": 8243.61050143056,
+				"id": 7,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 36.1572011909635,
+				"wprime_pct": 58.3901503547466
+			},
+			{
+				"distance_m": 3691.34165197621,
+				"id": 8,
+				"lane_m": 2.2,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 25.0943227647761,
+				"wprime_pct": 99.9547529007216
+			},
+			{
+				"distance_m": 3985.38596318978,
+				"id": 9,
+				"lane_m": 2.135,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 22.1337803536502,
+				"wprime_pct": 99.9750646417431
+			},
+			{
+				"distance_m": 8122.86382420944,
+				"id": 10,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 34.7484496137348,
+				"wprime_pct": 63.7568287403688
+			},
+			{
+				"distance_m": 8006.99895112381,
+				"id": 11,
+				"lane_m": 4.32,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 24.3885374600176,
+				"wprime_pct": 78.1253171512439
+			}
+		],
+		"riders": 12
+	},
+	{
+		"clock_s": 1174.70000000003,
+		"laps": 50,
+		"leader_lap": 50,
+		"positions": [
+			{
+				"distance_m": 12500.0,
+				"id": 0,
+				"lane_m": 1.18,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 0,
+				"speed_kmh": 39.9340832787546,
+				"wprime_pct": 0.0
+			},
+			{
+				"distance_m": 10598.7567742161,
+				"id": 1,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 34.5464294616758,
+				"wprime_pct": 59.1638784118839
+			},
+			{
+				"distance_m": 4647.51022799463,
+				"id": 2,
+				"lane_m": 2.085,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 9.66135938339262,
+				"wprime_pct": 99.9875147771639
+			},
+			{
+				"distance_m": 5311.39652202527,
+				"id": 3,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 34.0642827998927,
+				"wprime_pct": 88.9148842547496
+			},
+			{
+				"distance_m": 10283.468233493,
+				"id": 4,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 31.6766392964054,
+				"wprime_pct": 69.8336718017411
+			},
+			{
+				"distance_m": 10215.1257687681,
+				"id": 5,
+				"lane_m": 4.765,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 36.3167645364223,
+				"wprime_pct": 67.1128937967191
+			},
+			{
+				"distance_m": 10747.0859819566,
+				"id": 6,
+				"lane_m": 3.38499999999999,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 39.9782926919227,
+				"wprime_pct": 86.0120099000083
+			},
+			{
+				"distance_m": 10511.2670872013,
+				"id": 7,
+				"lane_m": 1.18,
+				"lap_credit": 0,
+				"mode": 1,
+				"profile": 1,
+				"speed_kmh": 35.5084270473738,
+				"wprime_pct": 65.8678765326726
+			},
+			{
+				"distance_m": 4647.51022799463,
+				"id": 8,
+				"lane_m": 2.085,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 9.66135938339262,
+				"wprime_pct": 99.9875147771639
+			},
+			{
+				"distance_m": 5209.21091713751,
+				"id": 9,
+				"lane_m": 5.225,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 3,
+				"speed_kmh": 36.777865286123,
+				"wprime_pct": 98.1171033181383
+			},
+			{
+				"distance_m": 10470.495276697,
+				"id": 10,
+				"lane_m": 4.30499999999999,
+				"lap_credit": 0,
+				"mode": 0,
+				"profile": 1,
+				"speed_kmh": 40.0066313027453,
+				"wprime_pct": 57.7862163817074
+			},
+			{
+				"distance_m": 9981.02507438112,
+				"id": 11,
+				"lane_m": 3.84499999999999,
+				"lap_credit": 1,
+				"mode": 0,
+				"profile": 2,
+				"speed_kmh": 40.191628504897,
+				"wprime_pct": 79.48841994742
+			}
+		],
+		"riders": 12
+	}
+]
