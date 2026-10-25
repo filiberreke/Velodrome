@@ -31,7 +31,10 @@ gebruikt unieke ids. Retries behouden inhoud/id/bronpoort. Nieuwe heartbeats lop
 iedere seconde en status wordt iedere seconde gecontroleerd. ACK betekent alleen
 aanvraag geaccepteerd; `confirmed_simulation` en `applied_revision` in status tonen
 de FTMS-bevestiging. Bij fout/console-overname wordt niet automatisch herladen.
-Begin daarvoor expliciet een nieuwe wedstrijd. Fouten staan in de Godot-log als
+Begin daarvoor expliciet een nieuwe wedstrijd. Bij een tijdelijke BLE-/datastoring
+blijft de bridge zoeken en herstellen de metingen vanzelf. De nieuwe wedstrijd
+kan de vrijgegeven herstelsessie overnemen zodra verse feedback en Reset bevestigd
+zijn (`reconnect_ready=true`); een bridgeherstart is dan niet nodig. Fouten staan in de Godot-log als
 `Trainerkoppeling: ...`.
 
 Bij finish, terug naar menu, herstart of verlies van geldige trainertelemetrie
@@ -43,7 +46,7 @@ en powerfeedback. `set_grade 0` is vlak rijden met weerstand en is geen vrijgave
 
 ## Controle
 
-- Python: `python -m unittest discover -s bridge/tests -v` — 46 tests, inclusief
+- Python: `python -m unittest discover -s bridge/tests -v` — 55 tests, inclusief
   validatie, legacy-defaults, slipstreamramp, FTMS-bytes en lease/foutafhandeling.
 - Godot: `--headless --path game --script res://tests/test_trainer_control.gd` —
   routehelling, echte UDP-loopback met gesimuleerde bridge, verloren ACK/retry,
@@ -58,3 +61,4 @@ luchtweerstand en beschutting in het peloton. De fysieke KICKR-respons en het
 rijgevoel zijn nog niet op hardware getest. Trainerfirmware en bridgeparameters
 bepalen de absolute belasting; het bestaande virtuele versnellingsmodel is een
 benadering en gebruikt geen native Wahoo/Zwift-versnellingsprotocol.
+

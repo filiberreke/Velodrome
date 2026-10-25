@@ -84,7 +84,12 @@ ACK verschijnt in verse status als disabled=true, last_error=ftms_error: ...; ge
 
 Positieve UDP-ERG én UDP-hellingregeling (ook 0%) vereisen elke seconde heartbeat
 met NIEUW id. Vijf seconden stilte stopt de sturing en probeert Reset; herstart nodig.
-Ook data/powerverlies >3 s, BLE-verlies en FTMS-fouten stoppen. Status, retries en
+Data/powerverlies >3 s en BLE-verlies wissen doelen en lease en starten
+wachten/herverbinden, zonder procesherstart. Status toont waiting_for_feedback
+en reconnect_ready. Zodra started=true, waiting_for_feedback=false en RELEASED
+met release_confirmed=true, kan een expliciete nieuwe wedstrijd set_mode SIM
+en daarna set_grade sturen. Geen automatisch herstel van oude belasting.
+FTMS-protocolfouten blijven terminaal voor sturing. Status, retries en
 Ride-knoppen verlengen de lease niet. Console kan overnemen: claim na no_lease niet
 automatisch opnieuw. Een FTMS-transactie kan vrijgave maximaal 5 s vertragen, waarna
 cleanup-Reset zelf nog maximaal 5 s kan kosten. Vrijgave is geen gegarandeerde noodstop.
@@ -99,4 +104,5 @@ Nieuwe fouten: wrong_mode, simulation_unsupported, invalid_grade. Bestaande fout
 invalid_power, unsupported_power, invalid_ramp, erg_unsupported, range_unavailable,
 not_active, control_busy, no_lease, id_conflict en formaatfouten. Volledig: UDP_PROTOCOL.md.
 v0.15 is softwarematig getest; trainerrespons en rijgevoel wachten op de usertest.
+
 

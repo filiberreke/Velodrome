@@ -101,9 +101,12 @@ geen meting of calibratie van jouw KICKR/fiets.
 ## Veiligheid en status
 
 UDP-hellingregeling vereist elke seconde een nieuwe heartbeat, ook bij 0% of
-constante helling. Na vijf seconden leaseverlies, drie seconden zonder trainer-
-of powerfeedback, BLE-verlies of FTMS-fout stopt de sturing met Reset-poging en
-herstartverplichting. Ride-drukken, status en retries verlengen de lease niet.
+constante helling. Vijf seconden leaseverlies of een FTMS-protocolfout stopt
+de sturing met Reset-poging en herstartverplichting. BLE-verlies of drie seconden
+zonder trainer-/powerfeedback wist doelen en lease, probeert vrijgave en blijft
+wachten/herverbinden. Verse metingen komen automatisch terug; een nieuwe
+wedstrijd/opdracht kan daarna sturen zonder bridgeherstart. Ride-drukken,
+status en retries verlengen de lease niet. Zie [RECOVERY.md](RECOVERY.md).
 Console kan expliciet overnemen. Een lopende FTMS-transactie kan de vrijgave
 vertragen zoals beschreven in UDP_PROTOCOL.md. Mechanische vrijgave kan niet gegarandeerd worden.
 
@@ -111,4 +114,5 @@ Referentie: [Bluetooth SIG FTMS 1.0.1](https://www.bluetooth.com/specifications/
 en [FTMS-test suite: procedure 0x11 / target-feature bit 13](https://files.bluetooth.com/wp-content/uploads/dlm_uploads/2024/10/FTMS.TS_.p6.pdf).
 Het versnellingsmodel hierboven is een implementatiekeuze van deze bridge.
 Hardwarewerking en rijgevoel van v0.15 zijn nog niet getest.
+
 

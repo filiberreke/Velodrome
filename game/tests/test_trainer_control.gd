@@ -110,5 +110,20 @@ func run_test() -> void:
 	legacy.tick(true, 0, 1, 306)
 	check(legacy.phase == "BLOCKED", "Reconnect cannot automatically re-arm after failure")
 	legacy.close()
+	# A new explicit start can use a recovered bridge without restarting it.
+	var recovered := Client.new(); recovered.port = 9
+	recovered.tick(true, 3, 1, 400)
+	var recovered_id: String = recovered.requests.keys()[0]
+	var recovered_state := {"started": true, "disabled": false, "simulation_supported": true, "mode": "RELEASED", "desired_mode": "ERG", "udp_owned": false, "waiting_for_feedback": true, "reconnect_ready": true, "release_confirmed": false}
+	recovered.handle_response({"type": "ack", "ok": true, "v": 1, "id": recovered_id, "state": recovered_state}, 400.1)
+	check(recovered.phase == "PROBE" and recovered.pending.is_empty(), "Recovery waits for fresh power and Reset confirmation")
+	recovered.tick(true, 3, 1, 401.1)
+	recovered_id = recovered.requests.keys()[-1]
+	recovered_state.waiting_for_feedback = false
+	recovered_state.release_confirmed = true
+	recovered.handle_response({"type": "ack", "ok": true, "v": 1, "id": recovered_id, "state": recovered_state}, 401.2)
+	check(not recovered.pending.is_empty() and recovered.pending.packet.command == "set_mode" and recovered.pending.packet.mode == "SIM", "Explicit race claims released recovery session without bridge restart")
+	recovered.close()
 	print("TRAINER_CONTROL_OK" if failures == 0 else "TRAINER_CONTROL_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
+

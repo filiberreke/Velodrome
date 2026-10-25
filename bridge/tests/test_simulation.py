@@ -164,7 +164,8 @@ class SimulationAsync(unittest.IsolatedAsyncioTestCase):
                 self.clock.advance(3.1)
                 await c.tick(self.controller, self.sender)
                 self.assertEqual(c.last_error, 'trainer_data_timeout')
-            self.assertTrue(c.disabled)
+            self.assertEqual(c.disabled, fault == 'lease')
+            self.assertEqual(c.waiting_for_feedback, fault == 'feedback')
             self.assertTrue(c.release_confirmed)
 
     async def test_stop_during_simulation_mode_switch(self):
@@ -208,3 +209,4 @@ class SimulationAsync(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(c.status()['confirmed_simulation']['grade_pct'], -2.5)
         finally:
             client.close(); server.close()
+

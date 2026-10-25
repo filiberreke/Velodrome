@@ -29,6 +29,8 @@ class CombinedMode:
         self.sent_w = None
         self.disabled = False
         self.started = False
+        self.waiting_for_feedback = False
+        self.reconnect_ready = False
         self.power_supported = False
         self.simulation_supported = False
         self.sim_backend = self.desired_sim_backend = 'resistance'
@@ -107,11 +109,39 @@ class CombinedMode:
         self.last_error = reason
         log.warning('Regeling gestopt: %s; reset volgt via trainer-loop', reason)
 
+    def suspend(self, reason):
+        # A temporary data/link loss discards load and lease, without killing
+        # discovery or requiring a process restart. Explicit STOP/errors latch.
+        if self.disabled:
+            return
+        self.waiting_for_feedback = True
+        self.reconnect_ready = True
+        self.last_error = reason
+        self.owner = None
+        self.lease_until = 0.0
+        self.desired_mode, self.target_w = 'ERG', 0
+        self.desired_sim_backend = 'resistance'
+        self.grade_pct, self.aero_scale = 0.0, 1.0
+        self.road.reset()
+        self.revision += 1
+        log.warning('Tijdelijke onderbreking: %s; doelen gewist, wachten op verse data', reason)
+
+    def connection_lost(self):
+        if self.started or self.waiting_for_feedback:
+            self.suspend('trainer_disconnected')
+        self.started = False
+        self.release_confirmed = False
+        self.mode, self.sent_w = 'RELEASED', None
+        self.shifter.current = None
+        self.power_supported = self.simulation_supported = False
+        self.power_range, self.range_state = None, 'unknown'
+
     def status(self):
         limits = None
         if self.power_range is not None:
             limits = dict(zip(('min_w', 'max_w', 'increment_w'), self.power_range))
         return {'started': self.started, 'disabled': self.disabled,
+                'waiting_for_feedback': self.waiting_for_feedback, 'reconnect_ready': self.reconnect_ready,
                 'mode': self.mode, 'desired_mode': self.desired_mode,
                 'target_w': self.target_w, 'confirmed_target_w': self.sent_w,
                 'ramp_w_per_s': self.ramp_w_per_s, 'revision': self.revision,
@@ -136,7 +166,8 @@ class CombinedMode:
         if command == 'stop':
             self.request_stop('udp_stop' if source else 'console_stop')
             return self.status()
-        if not self.started or self.disabled:
+        release = command == 'set_target_power' and type(params.get('watts')) is int and params['watts'] == 0
+        if self.disabled or (not release and (not self.started or self.waiting_for_feedback)):
             raise CommandError('not_active', 'FTMS-control niet actief; wacht op verbinding of herstart na STOP/fout')
         if self.owner is not None and self.clock() >= self.lease_until:
             self.request_stop('udp_timeout')
@@ -155,6 +186,7 @@ class CombinedMode:
             if mode == 'ERG':
                 self.validate_target(self.target_w)
             self.desired_mode = mode
+            self.reconnect_ready = False
             self.desired_sim_backend = 'resistance'
             self.grade_pct = 0.0
             self.aero_scale = 1.0
@@ -232,11 +264,15 @@ class CombinedMode:
             return
         if not self.started:
             return
+        if (self.waiting_for_feedback and sender.connected
+                and now - sender.last_received <= 3.0 and now - sender.last_power <= 3.0):
+            self.waiting_for_feedback = False
+            self.last_error = None
         feedback_required = ((self.desired_mode == 'ERG' and self.target_w > 0)
                              or (self.desired_mode == 'SIM' and self.desired_sim_backend == 'simulation'))
         if feedback_required and (
                 not sender.connected or now - sender.last_received > 3.0 or now - sender.last_power > 3.0):
-            self.request_stop('trainer_data_timeout')
+            self.suspend('trainer_data_timeout')
             await self.tick(controller, sender)
             return
         revision = self.revision
@@ -307,4 +343,5 @@ class CombinedMode:
         log.info('FTMS bevestigd ERG=%s W revision=%s', next_w, revision)
         if next_w == self.target_w and revision == self.revision:
             self.applied_revision = revision
+
 

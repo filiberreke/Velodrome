@@ -11,13 +11,15 @@ from bleak import BleakClient, BleakScanner
 from ride_protocol import decode_packet
 from ride_ble import find_characteristics
 from button_mapping import ButtonMapper
-from selection import advertised_name, select_device, select_left_ride, is_left_ride
+from selection import select_device, select_left_ride
+from device_search import Discovery, DeviceSearch, RETRY_SECONDS
 from hr_bridge import HeartRateState, HeartRateUDPProtocol, HR_PORT
 from ant_worker import AntWorker
 
 BIKE_DATA = "00002ad2-0000-1000-8000-00805f9b34fb"
 FTMS_SERVICE = "00001826-0000-1000-8000-00805f9b34fb"
 TARGET = ("127.0.0.1", 51723)
+FEEDBACK_TIMEOUT_SECONDS = 3.0
 
 
 from ftms import parse_bike_data
@@ -65,17 +67,17 @@ async def discover_devices():
     return list(devices.values())
 
 
-async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trainer_ready_event=None, combined=None):
+async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trainer_ready_event=None, combined=None, device_search=None):
     while True:
-        if combined is not None and combined.disabled:
-            print("Gecombineerde sturing uit. Geen automatische herverbinding; herstart de bridge.")
-            return
         try:
+            if device_search is not None:
+                device = await device_search()
             print("KICKR verbinden:", device.name, device.address)
             async with BleakClient(device, timeout=18.0) as client:
                 if not any(s.uuid.lower() == FTMS_SERVICE for s in client.services):
                     raise RuntimeError("FTMS 1826 ontbreekt op geselecteerd apparaat")
                 sender.connected = True
+                connected_at = time.monotonic()
                 sender.latest.clear()
                 sender.last_received = sender.last_power = 0.0
                 def notification(_char, data):
@@ -94,7 +96,7 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
                     trainer_ready_event.set()
                 controller = None
                 try:
-                    if resistance_queue is not None or shifter is not None or combined is not None:
+                    if resistance_queue is not None or shifter is not None or (combined is not None and not combined.disabled):
                         controller = ResistanceController(client)
                         print("FTMS: controle aanvragen...")
                         try:
@@ -107,18 +109,31 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
                             trainer_ready_event.set()
                         if combined is not None:
                             await combined.check_supported(client)
-                            print('SIM/ERG CONTROL ACTIEF; start in SIM met versnelling 4.')
+                            if combined.reconnect_ready:
+                                print('KICKR hersteld; oude doelen gewist. Wacht op verse data en een nieuwe wedstrijd/opdracht.')
+                            else:
+                                print('SIM/ERG CONTROL ACTIEF; start in SIM met versnelling 4.')
                         elif shifter is None:
                             print("Commando's: 1, 2, 3 ... 15 (weerstandsniveau), reset, stop")
                         else:
                             print('12 versnellingen actief: links lichter, rechts zwaarder; typ stop + ENTER om regeling te stoppen.')
                     while client.is_connected:
+                        # Some adapters leave a stale link open after data stops.
+                        now = time.monotonic()
+                        if (now - max(connected_at, sender.last_received) > FEEDBACK_TIMEOUT_SECONDS
+                                or now - max(connected_at, sender.last_power) > FEEDBACK_TIMEOUT_SECONDS):
+                            if combined is not None:
+                                combined.suspend('trainer_data_timeout')
+                            raise ConnectionError('KICKR-data/power ontbreekt; opnieuw verbinden')
                         if controller is not None:
                             if combined is not None:
                                 try:
                                     await combined.tick(controller, sender)
                                 except Exception as exc:
-                                    combined.request_stop('ftms_error: ' + str(exc))
+                                    if client.is_connected:
+                                        combined.request_stop('ftms_error: ' + str(exc))
+                                    else:
+                                        combined.suspend('trainer_disconnected')
                                     print('SIM/ERG UIT na FTMS-fout:', type(exc).__name__, str(exc))
                                     try:
                                         await controller.release()
@@ -184,21 +199,25 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
         sender.connected = False
         sender.latest.clear()
         if combined is not None:
-            combined.request_stop('trainer_disconnected')
-            print('SIM/ERG uit bij verbindingsverlies. Herstart bewust.')
+            combined.connection_lost()
+            print('KICKR weggevallen; doelen gewist, bridge blijft zoeken. Na herstel kan een nieuwe wedstrijd sturen.')
         if shifter is not None:
             shifter.enabled = False  # Never resume commanding after disconnect without restart.
             print('Virtueel schakelen uit na verbindingsverlies. Herstart de bridge bewust.')
             if trainer_ready_event is not None:
                 trainer_ready_event.clear()
         print("KICKR opnieuw proberen over 5 seconden...")
-        await asyncio.sleep(5)
+        await asyncio.sleep(RETRY_SECONDS)
 
 
-async def ride_loop(device, sender, mapper, shifter=None, combined=None):
+async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_search=None):
     previous = set()
     while True:
         try:
+            if device_search is not None:
+                device = await device_search()
+                # Preserve the proven independent Ride startup spacing.
+                await asyncio.sleep(1.5)
             print("Zwift Ride verbinden:", device.name or "(naam via advertentie)", device.address)
             async with BleakClient(device, timeout=18.0) as client:
                 print("Ride BLE link verbonden; zoeken naar Zwift service...")
@@ -256,7 +275,7 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None):
         except Exception as exc:
             print("Zwift Ride verbindingsfout:", type(exc).__name__, str(exc))
         previous = set()
-        await asyncio.sleep(5)
+        await asyncio.sleep(RETRY_SECONDS)
 
 
 async def shift_input(queue, shifter):
@@ -346,21 +365,9 @@ async def main(args):
         else:
             print('ANT+ overgeslagen (--no-ant). Hartslag in telemetrie = null.')
 
-        found = await discover_devices()
-        trainer = select_device(found, args.trainer)
-        ride = select_left_ride(found, args.ride)
-        for device, adv in found:
-            name = advertised_name(device, adv)
-            if 'zwift' in name.casefold() or 'sf2' in name.casefold():
-                print(f'Ride kandidaat: {name} {device.address} / LEFT-MASTER={is_left_ride(device, adv)}')
-        print('Geselecteerde KICKR:',
-              next((advertised_name(d, a) for d, a in found if d is trainer), 'NIET GEVONDEN') if trainer else 'NIET GEVONDEN')
-        print('Geselecteerde Ride:',
-              next((advertised_name(d, a) + ' ' + d.address for d, a in found if d is ride), 'NIET GEVONDEN')
-              if ride else 'NIET GEVONDEN (linkercontroller niet eenduidig herkend)')
-        if not trainer:
-            print('Geen KICKR gevonden. Controleer trainer en herstart. De bridge stuurt geen weerstand.')
-            return
+        discovery = Discovery(discover_devices)
+        trainer_search = DeviceSearch(discovery, lambda records: select_device(records, args.trainer), 'KICKR')
+        ride_search = DeviceSearch(discovery, lambda records: select_left_ride(records, args.ride), 'Linker Zwift Ride')
 
         combined = CombinedMode(args.erg_ramp_w_per_s)
         sender.combined_mode = combined
@@ -371,22 +378,12 @@ async def main(args):
             print(f'UDP-commandopoort {COMMAND_PORT} niet beschikbaar: {exc}. Geen FTMS-sturing gestart.')
             return
         print(f'UDP-commandos: {COMMAND_HOST}:{COMMAND_PORT}; ERG/helling lease 5 s, ACK is acceptatie, geen hardwarebewijs.')
-        tasks = [trainer_loop(trainer, sender, combined=combined),
+        mapper = ButtonMapper.load()
+        print('Ride knoppenmapping:', mapper.mapping)
+        print('Bridge wacht op apparaten; KICKR en linker Ride verbinden onafhankelijk zodra ze beschikbaar zijn.')
+        tasks = [trainer_loop(None, sender, combined=combined, device_search=trainer_search),
+                 ride_loop(None, sender, mapper, combined=combined, device_search=ride_search),
                  sender.publish(), combined_console(combined)]
-        if ride:
-            mapper = ButtonMapper.load()
-            print('Ride knoppenmapping:', mapper.mapping)
-
-            async def ride_independently():
-                # Preserve the v0.11/0.12.1 proven Ride startup procedure.
-                await asyncio.sleep(1.5)
-                print('Zwift Ride start onafhankelijk van KICKR/FTMS.')
-                await ride_loop(ride, sender, mapper, combined=combined)
-
-            tasks.append(ride_independently())
-        else:
-            print('Geen linker Zwift Ride gevonden. Zet EERST links en DAN rechts aan; herstart daarna.')
-            print("ERG kan zonder Ride worden bediend met de tekstcommando's.")
         await asyncio.gather(*tasks)
     finally:
         if command_transport is not None:
@@ -418,3 +415,4 @@ if __name__ == '__main__':
         asyncio.run(main(args))
     except KeyboardInterrupt:
         print('Bridge afgesloten.')
+

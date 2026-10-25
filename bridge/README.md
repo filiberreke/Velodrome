@@ -4,6 +4,24 @@ Uitbreiding van v0.14, oorspronkelijk gebaseerd op `velodrome_bridge_v0131_udp_g
 FTMS, Zwift Ride left-master, Garmin ANT+ via bestaande Dynastream/libusb0 en
 Godot-communicatie. **Softwarematig getest; hardwarewerking van v0.15 wacht op de usertest.**
 
+## Blijft wachten en opnieuw verbinden
+
+De bridge mag starten voordat KICKR of linker Zwift Ride aanstaan. Hij blijft
+scannen en wacht na een ontbrekend apparaat of verbindingsfout 5 seconden voor
+de volgende poging. Elke scan duurt maximaal de ingestelde 8 seconden; een
+verbindingspoging heeft daarnaast zijn eigen timeout. KICKR en Ride worden
+onafhankelijk gezocht. Een tijdelijk onbeschikbare Bluetooth-adapter beëindigt
+de bridge niet. Na de eerste keuze wordt hetzelfde BLE-adres opnieuw gezocht.
+
+Ook een open KICKR-link zonder verse data/power gedurende meer dan 3 seconden
+wordt gesloten en opnieuw gezocht. Metingen hervatten automatisch. Bij uitval
+worden oude belasting, helling en UDP-eigendom gewist; na herstel wacht de trainer
+vrijgegeven op een nieuwe opdracht. Start in het bijgewerkte spel een nieuwe
+wedstrijd, of gebruik `sim` in de console zodra verse data beschikbaar is.
+De bridge hoeft daarvoor niet opnieuw te starten. STOP, verlopen UDP-lease en
+echte FTMS-protocolfouten blijven een bewuste blokkering van sturing; de
+verbindings-/meetlus blijft ook dan werken. Zie [herstelprotocol](RECOVERY.md).
+
 ## Nieuw: echte FTMS-hellingsimulatie
 
 Godot kan `set_grade` sturen met `grade_pct` van -20.00 t/m 20.00 (maximaal twee decimalen).
@@ -96,8 +114,11 @@ kan een nog niet uitgevoerde opdracht vervangen.
 Bij positieve UDP-ERG of actieve UDP-hellingregeling moet Godot elke seconde een nieuwe `heartbeat` sturen.
 Na vijf seconden zonder heartbeat/geldige nieuwe besturingsopdracht: sturing uit,
 Reset geprobeerd, bewuste herstart nodig. Retries en status verlengen de lease niet.
-Ook meer dan drie seconden zonder trainerdata of powerfeedback in ERG/hellingregeling, BLE-verlies
-of een FTMS-fout stoppen de sturing. Geen automatische hervatting na zo'n fout.
+Meer dan drie seconden zonder trainerdata/powerfeedback en BLE-verlies wissen
+de doelen en starten de tijdelijke wacht-/herverbindingsroute. De verbinding en
+metingen herstellen automatisch; oude belasting wordt niet teruggezet. Een
+nieuwe wedstrijd/opdracht kan daarna sturen zonder bridgeherstart. Een echte
+FTMS-protocolfout blijft wel een terminale blokkering van sturing.
 Een FTMS-transactie heeft maximaal vijf seconden voor write plus indication;
 een lopende transactie kan vrijgave vertragen. Cleanup-Reset kan daarna zelf nog
 maximaal vijf seconden duren. Een bezette commandopoort voorkomt FTMS-start.
@@ -128,3 +149,4 @@ geen BLE/USB-pakketten of hardware nodig. Zie [VALIDATION.md](VALIDATION.md).
 
 Bronnen: [Bluetooth SIG FTMS 1.0.1](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0-1/)
 en [GATT Specification Supplement](https://btprodspecificationrefs.blob.core.windows.net/gatt-specification-supplement/GATT_Specification_Supplement.pdf).
+

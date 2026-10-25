@@ -274,7 +274,8 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
         c = self.setup_mode(); c.accept('set_mode', {'mode': 'ERG'})
         self.clock.advance(3.1)
         await c.tick(self.controller, self.sender)
-        self.assertTrue(c.disabled)
+        self.assertFalse(c.disabled)
+        self.assertTrue(c.waiting_for_feedback)
         self.assertEqual(c.last_error, 'trainer_data_timeout')
 
     async def test_power_timeout_despite_other_notifications(self):
@@ -282,7 +283,8 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
         self.clock.advance(3.1)
         self.sender.last_received = self.clock()
         await c.tick(self.controller, self.sender)
-        self.assertTrue(c.disabled)
+        self.assertFalse(c.disabled)
+        self.assertTrue(c.waiting_for_feedback)
 
     async def test_disconnect_releases_without_more_targets(self):
         c = self.setup_mode(); c.accept('set_mode', {'mode': 'ERG'})
@@ -290,7 +292,8 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
         count = len(self.controller.calls)
         self.sender.connected = False
         await c.tick(self.controller, self.sender)
-        self.assertTrue(c.disabled)
+        self.assertFalse(c.disabled)
+        self.assertTrue(c.waiting_for_feedback)
         self.assertEqual(self.controller.calls[count:], [b'\x01'])
 
     async def test_stall_does_not_catch_up_entire_ramp(self):
@@ -454,3 +457,4 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
             sender.sock.close()
 
 if __name__ == '__main__': unittest.main()
+

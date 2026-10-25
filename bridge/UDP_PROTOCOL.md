@@ -67,12 +67,16 @@ niet. `set_target_power 0` heeft altijd voorrang als vrijgave: RELEASED na Reset
 Stuur iedere seconde heartbeat met een nieuw id, ook op vlakke weg. De lease is aan
 dezelfde bronpoort gekoppeld en stopt na vijf seconden stilte. Status/retries en
 Ride-knoppen verlengen de lease niet. Drie seconden zonder trainerdata/powerfeedback
-stopt de regeling ook. Bij consolewijziging verdwijnt UDP-eigendom zoals bij ERG.
+wist doelen/lease en pauzeert de regeling ook; de bridge blijft zoeken en
+herverbinden. Een nieuwe opdracht na herstel heeft geen bridgeherstart nodig.
+Bij consolewijziging verdwijnt UDP-eigendom zoals bij ERG.
 
 Extra velden in elke state (oudere clients mogen onbekende responsevelden negeren):
 
 | Veld | Betekenis |
 | --- | --- |
+| waiting_for_feedback | Tijdelijke onderbreking: wachten op verse trainerdata en power; geen nieuwe belasting toegestaan. |
+| reconnect_ready | Oude doelen gewist na uitval; nieuwe wedstrijd mag de vrijgegeven sessie expliciet activeren. |
 | simulation_supported | Trainer adverteert Indoor Bike Simulation Parameters. |
 | sim_backend / desired_sim_backend | Bevestigde / aangevraagde SIM-regeling: resistance of simulation. Alleen relevant in SIM. |
 | grade_pct | Door Godot gevraagde weghelling; nooit stil aangepast. |
@@ -200,8 +204,14 @@ niet automatisch opnieuw ERG. Expliciet set_mode SIM en 0 W verwijderen de lease
 
 De trainer-loop draait normaal circa iedere 100 ms. ERG en hellingregeling stoppen bij leaseverlies,
 meer dan drie seconden zonder FTMS-data of powerfeedback, BLE-verlies of FTMS-fout.
-Stopredenen: udp_timeout, trainer_data_timeout, trainer_disconnected, console_stop,
-udp_stop of ftms_error: .... Geen automatische herbelasting na terminale stop/fout.
+BLE-verlies en ontbrekende data/power zijn nu tijdelijke onderbrekingen: doelen
+en lease worden gewist, de bridge blijft zoeken en vraagt na herstel alleen
+vrijgave aan. waiting_for_feedback blijft true totdat verse data én power binnen
+zijn. reconnect_ready laat een expliciete nieuwe wedstrijd/opdracht toe zonder
+procesherstart. Zie [RECOVERY.md](RECOVERY.md). Een geldige 0-W-vrijgave mag ook
+tijdens deze offline wachtfase worden klaargezet; andere sturing krijgt not_active.
+udp_timeout, console_stop, udp_stop en ftms_error blijven terminaal voor sturing.
+Geen automatische herbelasting na onderbreking of terminale stop/fout.
 Status blijft beschikbaar. Een FTMS-write/indication kan maximaal vijf seconden
 duren en vrijgave vertragen; cleanup-Reset kan daarna nog maximaal vijf seconden
 kosten. Nieuwere stop-/modusverzoeken worden na een lopende transactie opgepakt;
@@ -226,4 +236,5 @@ geen authenticatie tegen lokale processen.
 Telemetrie op 127.0.0.1:51723 en interne HR op 51724 veranderen niet. Geen ERG-
 statusvelden toegevoegd aan telemetrie: gebruik status op 51725. gear blijft 1..12
 in actieve SIM, anders null; Ride-knopberichten blijven behouden.
+
 

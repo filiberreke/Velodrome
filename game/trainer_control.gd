@@ -116,11 +116,13 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		phase = "READY"
 	elif command == "status" and phase == "PROBE":
 		if not state.get("started", false): return
+		if state.get("waiting_for_feedback", false): return
+		if state.get("reconnect_ready", false) and not state.get("release_confirmed", false): return
 		if not state.get("simulation_supported", false):
 			_block("simulation_unsupported")
 		elif state.get("udp_owned", false):
 			_block("control_busy")
-		elif state.get("mode") == "RELEASED" and state.get("release_confirmed", false) and may_resume:
+		elif state.get("mode") == "RELEASED" and state.get("release_confirmed", false) and (may_resume or state.get("reconnect_ready", false)):
 			_request("set_mode", {"mode": "SIM"}, now, true)
 		elif state.get("mode") == "SIM" and state.get("desired_mode") == "SIM":
 			phase = "READY"
@@ -181,3 +183,4 @@ func close() -> void:
 	if socket.is_bound():
 		release(Time.get_ticks_msec() / 1000.0)
 		socket.close()
+
