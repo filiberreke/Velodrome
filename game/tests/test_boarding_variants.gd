@@ -52,8 +52,15 @@ func run_test() -> void:
 	for point in arrays[Mesh.ARRAY_VERTEX]:
 		if point.distance_to(end) < 0.001: touches_end = true
 	check(touches_end, "Final light panel reaches finish and start of first bend")
-	for name in ["SponsorsEersteBocht_0", "SponsorsEersteBocht_1"]:
-		check(arena.get_node(name).material_override.get_shader_parameter("match_blue"), "Both curve sponsors use shared background correction")
+	for name in ["SponsorsEersteBocht_0", "PelotonPredictorRechteLijn_0"]:
+		check(arena.get_node(name).material_override.get_shader_parameter("match_blue"), "Wielerpraat and Peloton sections use shared background correction")
+	check(not arena.has_node("SponsorsEersteBocht_1"),"First bend contains only Wielerpraat")
+	var wp: MeshInstance3D = arena.get_node("SponsorsEersteBocht_0")
+	var pp: MeshInstance3D = arena.get_node("PelotonPredictorRechteLijn_0")
+	check(wp.material_override.get_shader_parameter("poster")==Sponsors.WIELERPRAAT,"Correct sole Wielerpraat texture")
+	check(pp.material_override.get_shader_parameter("poster")==Sponsors.PELOTON,"Opposite straight contains only Peloton Predictor")
+	check(is_equal_approx(pp.get_meta("start_m"),PI*game.RADIUS) and is_equal_approx(pp.get_meta("end_m"),game.LAP*0.5),"Peloton panels cover the complete formerly empty straight")
+	for distance in range(250):check(Sponsors.covered(game,float(distance)),"No leftover small ads anywhere around lap")
 	game.free()
 	print("BOARDING_VARIANTS_OK samples=%d old_partial=%d panels=%d" % [samples, old_partial, count] if failures == 0 else "BOARDING_VARIANTS_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)

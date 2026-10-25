@@ -10,12 +10,12 @@ func run_test() -> void:
 	var group: Node3D = game.arena.get_node("NoordbochtSponsors")
 	var panels: Array = group.get_meta("panels")
 	var start: float = game.LAP*0.5; var end: float = start+PI*game.RADIUS
-	check(panels.size()>=7 and panels.size()%3==1,"Repeating pattern shares Tour separators")
+	check(panels.size()>=9 and panels.size()%8==1,"Repeating pattern shares Tour separators")
 	check(is_equal_approx(panels[0]["start"],start) and is_equal_approx(panels[-1]["end"],end),"Entire northern bend covered")
-	var expected := ["tour-dambiance-vierkant.png","sjampanje-ivoor.png","sjampanje-groen.png"]
+	var expected := ["tour-dambiance-vierkant.png","sjampanje-ivoor.png","sjampanje-groen.png","sjampanje-ivoor.png","tour-dambiance-vierkant.png","eerlijke-stefs-licht.png","eerlijke-stefs-donker.png","eerlijke-stefs-licht.png"]
 	var visual := panels.duplicate(); visual.reverse()
 	for index in range(visual.size()):
-		check(String(visual[index]["texture"]).get_file()==expected[index%3],"Visible order Tour / white / green / Tour")
+		check(String(visual[index]["texture"]).get_file()==expected[index%8],"Exact visible nine-sign cycle, with shared Tour separator")
 	for index in range(panels.size()):
 		var panel: Dictionary = panels[index]
 		check(panel["end"]>panel["start"],"Every sign has positive width")
@@ -23,10 +23,10 @@ func run_test() -> void:
 		var texture: Texture2D = load(panel["texture"])
 		var aspect := float(texture.get_width())/float(texture.get_height())
 		var base: Dictionary = panels[0]
-		check(absf((panel["end"]-panel["start"])/aspect-(base["end"]-base["start"]))<0.0001,"Square Tour / broad champagne banners retain their relative proportions")
+		check(absf((panel["end"]-panel["start"])/aspect-(base["end"]-base["start"]))<0.0001,"Square Tour / broad sponsor banners retain their relative proportions")
 	check(Sponsors.covered(game,start+0.01) and Sponsors.covered(game,end-0.01),"Old northern posters suppressed")
-	check(not Sponsors.covered(game,90),"Other unfinished straight remains outside new coverage")
-	check(group.get_child_count()==3,"Geometry batched into three sponsor meshes")
+	check(Sponsors.covered(game,90),"Opposite straight now also suppresses old panels")
+	check(group.get_child_count()==5,"Geometry batched into five sponsor meshes")
 	for item in group.get_children():
 		var arrays: Array = item.mesh.surface_get_arrays(0)
 		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]

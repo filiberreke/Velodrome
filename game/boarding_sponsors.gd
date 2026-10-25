@@ -6,21 +6,24 @@ const PELOTON: Texture2D = preload("res://assets/boarding/pelotonpredictor-board
 const TOUR: Texture2D = preload("res://assets/boarding/tour-dambiance-vierkant.png")
 const SJAMPANJE_WHITE: Texture2D = preload("res://assets/boarding/sjampanje-ivoor.png")
 const SJAMPANJE_GREEN: Texture2D = preload("res://assets/boarding/sjampanje-groen.png")
+const STEF_LIGHT: Texture2D = preload("res://assets/boarding/eerlijke-stefs-licht.png")
+const STEF_DARK: Texture2D = preload("res://assets/boarding/eerlijke-stefs-donker.png")
 const POSTER_SHADER: Shader = preload("res://boarding_sponsors.gdshader")
 const OFFSET := 9.10
 const INSET := 0.035
 const BASE := 0.02
 const HEIGHT := 1.20
 
-static func covered(game: Node3D, distance: float) -> bool:
-	var s: float = fposmod(distance, game.LAP)
-	return s < PI * game.RADIUS or s >= game.LAP - game.STRAIGHT or (s >= game.LAP*0.5 and s < game.LAP*0.5+PI*game.RADIUS)
+static func covered(_game: Node3D, _distance: float) -> bool:
+	# All four track sections now have continuous full-size sponsor boarding.
+	return true
 
 static func build(arena: Node3D) -> void:
 	var game: Node3D = arena.main
 	# An even panel count means blue/light alternation ends in light before the bend.
 	_section(arena, game.LAP - game.STRAIGHT, game.LAP, [VELODROME, VELODROME_LIGHT], "VelodromeLaatsteRechteLijn")
-	_section(arena, 0.0, PI * game.RADIUS, [WIELERPRAAT, PELOTON], "SponsorsEersteBocht", true)
+	_section(arena, 0.0, PI * game.RADIUS, [WIELERPRAAT], "SponsorsEersteBocht", true)
+	_section(arena, PI*game.RADIUS, game.LAP*0.5, [PELOTON], "PelotonPredictorRechteLijn", true)
 	_north_section(arena)
 
 static func _section(arena: Node3D, start: float, end: float, posters: Array, title: String, normalize_blue: bool = false) -> void:
@@ -80,13 +83,16 @@ static func _north_section(arena: Node3D) -> void:
 		var next: Vector3 = arena._point(lerpf(start,end,float(i)/256.0),OFFSET)
 		physical += previous.distance_to(next); previous = next
 	var tour_aspect := float(TOUR.get_width())/float(TOUR.get_height())
-	var white_aspect := float(SJAMPANJE_WHITE.get_width())/float(SJAMPANJE_WHITE.get_height())
-	var green_aspect := float(SJAMPANJE_GREEN.get_width())/float(SJAMPANJE_GREEN.get_height())
-	var cycles := maxi(1,roundi((physical/HEIGHT-tour_aspect)/(tour_aspect+white_aspect+green_aspect)))
-	# Increasing race distance runs LEFT when viewed from the infield.
-	# Reverse the pair so the visible left-to-right sequence is Tour / white / green / Tour.
-	var sequence: Array[Texture2D] = [TOUR]
-	for i in range(cycles): sequence.append_array([SJAMPANJE_GREEN,SJAMPANJE_WHITE,TOUR])
+	# One visible cycle shares Tour separators with the next cycle.
+	var visible_cycle: Array[Texture2D] = [TOUR,SJAMPANJE_WHITE,SJAMPANJE_GREEN,SJAMPANJE_WHITE,TOUR,STEF_LIGHT,STEF_DARK,STEF_LIGHT]
+	var cycle_units := 0.0
+	for texture in visible_cycle: cycle_units += float(texture.get_width())/float(texture.get_height())
+	var cycles := maxi(1,roundi((physical/HEIGHT-tour_aspect)/cycle_units))
+	var sequence: Array[Texture2D] = []
+	for i in range(cycles): sequence.append_array(visible_cycle)
+	sequence.append(TOUR)
+	# Increasing race distance runs left when seen from the infield.
+	sequence.reverse()
 	var total := 0.0
 	for texture in sequence: total += float(texture.get_width())/float(texture.get_height())
 	var layout: Array = []; var offset := 0.0
@@ -99,8 +105,8 @@ static func _north_section(arena: Node3D) -> void:
 		offset += units
 	var group := Node3D.new(); group.name = "NoordbochtSponsors"; arena.add_child(group)
 	group.set_meta("panels",layout); group.set_meta("start_m",start); group.set_meta("end_m",end)
-	group.set_meta("visual_order","Tour / Sjampanje wit / Sjampanje groen / Tour")
-	for texture in [TOUR,SJAMPANJE_WHITE,SJAMPANJE_GREEN]:
+	group.set_meta("visual_order","Tour / Sjampanje licht / Sjampanje groen / Sjampanje licht / Tour / Eerlijke Stef licht / Eerlijke Stef donker / Eerlijke Stef licht / Tour")
+	for texture in [TOUR,SJAMPANJE_WHITE,SJAMPANJE_GREEN,STEF_LIGHT,STEF_DARK]:
 		var vertices := PackedVector3Array(); var normals := PackedVector3Array(); var uv := PackedVector2Array()
 		for panel in layout:
 			if panel["texture"] != texture.resource_path: continue
