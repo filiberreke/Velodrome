@@ -44,7 +44,7 @@ func run_test() -> void:
 	var infield: Node3D = game.arena.get_node("LevendigMiddenterrein")
 	var mixed: Node3D = infield.get_node("WielerpraatMixedZone")
 	check(mixed.has_node("JournalisteRegenboog"),"New reporter actually used in mixed zone")
-	check(mixed.get_node("JournalisteRegenboog").position.is_equal_approx(Vector3(-0.8,0,0.1)),"Interview position retained")
+	check(mixed.get_node("JournalisteRegenboog").position.is_equal_approx(Vector3(-0.8,0,0.75)),"Female interview positioned inside tent")
 	game.free()
 	print("JOURNALIST_OK" if failures == 0 else "JOURNALIST_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)

@@ -4,6 +4,9 @@ extends "res://branded_kiosks.gd"
 const TRUST: Texture2D = preload("res://assets/kiosks/trust-no-one-banner.png")
 const WP: Texture2D = preload("res://assets/boarding/wielerpraat-boarding.png")
 const JOURNALIST: PackedScene = preload("res://assets/people/journaliste_regenboog.glb")
+const REPORTER_GREY: PackedScene = preload("res://assets/people/journalist_grijs.glb")
+const MALE_CHAMPION: PackedScene = preload("res://assets/people/renner_europees_kampioen.glb")
+const FEMALE_CHAMPION: PackedScene = preload("res://assets/people/renster_europees_kampioen.glb")
 const PRINT_SHADER: Shader = preload("res://wielerpraat_print.gdshader")
 const WORDMARK_UV := Rect2(0.245, 0.245, 0.710, 0.360)
 const MICROPHONE_UV := Rect2(0.068, 0.195, 0.170, 0.510)
@@ -104,19 +107,28 @@ func _mixed(parent: Node3D) -> void:
 			_cylinder(parent, Vector3(x, 0.035, z), 0.15, 0.07, "303b49")
 	var arrow: Label3D = host._label(parent, "PODIUM ↓", Vector3(-0.25, 0.053, -3.5), 55, Color.WHITE)
 	arrow.rotation.x = -PI * 0.5
-	# Interview tableau: cyclist in helmet and shorts, reporter, microphone, camera.
-	_cyclist(parent, Vector3(0.35, 0, 0.15))
+	# Two separate interviews under the canopy; the blue route stays open at both ends.
+	var woman := FEMALE_CHAMPION.instantiate() as Node3D
+	parent.add_child(woman); woman.name = "RensterEuropeesKampioen"
+	woman.position = Vector3(0.35,0,0.75); woman.rotation.y = -PI*0.5
 	var reporter := JOURNALIST.instantiate() as Node3D
 	parent.add_child(reporter)
 	reporter.name = "JournalisteRegenboog"
-	reporter.position = Vector3(-0.80,0,0.1); reporter.rotation.y = PI*0.5
-	var mic := _box(parent, Vector3(-0.28, 1.37, 0.12), Vector3(0.55, 0.045, 0.045), "252831")
+	reporter.position = Vector3(-0.80,0,0.75); reporter.rotation.y = PI*0.5
+	var mic := _box(parent, Vector3(-0.28, 1.37, 0.77), Vector3(0.55, 0.045, 0.045), "252831")
 	mic.rotation.z = 0.20
-	_cylinder(parent, Vector3(-0.04, 1.44, 0.12), 0.07, 0.13, "151b26")
-	_box(parent, Vector3(-0.09, 1.35, 0.12), Vector3(0.12, 0.12, 0.12), WP_BLUE)
-	var camera: Node3D = host._prop("tv_camera", parent.position + Vector3(-2.5, 0, 0.1), PI * 0.5, {}, 0.6)
+	_cylinder(parent, Vector3(-0.04, 1.44, 0.77), 0.07, 0.13, "151b26")
+	_box(parent, Vector3(-0.09, 1.35, 0.77), Vector3(0.12, 0.12, 0.12), WP_BLUE)
+	var man := MALE_CHAMPION.instantiate() as Node3D
+	parent.add_child(man); man.name = "RennerEuropeesKampioen"
+	man.position = Vector3(0.35,0,-0.75); man.rotation.y = -PI*0.5
+	var grey := REPORTER_GREY.instantiate() as Node3D
+	parent.add_child(grey); grey.name = "JournalistGrijs"
+	grey.position = Vector3(-0.80,0,-0.75); grey.rotation.y = PI*0.5
+	parent.set_meta("interview_pairs",2)
+	var camera: Node3D = host._prop("tv_camera", parent.position + Vector3(-2.5, 0, 0.75), PI * 0.5, {}, 0.6)
 	camera.name = "MixedZoneCamera"
-	_figure(parent,"staff_photographer",Vector3(-3.15,0,0.1),PI*0.5,"273038","ffffff")
+	_figure(parent,"staff_photographer",Vector3(-3.15,0,0.75),PI*0.5,"273038","ffffff")
 	for z in [18.5, 21.5, 24.5, 27.5]: host.blockers.append([Vector2(9.15,z), 1.75])
 
 func _figure(parent: Node3D, variant: String, at: Vector3, yaw: float, shirt: String, accent: String) -> void:
@@ -182,20 +194,10 @@ func _beer(parent: Node3D) -> void:
 func _pizza(parent: Node3D) -> void:
 	_box(parent, Vector3(0,0.55,0), Vector3(2.35,1.10,1.9), "b76d47")
 	_box(parent, Vector3(0,1.13,0), Vector3(2.65,0.16,2.2), "d6c9aa")
-	# Dome and a proper arched tunnel built from wedges, rather than a flat black sticker.
+	# A deep masonry tunnel penetrates the dome; the old flat arch floated ahead of it.
 	var dome := SphereMesh.new(); dome.radius = 1.0; dome.height = 1.65; dome.is_hemisphere = true
 	_mesh(parent, dome, Vector3(0,1.20,0.12), _mat("c37a4f"), "Ovenkoepel")
-	_box(parent, Vector3(0,1.39,-1.02), Vector3(0.90,0.38,0.12), "201a17")
-	for i in range(12):
-		var a: float = PI * float(i) / 12.0; var b: float = PI * float(i+1) / 12.0
-		var vertices := PackedVector3Array()
-		for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),Vector2(0,1),Vector2(1,0),Vector2(1,1)]:
-			var theta: float = lerpf(a,b,corner.x); var r: float = lerpf(0.44,0.62,corner.y)
-			vertices.append(Vector3(cos(theta)*r,1.55+sin(theta)*r,-1.05))
-		var normals := PackedVector3Array(); normals.resize(6); normals.fill(Vector3.FORWARD)
-		var opening := PackedVector3Array([Vector3(0,1.55,-1.02), Vector3(cos(a)*0.44,1.55+sin(a)*0.44,-1.02), Vector3(cos(b)*0.44,1.55+sin(b)*0.44,-1.02)])
-		_surface(parent,opening,PackedVector3Array([Vector3.FORWARD,Vector3.FORWARD,Vector3.FORWARD]),PackedVector2Array(),_mat("201a17"),"Ovenopening")
-		_surface(parent, vertices, normals, PackedVector2Array(), _mat("e4ba83" if i%2 else "b6613c"), "Ovenboog")
+	_oven_mouth(parent)
 	_cylinder(parent, Vector3(0.43,2.43,0.35), 0.14, 1.40, "43494b")
 	_cylinder(parent, Vector3(0.43,3.15,0.35), 0.23, 0.09, "43494b")
 	_box(parent, Vector3(0,1.23,-1.00), Vector3(1.9,0.09,0.56), "d6c9aa")
@@ -204,10 +206,9 @@ func _pizza(parent: Node3D) -> void:
 	for x in [-0.34,0.31]:
 		_cylinder(parent, Vector3(x,1.292,-1.10),0.25,0.035,"e6b361")
 		_cylinder(parent, Vector3(x,1.314,-1.10),0.21,0.015,"b94b2d")
-	host._label(parent, "PIZZA • HOUTOVEN", Vector3(0,0.72,-0.967), 45, Color("fff0d1"), PI)
 	_figure(parent,"staff_vendor_f",Vector3(-1.35,0,-0.5),PI*0.5,"fff0d1","b94b2d")
-	# Three genuinely seated tables, clear of the mixed-zone entrance and main bar.
-	for i in range(3):
+	# Keep the first two seated tables; the track-side third spot becomes a standing duo.
+	for i in range(2):
 		var spots := [Vector3(-2.4,0,-3.4), Vector3(1.1,0,-3.8), Vector3(2.6,0,0.5)]
 		var table := _root("Pizzatafel%d" % (i+1), spots[i], parent)
 		table.set_meta("terrace_table",true)
@@ -220,5 +221,41 @@ func _pizza(parent: Node3D) -> void:
 			_chair(table,at,angle+PI,"6c5336")
 			if j == i: _person(table,at,angle+PI,false,true)
 		host.blockers.append([Vector2(parent.position.x+spots[i].x,parent.position.z+spots[i].z),1.7])
-	parent.set_meta("seated_tables",3)
+	var friends := preload("res://assets/people/pizza_vrienden_statafel.glb").instantiate() as Node3D
+	parent.add_child(friends); friends.name = "PizzaVriendenStatafel"
+	friends.position = Vector3(2.6,0,0.5); friends.rotation.y = PI*0.5
+	friends.set_meta("standing_guests",2)
+	host.blockers.append([Vector2(parent.position.x+2.6,parent.position.z+0.5),1.7])
+	parent.set_meta("seated_tables",2)
+	parent.set_meta("standing_tables",1)
 	host.blockers.append([Vector2(parent.position.x,parent.position.z),2.0])
+
+func _oven_mouth(parent: Node3D) -> void:
+	const SPRING := 1.44
+	const INNER := 0.32
+	const OUTER := 0.44
+	const FRONT := -1.06
+	const BACK := -0.08
+	var tunnel := _root("Oventunnel",Vector3.ZERO,parent)
+	tunnel.set_meta("front_z",FRONT); tunnel.set_meta("back_z",BACK)
+	tunnel.set_meta("outer_radius",OUTER); tunnel.set_meta("spring_y",SPRING)
+	# Side piers and upper vault have real depth all the way into the dome.
+	for side in [-1.0,1.0]:
+		_box(tunnel,Vector3(side*(INNER+OUTER)*0.5,(1.20+SPRING)*0.5,(FRONT+BACK)*0.5),Vector3(OUTER-INNER,SPRING-1.20,BACK-FRONT),"b6613c")
+	for i in range(12):
+		var a := PI*float(i)/12.0; var b := PI*float(i+1)/12.0
+		var points := PackedVector3Array()
+		for z in [FRONT,BACK]:
+			for radius in [INNER,OUTER]:
+				for angle in [a,b]: points.append(Vector3(cos(angle)*radius,SPRING+sin(angle)*radius,z))
+		var vertices := PackedVector3Array(); var normals := PackedVector3Array()
+		# Front ring, outer vault, inside ceiling, rear ring and wedge end faces.
+		for face in [[0,1,2],[2,1,3],[2,3,6],[6,3,7],[0,4,1],[1,4,5],[4,6,5],[5,6,7],[0,2,4],[4,2,6],[1,5,3],[3,5,7]]:
+			var normal: Vector3 = (points[face[1]]-points[face[0]]).cross(points[face[2]]-points[face[0]]).normalized()
+			for index in face: vertices.append(points[index]); normals.append(normal)
+		var brick := _mat("e4ba83" if i%2 else "b6613c")
+		brick.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_surface(tunnel,vertices,normals,PackedVector2Array(),brick,"Tunnelgewelf")
+		var opening := PackedVector3Array([Vector3(0,SPRING,FRONT+0.012),Vector3(cos(a)*INNER,SPRING+sin(a)*INNER,FRONT+0.012),Vector3(cos(b)*INNER,SPRING+sin(b)*INNER,FRONT+0.012)])
+		_surface(tunnel,opening,PackedVector3Array([Vector3.FORWARD,Vector3.FORWARD,Vector3.FORWARD]),PackedVector2Array(),_mat("201a17"),"DonkereHaard")
+	_box(tunnel,Vector3(0,(1.20+SPRING)*0.5,FRONT+0.025),Vector3(INNER*2,SPRING-1.20,0.025),"201a17")

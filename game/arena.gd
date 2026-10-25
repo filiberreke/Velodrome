@@ -47,6 +47,7 @@ func _ready() -> void:
 	_build_grandstands()
 	_emit_stand_crowd()
 	_build_aisles()
+	preload("res://tour_spectator_details.gd").new().build(self)
 	_build_facades_and_railings()
 	_build_roof()
 	_build_track_banner()
@@ -248,7 +249,9 @@ func _build_grandstands() -> void:
 				a.y = 0.0
 				b.y = 0.0
 				var metres_per_s: float = maxf(0.55, a.distance_to(b) / 0.32)
-				if not _aisle(s):
+				# Leave a clear first-row spot for the hand-placed WOUT supporter.
+				var reserved_supporter := tier == 0 and row == 0 and absf(s-152.4) < 0.65
+				if not _aisle(s) and not reserved_supporter:
 					var orientation: Basis = _seat_basis(s)
 					var outward: Vector3 = _outward(s)
 					var deck: Vector3 = _stadium_point(s, off, floor_h)
