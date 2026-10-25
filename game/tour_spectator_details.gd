@@ -15,12 +15,12 @@ func build(arena: Node3D) -> void:
 	var fan := FAN.instantiate() as Node3D; details.add_child(fan); fan.name = "WoutSupporter"
 	fan.position = arena._stadium_point(FAN_S,10.65+0.55,0.88)
 	fan.basis = facing(arena,FAN_S)
-	fan.set_meta("tier",0);fan.set_meta("row",0)
+	fan.set_meta("tier",0);fan.set_meta("row",0);fan.set_meta("supporter_count",2)
 	var text := Label3D.new(); text.name = "WoutSpandoekTekst"
-	text.text = "WOUT WOUT WOUT!";text.font_size = 72;text.pixel_size = 0.00195
+	text.text = "WOUT WOUT WOUT!";text.font_size = 72;text.pixel_size = 0.0047
 	text.modulate = Color("172d40");text.outline_size = 0
 	text.no_depth_test = false; text.billboard = BaseMaterial3D.BILLBOARD_DISABLED
-	fan.add_child(text);text.position = Vector3(0,2.12,0.188)
+	fan.add_child(text);text.position = Vector3(0,2.52,0.215)
 	text.shaded = true; text.double_sided = false
 	details.set_meta("bend", "Tour d'Ambiance")
 

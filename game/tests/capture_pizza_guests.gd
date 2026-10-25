@@ -62,7 +62,7 @@ func capture_all() -> void:
 	var dog: Node3D = details.get_node("ChihuahuaLasagne")
 	var fan: Node3D = details.get_node("WoutSupporter")
 	await snapshot("Chihuahua_lasagne_op_trap",dog.position-arena._outward(147.15)*2.5+Vector3.UP*0.9,dog.position+Vector3.UP*0.19,1.25)
-	await snapshot("Supporter_WOUT",fan.position-arena._outward(152.4)*3.0+Vector3.UP*1.9,fan.position+Vector3.UP*1.2,3.1)
+	await snapshot("Supporter_WOUT",fan.position-arena._outward(152.4)*3.0+Vector3.UP*1.9,fan.position+Vector3.UP*1.5,4.2)
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE; camera.fov = 58
 	await snapshot("Tourbocht_vanaf_piste",arena._point(150,5.5)+Vector3.UP*5.0,(dog.position+fan.position)*0.5+Vector3.UP*0.55,8.5)
 	viewport.free();print("PIZZA_SCREENSHOTS_OK");quit()

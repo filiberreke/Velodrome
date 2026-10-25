@@ -250,7 +250,7 @@ func _build_grandstands() -> void:
 				b.y = 0.0
 				var metres_per_s: float = maxf(0.55, a.distance_to(b) / 0.32)
 				# Leave a clear first-row spot for the hand-placed WOUT supporter.
-				var reserved_supporter := tier == 0 and row == 0 and absf(s-152.4) < 0.65
+				var reserved_supporter := tier == 0 and row == 0 and absf(s-152.4) < 1.4
 				if not _aisle(s) and not reserved_supporter:
 					var orientation: Basis = _seat_basis(s)
 					var outward: Vector3 = _outward(s)

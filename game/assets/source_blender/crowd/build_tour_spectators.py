@@ -51,20 +51,57 @@ bpy.ops.export_scene.gltf(filepath=str(OUT/'chihuahua_lasagne.glb'),export_forma
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 original=people.pose_joints
+palette.update(straw='bf9253',straw_light='dcbb7f',hat_band='8d6b3d',check_blue='789fae',check_orange='c6a174',check_light='e1d4b9')
+colors={k:tuple(int(h[i:i+2],16)/255 for i in (0,2,4)) for k,h in palette.items()}
 def banner_pose(spec):
     j=original(spec)
-    for side in [-1,1]:
-        elbow,wrist=two_bone(j[f'sh{side}'],D(side*.31,.15,2.00),j['dm']['ua'],j['dm']['fa'],D(side*.8,-.4,-.2))
-        j[f'elb{side}']=elbow;j[f'wr{side}']=wrist;j[f'hdir{side}']=D(0,.6,.8).normalized()
+    side=-1 if ROLE=='older' else 1
+    elbow,wrist=two_bone(j[f'sh{side}'],D(side*.58,.17,1.68),j['dm']['ua'],j['dm']['fa'],D(side*.8,-.3,-.2))
+    j[f'elb{side}']=elbow;j[f'wr{side}']=wrist;j[f'hdir{side}']=D(0,0,1)
     return j
 people.pose_joints=banner_pose
-spec=dict(sex='m',pose='stand_relaxed',hair='short',top='longsleeve',bottom='trousers',glasses=True)
-mb,j,bones=people.build_person(spec,0)
-tags=['skin','grey','navy','trousers','shoe','eye','white','mouth','navy','glasses','navy','dish','mouth','grey']
-mb.ft=[tags[tag] for tag in mb.ft]
-build_object(mb,'OudereWoutSupporter',mode='materials',colors=colors)
-cloth=MB();box(cloth,D(0,.17,2.12),(1.50,.025,.40),'white',None)
-for side in [-1,1]:cyl(cloth,D(side*.73,.17,1.91),D(side*.73,.17,2.37),.012,'navy',None,10)
+for ROLE in ['older','straw']:
+    shift=-1.26 if ROLE=='older' else 1.26
+    spec=dict(sex='m',pose='stand_relaxed',hair='short',top='longsleeve',bottom='trousers',glasses=True)
+    mb,j,bones=people.build_person(spec,0)
+    tags=['skin','grey','navy' if ROLE=='older' else 'check_blue','trousers','shoe','eye','white','mouth','navy','glasses','navy','dish','mouth','grey']
+    mb.ft=[tags[tag] for tag in mb.ft]
+    body=build_object(mb,'OudereWoutSupporter' if ROLE=='older' else 'StrohoedWoutSupporter',mode='materials',colors=colors)
+    body.location=D(shift,0,0)
+    if ROLE=='straw':
+        # Fine geometric plaid, cut into the actual shirt mesh on both axes.
+        import bmesh
+        mesh=body.data;bm=bmesh.new();bm.from_mesh(mesh)
+        for axis,lo,hi,step in [(2,.92,1.60,.045),(0,-.55,.55,.045)]:
+            n=int((hi-lo)/step)+1
+            for k in range(n):
+                for delta in [0,.008]:
+                    point=Vector((0,0,0));point[axis]=lo+k*step+delta
+                    normal=Vector((0,0,0));normal[axis]=1
+                    bmesh.ops.bisect_plane(bm,geom=list(bm.verts)+list(bm.edges)+list(bm.faces),plane_co=point,plane_no=normal,dist=1e-6)
+        bm.to_mesh(mesh);bm.free()
+        for name in ['check_orange','check_light']:mesh.materials.append(make_mat(name,colors[name]))
+        slots={m.name:i for i,m in enumerate(mesh.materials)}
+        for face in mesh.polygons:
+            if mesh.materials[face.material_index].name!='check_blue':continue
+            p=sum((mesh.vertices[i].co for i in face.vertices),Vector())/len(face.vertices)
+            hz=(p.z-.92)%.045<.008;vx=(p.x+.55)%.045<.008
+            if hz or vx:face.material_index=slots['check_light' if hz and vx else 'check_orange']
+        hat=MB();head=j['HEAD_C'];up=Vector((0,0,1));centre=head+up*.12
+        # Broad straw brim, pinched crown, brown woven band and short brim strokes.
+        sphere(hat,centre,(.245,.22,.025),'straw_light',None,(32,8))
+        cyl(hat,centre,centre+up*.18,.13,'straw',None,18,r2=.098)
+        sphere(hat,centre+up*.18,(.105,.115,.028),'straw_light',None,(18,6))
+        cyl(hat,centre+up*.018,centre+up*.055,.133,'hat_band',None,20,r2=.128)
+        for k in range(28):
+            a=k*math.tau/28
+            tube(hat,[centre+Vector((math.cos(a)*r,math.sin(a)*r,.025)) for r in [.155,.218]],.0015,'straw',None,4,joints=False)
+        obj=build_object(hat,'Strohoed',mode='materials',colors=colors);obj.location=D(shift,0,0)
+cloth=MB();box(cloth,D(0,.19,2.52),(3.80,.032,.90),'white',None)
 build_object(cloth,'SpandoekDoek',mode='materials',colors=colors)
+poles=MB()
+for side in [-1,1]:
+    cyl(poles,D(side*1.84,.19,1.05),D(side*1.84,.19,3.02),.022,'hat_band',None,12)
+build_object(poles,'SpandoekStokken',mode='materials',colors=colors)
 bpy.ops.export_scene.gltf(filepath=str(OUT/'supporter_wout.glb'),export_format='GLB',export_yup=True,export_normals=True,export_animations=False)
 print('TOUR_SPECTATORS_EXPORTED')
