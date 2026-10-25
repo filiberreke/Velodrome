@@ -1,0 +1,9 @@
+{
+  "SHIFT_UP_LEFT": "LEFT",
+  "SHIFT_DOWN_LEFT": "LEFT",
+  "SHIFT_UP_RIGHT": "RIGHT",
+  "SHIFT_DOWN_RIGHT": "RIGHT",
+  "LEFT": "LEFT",
+  "RIGHT": "RIGHT",
+  "A": "A"
+}

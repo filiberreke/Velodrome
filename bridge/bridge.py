@@ -1,0 +1,420 @@
+"""Velodrome 250 v0.15: KICKR FTMS, Zwift Ride, Garmin ANT+ and local UDP commands."""
+import argparse
+import asyncio
+import json
+import socket
+import time
+import logging
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from bleak import BleakClient, BleakScanner
+from ride_protocol import decode_packet
+from ride_ble import find_characteristics
+from button_mapping import ButtonMapper
+from selection import advertised_name, select_device, select_left_ride, is_left_ride
+from hr_bridge import HeartRateState, HeartRateUDPProtocol, HR_PORT
+from ant_worker import AntWorker
+
+BIKE_DATA = "00002ad2-0000-1000-8000-00805f9b34fb"
+FTMS_SERVICE = "00001826-0000-1000-8000-00805f9b34fb"
+TARGET = ("127.0.0.1", 51723)
+
+
+from ftms import parse_bike_data
+from resistance import ResistanceController
+from virtual_shift import VirtualShifter, RAMP_PERIOD
+from combined_mode import CombinedMode
+from udp_commands import CommandProtocol, HOST as COMMAND_HOST, PORT as COMMAND_PORT
+
+
+class Sender:
+    def __init__(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.latest = {}
+        self.last_power = 0.0
+        self.last_speed = 0.0
+        self.last_received = 0.0
+        self.connected = False
+        self.sample_id = 0
+        self.heart_rate = HeartRateState()
+        self.combined_mode = None  # Linked after device selection; no FTMS startup changes.
+
+    def send(self, packet):
+        self.sock.sendto(json.dumps(packet).encode("utf-8"), TARGET)
+
+    async def publish(self):
+        while True:
+            valid = (self.connected and time.monotonic() - self.last_received < 1.0
+                     and "power_w" in self.latest and "speed_kmh" in self.latest)
+            self.send({"type": "telemetry", "valid": valid,
+                       "power_w": self.latest.get("power_w"),
+                       "speed_kmh": self.latest.get("speed_kmh"),
+                       "cadence_rpm": self.latest.get("cadence_rpm"),
+                       "sample_id": self.sample_id,
+                       "heart_rate_bpm": self.heart_rate.current_bpm(),
+                       "gear": self.combined_mode.selected_gear() if self.combined_mode is not None else None})
+            await asyncio.sleep(0.1)
+
+
+async def discover_devices():
+    print("Bluetooth-scannen (8 seconden)...")
+    devices = await BleakScanner.discover(timeout=8.0, return_adv=True)
+    for _, (dev, adv) in devices.items():
+        name = (adv.local_name or dev.name or "(naamloos)")
+        print(f"  {name:28s} {dev.address}")
+    return list(devices.values())
+
+
+async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trainer_ready_event=None, combined=None):
+    while True:
+        if combined is not None and combined.disabled:
+            print("Gecombineerde sturing uit. Geen automatische herverbinding; herstart de bridge.")
+            return
+        try:
+            print("KICKR verbinden:", device.name, device.address)
+            async with BleakClient(device, timeout=18.0) as client:
+                if not any(s.uuid.lower() == FTMS_SERVICE for s in client.services):
+                    raise RuntimeError("FTMS 1826 ontbreekt op geselecteerd apparaat")
+                sender.connected = True
+                sender.latest.clear()
+                sender.last_received = sender.last_power = 0.0
+                def notification(_char, data):
+                    try:
+                        values = parse_bike_data(data)
+                        sender.latest.update(values)
+                        sender.last_received = time.monotonic()
+                        if 'power_w' in values:
+                            sender.last_power = sender.last_received
+                        sender.sample_id += 1
+                    except ValueError as exc:
+                        print("FTMS decode:", exc)
+                await client.start_notify(BIKE_DATA, notification)
+                print("KICKR verbonden. FTMS data actief.")
+                if trainer_ready_event is not None and shifter is None:
+                    trainer_ready_event.set()
+                controller = None
+                try:
+                    if resistance_queue is not None or shifter is not None or combined is not None:
+                        controller = ResistanceController(client)
+                        print("FTMS: controle aanvragen...")
+                        try:
+                            await asyncio.wait_for(controller.initialize(), timeout=15.0)
+                        except Exception as exc:
+                            print("FTMS initialisatie mislukt:", type(exc).__name__, str(exc))
+                            raise
+                        print("FTMS CONTROL ACTIEF. Test voorzichtig en houd het toetsenbord bij de hand.")
+                        if trainer_ready_event is not None:
+                            trainer_ready_event.set()
+                        if combined is not None:
+                            await combined.check_supported(client)
+                            print('SIM/ERG CONTROL ACTIEF; start in SIM met versnelling 4.')
+                        elif shifter is None:
+                            print("Commando's: 1, 2, 3 ... 15 (weerstandsniveau), reset, stop")
+                        else:
+                            print('12 versnellingen actief: links lichter, rechts zwaarder; typ stop + ENTER om regeling te stoppen.')
+                    while client.is_connected:
+                        if controller is not None:
+                            if combined is not None:
+                                try:
+                                    await combined.tick(controller, sender)
+                                except Exception as exc:
+                                    combined.request_stop('ftms_error: ' + str(exc))
+                                    print('SIM/ERG UIT na FTMS-fout:', type(exc).__name__, str(exc))
+                                    try:
+                                        await controller.release()
+                                        combined.release_confirmed = True
+                                        combined.mode, combined.sent_w = 'RELEASED', None
+                                    except Exception as reset_exc:
+                                        print('FTMS reset niet bevestigd:', reset_exc)
+                                    controller = None
+                                await asyncio.sleep(0.1)
+                                continue
+                            if shifter is not None:
+                                # Commands from console take priority over any ramping.
+                                try:
+                                    choice = resistance_queue.get_nowait()
+                                except asyncio.QueueEmpty:
+                                    choice = None
+                                if choice == 'stop':
+                                    shifter.enabled = False
+                                    await controller.release()
+                                    controller = None
+                                    print('Virtueel schakelen gestopt; FTMS control gereset.')
+                                else:
+                                    try:
+                                        await shifter.tick(controller)
+                                    except Exception as exc:
+                                        shifter.enabled = False
+                                        try:
+                                            await controller.release()
+                                        except Exception:
+                                            pass
+                                        controller = None
+                                        print('SCHAKELREGELING UIT bij FTMS-fout:', exc)
+                                    await asyncio.sleep(RAMP_PERIOD)
+                                continue
+                            try:
+                                level = await asyncio.wait_for(resistance_queue.get(), timeout=0.4)
+                            except asyncio.TimeoutError:
+                                continue
+                            if level == 'stop':
+                                await controller.release()
+                                controller = None
+                                print('FTMS controle vrijgegeven; bridge leest verder alleen.')
+                            elif level == 'reset':
+                                await controller.release()
+                                print('Trainer reset; einde weerstandstest.')
+                                controller = None
+                            else:
+                                try:
+                                    await controller.set_level(float(level))
+                                    print('KICKR bevestigt weerstandniveau:', level)
+                                except Exception as exc:
+                                    print('Weerstandsopdracht mislukt:', exc)
+                        else:
+                            await asyncio.sleep(0.5)
+                finally:
+                    if controller is not None:
+                        try:
+                            await controller.release()
+                        except Exception as exc:
+                            print('FTMS reset niet bevestigd:', exc)
+        except Exception as exc:
+            print("KICKR verbindingsfout:", type(exc).__name__, str(exc))
+        sender.connected = False
+        sender.latest.clear()
+        if combined is not None:
+            combined.request_stop('trainer_disconnected')
+            print('SIM/ERG uit bij verbindingsverlies. Herstart bewust.')
+        if shifter is not None:
+            shifter.enabled = False  # Never resume commanding after disconnect without restart.
+            print('Virtueel schakelen uit na verbindingsverlies. Herstart de bridge bewust.')
+            if trainer_ready_event is not None:
+                trainer_ready_event.clear()
+        print("KICKR opnieuw proberen over 5 seconden...")
+        await asyncio.sleep(5)
+
+
+async def ride_loop(device, sender, mapper, shifter=None, combined=None):
+    previous = set()
+    while True:
+        try:
+            print("Zwift Ride verbinden:", device.name or "(naam via advertentie)", device.address)
+            async with BleakClient(device, timeout=18.0) as client:
+                print("Ride BLE link verbonden; zoeken naar Zwift service...")
+                notify_char, write_char, indicate_char, chars = find_characteristics(client)
+                print("Ride characteristics:", chars)
+                diagnostics = {"received": 0, "decoded": 0}
+                counts = {}
+                def notification(characteristic, packet):
+                    nonlocal previous
+                    uuid = str(characteristic.uuid).lower()
+                    counts[uuid] = counts.get(uuid, 0) + 1
+                    diagnostics["received"] += 1
+                    raw = bytes(packet)
+                    if counts[uuid] <= 12:
+                        print(f"RIDE RAW channel={uuid} len={len(raw)} hex={raw.hex()}")
+                    try:
+                        pressed = decode_packet(raw)
+                    except (ValueError, IndexError) as exc:
+                        if counts[uuid] <= 12:
+                            print("Ride decode fout:", str(exc))
+                        return
+                    if pressed is None:
+                        return
+                    diagnostics["decoded"] += 1
+                    if diagnostics["decoded"] <= 12:
+                        print("Ride knopstatus:", sorted(pressed))
+                    for button in sorted(pressed - previous):
+                        if combined is not None:
+                            combined.on_button(button)
+                        elif shifter is not None:
+                            shifter.on_button(button)
+                        action = mapper.map_button(button)
+                        if action:
+                            sender.send({"type": "button", "button": action})
+                            print(f"Ride knop: {button} -> {action}")
+                        else:
+                            print(f"Ride knop: {button} -> (geen actie)")
+                    previous = pressed
+                # Reuse the exact known-working subscription sequence from the
+                # read-only bridge. Do not subscribe to characteristic 00000006.
+                await client.start_notify(notify_char, notification)
+                print("Ride knopkanaal actief:", notify_char.uuid)
+                if indicate_char and indicate_char.uuid != notify_char.uuid:
+                    await client.start_notify(indicate_char, lambda _char, pkt: print("Ride handshake:", bytes(pkt).hex()))
+                    print("Ride handshakekanaal actief:", indicate_char.uuid)
+                await client.write_gatt_char(write_char, b"RideOn", response=("write" in write_char.properties))
+                print("Ride handshake verstuurd")
+                print("Zwift Ride verbonden; probeer de schakelhendels.")
+                last_report = time.monotonic()
+                while client.is_connected:
+                    await asyncio.sleep(0.5)
+                    if time.monotonic() - last_report > 8.0:
+                        print(f"Ride BLE diagnose: {diagnostics['received']} meldingen, {diagnostics['decoded']} knopstatussen; per kanaal={counts}")
+                        last_report = time.monotonic()
+        except Exception as exc:
+            print("Zwift Ride verbindingsfout:", type(exc).__name__, str(exc))
+        previous = set()
+        await asyncio.sleep(5)
+
+
+async def shift_input(queue, shifter):
+    print("Druk op X om virtueel schakelen te stoppen (geen Enter nodig).")
+    try:
+        import msvcrt
+    except ImportError:
+        # Linux fallback, only a console helper; BLE remains in event loop.
+        while shifter.enabled:
+            value = (await asyncio.to_thread(input, "Typ stop + ENTER > ")).strip().lower()
+            if value == 'stop':
+                shifter.enabled = False
+                await queue.put('stop')
+                return
+        return
+    while shifter.enabled:
+        if msvcrt.kbhit():
+            ch = msvcrt.getwch().lower()
+            if ch == 'x':
+                shifter.enabled = False
+                await queue.put('stop')
+                print("Stop gevraagd: FTMS reset wordt verzonden.")
+                return
+        await asyncio.sleep(0.15)
+
+async def resistance_input(queue):
+    print('VEILIGHEID: stop met trappen bij onverwachte weerstand en typ reset of sluit bridge.')
+    while True:
+        value = (await asyncio.to_thread(input, 'Weerstand 1..15, reset of stop > ')).strip().lower()
+        if value in ('reset', 'stop'):
+            await queue.put(value)
+            if value == 'stop':
+                return
+        else:
+            try:
+                level = float(value)
+                if 1 <= level <= 15:
+                    await queue.put(level)
+                else:
+                    print('Alleen 1..15 toegestaan')
+            except ValueError:
+                print('Gebruik 1..15, reset of stop')
+
+async def combined_console(combined):
+    print('SIM/ERG commando\'s: sim | grade -20..20 [pct/s] | erg | target 0..1300 [W/s] | status | stop')
+    print('Start in SIM. ERG wordt pas actief na expliciet: erg')
+    while not combined.disabled:
+        try:
+            line = (await asyncio.to_thread(input, 'SIM/ERG > ')).strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            combined.request_stop()
+            return
+        try:
+            feedback = combined.handle_command(line)
+            print(feedback)
+        except ValueError as exc:
+            print('ONGELDIG:', exc)
+        if combined.disabled:
+            return
+
+
+async def main(args):
+    if args.list:
+        await discover_devices()
+        return
+
+    sender = Sender()
+    ant_worker = None
+    hr_transport = None
+    command_transport = None
+    try:
+        if not args.no_ant:
+            # First bind the local HR receiver, then launch ANT+ in a thread.
+            # Never let blocking USB reads delay Bluetooth's asyncio event loop.
+            loop = asyncio.get_running_loop()
+            try:
+                hr_transport, _ = await loop.create_datagram_endpoint(
+                    lambda: HeartRateUDPProtocol(sender.heart_rate),
+                    local_addr=('127.0.0.1', HR_PORT))
+            except OSError as exc:
+                print(f'ANT+ UDP-poort {HR_PORT} bezet: {exc}')
+                print('Sluit de oude ANT+-test/bridge. Start v0.15 opnieuw. Geen FTMS-sturing gestart.')
+                return
+            print(f'ANT+ lokale ontvangst actief: 127.0.0.1:{HR_PORT}')
+            ant_worker = AntWorker()
+            ant_worker.start()
+        else:
+            print('ANT+ overgeslagen (--no-ant). Hartslag in telemetrie = null.')
+
+        found = await discover_devices()
+        trainer = select_device(found, args.trainer)
+        ride = select_left_ride(found, args.ride)
+        for device, adv in found:
+            name = advertised_name(device, adv)
+            if 'zwift' in name.casefold() or 'sf2' in name.casefold():
+                print(f'Ride kandidaat: {name} {device.address} / LEFT-MASTER={is_left_ride(device, adv)}')
+        print('Geselecteerde KICKR:',
+              next((advertised_name(d, a) for d, a in found if d is trainer), 'NIET GEVONDEN') if trainer else 'NIET GEVONDEN')
+        print('Geselecteerde Ride:',
+              next((advertised_name(d, a) + ' ' + d.address for d, a in found if d is ride), 'NIET GEVONDEN')
+              if ride else 'NIET GEVONDEN (linkercontroller niet eenduidig herkend)')
+        if not trainer:
+            print('Geen KICKR gevonden. Controleer trainer en herstart. De bridge stuurt geen weerstand.')
+            return
+
+        combined = CombinedMode(args.erg_ramp_w_per_s)
+        sender.combined_mode = combined
+        try:
+            command_transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
+                lambda: CommandProtocol(combined), local_addr=(COMMAND_HOST, COMMAND_PORT))
+        except OSError as exc:
+            print(f'UDP-commandopoort {COMMAND_PORT} niet beschikbaar: {exc}. Geen FTMS-sturing gestart.')
+            return
+        print(f'UDP-commandos: {COMMAND_HOST}:{COMMAND_PORT}; ERG/helling lease 5 s, ACK is acceptatie, geen hardwarebewijs.')
+        tasks = [trainer_loop(trainer, sender, combined=combined),
+                 sender.publish(), combined_console(combined)]
+        if ride:
+            mapper = ButtonMapper.load()
+            print('Ride knoppenmapping:', mapper.mapping)
+
+            async def ride_independently():
+                # Preserve the v0.11/0.12.1 proven Ride startup procedure.
+                await asyncio.sleep(1.5)
+                print('Zwift Ride start onafhankelijk van KICKR/FTMS.')
+                await ride_loop(ride, sender, mapper, combined=combined)
+
+            tasks.append(ride_independently())
+        else:
+            print('Geen linker Zwift Ride gevonden. Zet EERST links en DAN rechts aan; herstart daarna.')
+            print("ERG kan zonder Ride worden bediend met de tekstcommando's.")
+        await asyncio.gather(*tasks)
+    finally:
+        if command_transport is not None:
+            command_transport.close()
+        if ant_worker is not None:
+            ant_worker.stop()
+        if hr_transport is not None:
+            hr_transport.close()
+        sender.sock.close()
+
+
+if __name__ == '__main__':
+    p = argparse.ArgumentParser(description='Velodrome 250 v0.15: lokale UDP SIM/ERG + ANT+ hartslag')
+    p.add_argument('--list', action='store_true', help='Alleen BLE-apparaten tonen (start ANT+ niet)')
+    p.add_argument('--no-ant', action='store_true', help='Start alleen KICKR en Zwift Ride, zonder ANT+ dongle')
+    p.add_argument('--trainer', default='KICKR', help='Deel van trainernaam')
+    p.add_argument('--ride', default='', help='Optioneel BLE-adres van de LINKER Ride; standaard auto-detectie')
+    p.add_argument('--erg-ramp-w-per-s', type=float, default=300.0, help='ERG overgangssnelheid 1..10000 W/s, standaard 300')
+    args = p.parse_args()
+    from combined_mode import validate_rate
+    try:
+        validate_rate(args.erg_ramp_w_per_s)
+    except ValueError as exc:
+        p.error(str(exc))
+    handler = RotatingFileHandler(Path(__file__).with_name('bridge.log'), maxBytes=1000000, backupCount=2, encoding='utf-8')
+    logging.basicConfig(level=logging.INFO, handlers=[handler, logging.StreamHandler()],
+                        format='%(asctime)s %(levelname)s %(name)s %(message)s')
+    try:
+        asyncio.run(main(args))
+    except KeyboardInterrupt:
+        print('Bridge afgesloten.')

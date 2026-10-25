@@ -12,7 +12,18 @@ Een wielerspel op de piste, ontwikkeld met **Godot**, met AI-tegenstanders en on
 
 ## Ontwikkeling
 
-Het project onderzoekt onder meer AI-rennerprofielen, groepsdynamiek en drafting, racevormen en UDP-gegevensuitwisseling met de bridge (inclusief geselecteerde versnelling en geplande ERG-aansturing).
+Het project onderzoekt onder meer AI-rennerprofielen, groepsdynamiek en drafting, racevormen en UDP-gegevensuitwisseling met de bridge (inclusief geselecteerde versnelling en ERG-aansturing).
+
+## Hardwarebridge v0.15
+
+De Python-bridge staat in [`bridge/`](bridge/README.md), inclusief Windows-startbestand, dependencies, documentatie en 43 hardwarevrije tests. Ondersteunt KICKR FTMS, Zwift Ride left-master en Garmin ANT+ via libusb0, lokale UDP-telemetrie, ERG-doelen van 0–1300 W en FTMS-hellingsimulatie met virtuele versnellingen.
+
+- [Technisch UDP-protocol](bridge/UDP_PROTOCOL.md)
+- [Godot-overdracht](bridge/GODOT_HANDOFF.md)
+- [Hellingsimulatie en versnellingsmodel](bridge/SIMULATION.md)
+- [Validatie en hardwaretestpunten](bridge/VALIDATION.md)
+
+Softwaretests slagen; fysieke trainerwerking en rijgevoel moeten nog met hardware worden bevestigd.
 
 ## Releases (gepland)
 
