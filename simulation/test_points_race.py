@@ -13,13 +13,21 @@ class PointsRaceChecks(unittest.TestCase):
         self.assertEqual(FINAL, (10, 6, 4, 2))
 
     def test_test_distance(self):
-        result = simulate_points(laps=10, riders=8, seed=42)
+        result = simulate_points(laps=10, riders=16, seed=42)
         self.assertTrue(result["completed"])
-        self.assertEqual(len(result["points"]), 8)
+        self.assertEqual(len(result["points"]), 16)
         self.assertGreater(result["elapsed"], 0)
 
     def test_repeatable(self):
-        self.assertEqual(simulate_points(seed=11), simulate_points(seed=11))
+        self.assertEqual(simulate_points(laps=10, riders=16, seed=11), simulate_points(laps=10, riders=16, seed=11))
+
+    def test_field_sizes(self):
+        for riders in (12, 16):
+            with self.subTest(riders=riders):
+                result = simulate_points(laps=10, riders=riders, seed=3)
+                self.assertTrue(result["completed"])
+                self.assertEqual(len(result["types"]), riders)
+                self.assertEqual(len(result["standings"]), riders)
 
     def test_clock_by_group_not_fastest(self):
         j = Jury(5, laps=10)
