@@ -104,7 +104,7 @@ class Jury:
         return self.sprint_points[i] + 20 * self.lap_balance[i]
 
 
-def simulate_points(laps=10, riders=8, seed=42, dt=0.25, difficulty=80):
+def simulate_points(laps=40, riders=16, seed=42, dt=0.25, difficulty=80):
     if laps < 10 or riders < 4:
         raise ValueError("Need at least 10 laps and 4 riders")
     rng = random.Random(seed)
