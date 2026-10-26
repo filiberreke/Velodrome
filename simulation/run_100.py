@@ -9,7 +9,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--races", type=int, default=100)
     parser.add_argument("--laps", type=int, default=40)
-    parser.add_argument("--riders", type=int, default=8)
+    parser.add_argument("--riders", type=int, default=16)
     parser.add_argument("--out", default="simulation/results_40laps_100.csv")
     args = parser.parse_args()
     output = Path(args.out)
