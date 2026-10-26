@@ -21,6 +21,10 @@ var has_player_pull := false
 var leader_power := 0.0
 var required_watts := 0.0
 var exchanges := 0
+var position_factors: Array[float] = [1.0, 0.8, 0.5, 0.4]
+
+func configure_factors(values: Array[float]) -> void:
+	position_factors = values.duplicate()
 
 func reset(count: int, controlled_player: int = 0) -> void:
 	size = clampi(count, 3, 4)
@@ -37,7 +41,7 @@ func reset(count: int, controlled_player: int = 0) -> void:
 func factor(rank: int) -> float:
 	if rank <= 0:
 		return 1.0
-	return (0.8 if rank == 1 else 0.5) if size == 3 else 1.0 - 0.2 * float(rank)
+	return position_factors[mini(rank, position_factors.size() - 1)]
 
 func player_rank() -> int:
 	return order.find(player)
