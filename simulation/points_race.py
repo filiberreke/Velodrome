@@ -104,13 +104,17 @@ class Jury:
         return self.sprint_points[i] + 20 * self.lap_balance[i]
 
 
-def simulate_points(laps=40, riders=16, seed=42, dt=0.25, difficulty=80):
+def simulate_points(laps=40, riders=16, seed=42, dt=0.25, difficulty=80, include_player=False):
     if laps < 10 or riders < 4:
         raise ValueError("Need at least 10 laps and 4 riders")
     rng = random.Random(seed)
-    types = ["player"] + ["sprinter", "attacker", "time_trialist"] * ((riders + 1)//3)
-    types = types[:riders]
-    forms = [1.0] + [rng.uniform(.95, 1.05) for _ in range(riders-1)]
+    ai_types = ["sprinter", "attacker", "time_trialist"]
+    if include_player:
+        types = ["player"] + [ai_types[i % 3] for i in range(riders - 1)]
+        forms = [1.0] + [rng.uniform(.95, 1.05) for _ in range(riders - 1)]
+    else:
+        types = [ai_types[i % 3] for i in range(riders)]
+        forms = [rng.uniform(.95, 1.05) for _ in range(riders)]
     speeds = [0.0]*riders
     positions = [0.0]*riders
     reserve = [18000.0 if t == "sprinter" else 30000.0 if t == "attacker" else 11500.0 for t in types]
