@@ -21,6 +21,8 @@ var last_grade := INF
 var last_aero := INF
 var newest_state := -1
 var armed := true
+var requested_erg := 0
+var last_target := -1
 
 func arm() -> void:
 	# Called only by the player's explicit start action, never by reconnection.
@@ -102,9 +104,20 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		owned = false
 		_block(str(state.get("last_error", "bridge_disabled")))
 		return
-	if command == "set_target_power":
-		# Release ACK accepted; subsequent status checks retain physical confirmation.
+	if command == "set_target_power" and int(request.packet.get("watts", 0)) == 0:
+		# Reset is a release, not a positive ERG target.
 		phase = "BLOCKED" if enabled_before else "IDLE"
+		return
+	if command == "set_target_power":
+		owned = true
+		phase = "ACTIVE"
+		last_target = int(request.packet.watts)
+		return
+	if command == "set_mode" and phase == "SWITCHING":
+		phase = "READY"
+		last_grade = INF
+		last_aero = INF
+		last_target = -1
 		return
 	if phase in ["BLOCKED", "RELEASING", "IDLE"]: return
 	if command == "set_grade":
@@ -134,7 +147,8 @@ func handle_response(packet: Dictionary, now: float) -> void:
 			may_resume = false
 			_block("Trainerbediening overgenomen")
 
-func tick(enabled: bool, grade: float, aero: float, now: float) -> void:
+func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int = 0) -> void:
+	requested_erg = clampi(erg_watts, 0, 1300)
 	enabled = enabled and armed
 	if not socket.is_bound() and not enabled: return
 	if not _open():
@@ -147,6 +161,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float) -> void:
 		last_status = -100.0
 		last_grade = INF
 		last_aero = INF
+	last_target = -1
 	if not enabled and enabled_before:
 		release(now)
 		armed = false
@@ -169,6 +184,19 @@ func tick(enabled: bool, grade: float, aero: float, now: float) -> void:
 		last_heartbeat = now
 	if not enabled or phase not in ["READY", "ACTIVE"] or not pending.is_empty(): return
 	if now - last_change < 0.2: return
+	var target_mode := "ERG" if requested_erg > 0 else "SIM"
+	if state.get("desired_mode", "SIM") != target_mode:
+		# Switch modes only within our own session; never take over another controller.
+		if not owned: return
+		phase = "SWITCHING"
+		_request("set_mode", {"mode": target_mode}, now, true)
+		last_change = now
+		return
+	if target_mode == "ERG":
+		if requested_erg != last_target:
+			_request("set_target_power", {"watts": requested_erg, "ramp_w_per_s": 300.0}, now, true)
+			last_change = now
+		return
 	grade = snappedf(clampf(grade, -20.0, 20.0), 0.01)
 	aero = snappedf(clampf(aero, 0.0, 1.0), 0.01)
 	if absf(grade - last_grade) < 0.05 and (not aero_supported or absf(aero - last_aero) < 0.02): return
