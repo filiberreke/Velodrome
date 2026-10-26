@@ -598,6 +598,14 @@ if decal_uv:
                 u, v = decal_uv[vi]
                 uvl.data[li].uv = (u, v)
 
+# Shared UV contract on existing rest-space clothing polygons only.
+import sys
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+from skinsuit_uv import apply_skinsuit_uv, apply_helmet_uv
+apply_skinsuit_uv(rider_ob, len(bf), bone_seg, DEFORM_BODY)
+apply_helmet_uv(rider_ob, HEAD_C, Mface, HEAD_R)
+
 # ----------------------------------------------------------------- body shape keys (morph targets)
 # Value 1.0 = clearly more mass/width, -1.0 = slimmer (sliders allow -1..1). Only the skin body is
 # affected; head, helmet, gloves and shoes stay as they are. Bones are not moved, so the rig still fits.

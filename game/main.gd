@@ -109,7 +109,7 @@ func _configured_rider(i: int, default_profile: int) -> Dictionary:
 	if actual_name.is_empty(): actual_name = default_name
 	var jersey: Dictionary = {}
 	if rider_config_ready:
-		for key in ["number", "jersey_color", "jersey_secondary", "shorts_color", "helmet_color", "jersey_design"]:
+		for key in ["number", "jersey_color", "jersey_secondary", "shorts_color", "helmet_color", "jersey_design", "country_kit", "skinsuit_png", "helmet_png", "visor"]:
 			if rider_config.has_section_key(section, key):
 				jersey[key] = rider_config.get_value(section, key)
 	return {"profile": kind, "name": actual_name.substr(0, 32), "jersey": jersey}
@@ -201,6 +201,12 @@ func _spawn_peloton() -> void:
 		rider.set_meta("peloton_index", i)
 		rider.set_meta("pursuit_mode", race_mode in [4, 5])
 		rider.set_meta("jersey_config", rider_kits[i])
+		if rider_config_ready:
+			var kit_section := "player" if i == 0 else "rider_%02d" % i
+			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", "")))
+			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", "")))
+			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", "")))
+			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", "")))
 		node.add_child(rider)
 		if race_mode != 5:
 			var tag := Label3D.new()

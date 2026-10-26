@@ -10,9 +10,13 @@ const VICTORY_SECONDS := 6.0
 # beta.16.16: printable areas on the skinsuit. Any PNG works; transparent pixels = no print.
 const DECAL_SLOTS: Array[String] = ["back", "chest", "thigh_L", "thigh_R"]
 const DECAL_DIR := "res://assets/riders/decals/"
-# Temporary Belgian national-kit preview: rider index 0 only. Set false to disable.
-const BELGIUM_KIT_PREVIEW := true
-const BELGIUM_KIT_DIR := "res://assets/riders/national_kits/belgium/"
+# Opt-in per instance, independent of profile or rider index.
+@export var country_kit: String = ""
+@export_file("*.png") var skinsuit_png: String = ""
+@export_file("*.png") var helmet_png: String = ""
+@export var visor: String = ""
+const KIT_DIR := "res://assets/riders/national_kits/"
+var _default_materials: Array[Material] = []
 # Index order: player, drafter, sprinter, attacker.
 const SHAPE_KEYS: Array[String] = ["ShoulderWidth", "TorsoMass", "HipWidth", "ThighMass", "CalfMass", "ArmMass"]
 const RIDER_SHAPES: Array = [
@@ -66,8 +70,19 @@ func _ready() -> void:
 	var rider_index: int = int(get_meta("rider_index", 0))
 	_apply_rider_profile(rider_index)
 	_apply_default_decals(rider_index)
-	if BELGIUM_KIT_PREVIEW and rider_index == 0:
-		_apply_belgium_kit_preview()
+	body_mesh = rig_scene.find_child("Rider", true, false) as MeshInstance3D
+	if body_mesh != null:
+		for surface in range(body_mesh.mesh.get_surface_count()):
+			_default_materials.append(body_mesh.get_surface_override_material(surface))
+	var config: Dictionary = get_meta("jersey_config", {})
+	var png_path := String(get_meta("skinsuit_png", config.get("skinsuit_png", skinsuit_png))).strip_edges()
+	if not png_path.is_empty():
+		set_skinsuit_png(png_path)
+	else:
+		set_country_kit(String(get_meta("country_kit", config.get("country_kit", country_kit))))
+
+	set_helmet_png(String(get_meta("helmet_png", config.get("helmet_png", helmet_png))))
+	set_visor(String(get_meta("visor", config.get("visor", visor))))
 
 func _find_animation_player(root: Node) -> AnimationPlayer:
 	if root is AnimationPlayer:
@@ -135,26 +150,128 @@ func _apply_palette_to_mesh(mesh_node: MeshInstance3D, palette: Dictionary) -> v
 		colored.albedo_color = palette[category]
 		mesh_node.set_surface_override_material(surface_index, colored)
 
-# Preview only: keep normal rider shapes, change suit colors and decals on this instance.
-# The 2D decals cover the central chest and back, not sleeves or side panels.
-func _apply_belgium_kit_preview() -> void:
+## Empty restores this rider's original palette and decals. Unknown IDs do nothing.
+## Call before ready or at runtime; the same atlas fits both exported rigs.
+func set_country_kit(country: String) -> bool:
+	var key := country.strip_edges().to_lower()
+	if not key.is_empty() and (not key.is_valid_identifier() or not ResourceLoader.exists(KIT_DIR + key + "/skinsuit.png")):
+		push_warning("Velodrome rider: onbekende outfit: " + country)
+		return false
 	if body_mesh == null:
-		body_mesh = rig_scene.find_child("Rider", true, false) as MeshInstance3D
+		country_kit = key
+		return true
+	if _default_materials.size() != body_mesh.mesh.get_surface_count():
+		return false
+	# Load and validate before changing any instance overrides.
+	var texture: Texture2D = null
+	if not key.is_empty():
+		texture = load(KIT_DIR + key + "/skinsuit.png") as Texture2D
+		if texture == null:
+			return false
+	_apply_skinsuit_texture(texture)
+	country_kit = key
+	skinsuit_png = ""
+	return true
+
+## Optional atlas path per rider. Empty or invalid paths restore original colors.
+## Relative paths are relative to res://; user:// and absolute PNG paths also work.
+func set_skinsuit_png(png_path: String) -> bool:
+	var file := png_path.strip_edges().replace("\\", "/")
 	if body_mesh == null:
+		skinsuit_png = file
+		return true
+	var texture: Texture2D = _load_png(file)
+	_apply_skinsuit_texture(texture)
+	country_kit = ""
+	skinsuit_png = file if texture != null else ""
+	if texture == null and not file.is_empty():
+		push_warning("Velodrome rider: skinsuit_png niet geladen; standaardkleuren: " + file)
+		return false
+	return true
+
+func _apply_skinsuit_texture(texture: Texture2D) -> void:
+	if body_mesh == null or _default_materials.size() != body_mesh.mesh.get_surface_count():
 		return
-	_apply_palette_to_mesh(body_mesh, {
-		"suit": Color("a9d9f4"),
-		"accent": Color("a9d9f4"),
-		"panel": Color("181a1e"),
-	})
-	var chest_path := BELGIUM_KIT_DIR + "chest.png"
-	var back_path := BELGIUM_KIT_DIR + "back.png"
-	if ResourceLoader.exists(chest_path):
-		set_decal("chest", load(chest_path))
-	if ResourceLoader.exists(back_path):
-		set_decal("back", load(back_path))
-	# No commercial thigh decal on the national-kit preview.
-	set_decal("thighs", null)
+	for surface in range(body_mesh.mesh.get_surface_count()):
+		var src := body_mesh.mesh.surface_get_material(surface)
+		if src != null and (src.resource_name.ends_with("_kit") or src.resource_name.begins_with("decal_")):
+			body_mesh.set_surface_override_material(surface, _default_materials[surface])
+	if texture == null:
+		return
+	for surface in range(body_mesh.mesh.get_surface_count()):
+		var src := body_mesh.mesh.surface_get_material(surface) as StandardMaterial3D
+		if src == null or not src.resource_name.to_lower().ends_with("_kit"):
+			continue
+		var material := src.duplicate() as StandardMaterial3D
+		material.albedo_color = Color.WHITE
+		material.albedo_texture = texture
+		material.texture_repeat = false
+		material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		body_mesh.set_surface_override_material(surface, material)
+	for slot in DECAL_SLOTS:
+		set_decal(slot, null)
+
+func _load_png(png_path: String) -> Texture2D:
+	var file := png_path.strip_edges().replace("\\", "/")
+	if file.is_empty() or file.get_extension().to_lower() != "png":
+		return null
+	if not file.is_absolute_path():
+		file = "res://" + file.trim_prefix("./")
+	if file.begins_with("res://") and ResourceLoader.exists(file):
+		return load(file) as Texture2D
+	if FileAccess.file_exists(file):
+		var image := Image.new()
+		if image.load(file) == OK and not image.is_empty():
+			image.generate_mipmaps()
+			return ImageTexture.create_from_image(image)
+	return null
+
+## Independent PNG for the opaque helmet shell and center stripe only.
+func set_helmet_png(png_path: String) -> bool:
+	var file := png_path.strip_edges()
+	if body_mesh == null:
+		helmet_png = file
+		return true
+	var texture := _load_png(file)
+	for surface in range(body_mesh.mesh.get_surface_count()):
+		var src := body_mesh.mesh.surface_get_material(surface) as StandardMaterial3D
+		if src == null or src.resource_name not in ["helmet", "helmet2"]:
+			continue
+		body_mesh.set_surface_override_material(surface, _default_materials[surface])
+		if texture != null:
+			var material := src.duplicate() as StandardMaterial3D
+			material.albedo_color = Color.WHITE
+			material.albedo_texture = texture
+			material.texture_repeat = false
+			material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+			body_mesh.set_surface_override_material(surface, material)
+	helmet_png = file if texture != null else ""
+	if texture == null and not file.is_empty():
+		push_warning("Velodrome rider: helmet_png niet geladen; standaardkleuren: " + file)
+		return false
+	return true
+
+## Two explicit options; omitted/empty keeps the original imported visor.
+func set_visor(style: String) -> bool:
+	var key := style.strip_edges().to_lower()
+	var valid := key in ["", "donker", "doorzichtig"]
+	if body_mesh == null:
+		visor = key if valid else ""
+		return valid
+	for surface in range(body_mesh.mesh.get_surface_count()):
+		var src := body_mesh.mesh.surface_get_material(surface) as StandardMaterial3D
+		if src == null or src.resource_name != "visor":
+			continue
+		body_mesh.set_surface_override_material(surface, _default_materials[surface])
+		if valid and not key.is_empty():
+			var material := src.duplicate() as StandardMaterial3D
+			material.albedo_color = Color(0.035, 0.045, 0.065, 0.88) if key == "donker" else Color(0.92, 0.97, 1.0, 0.16)
+			material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			body_mesh.set_surface_override_material(surface, material)
+	visor = key if valid else ""
+	if not valid:
+		push_warning("Velodrome rider: visor moet donker of doorzichtig zijn: " + style)
+	return valid
 
 # ---------------------------------------------------------------- decals (logo / number)
 func _apply_default_decals(index: int) -> void:

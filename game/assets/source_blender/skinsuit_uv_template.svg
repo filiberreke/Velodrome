@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<rect width="1024" height="1024" fill="#eee"/>
+<rect x="20.48" y="20.480000000000018" width="593.92" height="471.03999999999996" fill="#a9d9f4" stroke="black"/>
+<text x="26.48" y="44.48000000000002" font-size="18">torso</text>
+<rect x="634.88" y="20.480000000000018" width="163.84000000000003" height="471.03999999999996" fill="#a9d9f4" stroke="black"/>
+<text x="640.88" y="44.48000000000002" font-size="18">sleeve_L</text>
+<rect x="819.2" y="20.480000000000018" width="163.83999999999992" height="471.03999999999996" fill="#a9d9f4" stroke="black"/>
+<text x="825.2" y="44.48000000000002" font-size="18">sleeve_R</text>
+<rect x="20.48" y="532.48" width="286.71999999999997" height="471.03999999999996" fill="#a9d9f4" stroke="black"/>
+<text x="26.48" y="556.48" font-size="18">shorts_L</text>
+<rect x="327.68" y="532.48" width="286.71999999999997" height="471.03999999999996" fill="#a9d9f4" stroke="black"/>
+<text x="333.68" y="556.48" font-size="18">shorts_R</text>
+</svg>
