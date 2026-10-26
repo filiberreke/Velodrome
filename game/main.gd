@@ -1128,7 +1128,9 @@ func _winner_index() -> int:
 func _update_trainer_control() -> void:
 	var active: bool = trainer_seen and connected and trainer_ready and running and not finished and start_state == "RACING"
 	# Existing ERG sessions are preserved by the client's initial status check.
-	trainer_control.tick(active, trainer_road_grade, 1.0 - _draft_drag_reduction(0), _now_s())
+	var use_erg: bool = active and race_mode == 5 and team_resistance_mode == "ERG" and team_race.ours.has_player_pull and not team_race.ours.player_is_out() and team_race.ours.player_rank() > 0 and team_race.ours.phase == ""
+	var erg_target: int = clampi(roundi(team_race.ours.target_watts()), 1, 1300) if use_erg else 0
+	trainer_control.tick(active, trainer_road_grade, 1.0 - _draft_drag_reduction(0), _now_s(), erg_target)
 
 func _update_race(dt: float) -> void:
 	var previous: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
@@ -1954,6 +1956,7 @@ func _confirm_start() -> void:
 		_prepare_pursuit(replay, float(options.cp_input.value))
 		if choice == 2:
 			team_race.prepare(self, replay, float(options.cp_input.value))
+			team_race.ours.configure_factors(options.configured_factors())
 	else:
 		_tt_prepare_event()
 	trainer_control.arm()
