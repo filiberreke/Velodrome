@@ -178,6 +178,10 @@ func _configure_peloton() -> void:
 	ai_lane_targets.resize(count)
 	for i in range(count):
 		var lane: float = LANES[0] if race_mode in [4, 5] else LANES[i % LANES.size()]
+		# Extra scratch riders start on the next row, not inside the first six.
+		# Use the same real position for tactics, physics and rendering.
+		if race_mode == 0:
+			distances[i] = -2.4 * float(i / LANES.size())
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
@@ -1315,7 +1319,7 @@ func _update_visuals(dt: float) -> void:
 	for i in range(rider_count):
 		var lateral: float = lane_offsets[i]
 		var display_distance: float = coast_distances[i] if finish_times[i] >= 0.0 else distances[i]
-		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [4, 5] else 0.0
+		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 4, 5] else 0.0
 		display_distance = _rider_distance(i, display_distance)
 		var position: Vector3 = _at(display_distance - FRONT_WHEEL_TIP_M - starting_grid, lateral)
 		# Imported Blender wheel mesh reaches local ground at y=0.  On the
