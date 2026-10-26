@@ -34,7 +34,7 @@ func run_test() -> void:
 	check(people.size() > 0, "Stadium crowd is available for race restoration")
 	for person in people:
 		check(not person.visible, "Stadium empty in menus")
-	for index in range(3, 6):
+	for index in range(4, 6):
 		menu.cards[index].pressed.emit()
 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")
@@ -66,6 +66,26 @@ func run_test() -> void:
 			check(person.visible, "Spectators and infield people restored on start")
 	game._reset()
 	check(menu.visible and menu.page == 1 and not game.race_overlay.visible, "Reset returns to clean gallery")
+	menu.cards[3].pressed.emit()
+	check(menu.race_settings.visible and not menu.start_button.disabled, "Points race is playable")
+	check(menu.count_input.value == 16 and menu.laps_input.value == 40, "Points defaults are sixteen riders and forty laps")
+	menu.back_button.pressed.emit()
+	menu.cards[0].pressed.emit()
+	check(menu.count_input.value == 10 and menu.laps_input.value == 12, "Points settings preserve scratch preferences")
+	menu.back_button.pressed.emit()
+	menu.cards[3].pressed.emit()
+	menu.start_button.pressed.emit()
+	check(game.race_mode == 1 and game.rider_count == 16 and game.race_laps == 40, "Points mode starts with its own settings")
+	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0), "Points CP configuration is passed through")
+	game.start_state = "RACING"
+	game._update_hud()
+	check(game.race_overlay.status_label.text.contains("points") or game.race_overlay.status_label.text.contains("punten"), "Live HUD shows points and sprint notice")
+	game.points_rules.points[0] = 23
+	game._refresh_fullscreen_results()
+	check(game.finish_heading.text.contains("PUNTENKOERS") and game.finish_results.text.contains("23 PUNTEN"), "Points result panel displays score")
+	check(game.finish_table.get_child_count() == 85, "All sixteen point standings fit the scrolling results")
+	game._reset()
 	game.free()
 	print("MENU_FLOW_OK" if failures == 0 else "MENU_FLOW_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
+

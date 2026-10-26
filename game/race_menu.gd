@@ -13,7 +13,7 @@ const MODES := [
 	{"key": "scratch", "title": "Scratch", "hint": "Eén peloton. Eén finish.", "detail": "Blijf uit de wind, kies je moment en sprint als eerste over de meet.", "race_id": 0},
 	{"key": "pursuit", "title": "Achtervolging", "hint": "Jij, je tegenstander en de klok.", "detail": "Twee renners starten tegenover elkaar. Jaag op de beste tijd of haal je tegenstander in.", "race_id": 4},
 	{"key": "team_pursuit", "title": "Ploegenachtervolging", "hint": "Samen op jacht naar de snelste tijd.", "detail": "Jij bepaalt het tempo. Stuur op kop naar rechts voor een automatische wissel; volg daarna het wattagedoel.", "race_id": 5},
-	{"key": "points", "title": "Puntenkoers", "hint": "Elke sprint een nieuwe kans.", "detail": "Verzamel punten in de tussensprints en kies wanneer je energie inzet.", "race_id": 1},
+	{"key": "points", "title": "Puntenkoers", "hint": "Elke sprint een nieuwe kans.", "detail": "Elke 10 ronden: 5–3–2–1 punten. Dubbele punten aan de finish. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 1},
 	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Bouw snelheid op achter de gangmaker en kies je moment zodra de finale begint.", "race_id": 3},
 	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1}
@@ -23,6 +23,7 @@ const MUTED := Color("a8bdce")
 const ACCENT := Color("51d7df")
 var page := 1
 var selected := 0
+var field_settings := {0: [8, 10], 3: [16, 40]}
 var cards: Array[Button] = []
 var previews: Array[SubViewport] = []
 var choice_page: VBoxContainer
@@ -131,7 +132,7 @@ func _ready() -> void:
 		var mode_title := label(MODES[i]["title"], 25)
 		mode_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		heading.add_child(mode_title)
-		var status := label("TOP 10" if i == 6 else ("SPEEL" if i in [0, 1, 2] else "BINNENKORT"), 13, ACCENT if i in [0, 1, 2, 6] else MUTED)
+		var status := label("TOP 10" if i == 6 else ("SPEEL" if i in [0, 1, 2, 3] else "BINNENKORT"), 13, ACCENT if i in [0, 1, 2, 3, 6] else MUTED)
 		status.name = "Status"
 		heading.add_child(status)
 		var hint := label(MODES[i]["hint"], 19, MUTED)
@@ -226,7 +227,7 @@ func _build_settings(layout: VBoxContainer) -> void:
 	start_button.add_theme_stylebox_override("normal", panel_style(ACCENT))
 	start_button.add_theme_stylebox_override("hover", panel_style(Color("89eef0")))
 	start_button.pressed.connect(func() -> void:
-		if selected == 0 or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start()):
+		if selected in [0, 3] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start()):
 			start_requested.emit())
 	navigation.add_child(start_button)
 
@@ -245,6 +246,7 @@ func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: i
 	return input
 
 func show_choices() -> void:
+	if page == 2 and selected in [0, 3]: field_settings[selected] = [int(count_input.value), int(laps_input.value)]
 	page = 1
 	page_title.text = "Kies jouw wedstrijd"
 	choice_page.show()
@@ -255,6 +257,7 @@ func show_choices() -> void:
 		cards[selected].grab_focus.call_deferred()
 
 func select_mode(index: int) -> void:
+	if page == 2 and selected in [0, 3]: field_settings[selected] = [int(count_input.value), int(laps_input.value)]
 	selected = clampi(index, 0, MODES.size() - 1)
 	if selected == 6:
 		show_records()
@@ -268,13 +271,20 @@ func select_mode(index: int) -> void:
 	selected_title.text = MODES[selected]["title"]
 	selected_description.text = MODES[selected]["detail"]
 	selected_art.texture = previews[selected].get_texture()
-	race_settings.visible = selected == 0
+	race_settings.visible = selected in [0, 3]
+	if selected in [0, 3]:
+		count_input.max_value = 16 if selected == 3 else 12
+		laps_input.max_value = 120 if selected == 3 else 30
+		laps_input.min_value = 10 if selected == 3 else 1
+		laps_input.step = 10 if selected == 3 else 1
+		count_input.value = field_settings[selected][0]
+		laps_input.value = field_settings[selected][1]
 	pursuit_options.visible = selected == 1
 	team_options.visible = selected == 2
-	demo_settings.visible = selected in [0, 1, 2]
-	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
-	start_button.disabled = selected not in [0, 1, 2]
-	start_button.text = "Start wedstrijd  →" if selected in [0, 1, 2] else "Binnenkort"
+	demo_settings.visible = selected in [0, 1, 2, 3]
+	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+	start_button.disabled = selected not in [0, 1, 2, 3]
+	start_button.text = "Start wedstrijd  →" if selected in [0, 1, 2, 3] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	back_button.grab_focus.call_deferred()

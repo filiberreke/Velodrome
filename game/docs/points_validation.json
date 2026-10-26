@@ -1,0 +1,71 @@
+{
+  "godot": "4.7.2",
+  "base_commit": "7aa879fcd839de56aa525e4bbebde3ec2a645375",
+  "checks": [
+    {
+      "check": "test_menu",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_x_scratch_ai",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_x_wheel_follow",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_scratch_lap_rules",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_scratch_large_field",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_gameplay_headless",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_pursuit",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_team_pursuit",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_sprinter_economy",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "points_test.log",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "hud_test.log",
+      "exit": 0,
+      "errors": []
+    }
+  ],
+  "points_scenarios": [
+    "40 laps / 16 participants at 10 Hz",
+    "10 laps / 16 participants at 60 Hz"
+  ],
+  "visual_review": [
+    "settings",
+    "live points HUD",
+    "results table"
+  ],
+  "physical_trainer_test": false
+}

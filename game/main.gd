@@ -8,6 +8,9 @@ const ScratchRules := preload("res://scratch_lap_rules.gd")
 var scratch_rules = ScratchRules.new()
 const XScratchAI := preload("res://x_scratch_ai.gd")
 var x_ai = XScratchAI.new()
+const PointsAI := preload("res://points_ai.gd")
+const PointsRules := preload("res://points_race_rules.gd")
+var points_rules = PointsRules.new()
 const PursuitPacer := preload("res://pursuit_pacer.gd")
 const PursuitRecords := preload("res://pursuit_records.gd")
 var pursuit_library = PursuitRecords.new()
@@ -152,6 +155,7 @@ func _configure_peloton() -> void:
 	speeds.resize(count); speeds.fill(0.0)
 	finish_times.resize(count); finish_times.fill(-1.0)
 	scratch_rules.reset(count)
+	if race_mode == 1: points_rules.reset(count, race_laps)
 	last_lap_crossing.resize(count); last_lap_crossing.fill(0.0)
 	pursuit_half_crossings = [[], []]
 	pursuit_half_stats = [[], []]
@@ -180,14 +184,16 @@ func _configure_peloton() -> void:
 		var lane: float = LANES[0] if race_mode in [4, 5] else LANES[i % LANES.size()]
 		# Extra scratch riders start on the next row, not inside the first six.
 		# Use the same real position for tactics, physics and rendering.
-		if race_mode == 0:
+		if race_mode in [0, 1]:
 			distances[i] = -2.4 * float(i / LANES.size())
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
 		ai_energy_j[i] = 0.0 if i == 0 else AI_CAPACITY_J[type_id] * _form(i)
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
-	if race_mode == 0:
+	if race_mode in [0, 1]:
+		x_ai = PointsAI.new() if race_mode == 1 else XScratchAI.new()
+		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 	for node in bikes: node.queue_free()
 	bikes.clear()
@@ -615,7 +621,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				else:
 					demo_launch_watts = maxf(0.0, demo_launch_watts - 25.0)
 		KEY_SPACE:
-			if not trainer_seen and running and not finished and not boost_used and race_mode not in [4, 5]:
+			if not trainer_seen and running and not finished and not boost_used and race_mode not in [1, 4, 5]:
 				boost_left = BOOST_DURATION
 				boosted_speed = speeds[0]
 				baseline_speed = speeds[0]
@@ -791,7 +797,7 @@ func _draft_target(rider: int) -> float:
 		draft_leaders[rider] = -1
 		return 0.0
 	# Non-scratch modes retain the exact prior drafting model.
-	if race_mode != 0:
+	if race_mode not in [0, 1]:
 		if speeds[rider] < DRAFT_MIN_SPEED_MPS:
 			return 0.0
 		var old_best := 0.0
@@ -824,7 +830,7 @@ func _draft_target(rider: int) -> float:
 	for other in range(rider_count):
 		if other == rider or finish_times[other] >= 0.0:
 			continue
-		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode == 0 else distances[other] - distances[rider]
+		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1] else distances[other] - distances[rider]
 		if gap <= 0.35 or gap >= 9.0:
 			continue
 		var lateral: float = absf(lane_offsets[other] - lane_offsets[rider])
@@ -834,7 +840,7 @@ func _draft_target(rider: int) -> float:
 		if real_gap < 1.0 or real_gap > 9.0:
 			continue
 		var drag_benefit: float = 0.62 * maxf(0.0, 1.0 - gap / 10.0) * maxf(0.18, 1.0 - lateral / 1.25)
-		if race_mode == 0:
+		if race_mode in [0, 1]:
 			var more_wheels := 0
 			for third in range(rider_count):
 				if third == rider or finish_times[third] >= 0.0:
@@ -863,7 +869,7 @@ func _effective_draft_strength(rider: int) -> float:
 	if race_mode in [4, 5]:
 		return 0.0
 	var strength: float = clampf(draft_strengths[rider], 0.0, 1.0)
-	if race_mode != 0:
+	if race_mode not in [0, 1]:
 		return strength
 	var speed_ratio: float = clampf((speeds[rider] - SCRATCH_DRAFT_RAMP_START_MPS) / (SCRATCH_DRAFT_RAMP_END_MPS - SCRATCH_DRAFT_RAMP_START_MPS), 0.0, 1.0)
 	return strength * lerpf(SCRATCH_DRAFT_LOW_SPEED_SCALE, 1.0, speed_ratio)
@@ -871,14 +877,14 @@ func _effective_draft_strength(rider: int) -> float:
 func _draft_drag_reduction(rider: int) -> float:
 	if race_mode in [4, 5]:
 		return 0.0
-	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode == 0 else DRAFT_MAX_DRAG_REDUCTION
+	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION
 	return limit * _effective_draft_strength(rider)
 
 func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
 	if race_mode in [4, 5]:
 		draft_strength = 0.0
 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
-	if race_mode in [0, 4, 5]:
+	if race_mode in [0, 1, 4, 5]:
 		var v: float = maxf(current_speed, 0.0)
 		var aero_factor: float = maxf(1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION, 1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION * draft_strength)
 		var drag: float = 0.5 * 1.20 * 0.334 * v * v * aero_factor
@@ -1063,11 +1069,11 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode == 4:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
-	if race_mode != 0:
+	if race_mode not in [0, 1]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
-		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode == 0 and x_ai.initialized else ai_lane_targets[i])
+		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1] and x_ai.initialized else ai_lane_targets[i])
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
 	return heights
@@ -1098,6 +1104,8 @@ func _register_lap_crossings(rider: int, previous: float, step: float, dt: float
 		next_lap += 1
 
 func _race_better(a: int, b: int) -> bool:
+	if race_mode == 1:
+		return points_rules.better(a, b, distances)
 	if race_mode == 5:
 		return team_race.better(a / team_size, b / team_size) if a / team_size != b / team_size else distances[a] > distances[b]
 	if race_mode == 0:
@@ -1139,7 +1147,8 @@ func _advance_race(dt: float) -> void:
 	if trainer_seen:
 		boost_left = 0.0
 		recovery_left = 0.0
-	var boost_active: bool = not trainer_seen and boost_left > 0.0
+	var boost_active: bool = race_mode != 1 and not trainer_seen and boost_left > 0.0
+	var previous_distances: Array[float] = distances.duplicate()
 	var prior_lanes: Array[float] = lane_offsets.duplicate()
 	var lateral_height_changes: Array[float] = _move_lanes(dt)
 	_update_drafting(dt)
@@ -1147,14 +1156,14 @@ func _advance_race(dt: float) -> void:
 	for rider in range(rider_count):
 		effective_drafts.append(_effective_draft_strength(rider))
 	var x_powers: Array[float] = []
-	if race_mode == 0:
+	if race_mode in [0, 1]:
 		x_powers = x_ai.step(dt, clock, distances, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
 	var new_finisher := false
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
 			continue
-		var power: float = watts if i == 0 else (x_powers[i] if race_mode == 0 else _ai_choose_power(i, dt))
-		if race_mode == 0 and i > 0:
+		var power: float = watts if i == 0 else (x_powers[i] if race_mode in [0, 1] else _ai_choose_power(i, dt))
+		if race_mode in [0, 1] and i > 0:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
 			ai_role[i] = x_ai.modes[i]
@@ -1190,7 +1199,7 @@ func _advance_race(dt: float) -> void:
 			ai_stall_time[i] = ai_stall_time[i] + dt if speeds[i] < 0.6 and power >= 80.0 else 0.0
 		var actual_step: float = speeds[i] * dt / metric
 		_register_lap_crossings(i, previous, actual_step, dt)
-		distances[i] = minf(_race_length(), previous + actual_step)
+		distances[i] = previous + actual_step if race_mode == 1 else minf(_race_length(), previous + actual_step)
 		if _profile(i) == 1:
 			tt_effort_remaining = clampf(1.0 - distances[i] / _race_length(), 0.0, 1.0)
 		if i == 0 and not trainer_seen:
@@ -1201,7 +1210,7 @@ func _advance_race(dt: float) -> void:
 			player_speed_peak_kmh = maxf(player_speed_peak_kmh, speeds[i] * 3.6)
 			if player_samples.is_empty() or absf(player_samples[-1].x - distances[i]) >= 2.5 or distances[i] >= _race_length():
 				player_samples.append(Vector2(distances[i], power))
-		if distances[i] >= _race_length():
+		if race_mode != 1 and distances[i] >= _race_length():
 			new_finisher = true
 			if i == 1:
 				tt_effort_remaining = 0.0
@@ -1209,6 +1218,16 @@ func _advance_race(dt: float) -> void:
 			finish_times[i] = clock - dt + dt * fraction
 			coast_distances[i] = _race_length()
 			coast_speeds[i] = speeds[i]
+	if race_mode == 1:
+		var old_finishes: Array[float] = finish_times.duplicate()
+		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
+		for i in range(rider_count):
+			if old_finishes[i] < 0.0 and finish_times[i] >= 0.0:
+				new_finisher = true
+				var fraction: float = clampf((finish_times[i] - clock + dt) / dt, 0.0, 1.0)
+				distances[i] = lerpf(previous_distances[i], distances[i], fraction)
+				coast_distances[i] = distances[i]
+				coast_speeds[i] = speeds[i]
 	if race_mode == 0:
 		scratch_rules.examine(distances, finish_times, clock)
 	# Capture while the winner is crossing, rather than after the LAST rider
@@ -1342,7 +1361,7 @@ func _update_visuals(dt: float) -> void:
 	for i in range(rider_count):
 		var lateral: float = lane_offsets[i]
 		var display_distance: float = coast_distances[i] if finish_times[i] >= 0.0 else distances[i]
-		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 4, 5] else 0.0
+		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 1, 4, 5] else 0.0
 		display_distance = _rider_distance(i, display_distance)
 		var position: Vector3 = _at(display_distance - FRONT_WHEEL_TIP_M - starting_grid, lateral)
 		# Imported Blender wheel mesh reaches local ground at y=0.  On the
@@ -1365,7 +1384,7 @@ func _update_visuals(dt: float) -> void:
 			visual.call("pedal", dt, clampf(coast_speeds[i] * 5.5, 0.0, 110.0), 120.0)
 		else:
 			visual.call("set_victory", false)
-			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode == 0 or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
+			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
 	team_race.update_badges(self)
 	if finished:
 		_place_finish_camera()
@@ -1907,7 +1926,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP":
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2]:
+	if choice not in [0, 1, 2, 3]:
 		return
 	var replay: Dictionary = {}
 	var options = null
@@ -1923,13 +1942,13 @@ func _confirm_start() -> void:
 				return
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 5 if choice == 2 else (4 if choice == 1 else 0)
-	race_laps = int(options.distance_m() / LAP) if choice in [1, 2] else clampi(int(laps_input.value), 1, 30)
+	race_mode = 5 if choice == 2 else (4 if choice == 1 else (1 if choice == 3 else 0))
+	race_laps = int(options.distance_m() / LAP) if choice in [1, 2] else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
-	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else clampi(int(rider_count_input.value), 6, 12))
+	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))
 	_configure_peloton()
 	if choice in [1, 2]:
 		_prepare_pursuit(replay, float(options.cp_input.value))
@@ -2301,6 +2320,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 		var gap_text: String = "JIJ" if id == 0 else "%+d m" % roundi(delta)
 		if id != 0 and race_mode == 0 and scratch_rules.credits[id] != scratch_rules.credits[0]:
 			gap_text = "%+d r" % (scratch_rules.credits[id] - scratch_rules.credits[0])
+		if race_mode == 1: gap_text = "%d pt · %+d r" % [points_rules.points[id], points_rules.credits[id]]
 		gaps.append(gap_text)
 		var colour: Color = palette[id % palette.size()]
 		if id < rider_kits.size():
@@ -2317,6 +2337,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 		notice = "Trainerverbinding onderbroken · vermogen tijdelijk vastgehouden" if _power_hold_active() else "Wedstrijd gepauzeerd · wacht op de trainerverbinding"
 	elif finished:
 		notice = "Finish · %.2f s" % finish_times[0]
+	if race_mode == 1 and start_state == "RACING" and (notice.is_empty() or finished): notice = points_rules.notice(distances.max())
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
 	if race_mode == 4:
@@ -2344,7 +2365,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode == 0 else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": rider_count, "leader_gap": _hud_leader_gap(order), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"points_race": race_mode == 1,"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "lap": mini(race_laps, int((distances.max() if race_mode == 1 else distances[0]) / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": rider_count, "leader_gap": ("%d punten" % points_rules.points[0]) if race_mode == 1 else _hud_leader_gap(order), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -2364,6 +2385,9 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 	panel.add_child(label)
 
 func _refresh_fullscreen_results() -> void:
+	if race_mode == 1:
+		preload("res://points_presentation.gd").results(self)
+		return
 	if race_mode == 5:
 		team_race.results(self)
 		return

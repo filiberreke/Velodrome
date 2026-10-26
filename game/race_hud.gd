@@ -16,6 +16,7 @@ var gear_label: Label
 var lap_label: Label
 var time_label: Label
 var gap_label: Label
+var gap_caption: Label
 var position_label: Label
 var scratch_center: HBoxContainer
 var pursuit_center: HBoxContainer
@@ -311,7 +312,8 @@ func _build_bottom() -> void:
 	time.add_child(time_label)
 	var leader := VBoxContainer.new()
 	center.add_child(leader)
-	leader.add_child(text("KOPPOSITIE", 16, MUTED))
+	gap_caption = text("KOPPOSITIE", 16, MUTED)
+	leader.add_child(gap_caption)
 	gap_label = text("Aan kop", 28, ACCENT)
 	leader.add_child(gap_label)
 	_build_pursuit_bar(row)
@@ -516,6 +518,7 @@ func update_race(data: Dictionary) -> void:
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]
+	gap_caption.text = "PUNTEN" if bool(data.get("points_race", false)) else "KOPPOSITIE"
 	status_label.text = data.get("notice", "")
 	status_panel.visible = not status_label.text.is_empty()
 	map.set_progress(data["distances"])
