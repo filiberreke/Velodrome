@@ -2,6 +2,7 @@ extends Node3D
 # Integrated Blender rig + skinned meshes. Contains both bicycle and cyclist.
 const RIDER_SCENE: PackedScene = preload("res://assets/riders/velodrome_rider.glb")
 const PURSUIT_SCENE: PackedScene = preload("res://assets/riders/velodrome_pursuit.glb")
+const SKINSUIT_COVERAGE: Shader = preload("res://skinsuit_coverage.gdshader")
 const BASE_CADENCE: float = 60.0
 const BLEND_SECONDS: float = 0.25
 const POSES: Array[String] = ["cruise", "sprint_seated", "sprint_standing", "victory"]
@@ -198,9 +199,28 @@ func _apply_skinsuit_texture(texture: Texture2D) -> void:
 			body_mesh.set_surface_override_material(surface, _default_materials[surface])
 	if texture == null:
 		return
+	var image := texture.get_image()
+	if image != null and image.is_compressed():
+		image.decompress()
+	var has_coverage := image != null and image.detect_alpha() != Image.ALPHA_NONE
+	var skin := Color(0.96, 0.72, 0.56)
+	for surface in range(body_mesh.mesh.get_surface_count()):
+		var source := body_mesh.mesh.surface_get_material(surface) as StandardMaterial3D
+		if source != null and source.resource_name == "skin":
+			skin = source.albedo_color
+			break
 	for surface in range(body_mesh.mesh.get_surface_count()):
 		var src := body_mesh.mesh.surface_get_material(surface) as StandardMaterial3D
 		if src == null or not src.resource_name.to_lower().ends_with("_kit"):
+			continue
+		if has_coverage:
+			var covered := ShaderMaterial.new()
+			covered.shader = SKINSUIT_COVERAGE
+			covered.resource_name = src.resource_name
+			covered.set_shader_parameter("skinsuit_atlas", texture)
+			covered.set_shader_parameter("skin_color", skin)
+			covered.set_shader_parameter("fabric_roughness", src.roughness)
+			body_mesh.set_surface_override_material(surface, covered)
 			continue
 		var material := src.duplicate() as StandardMaterial3D
 		material.albedo_color = Color.WHITE

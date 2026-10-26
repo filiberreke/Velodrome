@@ -1,0 +1,82 @@
+[
+  {
+    "id": "denmark",
+    "name": "Denemarken",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/denmark/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/denmark/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "portugal",
+    "name": "Portugal",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/portugal/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/portugal/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "italy",
+    "name": "Italie",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/italy/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/italy/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "great_britain",
+    "name": "Groot-Brittannie",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/great_britain/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/great_britain/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "australia",
+    "name": "Australie",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/australia/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/australia/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "new_zealand",
+    "name": "Nieuw-Zeeland",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/new_zealand/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/new_zealand/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "germany",
+    "name": "Duitsland",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/germany/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/germany/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "france",
+    "name": "Frankrijk",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/france/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/france/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "netherlands",
+    "name": "Nederland",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/netherlands/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/netherlands/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "united_states",
+    "name": "Verenigde Staten",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/united_states/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/united_states/helmet.png",
+    "visor": "donker"
+  }
+]

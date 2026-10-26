@@ -78,8 +78,10 @@ in all poses. Runtime APIs are `set_helmet_png(path)` and
 ## Author another country
 
 Create `game/assets/riders/national_kits/<country_id>/skinsuit.png`. Use a
-lowercase identifier (for example `portugal`), an opaque sRGB PNG, and the same
-atlas layout. No code registry or rebuild is needed to add another texture.
+lowercase identifier (for example `portugal`), an sRGB PNG, and the same
+atlas layout. Opaque texels are clothing; alpha coverage exposes the original
+model skin for short sleeves without making the body transparent.
+No code registry or rebuild is needed to add another texture.
 All clothing material names end in `_kit`; Godot sets their tint to white and
 uses this single atlas. Other materials keep the existing rider palette.
 
@@ -144,3 +146,10 @@ Blender's tessellation/normal variation on unchanged helmet/bike polygons.
 The Godot test covers both rigs, all four clips, UV availability/range, morphs,
 independent suit/helmet/visor selection/restoration, missing PNG fallback, imported/relative/user/absolute paths, invalid IDs, and isolation from another rider with the
 same profile index.
+
+## Ten additional country kits
+
+See [the country catalog and build/test notes](../riders/national_kits/README.md)
+and `game/riders_national_kits.example.cfg` for the ten uploaded designs, PNG
+paths, editable SVGs and short-sleeve coverage. Existing rider colors and the
+Belgium assets remain unchanged unless explicitly selected.
