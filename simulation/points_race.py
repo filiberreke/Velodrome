@@ -36,6 +36,9 @@ class Jury:
         self.lap_balance = [0] * self.riders
         self.sprint_points = [0] * self.riders
         self.awards = [0] * self.riders
+        self._previous_group = ()
+        self._old_back = 0.0
+        self._old_front = 0.0
 
     def _group(self, positions):
         # Cluster on physical unwrapped distance, with hysteresis toward old peloton.
@@ -54,37 +57,33 @@ class Jury:
         if any(a < b for a, b in zip(positions, self.distances)):
             raise ValueError("Distances must not decrease")
         old = self.distances[:]
-        old_anchor = self.anchor
         self.distances = list(positions)
         group = self._group(positions)
         self.peloton = tuple(group)
         # The peloton's clock belongs to its reference riders, not fastest individual.
         self.anchor = sum(positions[i] for i in group) / len(group)
         self.reference_laps = min(self.laps, math.floor(self.anchor / LAP))
-        # Count physical overtakes of an entire lap, relative to previous anchor.
-        # Require approaching/entering the appropriate edge of the peloton.
-        front = max(positions[i] for i in group)
-        back = min(positions[i] for i in group)
-        for i in range(self.riders):
-            if i in group:
-                continue
-            prev = (old[i] - old_anchor) / LAP
-            now = (positions[i] - self.anchor) / LAP
-            # Crossing integer lap lead thresholds represents catching the back of pack.
-            new_balance = math.floor((positions[i] - back) / LAP) if positions[i] >= back else -math.ceil((front - positions[i]) / LAP)
-            # Avoid inventing lap events when group identity changes: only crossing
-            # threshold in continuous unwrapped relative distance can award.
-            if now > prev:
-                for k in range(self.lap_balance[i] + 1, new_balance + 1):
-                    if k > 0 and prev < k <= now + self.gap/LAP:
+        # Award only on physical threshold crossings against the SAME reference
+        # peloton. Membership changes are never lap events by themselves.
+        if set(group) == set(self._previous_group):
+            for i in range(self.riders):
+                if i in group:
+                    continue
+                old_ahead = old[i] - self._old_back
+                new_ahead = positions[i] - back
+                old_behind = old[i] - self._old_front
+                new_behind = positions[i] - front
+                if new_ahead > old_ahead:
+                    while old_ahead < (self.lap_balance[i] + 1)*LAP <= new_ahead:
                         self.lap_balance[i] += 1
                         self.events.append(("gain", i, self.lap_balance[i]))
-            elif now < prev:
-                for k in range(self.lap_balance[i], new_balance, -1):
-                    if k <= 0 and now - self.gap/LAP <= k-1 < prev:
+                if new_behind < old_behind:
+                    while new_behind <= (self.lap_balance[i] - 1)*LAP < old_behind:
                         self.lap_balance[i] -= 1
                         self.events.append(("loss", i, self.lap_balance[i]))
-        # Future work: official peloton membership must be locked during fragmentation.
+        self._previous_group = tuple(group)
+        self._old_back, self._old_front = back, front
+        # Prototype limitation: peloton identity and sprint finish require a race referee state machine.
         for lap in range(self.interval, self.laps + 1, self.interval):
             if lap <= self.reference_laps and lap not in self.sprint_done:
                 # Rank crossings of the physical finish line at the peloton clock.
