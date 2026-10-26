@@ -15,10 +15,19 @@ var scale_label: Label
 var fullscreen_check: CheckButton
 var rider_name_input: LineEdit
 var rider_weight_input: SpinBox
+const Appearance = preload("res://player_appearance.gd")
+var appearance
+var appearance_tabs: TabContainer
+var suit_choice: OptionButton
+var helmet_choice: OptionButton
+var visor_choice: OptionButton
+var appearance_preview
+var appearance_status: Label
 const RIDER_PATH := "user://rider_profile.cfg"
 
 func _ready() -> void:
 	layer = 25
+	appearance = get_parent().get("player_appearance")
 	_load_settings()
 	_load_rider_profile()
 	_apply_display()
@@ -107,23 +116,36 @@ func _build_menu() -> void:
 	centered.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel_root.add_child(centered)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(570, 0)
+	panel.custom_minimum_size = Vector2(1060, 820)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("10253c")
 	style.border_color = Color("42d9ed")
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(18)
-	style.set_content_margin_all(30)
+	style.set_content_margin_all(24)
 	panel.add_theme_stylebox_override("panel", style)
 	centered.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
-	panel.add_child(box)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 18)
+	panel.add_child(outer)
 	var title := Label.new()
 	title.text = "INSTELLINGEN"
 	title.add_theme_font_size_override("font_size", 30)
 	title.add_theme_color_override("font_color", Color("ffb44c"))
-	box.add_child(title)
+	outer.add_child(title)
+	appearance_tabs = TabContainer.new()
+	appearance_tabs.custom_minimum_size = Vector2(0, 620)
+	appearance_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer.add_child(appearance_tabs)
+	var player_tab := HBoxContainer.new()
+	player_tab.name = "Speler"
+	player_tab.add_theme_constant_override("separation", 28)
+	appearance_tabs.add_child(player_tab)
+	var box := VBoxContainer.new()
+	box.custom_minimum_size.x = 420
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 14)
+	player_tab.add_child(box)
 	var player_heading := Label.new()
 	player_heading.text = "RENNE R  /  SPELERSPROFIEL".replace("RENNE R", "RENNER")
 	player_heading.add_theme_color_override("font_color", Color("42d9ed"))
@@ -136,7 +158,8 @@ func _build_menu() -> void:
 	rider_name_input.max_length = 22
 	box.add_child(rider_name_input)
 	var weight_label := Label.new()
-	weight_label.text = "Gewicht renner (kg) — voorlopig profiel, verandert nog niet de racefysica"
+	weight_label.text = "Gewicht renner (kg)"
+	weight_label.tooltip_text = "Profielinstelling; verandert de racefysica niet."
 	box.add_child(weight_label)
 	rider_weight_input = SpinBox.new()
 	rider_weight_input.min_value = 35
@@ -144,6 +167,11 @@ func _build_menu() -> void:
 	rider_weight_input.step = 0.5
 	rider_weight_input.value = float(get_parent().get("player_weight_kg"))
 	box.add_child(rider_weight_input)
+	_build_appearance_controls(box, player_tab)
+	box = VBoxContainer.new()
+	box.name = "Beeld"
+	box.add_theme_constant_override("separation", 14)
+	appearance_tabs.add_child(box)
 	var display_heading := Label.new()
 	display_heading.text = "BEELDINSTELLINGEN"
 	display_heading.add_theme_color_override("font_color", Color("42d9ed"))
@@ -197,6 +225,10 @@ func _build_menu() -> void:
 	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nDruk op F10 om dit menu te openen of sluiten."
 	info.add_theme_color_override("font_color", Color("b4d4e9"))
 	box.add_child(info)
+	box = VBoxContainer.new()
+	box.name = "Strava"
+	box.add_theme_constant_override("separation", 18)
+	appearance_tabs.add_child(box)
 	var account_heading := Label.new()
 	account_heading.text = "STRAVA"
 	account_heading.add_theme_color_override("font_color", Color("42d9ed"))
@@ -207,7 +239,7 @@ func _build_menu() -> void:
 	box.add_child(reconnect_button)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)
-	box.add_child(actions)
+	outer.add_child(actions)
 	var apply_button := Button.new()
 	apply_button.text = "TOEPASSEN EN BEWAREN"
 	apply_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -215,10 +247,104 @@ func _build_menu() -> void:
 	actions.add_child(apply_button)
 	var close_button := Button.new()
 	close_button.text = "SLUITEN"
-	close_button.pressed.connect(toggle_menu)
+	close_button.pressed.connect(_close_settings)
 	actions.add_child(close_button)
+	appearance_tabs.tab_changed.connect(_on_settings_tab_changed)
+
+func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -> void:
+	for entry in [["Truitje / wielerpak", appearance.suit_options], ["Helm", appearance.helmet_options]]:
+		var label := Label.new()
+		label.text = entry[0]
+		box.add_child(label)
+		var choice := OptionButton.new()
+		for option in entry[1]:
+			choice.add_item(option.label)
+			choice.set_item_metadata(choice.item_count - 1, option.id)
+		box.add_child(choice)
+		choice.item_selected.connect(_on_appearance_draft)
+		if suit_choice == null: suit_choice = choice
+		else: helmet_choice = choice
+	var visor_label := Label.new()
+	visor_label.text = "Vizier"
+	box.add_child(visor_label)
+	visor_choice = OptionButton.new()
+	for id in ["donker", "doorzichtig"]:
+		visor_choice.add_item(id.capitalize())
+		visor_choice.set_item_metadata(visor_choice.item_count - 1, id)
+	visor_choice.item_selected.connect(_on_appearance_draft)
+	box.add_child(visor_choice)
+	var hint := Label.new()
+	hint.text = "Het wielerpak omvat ook de broek.\nJe keuze geldt alleen voor jouw renner.\nBewaar om je keuze in de wedstrijd te gebruiken."
+	hint.add_theme_color_override("font_color", Color("b4d4e9"))
+	box.add_child(hint)
+	appearance_status = Label.new()
+	appearance_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	appearance_status.add_theme_color_override("font_color", Color("ffb44c"))
+	box.add_child(appearance_status)
+	var preview_box := VBoxContainer.new()
+	player_tab.add_child(preview_box)
+	var heading := Label.new()
+	heading.text = "JOUW RENNER"
+	preview_box.add_child(heading)
+	appearance_preview = preload("res://player_appearance_preview.gd").new()
+	appearance_preview.custom_minimum_size = Vector2(400, 480)
+	preview_box.add_child(appearance_preview)
+	var views := HBoxContainer.new()
+	preview_box.add_child(views)
+	var group := ButtonGroup.new()
+	for back in [false, true]:
+		var button := Button.new()
+		button.text = "Achterkant" if back else "Voorkant"
+		button.toggle_mode = true
+		button.button_group = group
+		button.button_pressed = not back
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(appearance_preview.set_back_view.bind(back))
+		views.add_child(button)
+
+func _choice_id(choice: OptionButton) -> String:
+	return str(choice.get_item_metadata(choice.selected)) if choice.selected >= 0 else "configured"
+
+func _select_id(choice: OptionButton, id: String) -> void:
+	for i in choice.item_count:
+		if str(choice.get_item_metadata(i)) == id:
+			choice.select(i)
+			return
+	choice.select(0)
+
+func _sync_appearance_controls() -> void:
+	rider_name_input.text = str(get_parent().get("player_display_name"))
+	rider_weight_input.value = float(get_parent().get("player_weight_kg"))
+	_select_id(suit_choice, appearance.suit_id)
+	_select_id(helmet_choice, appearance.helmet_id)
+	var selected_visor: String = appearance.visor_id
+	if selected_visor == "configured":
+		var base: Dictionary = get_parent().call("get_player_appearance_base")
+		selected_visor = str(base.get("visor", "donker")).strip_edges().to_lower()
+	_select_id(visor_choice, selected_visor)
+	appearance_status.text = ""
+	_update_appearance_preview()
+
+func _update_appearance_preview() -> void:
+	var base: Dictionary = get_parent().call("get_player_appearance_base")
+	appearance_preview.show_configuration(appearance.resolve(base, _choice_id(suit_choice), _choice_id(helmet_choice), _choice_id(visor_choice)))
+
+func _on_appearance_draft(_index: int) -> void:
+	_update_appearance_preview()
+
+func _on_settings_tab_changed(index: int) -> void:
+	appearance_preview.set_active(panel_root.visible and index == 0)
+
+func _close_settings() -> void:
+	panel_root.hide()
+	appearance_preview.set_active(false)
 
 func _on_apply() -> void:
+	var error: Error = appearance.save_choices(_choice_id(suit_choice), _choice_id(helmet_choice), _choice_id(visor_choice))
+	if error != OK:
+		appearance_tabs.current_tab = 0
+		appearance_status.text = "Je keuze kon niet worden bewaard. Probeer opnieuw."
+		return
 	resolution = OPTIONS[resolution_choice.selected]
 	render_scale = float(scale_slider.value)
 	fullscreen = fullscreen_check.button_pressed
@@ -226,10 +352,16 @@ func _on_apply() -> void:
 	_apply_display()
 	_save_settings()
 	_save_rider_profile()
-	panel_root.hide()
+	get_parent().call("apply_player_appearance")
+	_close_settings()
 
 func toggle_menu() -> void:
-	panel_root.visible = not panel_root.visible
+	if panel_root.visible:
+		_close_settings()
+	else:
+		_sync_appearance_controls()
+		panel_root.show()
+		_on_settings_tab_changed(appearance_tabs.current_tab)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:

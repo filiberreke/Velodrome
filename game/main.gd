@@ -207,6 +207,8 @@ func _spawn_peloton() -> void:
 			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", "")))
 			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", "")))
 			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", "")))
+		if i == 0:
+			PlayerAppearance.prepare_rider(rider, player_appearance.resolve(get_player_appearance_base()))
 		node.add_child(rider)
 		if race_mode != 5:
 			var tag := Label3D.new()
@@ -221,6 +223,18 @@ func _spawn_peloton() -> void:
 			node.add_child(tag)
 		add_child(node)
 		bikes.append(node)
+
+func get_player_appearance_base() -> Dictionary:
+	var config: Dictionary = {}
+	for key in PlayerAppearance.KEYS:
+		config[key] = String(rider_config.get_value("player", key, "")) if rider_config_ready else ""
+	return config
+
+func apply_player_appearance() -> void:
+	# Update the existing player visual in place: preserve pose, cadence and race.
+	if bikes.is_empty() or not is_instance_valid(bikes[0]) or bikes[0].get_child_count() == 0:
+		return
+	PlayerAppearance.apply_to_rider(bikes[0].get_child(0), player_appearance.resolve(get_player_appearance_base()))
 
 # AI riders: reactive drafting, overtaking and limited high-intensity energy.
 # Energies are joules ABOVE sustainable output and refill at low intensity.
@@ -309,6 +323,8 @@ var strava_desired_title := "Velodrome 250 - Virtual Track Sprint"
 var strava_save_screenshot := false
 var strava_screenshot_path := ""
 var finish_badge: Label
+const PlayerAppearance = preload("res://player_appearance.gd")
+var player_appearance = PlayerAppearance.new()
 var player_display_name := "JIJ"
 var player_weight_kg := 75.0
 var race_hud_items: Array[CanvasItem] = []
@@ -414,6 +430,7 @@ var fit_gps_export_path := ""
 
 
 func _ready() -> void:
+	player_appearance.load_preferences()
 	Engine.max_fps = 90
 	var err := udp.bind(UDP_PORT, "127.0.0.1")
 	if err != OK:
