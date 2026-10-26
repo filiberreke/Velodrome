@@ -60,6 +60,8 @@ class Jury:
         self.distances = list(positions)
         group = self._group(positions)
         self.peloton = tuple(group)
+        front = max(positions[i] for i in group)
+        back = min(positions[i] for i in group)
         # The peloton's clock belongs to its reference riders, not fastest individual.
         self.anchor = sum(positions[i] for i in group) / len(group)
         self.reference_laps = min(self.laps, math.floor(self.anchor / LAP))
