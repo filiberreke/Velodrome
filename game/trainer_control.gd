@@ -114,6 +114,8 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		last_target = int(request.packet.watts)
 		return
 	if command == "set_mode" and phase == "SWITCHING":
+		# The bridge clears its lease during mode preparation; next control command reacquires it.
+		owned = false
 		phase = "READY"
 		last_grade = INF
 		last_aero = INF
@@ -141,7 +143,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 			phase = "READY"
 		else:
 			_block("Bestaande ERG/andere regelmodus blijft behouden")
-	elif command in ["heartbeat", "status"] and owned:
+	elif command in ["heartbeat", "status"] and owned and phase != "SWITCHING":
 		if not state.get("udp_owned", false) or (state.get("desired_mode") == "SIM" and state.get("desired_sim_backend") != "simulation") or state.get("desired_mode") not in ["SIM", "ERG"]:
 			owned = false
 			may_resume = false
@@ -187,7 +189,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 	var target_mode := "ERG" if requested_erg > 0 else "SIM"
 	if state.get("desired_mode", "SIM") != target_mode:
 		# Switch modes only within our own session; never take over another controller.
-		if not owned: return
+		if not owned and state.get("desired_mode") != "ERG": return
 		phase = "SWITCHING"
 		_request("set_mode", {"mode": target_mode}, now, true)
 		last_change = now
