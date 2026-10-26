@@ -142,7 +142,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		else:
 			_block("Bestaande ERG/andere regelmodus blijft behouden")
 	elif command in ["heartbeat", "status"] and owned:
-		if not state.get("udp_owned", false) or state.get("desired_mode") != "SIM" or state.get("desired_sim_backend") != "simulation":
+		if not state.get("udp_owned", false) or (state.get("desired_mode") == "SIM" and state.get("desired_sim_backend") != "simulation") or state.get("desired_mode") not in ["SIM", "ERG"]:
 			owned = false
 			may_resume = false
 			_block("Trainerbediening overgenomen")
@@ -161,7 +161,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		last_status = -100.0
 		last_grade = INF
 		last_aero = INF
-	last_target = -1
+		last_target = -1
 	if not enabled and enabled_before:
 		release(now)
 		armed = false
