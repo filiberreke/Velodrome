@@ -1,0 +1,38 @@
+{
+  "baseline": {
+    "races": 100,
+    "winners": {
+      "attacker": 41,
+      "tt": 54,
+      "sprinter": 5
+    },
+    "drafting_all_pct": 45.57,
+    "spread_m": 198.16,
+    "sprinter_wprime_45_pct": 8.02,
+    "sprinter_draft_45_pct": 46.99,
+    "sprinter_gap_45_m": 290.02,
+    "sprinter_mean_power_45_w": 259.26,
+    "sprinter_final_reserve_pct": 2.36,
+    "sprinter_drop_events": 1.71,
+    "sprinter_n": 300,
+    "sprinter_missing_45": 0
+  },
+  "improved": {
+    "races": 100,
+    "winners": {
+      "tt": 43,
+      "sprinter": 18,
+      "attacker": 39
+    },
+    "drafting_all_pct": 46.98,
+    "spread_m": 227.65,
+    "sprinter_wprime_45_pct": 10.39,
+    "sprinter_draft_45_pct": 51.48,
+    "sprinter_gap_45_m": 313.11,
+    "sprinter_mean_power_45_w": 253.87,
+    "sprinter_final_reserve_pct": 2.88,
+    "sprinter_drop_events": 1.66,
+    "sprinter_n": 300,
+    "sprinter_missing_45": 0
+  }
+}

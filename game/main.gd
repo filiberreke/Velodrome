@@ -2752,4 +2752,3 @@ func _register_performance() -> void:
 	performance_recorded = performance_records.add(performance_context)
 	if not performance_recorded and pursuit_save_status != null:
 		pursuit_save_status.text = performance_records.last_error
-

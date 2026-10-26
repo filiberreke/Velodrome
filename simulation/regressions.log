@@ -1,0 +1,27 @@
+test_lap_gain_wins_race (test_lap_rules.TestLapRules.test_lap_gain_wins_race) ... FAIL
+test_no_multiple_awards_same_rider (test_lap_rules.TestLapRules.test_no_multiple_awards_same_rider) ... ok
+test_physics_no_arbitrary_speed_cap (test_lap_rules.TestLapRules.test_physics_no_arbitrary_speed_cap) ... ok
+test_rider_can_draft_after_lap_gain (test_lap_rules.TestLapRules.test_rider_can_draft_after_lap_gain) ... FAIL
+
+======================================================================
+FAIL: test_lap_gain_wins_race (test_lap_rules.TestLapRules.test_lap_gain_wins_race)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/sprinter_wheel_update/test_lap_rules.py", line 10, in test_lap_gain_wins_race
+    self.assertGreater(row['lap_gains'],0)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 not greater than 0
+
+======================================================================
+FAIL: test_rider_can_draft_after_lap_gain (test_lap_rules.TestLapRules.test_rider_can_draft_after_lap_gain)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/sprinter_wheel_update/test_lap_rules.py", line 21, in test_rider_can_draft_after_lap_gain
+    self.assertTrue(any(x['lap_credits'] and x['lap_draft_s']>0 for x in riders))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.338s
+
+FAILED (failures=2)
