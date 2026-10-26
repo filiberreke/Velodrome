@@ -50,3 +50,6 @@ Hoofd, helm, handschoenen en schoenen veranderen niet mee.
 In Godot: `set_body_shape("ThighMass", 0.8)` uit `rider_animator.gd`, of rechtstreeks
 `$Rider.set_blend_shape_value($Rider.find_blend_shape_by_name("ThighMass"), 0.8)`.
 De sterkte bij waarde 1.0 stel je in via `SHAPE_KEYS` in `build_rider.py`.
+
+## Volledige landenoutfits
+Zie [SKINSUIT.md](SKINSUIT.md) voor de gedeelde UV-atlas, Belgische voorbeeldtextuur, selectie per renner, rebuild/import en regressietests. De kleuren en optionele decal-API blijven standaard beschikbaar.

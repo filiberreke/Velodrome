@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#eee"/>
+  <rect x="20.48" y="20.48" width="983.04" height="983.04" fill="#e3efff" stroke="black"/>
+  <path d="M348.16 20.48V1003.52M675.84 20.48V1003.52M20.48 512H1003.52" stroke="#666" stroke-dasharray="8 8"/>
+  <g font-family="sans-serif" font-size="22" fill="#111">
+    <text x="35" y="60">Helmet UV v1 - crown at top</text>
+    <text x="30" y="500">back seam</text>
+    <text x="355" y="500">front</text>
+    <text x="685" y="500">seam continuation</text>
+    <text x="35" y="970">Opaque shell only; visor and chin strap use separate materials.</text>
+  </g>
+</svg>
