@@ -10,6 +10,9 @@ const VICTORY_SECONDS := 6.0
 # beta.16.16: printable areas on the skinsuit. Any PNG works; transparent pixels = no print.
 const DECAL_SLOTS: Array[String] = ["back", "chest", "thigh_L", "thigh_R"]
 const DECAL_DIR := "res://assets/riders/decals/"
+# Temporary Belgian national-kit preview: rider index 0 only. Set false to disable.
+const BELGIUM_KIT_PREVIEW := true
+const BELGIUM_KIT_DIR := "res://assets/riders/national_kits/belgium/"
 # Index order: player, drafter, sprinter, attacker.
 const SHAPE_KEYS: Array[String] = ["ShoulderWidth", "TorsoMass", "HipWidth", "ThighMass", "CalfMass", "ArmMass"]
 const RIDER_SHAPES: Array = [
@@ -63,6 +66,8 @@ func _ready() -> void:
 	var rider_index: int = int(get_meta("rider_index", 0))
 	_apply_rider_profile(rider_index)
 	_apply_default_decals(rider_index)
+	if BELGIUM_KIT_PREVIEW and rider_index == 0:
+		_apply_belgium_kit_preview()
 
 func _find_animation_player(root: Node) -> AnimationPlayer:
 	if root is AnimationPlayer:
@@ -129,6 +134,27 @@ func _apply_palette_to_mesh(mesh_node: MeshInstance3D, palette: Dictionary) -> v
 		var colored: StandardMaterial3D = src.duplicate() as StandardMaterial3D
 		colored.albedo_color = palette[category]
 		mesh_node.set_surface_override_material(surface_index, colored)
+
+# Preview only: keep normal rider shapes, change suit colors and decals on this instance.
+# The 2D decals cover the central chest and back, not sleeves or side panels.
+func _apply_belgium_kit_preview() -> void:
+	if body_mesh == null:
+		body_mesh = rig_scene.find_child("Rider", true, false) as MeshInstance3D
+	if body_mesh == null:
+		return
+	_apply_palette_to_mesh(body_mesh, {
+		"suit": Color("a9d9f4"),
+		"accent": Color("a9d9f4"),
+		"panel": Color("181a1e"),
+	})
+	var chest_path := BELGIUM_KIT_DIR + "chest.png"
+	var back_path := BELGIUM_KIT_DIR + "back.png"
+	if ResourceLoader.exists(chest_path):
+		set_decal("chest", load(chest_path))
+	if ResourceLoader.exists(back_path):
+		set_decal("back", load(back_path))
+	# No commercial thigh decal on the national-kit preview.
+	set_decal("thighs", null)
 
 # ---------------------------------------------------------------- decals (logo / number)
 func _apply_default_decals(index: int) -> void:
