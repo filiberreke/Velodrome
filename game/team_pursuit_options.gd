@@ -2,6 +2,7 @@ extends "res://pursuit_options.gd"
 var teammates: OptionButton
 var resistance_choice: OptionButton
 var resistance_hint: Label
+var factor_inputs: Array[SpinBox] = []
 
 func _ready() -> void:
 	library.configure_team(3)
@@ -37,12 +38,43 @@ func _ready() -> void:
 		_refresh_resistance_hint()
 		changed.emit())
 	_refresh_resistance_hint()
+	add_child(_label("Vermogen in het wiel (% van je laatste kopbeurt)"))
+	for rank in range(1, 4):
+		var line := HBoxContainer.new()
+		var rank_label := _label("%de positie" % (rank + 1))
+		rank_label.custom_minimum_size.x = 190
+		line.add_child(rank_label)
+		var input := SpinBox.new()
+		input.min_value = 10.0
+		input.max_value = 100.0
+		input.step = 5.0
+		input.value = [80.0, 50.0, 40.0][rank - 1]
+		input.custom_minimum_size = Vector2(130, 44)
+		line.add_child(input)
+		factor_inputs.append(input)
+		add_child(line)
+	teammates.item_selected.connect(func(_index: int) -> void: _refresh_factor_inputs())
+	_refresh_factor_inputs()
+
+func _refresh_factor_inputs() -> void:
+	for i in range(factor_inputs.size()):
+		factor_inputs[i].get_parent().visible = i < team_size() - 1
+	if team_size() == 3 and factor_inputs.size() >= 2 and is_equal_approx(factor_inputs[1].value, 60.0):
+		factor_inputs[1].value = 50.0
+	elif team_size() == 4 and factor_inputs.size() >= 2 and is_equal_approx(factor_inputs[1].value, 50.0):
+		factor_inputs[1].value = 60.0
+
+func configured_factors() -> Array[float]:
+	var result: Array[float] = [1.0]
+	for i in range(team_size() - 1):
+		result.append(factor_inputs[i].value / 100.0)
+	return result
 
 func resistance_mode() -> String:
 	return "ERG" if resistance_choice != null and resistance_choice.get_selected_id() == 1 else "MANUAL"
 
 func _refresh_resistance_hint() -> void:
-	resistance_hint.text = "ERG is voorbereid; automatische weerstand is nog niet beschikbaar." if resistance_mode() == "ERG" else "Trap zelf het aangegeven doelvermogen."
+	resistance_hint.text = "ERG in het wiel; op kop en tijdens afzakken vrij trappen." if resistance_mode() == "ERG" else "Trap zelf het aangegeven doelvermogen."
 
 
 func team_size() -> int:
