@@ -15,6 +15,8 @@ func capture() -> void:
 	await RenderingServer.frame_post_draw
 	viewport.get_texture().get_image().save_png("res://verification/points_ui/menu.png")
 	game._confirm_start()
+	game.broadcast_intro.finish()
+	game.broadcast_intro.cancel()
 	game.start_state = "RACING"
 	game.clock = 235.
 	for i in range(game.rider_count):
@@ -27,6 +29,15 @@ func capture() -> void:
 	for i in range(3): await process_frame
 	await RenderingServer.frame_post_draw
 	viewport.get_texture().get_image().save_png("res://verification/points_ui/hud.png")
+	game.race_overlay.popup.set_process(false)
+	game.race_overlay.popup.enqueue("Tussensprint over 1 ronde!")
+	game.race_overlay.popup._process(.5)
+	await RenderingServer.frame_post_draw
+	viewport.get_texture().get_image().save_png("res://verification/points_ui/notification.png")
+	game.race_overlay.popup._process(2.1)
+	await RenderingServer.frame_post_draw
+	viewport.get_texture().get_image().save_png("res://verification/points_ui/notification_fade.png")
+	game.race_overlay.popup.clear()
 	game.finished = true
 	game.finish_overlay.show()
 	game._set_race_hud_visible(false)

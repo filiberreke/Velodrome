@@ -13,7 +13,11 @@ Demo en de bestaande trainer-/aftelprocedure worden ondersteund.
 - De meeste punten winnen. Bij gelijke punten beslist de volgorde van de laatste sprint.
 - Gedubbelde deelnemers finishen bij hun eerstvolgende lijnpassage na de gemeenschappelijke finish, zonder eerst hun eigen volledige afstand te moeten afleggen.
 
-Het wedstrijdscherm toont jouw punten, de volgende sprint, de puntenstand en netto ronden.
+Het wedstrijdscherm toont de puntenstand. De minimap markeert de actuele nummer 1 in koerspositie met een witte **L**, onafhankelijk van de puntenstand. De positie gebruikt dezelfde rondecorrecties als de koersvolgorde; de stip blijft op de fysieke baanpositie.
+
+De permanente sprintafstandsbalk is verwijderd. Belangrijke meldingen verschijnen zonder kader in grote witte letters: **Tussensprint over 1 ronde!**, **Eindsprint over 1 ronde!**, **+ XX punten**, **+ 20 punten!** bij een gewonnen ronde en **- 20 punten** bij een verloren ronde. Alleen jouw puntenwijzigingen worden getoond. Elke melding duurt in totaal drie seconden, met een korte popanimatie en daarna vervagen naar rechtsboven. Gelijktijdige gebeurtenissen verschijnen na elkaar. Sprintwaarschuwingen volgen de koersleider en verschijnen eenmaal per sprint. Start- en trainerverbindingsmeldingen blijven beschikbaar.
+
+`tests/test_points_notifications.gd` controleert waarschuwingen, eigen sprint- en rondepunten, deduplicatie, wachtrij, verdwijnen na drie seconden, reset en de minimapleider onafhankelijk van punten. `tests/capture_points_ui.gd` levert ook beelden van de melding en de fade.
 De uitslag toont punten, gewonnen/verloren ronden en de punten per sprint. De uitslag wordt aangevuld tot iedereen de laatste lijn gepasseerd is.
 De arcadeboost is uitgeschakeld voor puntenkoers.
 

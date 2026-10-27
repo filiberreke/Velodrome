@@ -47,6 +47,7 @@ var developer_enabled := false
 var developer_body: VBoxContainer
 var power_meter: Control
 var status_panel: PanelContainer
+var popup: Label
 var status_label: Label
 var row_normal: StyleBoxFlat
 var row_player: StyleBoxFlat
@@ -108,6 +109,8 @@ func _ready() -> void:
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status_panel.add_child(status_label)
 	status_panel.hide()
+	popup = preload("res://race_popup.gd").new()
+	add_child(popup)
 	_build_power_meter()
 	move_child(developer_panel, -1)
 
@@ -529,6 +532,7 @@ func update_race(data: Dictionary) -> void:
 	status_label.text = data.get("notice", "")
 	status_panel.visible = not status_label.text.is_empty()
 	map.set_progress(data["distances"])
+	map.set_race_leader(data.get("race_positions", []) if bool(data.get("points_race", false)) else [])
 	map.set_colors(data["colours"])
 	map.set_peloton(data.get("peloton", {}))
 	peloton_label.text = str(data.get("peloton_gap", ""))

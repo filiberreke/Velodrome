@@ -5,6 +5,14 @@ const COLORS := [Color("ffdc46"), Color("54d39b"), Color("52b5fa"), Color("ff767
 const TRACK_LENGTH := 250.0
 var rider_colours: Array[Color] = []
 var peloton: Dictionary = {}
+var leader_id := -1
+
+func set_race_leader(positions: Array) -> void:
+    leader_id = -1
+    for i in range(positions.size()):
+        if leader_id < 0 or positions[i] > positions[leader_id]: leader_id = i
+    queue_redraw()
+
 
 func set_peloton(value: Dictionary) -> void:
     peloton = value.duplicate(true)
@@ -73,6 +81,14 @@ func _draw() -> void:
         _draw_rider_dot(i)
     if not progress.is_empty():
         _draw_rider_dot(0)
+
+    if leader_id >= 0 and leader_id < progress.size():
+        var at := _point(progress[leader_id])
+        var outward := (at - Vector2(size.x * .5, size.y * .53)).normalized()
+        var label_at := at + outward * 20.0 + Vector2(-6, 7)
+        draw_line(at, at + outward * 13.0, Color.WHITE, 2.0, true)
+        draw_string_outline(ThemeDB.fallback_font, label_at, "L", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 5, Color("0a1725"))
+        draw_string(ThemeDB.fallback_font, label_at, "L", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
 
 func _draw_rider_dot(i: int) -> void:
         var pos: Vector2 = _point(progress[i])

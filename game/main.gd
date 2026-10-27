@@ -16,6 +16,7 @@ var peloton_state = PelotonState.new()
 var peloton_info: Dictionary = {}
 var peloton_markers: Node3D
 var rider_energy_badges: Array[Node3D] = []
+var points_notifications = preload("res://points_notifications.gd").new()
 var race_event_message := ""
 var race_event_until := -1.0
 var race_event_sound: AudioStreamPlayer
@@ -751,6 +752,8 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _reset() -> void:
+	points_notifications.reset()
+	if race_overlay != null: race_overlay.popup.clear()
 	if broadcast_intro != null: broadcast_intro.cancel()
 	trainer_control.release(_now_s())
 	trainer_road_grade = 0.0
@@ -1263,6 +1266,8 @@ func _advance_race(dt: float) -> void:
 	if race_mode == 1:
 		var old_finishes: Array[float] = finish_times.duplicate()
 		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
+		for message in points_notifications.collect(points_rules, _race_positions().max()):
+			if race_overlay != null: race_overlay.popup.enqueue(message)
 		for i in range(rider_count):
 			if old_finishes[i] < 0.0 and finish_times[i] >= 0.0:
 				new_finisher = true
@@ -1275,6 +1280,7 @@ func _advance_race(dt: float) -> void:
 	if race_mode in [0, 1]:
 		var lap_events: Array = points_rules.events if race_mode == 1 else scratch_rules.events
 		for index in range(new_lap_event, lap_events.size()):
+			if race_mode == 1: continue # Points have their own filtered, transient popup queue.
 			var event: Dictionary = lap_events[index]
 			var change: int = int(event.get("delta", 1 if event.get("kind", "") == "gain" else -1))
 			if int(event.rider) == 0:
@@ -2397,7 +2403,6 @@ func _update_compact_hud(order: Array[int]) -> void:
 		notice = "Trainerverbinding onderbroken · vermogen tijdelijk vastgehouden" if _power_hold_active() else "Wedstrijd gepauzeerd · wacht op de trainerverbinding"
 	elif finished:
 		notice = "Finish · %.2f s" % finish_times[0]
-	if race_mode == 1 and start_state == "RACING" and (notice.is_empty() or finished): notice = points_rules.notice(race_positions.max())
 	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
