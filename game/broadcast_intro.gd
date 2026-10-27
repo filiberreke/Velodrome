@@ -2,9 +2,7 @@ extends RefCounted
 ## Presentation only: the race remains frozen in INTRO until the normal start gate.
 const APPROACH := 4.0
 const WELCOME_END := 10.0
-const DEPART_END := 14.0
-const ORBIT_END := 32.0
-const DURATION := 36.0
+const DURATION := 44.0
 const WELCOME := "Welkom bij Velodrome! We maken ons klaar voor de volgende wedstrijd."
 var active := false
 var holding_chase := false
@@ -121,14 +119,41 @@ func chase_pose() -> Dictionary:
 	return {"position": game._at(s - 3.0, lane) + Vector3.UP * 2.3,
 		"target": game.bikes[0].position + Vector3.UP * 1.1 + game._direction(s, lane) * 3.0, "fov": 66.0}
 
-func orbit_pose(t: float) -> Dictionary:
-	# Increasing track distance is explicitly CCW in main._at. Exactly one lap.
-	var s: float = game.LAP * smooth_phase(t)
-	var pos: Vector3 = game._at(s, 6.0)
-	pos.y = lerpf(12.0, 7.0, smooth_phase(t))
-	var target: Vector3 = game._at(s + 17.0, 2.0)
-	target.y = 2.0
-	return {"position": pos, "target": target, "fov": 68.0}
+func flight_knots() -> Array:
+	var close_pos: Vector3 = suite.global_transform * Vector3(0.0, 2.15, 4.6)
+	var end: Vector3 = chase_pose().position
+	# Times are shared by adjoining Hermite spans: no stop at individual waypoints.
+	# The north infield corridor is centred at x=9.15, below the 2.21 m valance.
+	var points := [
+		[10.0, close_pos], [13.0, Vector3(28, 11, -48)],
+		[16.0, Vector3(0, 9, -60)], [19.0, Vector3(-24, 7, -30)],
+		[22.0, Vector3(-24, 5, 22)], [25.0, Vector3(-6, 3.8, 48)],
+		[28.0, Vector3(12, 2.3, 37)], [30.0, Vector3(9.15, 1.95, 29)],
+		[32.0, Vector3(9.15, 1.95, 23)], [33.5, Vector3(9.15, 1.95, 20)],
+		[35.0, Vector3(13, 2.3, 18)]]
+	if game.race_mode in [4, 5]:
+		points.append([38.0, Vector3(end.x, end.y, 10)])
+	else:
+		points.append([38.0, Vector3(end.x, end.y, 0)])
+		points.append([41.0, Vector3(end.x, end.y, -18)])
+	points.append([DURATION, end])
+	return points
+
+func _velocity(points: Array, i: int) -> Vector3:
+	if i == 0 or i == points.size() - 1: return Vector3.ZERO
+	# Straight tangents keep the lens inside the narrow tent corridor.
+	if i in [7, 8, 9]: return Vector3(0, 0, -2.4)
+	return (points[i + 1][1] - points[i - 1][1]) / (points[i + 1][0] - points[i - 1][0])
+
+func flight_position(time: float) -> Vector3:
+	var points := flight_knots()
+	time = clampf(time, WELCOME_END, DURATION)
+	for i in range(points.size() - 1):
+		if time <= points[i + 1][0]:
+			var span: float = points[i + 1][0] - points[i][0]
+			var u: float = (time - points[i][0]) / span
+			return (2*u*u*u - 3*u*u + 1) * points[i][1] + (u*u*u - 2*u*u + u) * span * _velocity(points, i) + (-2*u*u*u + 3*u*u) * points[i+1][1] + (u*u*u - u*u) * span * _velocity(points, i+1)
+	return points[-1][1]
 
 func sample(time: float) -> Dictionary:
 	var tr: Transform3D = suite.global_transform
@@ -139,16 +164,18 @@ func sample(time: float) -> Dictionary:
 		return {"position": (tr * Vector3(-8.0, 5.0, 13.0)).lerp(close_pos, t), "target": close_target, "fov": lerpf(62.0, 52.0, t)}
 	if time < WELCOME_END:
 		return {"position": close_pos, "target": close_target, "fov": 52.0}
-	if time < DEPART_END:
-		var t := smooth_phase((time - WELCOME_END) / (DEPART_END - WELCOME_END))
-		var first := orbit_pose(0.0)
-		return {"position": close_pos.lerp(first.position, t), "target": close_target.lerp(first.target, t), "fov": lerpf(52.0, 68.0, t)}
-	if time < ORBIT_END:
-		return orbit_pose((time - DEPART_END) / (ORBIT_END - DEPART_END))
-	var last := orbit_pose(1.0)
-	var chase := chase_pose()
-	var t := smooth_phase((time - ORBIT_END) / (DURATION - ORBIT_END))
-	return {"position": last.position.lerp(chase.position, t), "target": last.target.lerp(chase.target, t), "fov": lerpf(68.0, 66.0, t)}
+	var pos := flight_position(time)
+	var ahead := flight_position(minf(time + 1.2, DURATION))
+	var direction := (ahead - flight_position(maxf(time - .1, WELCOME_END))).normalized()
+	if direction.length_squared() < .01: direction = game._direction(game._rider_distance(0, game.distances[0]), game.lane_offsets[0])
+	var target := pos + direction * 8.0
+	target = close_target.lerp(target, smooth_phase((time - WELCOME_END) / 1.5))
+	if game.race_mode in [4, 5]:
+		var opponent: int = game.team_size if game.race_mode == 5 else 1
+		var focus := smooth_phase((time - 18.0) / 1.5) * (1.0 - smooth_phase((time - 21.0) / 1.5))
+		target = target.lerp(game.bikes[opponent].position + Vector3.UP * 1.1, focus)
+	target = target.lerp(chase_pose().target, smooth_phase((time - 36.0) / (DURATION - 36.0)))
+	return {"position": pos, "target": target, "fov": lerpf(52.0, 66.0, smooth_phase((time - 10.0) / 4.0))}
 
 func apply_camera() -> bool:
 	if not active and not holding_chase: return false

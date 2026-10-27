@@ -2924,11 +2924,10 @@ func _cycle_rider_names() -> void:
 	_update_bunch_presentation()
 
 func _rider_label_visible(index: int) -> bool:
-	if rider_name_mode == 2: return false
+	# The player already has name/power in the HUD, in every V mode.
+	if index == 0 or rider_name_mode == 2: return false
 	if broadcast_intro != null and (broadcast_intro.active or broadcast_intro.holding_chase): return false
 	if rider_name_mode == 1: return true
-	# Own details already live in the HUD; avoid a duplicate above the player's head.
-	if index == 0: return false
 	var radius: float = 10.0 if crowded_labels.get(index, false) else 8.0
 	var neighbours := 0
 	for other in range(bikes.size()):

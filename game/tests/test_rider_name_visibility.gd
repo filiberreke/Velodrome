@@ -24,6 +24,7 @@ func run() -> void:
 	key.keycode = KEY_V; key.pressed = true
 	game._unhandled_key_input(key)
 	check(game.rider_name_mode == 1 and game._rider_label_visible(2), "V enables all names")
+	check(not game._rider_label_visible(0) and not game.rider_energy_badges[0].visible, "All names must still exclude player name/power card")
 	key.echo = true; game._unhandled_key_input(key)
 	check(game.rider_name_mode == 1, "Key repeat must not cycle repeatedly")
 	key.echo = false; game._unhandled_key_input(key)

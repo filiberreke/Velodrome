@@ -27,17 +27,32 @@ func run() -> void:
 	intro.elapsed = 11.0
 	intro.advance(0.0)
 	check(not intro.caption_panel.visible, "Welcome did not clear")
-	# Path is continuous, finite and above the riding surface for the whole orbit.
-	for boundary in [4.0, 10.0, 14.0, 32.0]:
-		check(intro.sample(boundary - .0001).position.distance_to(intro.sample(boundary + .0001).position) < .02, "Camera position jump")
-		check(intro.sample(boundary - .0001).target.distance_to(intro.sample(boundary + .0001).target) < .02, "Camera target jump")
-	for i in range(181):
-		var u := float(i) / 180.0
-		var pose: Dictionary = intro.orbit_pose(u)
-		var expected: Vector3 = game._at(game.LAP * intro.smooth_phase(u), 6.0)
-		check(Vector2(pose.position.x, pose.position.z).distance_to(Vector2(expected.x, expected.z)) < .001, "Orbit must follow CCW track")
-		check(pose.position.y > expected.y + 1.5, "Orbit intersects banking")
-	check(intro.orbit_pose(0.0).position.x == intro.orbit_pose(1.0).position.x, "Full lap did not close")
+	# Position and velocity remain continuous at every flight join, in every route.
+	for mode in [0, 4, 5]:
+		game._reset()
+		game.setup_panel.select_mode({0: 0, 4: 1, 5: 2}[mode])
+		game._confirm_start()
+		check(game.race_mode == mode and intro.active, "Test did not enter requested race intro")
+		game._update_visuals(0.0)
+		for knot in intro.flight_knots():
+			var t: float = knot[0]
+			var before_pos: Vector3 = intro.sample(t - .001).position
+			var at_pos: Vector3 = intro.sample(t).position
+			var after_pos: Vector3 = intro.sample(t + .001).position
+			check(before_pos.distance_to(after_pos) < .05, "Camera position jump")
+			check(((at_pos-before_pos) - (after_pos-at_pos)).length() < .0002, "Camera velocity discontinuity")
+		for i in range(301):
+			var t := 30.0 + float(i) / 100.0
+			var pos: Vector3 = intro.sample(t).position
+			check(absf(pos.x - 9.15) < .01 and pos.y < 2.1 and pos.y > 1.8, "Camera leaves tent clearance corridor")
+		check(intro.sample(intro.DURATION).position.distance_to(intro.chase_pose().position) < .001, "Route misses actual start")
+		if mode in [4, 5]:
+			for i in range(901):
+				var pos: Vector3 = intro.sample(35.0 + float(i)/100.0).position
+				check(pos.z >= intro.chase_pose().position.z - .01, "Pursuit overshoots its start")
+	game._reset()
+	game.setup_panel.select_mode(0)
+	game._confirm_start()
 	intro.elapsed = intro.DURATION - .01
 	intro.advance(.02)
 	check(game.start_state == "WAIT_STOP" and not intro.active and intro.holding_chase, "Intro did not hand off to stop gate")
