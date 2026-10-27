@@ -7,6 +7,7 @@ var library = Records.new()
 var records_store = preload("res://performance_records.gd").new()
 var records_page: VBoxContainer
 var team_options
+var team_scroll: ScrollContainer
 var pursuit_options
 var demo_settings: VBoxContainer
 const MODES := [
@@ -203,7 +204,12 @@ func _build_settings(layout: VBoxContainer) -> void:
 	options.add_child(pursuit_options)
 	pursuit_options.changed.connect(_pursuit_changed)
 	team_options = preload("res://team_pursuit_options.gd").new()
-	options.add_child(team_options)
+	team_scroll = ScrollContainer.new()
+	team_scroll.custom_minimum_size.y = 350
+	team_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	options.add_child(team_scroll)
+	team_options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	team_scroll.add_child(team_options)
 	team_options.changed.connect(_pursuit_changed)
 	demo_settings = VBoxContainer.new()
 	demo_settings.add_theme_constant_override("separation", 8)
@@ -281,6 +287,7 @@ func select_mode(index: int) -> void:
 		laps_input.value = field_settings[selected][1]
 	pursuit_options.visible = selected == 1
 	team_options.visible = selected == 2
+	team_scroll.visible = selected == 2
 	demo_settings.visible = selected in [0, 1, 2, 3]
 	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
 	start_button.disabled = selected not in [0, 1, 2, 3]

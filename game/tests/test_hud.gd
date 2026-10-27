@@ -63,10 +63,10 @@ func run_test() -> void:
 	check(ui.gear_label.text == "—", "No telemetry gear in demo")
 	check(ui.lap_label.text == "2/6" and ui.position_label.text == "6/12", "Correct round and actual race rank")
 	check(ui.time_label.text == "01:25.4", "Running clock")
-	check(ui.gap_label.text == "50 m achter", "Distance behind leader in metres")
+	check(ui.gap_caption.text == "PELOTON" and ui.gap_label.text == "In het peloton", "Bunch gap is separate from distance to race leader")
 	check(ui.map.progress.size() == 12 and ui.map.rider_colours.size() == 12, "Every rider remains on minimap")
 	check(ui.rider_rows.size() == 6 and ui.rider_rows[3]["shell"].get_meta("rider_id") == 0, "Player included and highlighted among six rows")
-	check(ui.rider_rows[0]["shell"].get_meta("rider_id") == 1, "Actual leader is pinned first")
+	check(ui.rider_rows[0]["shell"].get_meta("rider_id") == 3 and ui.rider_rows[0]["rank"].text == "3", "Closest opponents retain their actual race ranks")
 	check(not game.hud.is_visible_in_tree() and not game.rankings.is_visible_in_tree(), "Legacy diagnostics absent from normal view")
 	for panel in [ui.power_panel, ui.nearby_panel, ui.map_panel, ui.bottom_bar]:
 		var bounds: Rect2 = panel.get_global_rect()
@@ -90,17 +90,20 @@ func run_test() -> void:
 	game.trainer_gear = "12"
 	game._update_hud()
 	check(ui.gear_label.text == "12", "Connected gear appears in standard HUD")
+	# Close the player's former middle slot so the reference bunch stays connected.
+	for i in range(6,12): game.distances[i] += 10.0
 	game.distances[0] = 400.0
 	game._update_hud()
-	check(ui.position_label.text == "1/12" and ui.gap_label.text == "50 m voor", "Leader sees advantage over next rider")
+	check(ui.position_label.text == "1/12" and ui.gap_label.text == "50 m vóór peloton", "Escaped leader sees distance ahead of main bunch")
 	game.finish_times[0] = 130.456
 	game.finished = true
 	game.clock = 200.0
 	game._update_hud()
 	check(ui.time_label.text == "02:10.4", "Player clock freezes at own finish while AI continues")
 	game.scratch_rules.credits[0] = -1
+	game.distances[0] = 100.0
 	game._update_hud()
-	check(ui.position_label.text == "12/12" and "-1 ronde" in ui.gap_label.text, "Lap classification overrides distance rank without adding duplicate lap metres")
+	check(ui.position_label.text == "1/12" and ui.gap_label.text == "In het peloton" and not game._race_better(0,1), "Nearby race position normalizes lap loss while scratch classification keeps lap credit")
 	ui.toggle_developer()
 	game._set_race_hud_visible(false)
 	check(not ui.is_visible_in_tree() and not ui.developer_panel.is_visible_in_tree(), "Results hide every HUD layer")
@@ -158,3 +161,4 @@ func run_test() -> void:
 	game.free()
 	print("RACE_HUD_OK" if failures == 0 else "RACE_HUD_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
+

@@ -33,6 +33,9 @@ var pursuit_tie_style: StyleBoxFlat
 var map: Control
 var rider_rows: Array[Dictionary] = []
 var nearby_panel: PanelContainer
+var peloton_label: Label
+var points_panel: PanelContainer
+var points_rows: Array[Dictionary] = []
 var team_laps_panel: PanelContainer
 var team_laps_scroll: ScrollContainer
 var team_lap_rows: Array[Dictionary] = []
@@ -94,6 +97,7 @@ func _ready() -> void:
 	row_player = style(Color(0.12, 0.36, 0.39, 0.50), ACCENT)
 	row_player.set_content_margin_all(8)
 	_build_nearby()
+	_build_points_standings()
 	_build_team_laps()
 	_build_bottom()
 	_build_developer()
@@ -200,7 +204,10 @@ func _build_nearby() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
 	nearby_panel.add_child(column)
-	column.add_child(text("RONDOM JOU", 16, MUTED))
+	column.add_child(text("RONDOM JOU · WEDSTRIJDPOSITIE", 16, MUTED))
+	peloton_label = text("", 17, ACCENT)
+	peloton_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(peloton_label)
 	for i in range(6):
 		var shell := PanelContainer.new()
 		shell.custom_minimum_size.y = 42
@@ -518,13 +525,19 @@ func update_race(data: Dictionary) -> void:
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]
-	gap_caption.text = "PUNTEN" if bool(data.get("points_race", false)) else "KOPPOSITIE"
+	gap_caption.text = "PELOTON" if not str(data.get("peloton_gap", "")).is_empty() else "KOPPOSITIE"
 	status_label.text = data.get("notice", "")
 	status_panel.visible = not status_label.text.is_empty()
 	map.set_progress(data["distances"])
 	map.set_colors(data["colours"])
+	map.set_peloton(data.get("peloton", {}))
+	peloton_label.text = str(data.get("peloton_gap", ""))
+	peloton_label.visible = not peloton_label.text.is_empty()
+	_update_points_standings(data)
 	var order: Array[int] = data["order"]
 	var ids: Array[int] = nearby_ids(order)
+	var positions: Array = data.get("race_positions", [])
+	if positions.size() == order.size(): ids = closest_race_ids(order, positions)
 	for index in range(rider_rows.size()):
 		var row: Dictionary = rider_rows[index]
 		row["shell"].visible = index < ids.size()
@@ -538,3 +551,54 @@ func update_race(data: Dictionary) -> void:
 		row["marker"].add_theme_color_override("font_color", data["colours"][id])
 		row["gap"].text = data["gaps"][id]
 		row["shell"].add_theme_stylebox_override("panel", row_player if id == 0 else row_normal)
+
+static func closest_race_ids(order: Array[int], positions: Array) -> Array[int]:
+	var close: Array[int] = order.duplicate()
+	close.sort_custom(func(a: int, b: int) -> bool:
+		var first: float = absf(float(positions[a])-float(positions[0]))
+		var second: float = absf(float(positions[b])-float(positions[0]))
+		return a < b if first == second else first < second)
+	close.resize(mini(6,close.size()))
+	close.sort_custom(func(a: int, b: int) -> bool: return order.find(a) < order.find(b))
+	return close
+
+func _build_points_standings() -> void:
+	points_panel = panel(self, Control.PRESET_TOP_RIGHT, -410, 330, -32, 858)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 5)
+	points_panel.add_child(column)
+	column.add_child(text("TUSSENSTAND · PUNTEN", 18, ACCENT))
+	for i in range(16):
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		column.add_child(row)
+		var rank := text("", 17, MUTED)
+		rank.custom_minimum_size.x = 26
+		row.add_child(rank)
+		var name_label := text("", 17)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		name_label.clip_text = true
+		row.add_child(name_label)
+		var score := text("", 18, ACCENT)
+		score.custom_minimum_size.x = 45
+		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(score)
+		points_rows.append({"row":row,"rank":rank,"name":name_label,"score":score})
+	points_panel.hide()
+
+func _update_points_standings(data: Dictionary) -> void:
+	points_panel.visible = bool(data.get("points_race", false))
+	if not points_panel.visible: return
+	var order: Array = data.get("points_order", [])
+	var scores: Array = data.get("point_scores", [])
+	points_panel.offset_bottom = 330 + minf(528.0, 80.0+order.size()*26.0)
+	for i in range(points_rows.size()):
+		var row: Dictionary = points_rows[i]
+		row.row.visible = i < order.size()
+		if i >= order.size(): continue
+		var id: int = int(order[i])
+		row.rank.text = str(i+1)
+		row.name.text = data.names[id]
+		row.name.add_theme_color_override("font_color", Color("ffdc46") if id == 0 else INK)
+		row.score.text = str(scores[id])

@@ -24,7 +24,9 @@ Basis-CP: **265 W tijdrijder, 240 W sprinter, 250 W aanvaller**; vorm varieert z
 Alle profielen kunnen sprinten. Er zijn ook aanvallen, achtervolgingen en samenwerking in ontsnappingen.
 Het vermogen van de speler blijft afkomstig van de trainer of de demo-instelling.
 
-`points_ai.gd` erft de gedeelde fysiologie van `x_scratch_ai.gd` en heeft een aparte tactische stap voor herhaalde sprints. De CP-constanten en tactiek van scratch zijn niet gewijzigd. De bestaande scratch-, achtervolgings- en ploegenachtervolgingsmodi blijven beschikbaar.
+`points_ai.gd` erft de gedeelde fysiologie van `x_scratch_ai.gd` en heeft een aparte tactische stap voor herhaalde sprints. De CP-constanten van scratch blijven ongewijzigd. Beide spelvormen delen de verbeterde beurtwisselingen in kleine ontsnappingen, ook met de speler. De bestaande achtervolgings- en ploegenachtervolgingsmodi blijven beschikbaar.
+
+Zie ook [pelotonweergave en rondewinst](README_peloton_feedback.md) voor de scheiding tussen afgelegde afstand en wedstrijdpositie, de meterafstanden rondom jou, de aparte puntenstand en energiebatterijen.
 
 ## Jury en beperkingen
 

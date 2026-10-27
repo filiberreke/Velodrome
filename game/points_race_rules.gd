@@ -12,6 +12,7 @@ var laps := 40
 var finish_clock := -1.0
 var last_sprint_clock := -1.0
 var main_ids: Array[int] = []
+var peloton = preload("res://peloton_state.gd").new()
 
 func reset(count: int, race_laps: int = 40) -> void:
 	assert(count >= 4 and race_laps >= INTERVAL and race_laps % INTERVAL == 0)
@@ -20,6 +21,7 @@ func reset(count: int, race_laps: int = 40) -> void:
 		values.resize(count)
 		values.fill(0)
 	sprints.clear(); events.clear(); main_ids.clear()
+	peloton.reset()
 	finish_clock = -1.0
 	last_sprint_clock = -1.0
 
@@ -48,51 +50,14 @@ func better(a: int, b: int, distances: Array[float]) -> bool:
 	return distances[a] > distances[b] if not is_equal_approx(distances[a], distances[b]) else a < b
 
 func _judge_laps(distances: Array[float], seconds: float) -> void:
-	var order: Array[int] = []
-	for i in range(distances.size()): order.append(i)
-	order.sort_custom(func(a: int, b: int) -> bool: return fposmod(distances[a], LAP) < fposmod(distances[b], LAP))
-	var cut := 0
-	var biggest := -1.0
-	for i in range(order.size()):
-		var gap: float = fposmod(distances[order[(i + 1) % order.size()]] - distances[order[i]], LAP)
-		if gap > biggest:
-			biggest = gap; cut = i
-	var rotated: Array[int] = []
-	for i in range(order.size()): rotated.append(order[(cut + 1 + i) % order.size()])
-	var groups: Array = []
-	for i in rotated:
-		if groups.is_empty() or fposmod(distances[i] - distances[int(groups[-1][-1])], LAP) > 12.0:
-			groups.append([i])
-		else:
-			groups[-1].append(i)
-	var group: Array = []
-	var continuity := -1
-	for candidate in groups:
-		var overlap := 0
-		for i in candidate:
-			if main_ids.has(i): overlap += 1
-		if candidate.size() > group.size() or (candidate.size() == group.size() and overlap > continuity):
-			group = candidate; continuity = overlap
-	if group.size() < 3: return
-	var adjusted: Array[float] = []
-	for i in range(distances.size()): adjusted.append(distances[i] - credits[i] * LAP)
-	var sample: Array[float] = []
-	for i in group: sample.append(adjusted[i])
-	sample.sort()
-	var anchor: float = sample[sample.size() / 2]
-	if sample.size() % 2 == 0: anchor = 0.5 * (anchor + sample[sample.size() / 2 - 1])
-	var tail := INF
-	var front := -INF
-	for i in group:
-		var aligned: float = adjusted[i] - round((adjusted[i] - anchor) / LAP) * LAP
-		tail = minf(tail, aligned); front = maxf(front, aligned)
-	if front - tail > LAP * 0.5: return
-	main_ids.assign(group)
-	# Immutable bunch reference for simultaneous catches, including the human.
+	var bunch: Dictionary = peloton.sample(distances, credits, [])
+	if bunch.is_empty(): return
+	main_ids.assign(bunch.ids)
+	var positions: Array[float] = preload("res://peloton_state.gd").race_positions(distances, credits)
 	for i in range(distances.size()):
 		var change := 0
-		if adjusted[i] - tail >= LAP - 0.00000001: change = 1
-		elif front - adjusted[i] >= LAP - 0.00000001: change = -1
+		if positions[i] - float(bunch.tail) >= LAP - 0.00000001: change = 1
+		elif float(bunch.front) - positions[i] >= LAP - 0.00000001: change = -1
 		if change == 0: continue
 		credits[i] += change
 		points[i] += 20 * change
@@ -109,23 +74,16 @@ func advance(previous: Array[float], current: Array[float], seconds: float, dt: 
 			crossings.append({"rider": i, "lap": lap, "seconds": seconds - dt + dt * fraction})
 	crossings.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return a.rider < b.rider if a.seconds == b.seconds else a.seconds < b.seconds)
-	if finish_clock < 0.0:
-		for crossing in crossings:
-			if crossing.lap == laps:
-				finish_clock = crossing.seconds
-				break
-	var cutoff: float = minf(seconds, finish_clock) if finish_clock >= 0.0 else seconds
-	if cutoff > seconds - dt:
-		var positions: Array[float] = []
-		var fraction: float = clampf((cutoff - seconds + dt) / maxf(dt, 0.000000001), 0.0, 1.0)
-		for i in range(current.size()): positions.append(lerpf(previous[i], current[i], fraction))
-		_judge_laps(positions, cutoff)
 	for crossing in crossings:
+		if finish_clock < 0.0:
+			_judge_laps(_interpolate(previous, current, seconds, dt, crossing.seconds), crossing.seconds)
+		var race_lap: int = int(crossing.lap) - credits[int(crossing.rider)]
+		if race_lap == laps and finish_clock < 0.0: finish_clock = crossing.seconds
 		var exists := false
 		for sprint in sprints:
-			if sprint.lap == crossing.lap: exists = true
-		if crossing.lap <= laps and crossing.lap % INTERVAL == 0 and not exists:
-			sprints.append({"lap": crossing.lap, "seconds": crossing.seconds, "order": [], "times": [], "awards": []})
+			if sprint.lap == race_lap: exists = true
+		if race_lap > 0 and race_lap <= laps and race_lap % INTERVAL == 0 and not exists:
+			sprints.append({"lap": race_lap, "seconds": crossing.seconds, "order": [], "times": [], "awards": []})
 			last_sprint_clock = crossing.seconds
 		for sprint in sprints:
 			if crossing.seconds < sprint.seconds or sprint.order.has(crossing.rider): continue
@@ -137,6 +95,14 @@ func advance(previous: Array[float], current: Array[float], seconds: float, dt: 
 			sprint.awards.append(award)
 			points[crossing.rider] += award
 			if sprint.lap == laps: finish_times[crossing.rider] = crossing.seconds
+
+	if finish_clock < 0.0: _judge_laps(current, seconds)
+
+func _interpolate(previous: Array[float], current: Array[float], seconds: float, dt: float, at: float) -> Array[float]:
+	var result: Array[float] = []
+	var fraction: float = clampf((at-seconds+dt)/maxf(dt,0.000000001),0.,1.)
+	for i in range(current.size()): result.append(lerpf(previous[i],current[i],fraction))
+	return result
 
 func notice(leader_distance: float) -> String:
 	if complete(): return "Puntenkoers afgelopen · jouw score: %d punten" % points[0]

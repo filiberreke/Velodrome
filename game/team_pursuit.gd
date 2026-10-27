@@ -28,7 +28,7 @@ func configure_factors(values: Array[float]) -> void:
 
 func reset(count: int, controlled_player: int = 0) -> void:
 	size = clampi(count, 3, 4)
-	position_factors = [1.0, 0.8, 0.5] if size == 3 else [1.0, 0.8, 0.6, 0.4]
+	position_factors.assign([1.0, 0.8, 0.5] if size == 3 else [1.0, 0.8, 0.6, 0.4])
 	player = controlled_player
 	order.clear(); offsets.clear(); lanes.clear()
 	for i in range(size):
@@ -112,3 +112,4 @@ func target_watts() -> float:
 	if player_is_out(): return 0.0
 	if not has_player_pull: return -1.0
 	return reference_power * factor(maxi(0, player_rank()))
+

@@ -1,0 +1,96 @@
+{
+  "base_commit": "5b2175aad6c2f817ade50ed34616c018803ac6da",
+  "godot": "4.7.2",
+  "checks": [
+    {
+      "check": "test_peloton_feedback",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_menu",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_hud",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_x_scratch_ai",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_x_wheel_follow",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_scratch_lap_rules",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_scratch_large_field",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_gameplay_headless",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_pursuit",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_team_pursuit",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_sprinter_economy",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_trainer_control",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "check": "test_points_race",
+      "exit": 0,
+      "errors": []
+    }
+  ],
+  "physics_unchanged": [
+    "force balance",
+    "banking",
+    "CP/W-prime integration"
+  ],
+  "actual_human_escape_ai_turns": [
+    1,
+    2,
+    1
+  ],
+  "race_scenarios": [
+    "40 laps / 16 participants at 10 Hz",
+    "10 laps / 16 participants at 60 Hz"
+  ],
+  "renderer_review": [
+    "points HUD",
+    "lap gain banner",
+    "scratch HUD"
+  ],
+  "human_energy": "unknown without personal CP/W-prime profile; watts and points shown",
+  "additional_regression_repairs": [
+    "Preserve typed team position factors when resetting",
+    "Scroll expanded team settings to keep navigation on screen"
+  ],
+  "physical_trainer_test": false
+}

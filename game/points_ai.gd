@@ -41,7 +41,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			main_front = distances[i]
 			front_i = i
 	# Stable breakaway clusters are based on race progress; drafting instead uses modulo track position.
-	var leading: Array[int] = sorted.duplicate()
+	var leading: Array[int] = _escape_group_order(active, distances, finished)
 	leading.reverse()
 	var clusters: Array = []
 	for i in leading:
@@ -84,18 +84,22 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 		var key: String = str(member_keys)
 		active_keys[key] = true
 		if not turns.has(key):
-			turns[key] = {"leader": member_keys[0], "until": clock + (6.0 if group.size() > 2 else 12.0)}
+			turns[key] = {"leader": int(group[0]), "until": clock + 8.0}
 		var state: Dictionary = turns[key]
 		if clock >= float(state["until"]) or not member_keys.has(int(state["leader"])):
 			var available: Array[int] = []
 			for i in member_keys:
-				if wprime[i] / maxf(wmax[i], 1.0) > 0.22 and cooperation[i] > 0.32:
+				if i == 0:
+					# A human turn is observed, never forced: only while actually leading.
+					if human_power_w > 200.0 and distances[0] >= distances[int(group[0])] - 1.5: available.append(0)
+				elif wprime[i] / maxf(wmax[i], 1.0) > 0.22 and cooperation[i] > 0.32:
 					available.append(i)
 			if not available.is_empty():
 				var last: int = int(state["leader"])
 				var next_pos: int = (available.find(last) + 1) % available.size() if available.has(last) else 0
 				var chosen: int = available[next_pos]
 				state["leader"] = chosen
+				rotation_events.append({"seconds":clock,"leader":chosen,"members":member_keys.duplicate()})
 				state["until"] = clock + rng.randf_range(6.0, 12.0) if profiles[chosen] == 2 else clock + rng.randf_range(10.0, 20.0)
 			else:
 				state["until"] = clock + 6.0
@@ -260,7 +264,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			MODE_SOLO:
 				target = cp[i] * (1.03 if reserve > 0.28 else 0.94)
 			MODE_BREAK_PULL:
-				target = cp[i] * (1.17 if kind == 2 else 1.24)
+				target = _break_pull_power(i, escape_group, distances, speeds, draft_factor)
 			MODE_BREAK_DRAFT:
 				target = cp[i] * (0.77 if drafts[i] > 0.12 else 1.01)
 				var partner_i := -1
@@ -366,7 +370,9 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 		# Continue moving toward a useful wheel, but avoid oscillating every frame.
 		if clock < pull_off_until[i]:
 			lane_targets[i] = TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1]
-		elif m in [MODE_ATTACK, MODE_BREAK_PULL]:
+		elif m == MODE_BREAK_PULL:
+			lane_targets[i] = _takeover_lane(i, escape_group, distances, lanes, finished)
+		elif m == MODE_ATTACK:
 			lane_targets[i] = TRACK_LANE_POSITIONS[0]
 		elif m in [MODE_CHASE, MODE_SOLO, MODE_BREAK_DRAFT] and wheel_i >= 0 and gap < 25.0:
 			# Urgent wheel capture overrides the usual 35 s lane lock.
