@@ -210,6 +210,7 @@ func _configure_peloton() -> void:
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 	for node in bikes: node.queue_free()
 	bikes.clear()
+	crowded_labels.clear()
 	_spawn_peloton()
 	if race_mode in [0, 1]:
 		for i in range(bikes.size()):
@@ -406,6 +407,10 @@ var countdown_shown := ""
 var clock := 0.0
 var countdown := 3.0
 var start_state := "WAIT_STOP"
+var broadcast_intro: RefCounted
+var rider_name_mode := 0 # V: 0 Auto, 1 all, 2 off; persists across race resets.
+var crowded_labels: Dictionary = {}
+var name_view_notice_until := 0.0
 var running := false
 var finished := false
 var finish_times: Array[float] = [-1.0, -1.0, -1.0, -1.0]
@@ -473,6 +478,8 @@ func _ready() -> void:
 	var preferences := preload("res://display_settings.gd").new()
 	preferences.name = "GameSettings"
 	add_child(preferences)
+	broadcast_intro = preload("res://broadcast_intro.gd").new()
+	broadcast_intro.setup(self)
 	_reset()
 
 func _now_s() -> float:
@@ -503,6 +510,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			watts = 0.0
 			trainer_speed_kmh = -1.0
+	if start_state == "INTRO": broadcast_intro.advance(delta)
 	if not finished:
 		if start_state == "WAIT_STOP":
 			var stopped: bool = _start_conditions_met()
@@ -602,6 +610,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if setup_panel != null and setup_panel.visible:
 		# The menu owns navigation; race shortcuts must not reset/quit it.
 		return
+	if broadcast_intro != null and broadcast_intro.active:
+		if key_event.pressed and key_event.keycode in [KEY_ENTER, KEY_SPACE]: broadcast_intro.finish()
+		elif key_event.pressed and key_event.keycode == KEY_R: _reset()
+		elif key_event.pressed and key_event.keycode == KEY_ESCAPE: _reset()
+		return
 	# Handle both key-down and key-up, without modifying the selected camera mode.
 	if key_event.keycode == KEY_B:
 		look_back_held = key_event.pressed
@@ -614,6 +627,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_X:
 			if race_overlay != null and race_overlay.is_visible_in_tree():
 				race_overlay.toggle_developer()
+		KEY_V:
+			if not key_event.echo: _cycle_rider_names()
 		KEY_R: _reset()
 		KEY_C:
 			camera_mode = (camera_mode + 1) % 4
@@ -736,6 +751,7 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _reset() -> void:
+	if broadcast_intro != null: broadcast_intro.cancel()
 	trainer_control.release(_now_s())
 	trainer_road_grade = 0.0
 	_save_recording("restart")
@@ -1427,6 +1443,7 @@ func _update_visuals(dt: float) -> void:
 			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
 	team_race.update_badges(self)
 	_update_bunch_presentation()
+	if broadcast_intro != null and broadcast_intro.apply_camera(): return
 	if finished:
 		_place_finish_camera()
 		return
@@ -1999,9 +2016,9 @@ func _confirm_start() -> void:
 	else:
 		_tt_prepare_event()
 	trainer_control.arm()
-	start_state = "WAIT_STOP"
 	zero_stable = 0.0
 	_set_menu_visible(false)
+	broadcast_intro.start()
 
 # Godot user:// is writable in exported Windows and Linux games.
 # Full real trainer records, including the original measurement times.
@@ -2381,6 +2398,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 	elif finished:
 		notice = "Finish · %.2f s" % finish_times[0]
 	if race_mode == 1 and start_state == "RACING" and (notice.is_empty() or finished): notice = points_rules.notice(race_positions.max())
+	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
@@ -2871,12 +2889,13 @@ func _update_bunch_presentation() -> void:
 	var active: bool = race_mode in [0,1] and start_state == "RACING"
 	if active: peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	if peloton_markers != null: peloton_markers.update_bunch(self, peloton_info, active)
-	for i in range(rider_energy_badges.size()):
+	for i in range(bikes.size()):
 		for child in bikes[i].get_children():
-			if child is Label3D: child.visible = not active
+			if child is Label3D: child.visible = not active and _rider_label_visible(i)
+	for i in range(rider_energy_badges.size()):
 		var reserve: float = x_ai.wprime[i]/maxf(1.,x_ai.wmax[i]) if i > 0 and x_ai.initialized else -1.0
 		var power: float = watts if i == 0 else ai_power_w[i]
-		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0, points_rules.points[i] if race_mode == 1 else 0, race_mode == 1, _rider_name(i))
+		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0 and _rider_label_visible(i), points_rules.points[i] if race_mode == 1 else 0, race_mode == 1, _rider_name(i))
 
 func _announce_race_event(message: String, player_event: bool = true) -> void:
 	if not player_event and clock < race_event_until: return
@@ -2897,3 +2916,25 @@ func _announce_race_event(message: String, player_event: bool = true) -> void:
 		stream.data = samples
 		race_event_sound.stream = stream
 	race_event_sound.play()
+
+
+func _cycle_rider_names() -> void:
+	rider_name_mode = (rider_name_mode + 1) % 3
+	name_view_notice_until = _now_s() + 3.0
+	_update_bunch_presentation()
+
+func _rider_label_visible(index: int) -> bool:
+	if rider_name_mode == 2: return false
+	if broadcast_intro != null and (broadcast_intro.active or broadcast_intro.holding_chase): return false
+	if rider_name_mode == 1: return true
+	# Own details already live in the HUD; avoid a duplicate above the player's head.
+	if index == 0: return false
+	var radius: float = 10.0 if crowded_labels.get(index, false) else 8.0
+	var neighbours := 0
+	for other in range(bikes.size()):
+		if other == index or finish_times[other] >= 0.0: continue
+		if bikes[index].position.distance_squared_to(bikes[other].position) < radius * radius:
+			neighbours += 1
+	crowded_labels[index] = neighbours >= 2
+	# World-space proximity includes lapped riders in the same physical bunch.
+	return not crowded_labels[index] and (camera == null or camera.position.distance_to(bikes[index].position) < 40.0)

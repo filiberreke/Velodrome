@@ -50,7 +50,7 @@ func run_test() -> void:
 	await process_frame
 	await process_frame
 	check(game.setup_panel.start_button.get_global_rect().end.y <= 1080.1, "Expanded menu fits screen")
-	game._confirm_start()
+	game._confirm_start(); game.broadcast_intro.finish()
 	check(game.team_resistance_mode == "ERG", "Preference stored on actual race start")
 	game._update_hud()
 	check(not ui.gear_label.text.begins_with("ERG"), "Menu preference never falsely claims active ERG")

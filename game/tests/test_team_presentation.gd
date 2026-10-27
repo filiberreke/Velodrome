@@ -22,7 +22,7 @@ func run_test() -> void:
 		await process_frame
 		game.setup_panel.select_mode(2)
 		game.setup_panel.team_options.teammates.select(count - 3)
-		game._confirm_start()
+		game._confirm_start(); game.broadcast_intro.finish()
 		game.start_state = "RACING"; game.running = true
 		game.watts = 300.0
 		game.lap_times[0].assign([20.0, 21.0])
@@ -69,7 +69,7 @@ func run_test() -> void:
 		photo.clear(game)
 		check(photo.snapshot == null and photo.hidden_geometry.is_empty(), "Snapshot and temporary render layers cleaned up")
 		game._reset()
-		game.setup_panel.select_mode(0); game._confirm_start(); game._update_hud()
+		game.setup_panel.select_mode(0); game._confirm_start(); game.broadcast_intro.finish(); game._update_hud()
 		check(ui.nearby_panel.visible and not ui.team_laps_panel.visible, "Other modes keep rider classification")
 		check(game.finish_photo_camera.projection == Camera3D.PROJECTION_PERSPECTIVE, "Other modes restore original photo projection")
 		game.free()

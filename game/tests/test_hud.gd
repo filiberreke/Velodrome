@@ -35,7 +35,7 @@ func run_test() -> void:
 	game.setup_panel.select_mode(0)
 	game.rider_count_input.value = 12
 	game.laps_input.value = 6
-	game._confirm_start()
+	game._confirm_start(); game.broadcast_intro.finish()
 	game.start_state = "RACING"
 	game.running = true
 	game.clock = 85.4

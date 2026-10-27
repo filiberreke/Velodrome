@@ -120,7 +120,7 @@ func run_test() -> void:
 	check(options.team_size() == 4 and options.library.squad_size == 4, "Squad size selector configures matching saved records")
 	await process_frame; await process_frame
 	check(game.setup_panel.start_button.get_global_rect().end.y <= 1080.1, "Team menu navigation fits reference screen")
-	game._confirm_start()
+	game._confirm_start(); game.broadcast_intro.finish()
 	check(game.race_mode == 5 and game.rider_count == 8 and game.start_state == "WAIT_STOP", "Team menu enters existing countdown flow")
 	game.start_state = "RACING"; game.running = true
 	game.watts = 340.0
@@ -177,10 +177,10 @@ func run_test() -> void:
 	game._reset(); game.setup_panel.select_mode(2)
 	options.opponent_choice.select(1); options.refresh_rides()
 	check(options.can_start(), "Saved performance available in team menu")
-	game._confirm_start()
+	game._confirm_start(); game.broadcast_intro.finish()
 	check(game.race_mode == 5 and not game.team_race.replay.is_empty(), "Saved team opponent starts through actual menu")
 	game._reset(); options.opponent_choice.select(0); options.refresh_state()
-	game._reset(); game.setup_panel.select_mode(0); game._confirm_start(); game._update_hud()
+	game._reset(); game.setup_panel.select_mode(0); game._confirm_start(); game.broadcast_intro.finish(); game._update_hud()
 	check(game.race_mode == 0 and ui.power_meter.role_label.text.is_empty() and ui.power_label.get_theme_color("font_color") == ui.INK, "Scratch restores HUD and normal power colour")
 	game._update_visuals(0.01)
 	for item in game.team_race.badges: check(not item.visible, "Team power badges hidden in scratch")

@@ -30,6 +30,7 @@ var board: Label3D
 var sponsor_texture: Texture2D = preload("res://wielerpraat.jpg")
 var seat_count := 0
 var spectator_count := 0
+const CommentaryBox := preload("res://commentary_box.gd")
 const CrowdKit := preload("res://crowd_kit.gd")
 var crowd: RefCounted
 var crowd_sections := {}
@@ -45,6 +46,7 @@ func _ready() -> void:
 	_build_boarding()
 	_build_concourses()
 	_build_grandstands()
+	CommentaryBox.build(self)
 	_emit_stand_crowd()
 	_build_aisles()
 	preload("res://tour_spectator_details.gd").new().build(self)
@@ -251,7 +253,7 @@ func _build_grandstands() -> void:
 				var metres_per_s: float = maxf(0.55, a.distance_to(b) / 0.32)
 				# Leave a clear first-row spot for the hand-placed WOUT supporter.
 				var reserved_supporter := tier == 0 and row == 0 and absf(s-152.4) < 1.4
-				if not _aisle(s) and not reserved_supporter:
+				if not _aisle(s) and not reserved_supporter and not CommentaryBox.reserves_seat(self, tier, s, off):
 					var orientation: Basis = _seat_basis(s)
 					var outward: Vector3 = _outward(s)
 					var deck: Vector3 = _stadium_point(s, off, floor_h)

@@ -1,0 +1,13 @@
+{
+  "brand": "EuroMaxCycling",
+  "dimensions_m": [
+    5.98,
+    3.54,
+    3.015
+  ],
+  "triangles": 321212,
+  "mesh_objects": 14,
+  "materials": 26,
+  "coordinate_system": "Blender front -Y; Godot front +Z",
+  "seed": 71
+}

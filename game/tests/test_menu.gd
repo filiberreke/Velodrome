@@ -38,7 +38,7 @@ func run_test() -> void:
 		menu.cards[index].pressed.emit()
 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")
-		game._confirm_start()
+		game._confirm_start(); game.broadcast_intro.finish()
 		check(game.start_state == "SETUP", "Unsupported mode does not start a scratch by mistake")
 		menu.back_button.pressed.emit()
 		check(menu.page == 1, "Back returns to gallery")
@@ -55,6 +55,8 @@ func run_test() -> void:
 	await process_frame
 	check(menu.start_button.get_global_rect().end.y <= 1080.1, "Settings navigation fits screen")
 	menu.start_button.pressed.emit()
+	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Start shows broadcast intro before HUD")
+	game.broadcast_intro.finish()
 	check(not menu.visible and game.start_state == "WAIT_STOP", "Start opens existing trainer/countdown flow")
 	check(game.rider_count == 10 and game.race_laps == 12 and game.ai_difficulty == 70, "Selected race values passed through")
 	check(game.demo_launch_watts == 350, "Demo power preset remains configurable")
@@ -75,6 +77,8 @@ func run_test() -> void:
 	menu.back_button.pressed.emit()
 	menu.cards[3].pressed.emit()
 	menu.start_button.pressed.emit()
+	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Start shows broadcast intro before HUD")
+	game.broadcast_intro.finish()
 	check(game.race_mode == 1 and game.rider_count == 16 and game.race_laps == 40, "Points mode starts with its own settings")
 	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0), "Points CP configuration is passed through")
 	game.start_state = "RACING"

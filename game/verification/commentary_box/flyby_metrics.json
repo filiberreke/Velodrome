@@ -1,0 +1,15 @@
+{
+	"baseline_hidden_draw_calls": 113.0,
+	"baseline_hidden_median_ms": 31.615,
+	"baseline_hidden_p95_ms": 32.365,
+	"draw_calls": 156.0,
+	"frames": 150,
+	"median_frame_ms": 31.785,
+	"p95_frame_ms": 33.007,
+	"rendered_primitives": 609020.0,
+	"renderer": "gl_compatibility",
+	"viewport": [
+		1664,
+		936
+	]
+}

@@ -178,7 +178,7 @@ func run_test() -> void:
 	await process_frame
 	await process_frame
 	check(menu.start_button.get_global_rect().end.y <= 1080.1, "Pursuit configuration fits reference screen")
-	screen._confirm_start()
+	screen._confirm_start(); screen.broadcast_intro.finish()
 	check(screen.race_mode == 4 and screen.rider_count == 2 and screen.race_laps == 4 and screen.start_state == "WAIT_STOP", "Pursuit uses existing standing-start/countdown flow")
 	screen._update_hud()
 	check(not screen.race_overlay.slipstream_bar.visible and screen.minimap.start_lines.size() == 2, "Pursuit hides slipstream and marks both start lines")
@@ -199,13 +199,13 @@ func run_test() -> void:
 	options.opponent_choice.select(1)
 	options.refresh_state()
 	check(not menu.start_button.disabled and options.rides.size() == 1, "Saved attempt becomes selectable opponent")
-	screen._confirm_start()
+	screen._confirm_start(); screen.broadcast_intro.finish()
 	check(screen.pursuit_replay.get("name", "") == "Mijn opgeslagen rit", "Start loads the selected attempt")
 	screen._reset()
 	menu.select_mode(0)
 	check(menu.count_input.value == 8, "Pursuit reset preserves separate Scratch participant settings")
 	menu.count_input.value = 8
-	screen._confirm_start()
+	screen._confirm_start(); screen.broadcast_intro.finish()
 	screen._update_hud()
 	check(screen.race_mode == 0 and screen.rider_count == 8 and screen.race_overlay.slipstream_bar.visible and screen.minimap.start_lines.size() == 1, "Switching back restores Scratch configuration and HUD")
 	screen.free()
