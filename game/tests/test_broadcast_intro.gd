@@ -19,7 +19,7 @@ func run() -> void:
 	check(game.clock == 0.0 and game.distances == before and not game.running, "Race advanced during intro")
 	intro.elapsed = 5.0
 	intro.advance(0.0)
-	check(intro.caption_panel.visible and intro.subtitle.text == intro.WELCOME, "Welcome subtitle missing")
+	check(intro.caption_panel.visible and intro.subtitle.text == "Welkom bij Velodrome! Welkom bij de volgende wedstrijd: de scratch!", "Welcome subtitle missing")
 	check(intro.suite.voices[0].is_playing() and not intro.suite.voices[1].is_playing(), "First speaker cue")
 	intro.elapsed = 8.0
 	intro.advance(0.0)
@@ -32,6 +32,7 @@ func run() -> void:
 		game._reset()
 		game.setup_panel.select_mode({0: 0, 4: 1, 5: 2}[mode])
 		game._confirm_start()
+		check(intro.subtitle.text == intro.welcome_for_mode(mode), "Discipline subtitle stale after mode switch")
 		check(game.race_mode == mode and intro.active, "Test did not enter requested race intro")
 		game._update_visuals(0.0)
 		for knot in intro.flight_knots():

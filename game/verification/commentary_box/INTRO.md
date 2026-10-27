@@ -5,7 +5,7 @@ The provisional booth sits at the finish line, at the back of the second spectat
 After confirming any implemented race mode, a 44-second presentation runs before the existing standing-start gate:
 
 - 0–4 s: approach the booth.
-- 4–10 s: “Welkom bij Velodrome! We maken ons klaar voor de volgende wedstrijd.” appears as subtitles. The two mouth animations run in turn. No spoken audio is generated.
+- 4–10 s: “Welkom bij Velodrome! Welkom bij de volgende wedstrijd: de [discipline]!” appears as subtitles. The discipline is selected anew at each start: scratch, achtervolging, ploegenachtervolging or puntenkoers. Text is also prepared for ploegkoers and keirin when those modes become playable. The two mouth animations run in turn. No spoken audio is generated.
 - 10–28 s: turn away into a continuous counter-clockwise descending flight, round the south bend and along the opposite straight, then into the northern pizza terrace.
 - 28–35 s: pass the pizza guests, enter the mixed-zone corridor at x=9.15 m, fly beneath the canopy at y=1.95 m and turn beside the podium.
 - 35–44 s: settle behind the human rider at the actual race start. Individual and team pursuit use a shorter final path to their halfway-straight start; they never visit the finish first. Their camera also focuses on the opposing rider/team at 19.5–21 s.

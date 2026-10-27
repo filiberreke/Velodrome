@@ -3,7 +3,13 @@ extends RefCounted
 const APPROACH := 4.0
 const WELCOME_END := 10.0
 const DURATION := 44.0
-const WELCOME := "Welkom bij Velodrome! We maken ons klaar voor de volgende wedstrijd."
+const WELCOME := "Welkom bij Velodrome! Welkom bij de volgende wedstrijd!"
+const DISCIPLINES := {0: "scratch", 1: "puntenkoers", 3: "keirin", 4: "achtervolging", 5: "ploegenachtervolging", 6: "ploegkoers"}
+
+static func welcome_for_mode(mode: int) -> String:
+	if not DISCIPLINES.has(mode): return WELCOME
+	return "Welkom bij Velodrome! Welkom bij de volgende wedstrijd: de %s!" % DISCIPLINES[mode]
+
 var active := false
 var holding_chase := false
 var elapsed := 0.0
@@ -60,6 +66,7 @@ func setup(owner_game: Node3D) -> void:
 	overlay.hide()
 
 func start() -> void:
+	subtitle.text = welcome_for_mode(game.race_mode)
 	original_cull_mask = game.camera.cull_mask
 	game.camera.set_cull_mask_value(2, false)
 	elapsed = 0.0
