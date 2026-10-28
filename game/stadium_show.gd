@@ -116,7 +116,6 @@ func _flag_mesh() -> ArrayMesh:
 func _make_flags() -> void:
 	var mesh := _flag_mesh()
 	var sticks: Array[Transform3D] = []
-	var sticks_colors: Array[Color] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 250301
 	var countries: Array = []
@@ -141,7 +140,25 @@ func _make_flags() -> void:
 			var country := rng.randi_range(0, FLAGS.size()-1)
 			countries[country].append(Transform3D(basis,foot))
 			sticks.append(Transform3D(basis,foot + Vector3.UP * 0.25))
-			sticks_colors.append(Color("#c7c3b5"))
+	# One instanced thin mast per flag, matching the fabric orientation.
+	if not sticks.is_empty():
+		var pole_mesh := BoxMesh.new()
+		pole_mesh.size = Vector3(0.015, 0.69, 0.015)
+		var poles := MultiMesh.new()
+		poles.transform_format = MultiMesh.TRANSFORM_3D
+		poles.mesh = pole_mesh
+		poles.instance_count = sticks.size()
+		for i in sticks.size():
+			poles.set_instance_transform(i, sticks[i])
+		var pole_node := MultiMeshInstance3D.new()
+		pole_node.name = "SupportersVlaggenstokken"
+		pole_node.multimesh = poles
+		var pole_material := StandardMaterial3D.new()
+		pole_material.albedo_color = Color("#c1bbc0")
+		pole_material.metallic = 0.65
+		pole_node.material_override = pole_material
+		pole_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(pole_node)
 	var flag_shader := Shader.new()
 	flag_shader.code = """shader_type spatial;
 render_mode cull_disabled, diffuse_lambert;
