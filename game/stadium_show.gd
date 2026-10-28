@@ -166,7 +166,7 @@ uniform vec4 stripe_a : source_color;
 uniform vec4 stripe_b : source_color;
 uniform vec4 stripe_c : source_color;
 uniform float excitement = 0.0;
-uniform float wave_at = 0.0;
+uniform int flag_type = 0;
 void vertex() {
 	float seed = fract(sin(float(INSTANCE_ID)*12.981)*43758.55);
 	float anim = TIME*(1.6+excitement*5.0)+seed*6.28;
@@ -174,7 +174,50 @@ void vertex() {
 	VERTEX.y += sin(anim*0.8 + UV.x*5.0)*UV.x*excitement*0.08;
 }
 void fragment() {
-	vec3 color = UV.x < 0.34 ? stripe_a.rgb : (UV.x < 0.67 ? stripe_b.rgb : stripe_c.rgb);
+	vec2 uv = vec2(UV.x, 1.0 - UV.y);
+	vec3 color = uv.x < 0.34 ? stripe_a.rgb : (uv.x < 0.67 ? stripe_b.rgb : stripe_c.rgb);
+	bool horizontal = flag_type == 1 || flag_type == 4 || flag_type == 7;
+	if (horizontal) color = uv.y < 0.34 ? stripe_a.rgb : (uv.y < 0.67 ? stripe_b.rgb : stripe_c.rgb);
+	if (flag_type == 5) { // Denmark: red and white Nordic cross
+		color = stripe_a.rgb;
+		if (abs(uv.x - 0.36) < 0.075 || abs(uv.y - 0.50) < 0.10) color = vec3(1.0);
+	}
+	if (flag_type == 6) { // Great Britain: simplified Union Jack
+		color = vec3(0.08,0.18,0.48);
+		float diag_a = abs(uv.y - uv.x);
+		float diag_b = abs(uv.y - (1.0-uv.x));
+		if (diag_a < 0.11 || diag_b < 0.11) color = vec3(1.0);
+		if (diag_a < 0.045 || diag_b < 0.045) color = vec3(0.80,0.07,0.16);
+		if (abs(uv.x-0.5) < 0.11 || abs(uv.y-0.5) < 0.15) color = vec3(1.0);
+		if (abs(uv.x-0.5) < 0.055 || abs(uv.y-0.5) < 0.085) color = vec3(0.80,0.07,0.16);
+	}
+	if (flag_type == 7) { // Portugal: green hoist, red fly
+		color = uv.x < 0.40 ? stripe_a.rgb : stripe_b.rgb;
+		float seal = length((uv-vec2(0.40,0.5))*vec2(1.0,1.4));
+		if (seal < 0.11) color = vec3(0.96,0.80,0.23);
+		if (seal < 0.064) color = vec3(1.0);
+	}
+	if (flag_type == 8 || flag_type == 9) { // Australia / New Zealand
+		color = vec3(0.035,0.11,0.34);
+		if (uv.x < 0.48 && uv.y < 0.48) {
+			vec2 corner = uv / vec2(0.48);
+			if (abs(corner.x-corner.y)<0.13 || abs(corner.x+corner.y-1.0)<0.13) color=vec3(1.0);
+			if (abs(corner.x-0.5)<0.10 || abs(corner.y-0.5)<0.13) color=vec3(1.0);
+			if (abs(corner.x-0.5)<0.055 || abs(corner.y-0.5)<0.075) color=vec3(0.80,0.05,0.13);
+		}
+		vec2 star = fract(uv*vec2(4.0,3.0))-0.5;
+		float sparkle = min(abs(star.x), abs(star.y));
+		if (uv.x > 0.54 && sparkle < 0.055 && length(star)<0.17)
+			color = flag_type == 8 ? vec3(1.0) : vec3(0.88,0.10,0.20);
+	}
+	if (flag_type == 10) { // United States: thirteen stripes and canton
+		color = mod(floor(uv.y * 13.0),2.0)<1.0 ? vec3(0.76,0.05,0.12) : vec3(1.0);
+		if (uv.x < 0.45 && uv.y < 0.55) {
+			color=vec3(0.06,0.15,0.43);
+			vec2 stars=abs(fract(uv*vec2(17.0,14.0))-0.5);
+			if (max(stars.x,stars.y)<0.08) color=vec3(1.0);
+		}
+	}
 	ALBEDO = color;
 	ROUGHNESS = 0.88;
 }"""
@@ -192,6 +235,7 @@ void fragment() {
 		node.multimesh = mm
 		var shader_mat := ShaderMaterial.new()
 		shader_mat.shader = flag_shader
+		shader_mat.set_shader_parameter("flag_type",country)
 		shader_mat.set_shader_parameter("stripe_a",FLAGS[country][1])
 		shader_mat.set_shader_parameter("stripe_b",FLAGS[country][2])
 		shader_mat.set_shader_parameter("stripe_c",FLAGS[country][3])
@@ -235,7 +279,9 @@ func _process(delta: float) -> void:
 	for material in flag_materials:
 		material.set_shader_parameter("excitement",excitement)
 	if wave_material:
-		wave_material.set_shader_parameter("wave_center",lead_s / LAP)
+		var front: Vector3 = arena._point(lead_s, 0.0)
+		var angular_phase := atan2(front.z,front.x) / TAU + 0.5
+		wave_material.set_shader_parameter("wave_center",angular_phase)
 		wave_material.set_shader_parameter("wave_strength",0.7 if final_lap else excitement*0.38)
 	# Stay until the first lap is completed, then fade the overhead cloth out.
 	if tifo:
