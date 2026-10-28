@@ -1,0 +1,91 @@
+COMMAND: C:\Python312\python.exe -m unittest discover -s C:\Users\romboti\OneDrive - Cronos\Documenten\ChatGPT\Velodrome\work\tussensprint_20261028\simulation -p test_intermediate_sprint.py -v
+EXIT: 0
+
+test_complete_races_and_invariants (test_intermediate_sprint.IntegrationTests.test_complete_races_and_invariants) ... ok
+test_determinism (test_intermediate_sprint.IntegrationTests.test_determinism) ... ok
+test_unchanged_initial_profiles (test_intermediate_sprint.IntegrationTests.test_unchanged_initial_profiles) ... ok
+test_common_finish_double_points_and_lap_cutoff (test_intermediate_sprint.JuryTests.test_common_finish_double_points_and_lap_cutoff) ... ok
+test_energy_common_clock_interpolation (test_intermediate_sprint.JuryTests.test_energy_common_clock_interpolation) ... ok
+test_lap_repeats_wraparound_and_disperse (test_intermediate_sprint.JuryTests.test_lap_repeats_wraparound_and_disperse) ... ok
+test_line_order_lapped_rider_and_no_double_award (test_intermediate_sprint.JuryTests.test_line_order_lapped_rider_and_no_double_award) ... ok
+test_ties_share_points_and_skip_next_place (test_intermediate_sprint.JuryTests.test_ties_share_points_and_skip_next_place) ... ok
+test_actual_physics_shared (test_intermediate_sprint.TacticalTests.test_actual_physics_shared) ... ok
+test_hopeless_sprint_aborts_and_preserves_reserve (test_intermediate_sprint.TacticalTests.test_hopeless_sprint_aborts_and_preserves_reserve) ... ok
+test_rank_forecast (test_intermediate_sprint.TacticalTests.test_rank_forecast) ... ok
+test_reserve_and_final_independence (test_intermediate_sprint.TacticalTests.test_reserve_and_final_independence) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.973s
+
+OK
+
+COMMAND: C:\Python312\python.exe -m unittest discover -s C:\Users\romboti\OneDrive - Cronos\Documenten\ChatGPT\Velodrome\work\tussensprint_20261028\simulation -p test_lap_rules.py -v
+EXIT: 1
+
+test_lap_gain_wins_race (test_lap_rules.TestLapRules.test_lap_gain_wins_race) ... FAIL
+test_no_multiple_awards_same_rider (test_lap_rules.TestLapRules.test_no_multiple_awards_same_rider) ... ok
+test_physics_no_arbitrary_speed_cap (test_lap_rules.TestLapRules.test_physics_no_arbitrary_speed_cap) ... ok
+test_rider_can_draft_after_lap_gain (test_lap_rules.TestLapRules.test_rider_can_draft_after_lap_gain) ... FAIL
+
+======================================================================
+FAIL: test_lap_gain_wins_race (test_lap_rules.TestLapRules.test_lap_gain_wins_race)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\romboti\OneDrive - Cronos\Documenten\ChatGPT\Velodrome\work\tussensprint_20261028\simulation\test_lap_rules.py", line 10, in test_lap_gain_wins_race
+    self.assertGreater(row['lap_gains'],0)
+AssertionError: 0 not greater than 0
+
+======================================================================
+FAIL: test_rider_can_draft_after_lap_gain (test_lap_rules.TestLapRules.test_rider_can_draft_after_lap_gain)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\romboti\OneDrive - Cronos\Documenten\ChatGPT\Velodrome\work\tussensprint_20261028\simulation\test_lap_rules.py", line 21, in test_rider_can_draft_after_lap_gain
+    self.assertTrue(any(x['lap_credits'] and x['lap_draft_s']>0 for x in riders))
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.322s
+
+FAILED (failures=2)
+
+COMMAND: C:\Python312\python.exe -m unittest discover -s C:\Users\romboti\OneDrive - Cronos\Documenten\ChatGPT\Velodrome\work\tussensprint_20261028\upstream_check -p test_lap_rules.py -v
+EXIT: 1
+
+test_lap_gain_wins_race (test_lap_rules.TestLapRules.test_lap_gain_wins_race) ... FAIL
+test_no_multiple_awards_same_rider (test_lap_rules.TestLapRules.test_no_multiple_awards_same_rider) ... ok
+test_physics_no_arbitrary_speed_cap (test_lap_rules.TestLapRules.test_physics_no_arbitrary_speed_cap) ... ok
+test_rider_can_draft_after_lap_gain (test_lap_rules.TestLapRules.test_rider_can_draft_after_lap_gain) ... FAIL
+
+======================================================================
+FAIL: test_lap_gain_wins_race (test_lap_rules.TestLapRules.test_lap_gain_wins_race)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\romboti\OneDrive - Cronos\Documenten\ChatGPT\Velodrome\work\tussensprint_20261028\upstream_check\test_lap_rules.py", line 10, in test_lap_gain_wins_race
+    self.assertGreater(row['lap_gains'],0)
+AssertionError: 0 not greater than 0
+
+======================================================================
+FAIL: test_rider_can_draft_after_lap_gain (test_lap_rules.TestLapRules.test_rider_can_draft_after_lap_gain)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\romboti\OneDrive - Cronos\Documenten\ChatGPT\Velodrome\work\tussensprint_20261028\upstream_check\test_lap_rules.py", line 21, in test_rider_can_draft_after_lap_gain
+    self.assertTrue(any(x['lap_credits'] and x['lap_draft_s']>0 for x in riders))
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.322s
+
+FAILED (failures=2)
+
+Exact source/physics verification:
+{
+  "Rider": true,
+  "road_power": true,
+  "integrate_speed": true,
+  "draft_speed_factor": true,
+  "bank_height": true,
+  "lane_distance_multiplier": true,
+  "energy_core_identical": true,
+  "legacy_full_output_seed_1": true,
+  "legacy_full_output_seed_1049": true
+}

@@ -1,0 +1,11 @@
+{
+  "Rider": true,
+  "road_power": true,
+  "integrate_speed": true,
+  "draft_speed_factor": true,
+  "bank_height": true,
+  "lane_distance_multiplier": true,
+  "energy_core_identical": true,
+  "legacy_full_output_seed_1": true,
+  "legacy_full_output_seed_1049": true
+}

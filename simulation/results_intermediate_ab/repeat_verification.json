@@ -1,0 +1,18 @@
+{
+  "repeat_races_per_variant": 100,
+  "real_laps": true,
+  "identical_output_files": {
+    "audit.csv": true,
+    "decisions.csv": true,
+    "energy.csv": true,
+    "energy35.csv": true,
+    "energy_crossing.csv": true,
+    "initial.csv": true,
+    "lap_events.csv": true,
+    "paired.csv": true,
+    "profiles.csv": true,
+    "races.csv": true,
+    "riders.csv": true,
+    "sprints.csv": true
+  }
+}

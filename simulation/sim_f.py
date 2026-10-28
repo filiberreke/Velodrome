@@ -88,12 +88,12 @@ class Rider:
             self.above_cp_s=getattr(self,'above_cp_s',0.)+(dt if actual>self.phys.cp else 0.)
         return actual
 
-def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A", sprint_switch=False, final750=False, no_speed_cap=False, breakaway_v=False, chase_scale=1.0, break_follow=True, lap_probe=None, real_laps=False, sprinter_wheel_economy=True):
+def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A", sprint_switch=False, final750=False, no_speed_cap=False, breakaway_v=False, chase_scale=1.0, break_follow=True, lap_probe=None, real_laps=False, sprinter_wheel_economy=True, points_experiment=None):
     rng=random.Random(seed)
     lap_events=[]
     assert race_mode in ("scratch","points")
     assert variant in ("A","B","C","D","E","F","G","H","I","J","K","L")
-    riders=[Rider(i,('tt','sprinter','attacker')[(i-1)%3],rng) for i in range(1,count)]
+    riders=[Rider(i,('tt','sprinter','attacker')[(i-1)%3],rng) for i in range(1,count+1 if points_experiment is not None else count)]
     player_d=-2.; player_v=0.; player_finished_at=None; t=0.; n_steps=0
     attack_events=[]; overlap_attacks=0; no_attack_sprints=0;attack_ends=[]
     break_events=[]; counter_events=[]; break_age_samples=[]; break_group_sums=[]; solo_leads=0; group_leads=0; turn_states={}; rotations=0; refusals=0; completed_pulls=[]; next_group_id=0; break_history=[]; break_snapshots=[]
@@ -101,7 +101,13 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
     leaders=[]; recent_attacks=[]; laps_checked=set(); attack_per_window=Counter(); prev_player_ahead=False
     last_sprint_index=-1; sprint_events=[]
     dropout_events=[]; sample_count=0; dropped_samples=0; any_dropped_ids=set(); rider_positions=[]; finish_line=laps*LAP
-    points_score={r.id:0 for r in riders}
+    experiment = None
+    if points_experiment is not None:
+        from intermediate_sprint import Experiment
+        assert race_mode == 'points'
+        experiment = Experiment(riders, laps, points_experiment)
+        player_d=-1e12; player_w=0.
+    points_score=experiment.points if experiment else {r.id:0 for r in riders}
     sprint_awards=[]
     next_sprint_lap=5
     last_points_leader=0
@@ -119,6 +125,9 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
     pace_power_counts={r.id:0 for r in riders}
 
     while t < max_time and any(r.finished_at is None for r in riders):
+        if experiment:
+            before={r.id:(r.d,r.store,r.phys.fatigue) for r in riders}
+            experiment.begin_step(riders)
         n_steps+=1
         if n_steps%5==0:
             active=[r for r in riders if r.finished_at is None]
@@ -179,6 +188,9 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
         race_lap=int(max(0,mid)//LAP)
         post_sprint=(race_mode=="points" and race_lap in (5,10,15,20,30,35,40,45)) and 0<(mid%LAP)<170
         pre_sprint=(race_mode=="points" and ((race_lap+1)%5)==0) and (mid%LAP)>135
+        if experiment:
+            pre_sprint=bool(experiment.next_lap and 0<experiment.next_lap*LAP-experiment.head<LAP)
+            post_sprint=bool(experiment.sprints and 0<t-experiment.sprints[-1]['time_s']<16)
         if post_sprint and last_sprint_index!=race_lap:
             sprint_events.append(race_lap);last_sprint_index=race_lap
         # Detect small breakaway groups by spatial proximity to the leading
@@ -451,7 +463,7 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
                     target=pcurve(duration,r.phys.cp,r.phys.wmax,r.phys.pmax)*(.88+.10*reserve)
                 else:
                     target=r.aero*(.76 if draft else .91)
-            elif pre_sprint and r.role=='sprinter' and energy_ratio>.30:
+            elif pre_sprint and not experiment and r.role=='sprinter' and energy_ratio>.30:
                 target=r.aero+.37*(r.peak-r.aero)
             elif r.d<mid-15:
                 target=r.aero+.15*(r.peak-r.aero)
@@ -676,6 +688,8 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
                 launch_weight=clamp((14.-t)/7.,0.,1.)*clamp((11.-r.v)/3.,0.,1.)
                 launch_watts=min(450.,max(350.,r.aero*1.65))
                 target=max(target, r.aero*(.76 if draft else .91)*(1.-launch_weight)+launch_watts*launch_weight)
+            if experiment:
+                target=experiment.demand(r,target,riders,t)
             power=r.step_power(target,DT)
             # Wheel shelter lets same speed at lower actual power; no artificial group speed bonus.
             # Dynamical target speed with inertia.
@@ -795,7 +809,7 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
         # Intermediate sprints are awarded at a common race clock when median crosses
         # each 5-lap mark. Ranking uses the riders' position at that instant;
         # this is a proxy, not true line crossing interpolation.
-        if race_mode=='points' and next_sprint_lap<laps and statistics.median(r.d for r in riders)>=next_sprint_lap*LAP:
+        if not experiment and race_mode=='points' and next_sprint_lap<laps and statistics.median(r.d for r in riders)>=next_sprint_lap*LAP:
             order=sorted(riders,key=lambda x:x.d,reverse=True)
             for rank,bonus in enumerate((3,2,1)):
                 points_score[order[rank].id]+=bonus
@@ -824,8 +838,12 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
                     r.dropped_events+=1;r.dropped_now=True
                     dropout_events.append({'seed':seed,'riders':count,'id':r.id,'role':r.role,'race_s':round(t,1),'lap':int(max(0,r.d)//LAP)+1,'deficit_m':round(deficit,1),'recently_attacked':t-r.last_attack<180})
             elif deficit<=20:r.dropped_now=False
+        if experiment:
+            experiment.observe(t,DT,before,riders)
+            if experiment.done:
+                return experiment.result(seed,riders)
         for r in riders:
-            if r.finished_at is None and r.d>=finish_line:
+            if not experiment and r.finished_at is None and r.d>=finish_line:
                 frac=clamp((finish_line-r.last_d)/max(.00001,r.d-r.last_d),0,1)
                 r.finished_at=t+DT*frac
                 r.finish_reserve_pct=100*r.store/r.store_max
@@ -839,6 +857,8 @@ def run(seed=1, count=12, laps=25, player_w=305, race_mode="scratch", variant="A
             player_finished_at=t+DT*clamp((finish_line-previous_player_d)/max(.00001,player_d-previous_player_d),0,1)
         t+=DT
         if len(recent_attacks)>100:recent_attacks=[a for a in recent_attacks if t-a<45]
+    if experiment:
+        raise RuntimeError('incomplete experiment')
     # Cluster finishers using time difference, not only winner profile.
     # A finish-position proxy (scratch), NOT a points-race winner.
     # Record everyone's interpolated finish timestamp; player is also included.
