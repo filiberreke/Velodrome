@@ -10,7 +10,9 @@ render_mode diffuse_lambert, specular_schlick_ggx, cull_back;
 
 uniform float excitement : hint_range(0.0, 1.0) = 0.15;   // driven by arena.gd (last lap, sprint)
 uniform float bounce_height = 0.06;
-uniform float bounce_share : hint_range(0.0, 1.0) = 0.55;  // fraction of the crowd that jumps along
+uniform float bounce_share : hint_range(0.0, 1.0) = 0.55;
+uniform float wave_center = 0.0;
+uniform float wave_strength = 0.0;  // fraction of the crowd that jumps along
 
 varying vec4 v_custom;
 
@@ -73,7 +75,11 @@ void vertex() {
 	float idle = sin(TIME * (1.1 + h * 0.6) + phase) * 0.004;
 	float jumper = step(1.0 - bounce_share, fract(h * 7.31));
 	float b = pow(max(0.0, sin(TIME * (5.5 + h * 2.0) + phase)), 2.0) * excitement * bounce_height * jumper;
-	VERTEX.y += idle + b;
+	vec3 world_at = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float angle = atan(world_at.z, world_at.x) / 6.283185 + 0.5;
+	float circular_gap = abs(fract(angle - wave_center + 0.5) - 0.5);
+	float cheer = smoothstep(0.16, 0.0, circular_gap) * wave_strength;
+	VERTEX.y += idle + b + 0.09 * cheer * (0.4 + 0.6 * h);
 }
 
 void fragment() {
