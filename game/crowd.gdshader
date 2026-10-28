@@ -78,7 +78,7 @@ void vertex() {
 	vec3 world_at = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float angle = atan(world_at.z, world_at.x) / 6.283185 + 0.5;
 	float circular_gap = abs(fract(angle - wave_center + 0.5) - 0.5);
-	float cheer = smoothstep(0.16, 0.0, circular_gap) * wave_strength;
+	float cheer = (1.0 - smoothstep(0.0, 0.16, circular_gap)) * wave_strength;
 	VERTEX.y += idle + b + 0.09 * cheer * (0.4 + 0.6 * h);
 }
 
