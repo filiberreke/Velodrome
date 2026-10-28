@@ -1,0 +1,7 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+Geen KICKR-metingen opgenomen; controleer LIVE-verbinding en start wedstrijd.
+INSIDE_LANE_GEOMETRY {"inner_lap_m":257.561905011535,"outer_lap_m":298.635802939534}
+INSIDE_LANE_OK

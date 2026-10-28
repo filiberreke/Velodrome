@@ -1,0 +1,180 @@
+{
+  "base_commit": "2152166fbd93a09de6a4dce278b5df73b7e9e272",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "checks": [
+    {
+      "script": "tests/test_inside_lane.gd",
+      "passed": true,
+      "markers": [
+        "INSIDE_LANE_OK"
+      ]
+    },
+    {
+      "script": "tests/test_inside_lane_launch.gd",
+      "passed": true,
+      "markers": [
+        "INSIDE_LANE_LAUNCH_OK"
+      ]
+    },
+    {
+      "script": "tests/test_inside_lane_races.gd",
+      "passed": true,
+      "markers": [
+        "INSIDE_LANE_RACES_OK"
+      ]
+    },
+    {
+      "script": "tests/test_intermediate_sprint.gd",
+      "passed": true,
+      "markers": [
+        "INTERMEDIATE_SPRINT_OK"
+      ]
+    },
+    {
+      "script": "tests/test_intermediate_sprint_race.gd",
+      "passed": true,
+      "markers": [
+        "INTERMEDIATE_SPRINT_RACE_OK"
+      ]
+    },
+    {
+      "script": "tests/test_gameplay_headless.gd",
+      "passed": true,
+      "markers": [
+        "GAMEPLAY_HEADLESS_OK"
+      ]
+    },
+    {
+      "script": "tests/test_points_race.gd",
+      "passed": true,
+      "markers": [
+        "POINTS_RACE_OK"
+      ]
+    },
+    {
+      "script": "tests/test_scratch_large_field.gd",
+      "passed": true,
+      "markers": [
+        "SCRATCH_LARGE_FIELD_OK"
+      ]
+    },
+    {
+      "script": "test_x_scratch_ai.gd",
+      "passed": true,
+      "markers": [
+        "X_SCRATCH_AI_OK"
+      ]
+    },
+    {
+      "script": "test_x_wheel_follow.gd",
+      "passed": true,
+      "markers": [
+        "X_WHEEL_FOLLOW_OK"
+      ]
+    },
+    {
+      "script": "test_scratch_lap_rules.gd",
+      "passed": true,
+      "markers": [
+        "SCRATCH_LAP_RULES_OK"
+      ]
+    },
+    {
+      "script": "tests/test_sprinter_economy.gd",
+      "passed": true,
+      "markers": [
+        "SPRINTER_ECONOMY_OK"
+      ]
+    },
+    {
+      "script": "tests/test_points_notifications.gd",
+      "passed": true,
+      "markers": [
+        "POINTS_NOTIFICATIONS_OK"
+      ]
+    },
+    {
+      "script": "tests/test_menu.gd",
+      "passed": true,
+      "markers": [
+        "MENU_FLOW_OK"
+      ]
+    },
+    {
+      "script": "tests/test_hud.gd",
+      "passed": true,
+      "markers": [
+        "RACE_HUD_OK"
+      ]
+    },
+    {
+      "script": "tests/test_trainer_control.gd",
+      "passed": true,
+      "markers": [
+        "TRAINER_CONTROL_OK"
+      ]
+    },
+    {
+      "script": "tests/test_pursuit.gd",
+      "passed": true,
+      "markers": [
+        "PURSUIT_OK"
+      ]
+    },
+    {
+      "script": "tests/test_team_pursuit.gd",
+      "passed": true,
+      "markers": [
+        "TEAM_PURSUIT_OK"
+      ]
+    },
+    {
+      "script": "tests/test_broadcast_intro.gd",
+      "passed": true,
+      "markers": [
+        "BROADCAST_INTRO_OK"
+      ]
+    }
+  ],
+  "comparison": [
+    {
+      "after_inside_pct": 37.6303110930169,
+      "before_inside_pct": 33.7012531178101,
+      "mode": "scratch"
+    },
+    {
+      "after_inside_pct": 33.0487995010485,
+      "before_inside_pct": 26.3998257026053,
+      "mode": "points"
+    }
+  ],
+  "geometry": {
+    "inner_lap_m": 257.561905011535,
+    "outer_lap_m": 298.635802939534
+  },
+  "unchanged_blobs": {
+    "game/main.gd": "533e4ae6c887d5f5e107ac5db3bb75b9fc79e08b",
+    "game/points_intermediate_sprint.gd": "2e7abe8e20c33b9a67d294dfa1672113c854818f",
+    "game/points_race_rules.gd": "1182431c22c359b4686a6697069a505fc1fcb949",
+    "game/peloton_state.gd": "9175e1ff61f52d3d0032776fbbea69b636e5d4d0"
+  },
+  "unchanged_shared_physics_functions": {
+    "_phys_power": true,
+    "pcurve": true,
+    "road_power": true,
+    "physical_ahead": true
+  },
+  "source_sha256": {
+    "x_scratch_ai.gd": "e73d4f35af812c119808914297c8b71b7536c0a208c5214c924ce3fe87285a77",
+    "points_ai.gd": "1688889601eb14bb12e1577899be65d5e8a855c0fbe734c9bdff7c05c1bbd786",
+    "tests/test_inside_lane.gd": "a1ba7b754f733d905f45b9d857dad0077eb334a4c449ef747e412732dc463884",
+    "tests/test_inside_lane_launch.gd": "ca35a9f24202f59d44bb4595edae7149ac21efb2aed8de3f45bdc724b6297d9b",
+    "tests/test_inside_lane_races.gd": "87459e7c2ae41845a3dc139cfa65a3c583fd0e4374e206879adcacf46e344369"
+  },
+  "known_limitations": [
+    "Only two seeds per discipline in the lane-usage comparison",
+    "Existing 16-rider baseline has three riders below the 10-second launch threshold; no new slow riders introduced",
+    "Headless root certificate store message; no physical trainer or visual playtest",
+    "Existing jury/collision simplifications retained"
+  ]
+}

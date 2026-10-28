@@ -34,6 +34,8 @@ De vaardigheid **TUSSENSPRINT** in `points_intermediate_sprint.gd` schat voor ie
 
 De vaardigheid is standaard actief voor tussensprints. De bestaande dubbele eindsprint blijft dezelfde vermogensvraag gebruiken. CP, W′-capaciteit, piekvermogen, energieherstel, drafting en daadwerkelijke baanfysica veranderen niet. `intermediate_sprint_enabled=false` in de punten-AI is alleen een ontwikkelaarsoptie voor vergelijking met het oude gedrag. De Python-proef en de uitslagen staan in `simulation/TUSSENSPRINT_AB_REPORT.md`; de speluitslagen hoeven door geometrie, tijdstap en menselijke input niet dezelfde winstverdeling te hebben.
 
+Daarnaast kiezen AI-renners [standaard de binnenbaan](README_inside_lane.md) als de volledige route vrij is en er geen reden is voor een hogere lijn. Wielvolgen, aflossen en sprintpositionering blijven mogelijk. Dit geldt ook bij het optrekken en verandert de rijlijnbediening van de speler niet.
+
 Zie ook [pelotonweergave en rondewinst](README_peloton_feedback.md) voor de scheiding tussen afgelegde afstand en wedstrijdpositie, de meterafstanden rondom jou, de aparte puntenstand en energiebatterijen.
 
 ## Jury en beperkingen

@@ -420,6 +420,10 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			if absf(lane_targets[i] - desired_wheel_lane) > 0.4:
 				lane_targets[i] = desired_wheel_lane
 				lane_lock[i] = clock + 1.0
+		var sprint_lap: int = jury.next_sprint_lap()
+		var sprint_remaining: float = sprint_lap * LAP - maxf(head_d, distances[0])
+		var sprint_positioning: bool = jury.finish_clock < 0.0 and sprint_lap > 0 and sprint_remaining > 0.0 and sprint_remaining <= LAP
+		_prefer_inner_line(i, clock, distances, speeds, lanes, finished, m, wheel_i, gap, sprint_positioning)
 		# If already too close to a rider ahead, slow down rather than
 		# automatically leaving their wheel. Move only when passing is viable.
 		var hard_conflict: bool = false
