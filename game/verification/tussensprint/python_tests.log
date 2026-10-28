@@ -1,0 +1,17 @@
+test_complete_races_and_invariants (test_intermediate_sprint.IntegrationTests.test_complete_races_and_invariants) ... ok
+test_determinism (test_intermediate_sprint.IntegrationTests.test_determinism) ... ok
+test_unchanged_initial_profiles (test_intermediate_sprint.IntegrationTests.test_unchanged_initial_profiles) ... ok
+test_common_finish_double_points_and_lap_cutoff (test_intermediate_sprint.JuryTests.test_common_finish_double_points_and_lap_cutoff) ... ok
+test_energy_common_clock_interpolation (test_intermediate_sprint.JuryTests.test_energy_common_clock_interpolation) ... ok
+test_lap_repeats_wraparound_and_disperse (test_intermediate_sprint.JuryTests.test_lap_repeats_wraparound_and_disperse) ... ok
+test_line_order_lapped_rider_and_no_double_award (test_intermediate_sprint.JuryTests.test_line_order_lapped_rider_and_no_double_award) ... ok
+test_ties_share_points_and_skip_next_place (test_intermediate_sprint.JuryTests.test_ties_share_points_and_skip_next_place) ... ok
+test_actual_physics_shared (test_intermediate_sprint.TacticalTests.test_actual_physics_shared) ... ok
+test_hopeless_sprint_aborts_and_preserves_reserve (test_intermediate_sprint.TacticalTests.test_hopeless_sprint_aborts_and_preserves_reserve) ... ok
+test_rank_forecast (test_intermediate_sprint.TacticalTests.test_rank_forecast) ... ok
+test_reserve_and_final_independence (test_intermediate_sprint.TacticalTests.test_reserve_and_final_independence) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 1.052s
+
+OK

@@ -30,6 +30,10 @@ Het vermogen van de speler blijft afkomstig van de trainer of de demo-instelling
 
 `points_ai.gd` erft de gedeelde fysiologie van `x_scratch_ai.gd` en heeft een aparte tactische stap voor herhaalde sprints. De CP-constanten van scratch blijven ongewijzigd. Beide spelvormen delen de verbeterde beurtwisselingen in kleine ontsnappingen, ook met de speler. De bestaande achtervolgings- en ploegenachtervolgingsmodi blijven beschikbaar.
 
+De vaardigheid **TUSSENSPRINT** in `points_intermediate_sprint.gd` schat voor iedere AI-renner de kans op 5/3/2/1 punten, slaat ongunstige pogingen over en breekt kansloze sprints af. Het sprintbudget houdt W′ achter op basis van resterende wedstrijdafstand, volgende sprints en de puntenstand. Alle tegenstanderinschattingen gebruiken dezelfde momentopname vóór de energiestap. De speler telt mee als tegenstander op basis van diens snelheid en werkelijk vermogen; de AI past het spelersvermogen niet aan. Het gaat om een heuristische kansschatting, niet om gekalibreerde voorspellingen.
+
+De vaardigheid is standaard actief voor tussensprints. De bestaande dubbele eindsprint blijft dezelfde vermogensvraag gebruiken. CP, W′-capaciteit, piekvermogen, energieherstel, drafting en daadwerkelijke baanfysica veranderen niet. `intermediate_sprint_enabled=false` in de punten-AI is alleen een ontwikkelaarsoptie voor vergelijking met het oude gedrag. De Python-proef en de uitslagen staan in `simulation/TUSSENSPRINT_AB_REPORT.md`; de speluitslagen hoeven door geometrie, tijdstap en menselijke input niet dezelfde winstverdeling te hebben.
+
 Zie ook [pelotonweergave en rondewinst](README_peloton_feedback.md) voor de scheiding tussen afgelegde afstand en wedstrijdpositie, de meterafstanden rondom jou, de aparte puntenstand en energiebatterijen.
 
 ## Jury en beperkingen
@@ -38,12 +42,16 @@ Zie ook [pelotonweergave en rondewinst](README_peloton_feedback.md) voor de sche
 
 Dit is de speelbare Godot-implementatie, geen garantie op identieke uitslagen als de Python-benchmark. Godot gebruikt de echte baangeometrie, de normale physicsfrequentie en menselijke input. Een start uit stilstand blijft behouden. Valpartijen, neutralisaties en gedeelde punten bij een exacte dead heat zijn niet gemodelleerd; exact gelijke passagetijden gebruiken een vaste ID-volgorde. De tactische afleiding moet bij latere scratchwijzigingen worden bijgewerkt.
 
+De TUSSENSPRINT-toevoeging verandert de jury niet. De koerskop wordt nog niet bij de bel vastgezet en het verbod op kopwerk door gedubbelde renners voor koplopers wordt niet afgedwongen. Deze bekende beperkingen staan ook in het simulatorverslag.
+
 ## Verificatie
 
 Godot 4.7.2 headless, vanuit de game-map:
 
 ```
 godot --headless --path . --script res://tests/test_points_race.gd
+godot --headless --path . --script res://tests/test_intermediate_sprint.gd
+godot --headless --path . --script res://tests/test_intermediate_sprint_race.gd
 godot --headless --path . --script res://tests/test_menu.gd
 ```
 

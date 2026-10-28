@@ -1,0 +1,13 @@
+[
+  {
+    "script": "IMPORT",
+    "exit": 0,
+    "errors": [
+      "ERROR: UVs are required to generate tangents.",
+      "ERROR: UVs are required to generate tangents.",
+      "ERROR: UVs are required to generate tangents.",
+      "ERROR: UVs are required to generate tangents."
+    ],
+    "seconds": 13.656
+  }
+]

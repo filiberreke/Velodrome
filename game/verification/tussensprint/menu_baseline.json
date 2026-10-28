@@ -1,0 +1,7 @@
+{
+  "exit": 1,
+  "errors": [
+    "ERROR: Live HUD shows points and sprint notice"
+  ],
+  "expected_preexisting_failure": true
+}

@@ -1,0 +1,134 @@
+{
+  "base_commit": "edab6a112df472ec301603bf56919c827dde0355",
+  "simulator_commit": "3befa6c9fa5f64161bd34691753f2bab958f475a",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "godot_scripts": [
+    {
+      "script": "tests/test_intermediate_sprint.gd",
+      "passed": true,
+      "markers": [
+        "INTERMEDIATE_SPRINT_OK"
+      ]
+    },
+    {
+      "script": "tests/test_intermediate_sprint_race.gd",
+      "passed": true,
+      "markers": [
+        "INTERMEDIATE_SPRINT_RACE_OK"
+      ]
+    },
+    {
+      "script": "tests/test_points_race.gd",
+      "passed": true,
+      "markers": [
+        "POINTS_RACE_OK"
+      ]
+    },
+    {
+      "script": "tests/test_points_notifications.gd",
+      "passed": true,
+      "markers": [
+        "POINTS_NOTIFICATIONS_OK"
+      ]
+    },
+    {
+      "script": "test_x_scratch_ai.gd",
+      "passed": true,
+      "markers": [
+        "X_SCRATCH_AI_OK"
+      ]
+    },
+    {
+      "script": "test_x_wheel_follow.gd",
+      "passed": true,
+      "markers": [
+        "X_WHEEL_FOLLOW_OK"
+      ]
+    },
+    {
+      "script": "test_scratch_lap_rules.gd",
+      "passed": true,
+      "markers": [
+        "SCRATCH_LAP_RULES_OK"
+      ]
+    },
+    {
+      "script": "tests/test_sprinter_economy.gd",
+      "passed": true,
+      "markers": [
+        "SPRINTER_ECONOMY_OK"
+      ]
+    },
+    {
+      "script": "tests/test_scratch_large_field.gd",
+      "passed": true,
+      "markers": [
+        "SCRATCH_LARGE_FIELD_OK"
+      ]
+    },
+    {
+      "script": "tests/test_menu.gd",
+      "passed": true,
+      "markers": [
+        "MENU_FLOW_OK"
+      ]
+    },
+    {
+      "script": "tests/test_hud.gd",
+      "passed": true,
+      "markers": [
+        "RACE_HUD_OK"
+      ]
+    },
+    {
+      "script": "tests/test_trainer_control.gd",
+      "passed": true,
+      "markers": [
+        "TRAINER_CONTROL_OK"
+      ]
+    },
+    {
+      "script": "tests/test_pursuit.gd",
+      "passed": true,
+      "markers": [
+        "PURSUIT_OK"
+      ]
+    },
+    {
+      "script": "tests/test_team_pursuit.gd",
+      "passed": true,
+      "markers": [
+        "TEAM_PURSUIT_OK"
+      ]
+    },
+    {
+      "script": "tests/test_broadcast_intro.gd",
+      "passed": true,
+      "markers": [
+        "BROADCAST_INTRO_OK"
+      ]
+    }
+  ],
+  "python_tests": 12,
+  "python_tests_passed": true,
+  "unchanged_blobs": {
+    "game/x_scratch_ai.gd": "46f0d68cad0e12a92e8129cbdf83a654d36dca67",
+    "game/main.gd": "533e4ae6c887d5f5e107ac5db3bb75b9fc79e08b",
+    "game/points_race_rules.gd": "1182431c22c359b4686a6697069a505fc1fcb949",
+    "game/peloton_state.gd": "9175e1ff61f52d3d0032776fbbea69b636e5d4d0"
+  },
+  "source_sha256": {
+    "points_ai.gd": "b318e4e7d92f2df150d9af1befd9897cad9952f2552d367a830be3cc6f5d9e99",
+    "points_intermediate_sprint.gd": "9db849e7ea975c33122be1f0049c484f2780618b8256086af7da88bb59273d98",
+    "tests/test_intermediate_sprint.gd": "7cb5cd1a965c7506c40c81d9fe1736f35fc1104382b0810f90bd20a880366bf7",
+    "tests/test_intermediate_sprint_race.gd": "bf0c219f02a1e945af32e53c39cf6348ee3d002dc18b49ee0ce51ebb1082fad5",
+    "tests/intermediate_sprint_policy_cases.json": "5733e4b6d780092eb096dd94abe6c4d5af1e14978d8a66157ce63d8480594369",
+    "tests/generate_intermediate_sprint_cases.py": "3cada89e74f4d4b19cadd5752518c73977b084cadd4bcca91628cf2fc8d46f6c",
+    "tests/test_menu.gd": "5432fb206f00834aace527b737df6cd2ae830236e3d7c60ffe71f8d43a076409"
+  },
+  "known_limitations": [
+    "Existing bell/head-of-race and lapped-rider jury limitations retained",
+    "Initial unchanged Euromax asset imports emit four missing-UV tangent messages",
+    "Headless root certificate store unavailable; no network or trainer hardware verification"
+  ]
+}
