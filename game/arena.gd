@@ -52,6 +52,9 @@ func _ready() -> void:
 	preload("res://tour_spectator_details.gd").new().build(self)
 	_build_facades_and_railings()
 	_build_roof()
+	var show := preload("res://stadium_show.gd").new()
+	show.name = "VelodromeStadiumShow"
+	add_child(show)
 	_build_track_banner()
 	_build_infield()
 	var infield_scene: Node3D = preload("res://infield_details.gd").new()
