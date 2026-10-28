@@ -2,9 +2,13 @@ extends "res://x_scratch_ai.gd"
 ## Points-only tactical adaptation; shared CP/Wprime physiology is inherited.
 ## Scratch retains its original CP and tactical step unchanged.
 var jury
+const IntermediateSprint := preload("res://points_intermediate_sprint.gd")
+var intermediate_sprint = IntermediateSprint.new()
+var intermediate_sprint_enabled := true # Diagnostic baseline switch; enabled in gameplay.
 
 func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float]) -> void:
 	super.reset(profiles, forms, initial_lanes)
+	intermediate_sprint.reset(profiles.size())
 	for i in range(profiles.size()):
 		if profiles[i] == 1: cp[i] = 265.0 * forms[i]
 		elif profiles[i] == 2: cp[i] = 240.0 * forms[i]
@@ -25,6 +29,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 	sorted.sort_custom(func(a: int, b: int) -> bool: return distances[a] < distances[b])
 	var median_d: float = distances[sorted[sorted.size() / 2]]
 	var head_d: float = distances[sorted[-1]]
+	intermediate_sprint.prepare(self, distances, speeds, finished, profiles, laps, maxf(head_d, distances[0]), jury)
 	var finish_d: float = float(laps) * LAP
 	var remaining_group: float = finish_d - median_d
 	var final_stage: bool = false
@@ -452,7 +457,10 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 		var remaining_sprint: float = next * LAP - leader
 		var own_remaining: float = fposmod(-distances[i], LAP)
 		var onset: float = 235.0 if kind == 1 else (195.0 if kind == 2 else 200.0)
-		if jury.finish_clock < 0.0 and next > 0 and remaining_sprint > 0.0 and remaining_sprint <= LAP and own_remaining > 0.0 and own_remaining <= onset and reserve > 0.055:
+		if intermediate_sprint_enabled and next > 0 and next < laps:
+			target = intermediate_sprint.demand(i, target, kind)
+			sprint_started[i] = intermediate_sprint.attempting[i]
+		elif jury.finish_clock < 0.0 and next > 0 and remaining_sprint > 0.0 and remaining_sprint <= LAP and own_remaining > 0.0 and own_remaining <= onset and reserve > 0.055:
 			var seconds: float = maxf(5.0, own_remaining / maxf(speeds[i], 5.0))
 			var effort: float = pcurve(seconds, cp[i], wmax[i], pmax[i]) * (0.75 if kind == 1 else (0.99 if kind == 2 else 0.87))
 			var budget: float = cp[i] + 0.88 * wprime[i] / maxf(6.0, seconds)

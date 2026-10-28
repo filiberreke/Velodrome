@@ -83,7 +83,8 @@ func run_test() -> void:
 	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0), "Points CP configuration is passed through")
 	game.start_state = "RACING"
 	game._update_hud()
-	check(game.race_overlay.status_label.text.contains("points") or game.race_overlay.status_label.text.contains("punten"), "Live HUD shows points and sprint notice")
+	check(game.race_overlay.visible and not game.race_overlay.status_panel.visible, "Points race uses compact HUD without the retired persistent sprint banner")
+	check(game.x_ai.intermediate_sprint_enabled, "TUSSENSPRINT is enabled in playable points races")
 	game.points_rules.points[0] = 23
 	game._refresh_fullscreen_results()
 	check(game.finish_heading.text.contains("PUNTENKOERS") and game.finish_results.text.contains("23 PUNTEN"), "Points result panel displays score")

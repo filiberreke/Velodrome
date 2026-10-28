@@ -1,0 +1,13 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+SCRATCH_FIELD riders=6 dt=0.1000 slowest_first_lap=36.34 finish=101.60
+SCRATCH_FIELD riders=7 dt=0.1000 slowest_first_lap=36.39 finish=101.80
+SCRATCH_FIELD riders=8 dt=0.1000 slowest_first_lap=36.78 finish=101.80
+SCRATCH_FIELD riders=9 dt=0.1000 slowest_first_lap=37.76 finish=101.80
+SCRATCH_FIELD riders=10 dt=0.1000 slowest_first_lap=36.96 finish=98.90
+SCRATCH_FIELD riders=11 dt=0.1000 slowest_first_lap=37.82 finish=103.40
+SCRATCH_FIELD riders=12 dt=0.1000 slowest_first_lap=39.79 finish=106.10
+SCRATCH_FIELD riders=12 dt=0.0167 slowest_first_lap=34.65 finish=98.95
+SCRATCH_LARGE_FIELD_OK

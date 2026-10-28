@@ -1,0 +1,30 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+Geen KICKR-metingen opgenomen; controleer LIVE-verbinding en start wedstrijd.
+WARNING: Trainerkoppeling: no_lease
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _block (res://trainer_control.gd:60)
+       [1] handle_response (res://trainer_control.gd:94)
+       [2] _receive (res://trainer_control.gd:78)
+       [3] tick (res://trainer_control.gd:171)
+       [4] cycle (res://tests/test_trainer_control.gd:49)
+       [5] run_test (res://tests/test_trainer_control.gd:88)
+       [6] cycle (res://tests/test_trainer_control.gd:52)
+WARNING: Trainerkoppeling: Bestaande ERG/andere regelmodus blijft behouden
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _block (res://trainer_control.gd:60)
+       [1] handle_response (res://trainer_control.gd:145)
+       [2] run_test (res://tests/test_trainer_control.gd:96)
+       [3] cycle (res://tests/test_trainer_control.gd:52)
+WARNING: Trainerkoppeling: Geen antwoord van bridge
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _block (res://trainer_control.gd:60)
+       [1] tick (res://trainer_control.gd:176)
+       [2] run_test (res://tests/test_trainer_control.gd:107)
+       [3] cycle (res://tests/test_trainer_control.gd:52)
+TRAINER_CONTROL_OK
