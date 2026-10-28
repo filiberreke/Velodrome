@@ -392,6 +392,20 @@ func _build_roof() -> void:
 		lamp.omni_range = 32.0
 		lamp.shadow_enabled = false
 		add_child(lamp)
+	# A few focused neutral-white overhead lamps give the wood and riders contrast.
+	# Decorative strips remain emissive; avoid a costly shadow light per panel.
+	for i in range(8):
+		var s: float = LAP * (float(i) + 0.5) / 8.0
+		var race_light := SpotLight3D.new()
+		race_light.name = "Piste schijnwerper %d" % (i + 1)
+		race_light.position = _stadium_point(s, 25.9, 19.4)
+		race_light.look_at(_stadium_point(s, 3.6, 0.4), Vector3.UP)
+		race_light.light_color = Color("f4f5ff")
+		race_light.light_energy = 1.05
+		race_light.spot_range = 37.0
+		race_light.spot_angle = 56.0
+		race_light.shadow_enabled = false
+		add_child(race_light)
 
 func _between(a: Vector3, b: Vector3) -> Transform3D:
 	var forward: Vector3 = (b - a).normalized()
