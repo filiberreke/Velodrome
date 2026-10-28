@@ -40,6 +40,8 @@ var aggression: Array[float] = []
 var sprint_started: Array[bool] = []
 var shelter_wheel: Array[int] = []
 var economical_sprinter_wheels := true # A/B diagnostic; enabled for normal gameplay.
+var prefer_inside_when_free := true # Shared scratch/points default; diagnostic baseline switch.
+var inside_line_requested: Array[bool] = []
 var last_role_change: Array[float] = []
 var turns: Dictionary = {}
 var tactic_clock := 0.0
@@ -69,6 +71,7 @@ func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float
 	pull_off_until.resize(count); idle_since.resize(count); power_w.resize(count)
 	cooperation.resize(count); aggression.resize(count); sprint_started.resize(count)
 	shelter_wheel.resize(count); shelter_wheel.fill(-1)
+	inside_line_requested.resize(count); inside_line_requested.fill(false)
 	last_role_change.resize(count)
 	rng.randomize()
 	turns.clear()
@@ -122,6 +125,55 @@ func _set_mode(i: int, role: int, seconds: float, clock: float) -> void:
 	last_role_change[i] = clock
 
 const TRACK_LANE_POSITIONS := [1.18, 2.38, 3.58, 4.78, 5.98, 7.18]
+const INSIDE_MERGE_CLEARANCE := 2.5
+const INSIDE_LATERAL_CLEARANCE := 0.85
+const INSIDE_LANE_CHANGE_MPS := 1.15 # Same physical lateral rate as main.gd.
+
+func _inner_corridor_clear(i: int, candidate: float, distances: Array[float], speeds: Array[float], lanes: Array[float], finished: Array[float]) -> bool:
+	# Check the complete descent, not only an empty destination. A faster rider
+	# arriving from behind also needs room while we cross their corridor.
+	var low: float = minf(lanes[i], candidate) - INSIDE_LATERAL_CLEARANCE
+	var high: float = maxf(lanes[i], candidate) + INSIDE_LATERAL_CLEARANCE
+	var horizon: float = absf(lanes[i] - candidate) / INSIDE_LANE_CHANGE_MPS + 0.5
+	for j in range(lanes.size()):
+		if j == i or finished[j] >= 0.0: continue
+		var other_low: float = lanes[j]
+		var other_high: float = lanes[j]
+		# Earlier riders in this planning tick have already reserved their path.
+		# Later riders check our choice in turn; do not use their stale requests.
+		if j > 0 and j < i:
+			other_low = minf(other_low, lane_targets[j])
+			other_high = maxf(other_high, lane_targets[j])
+		if other_high <= low or other_low >= high: continue
+		var gap: float = fposmod(distances[j] - distances[i] + LAP * 0.5, LAP) - LAP * 0.5
+		var future_gap: float = gap + (speeds[j] - speeds[i]) * horizon
+		var nearest: float = 0.0 if gap * future_gap <= 0.0 else minf(absf(gap), absf(future_gap))
+		if nearest < INSIDE_MERGE_CLEARANCE: return false
+	return true
+
+func _prefer_inner_line(i: int, clock: float, distances: Array[float], speeds: Array[float], lanes: Array[float], finished: Array[float], mode: int, wheel: int, gap: float, sprint_positioning: bool) -> void:
+	if not prefer_inside_when_free or i <= 0 or finished[i] >= 0.0: return
+	var was_default: bool = inside_line_requested[i]
+	inside_line_requested[i] = false
+	# Pull-offs, takeovers, attacks, sprint passing and useful wheel acquisition
+	# are deliberate tactical lane choices. An old lane lock alone is not one.
+	if clock < pull_off_until[i] or mode in [MODE_ATTACK, MODE_BREAK_PULL] or sprint_started[i] or sprint_positioning: return
+	var wheel_range: float = 25.0 if mode in [MODE_CHASE, MODE_SOLO, MODE_BREAK_DRAFT] else 21.0
+	if wheel >= 0 and wheel < finished.size() and finished[wheel] < 0.0 and gap > 1.4 and gap < wheel_range: return
+	# A close wheel with an outward passing request needs room to complete it.
+	if wheel >= 0 and gap < 4.0 and lane_targets[i] > lanes[i] + 0.3 and clock < lane_lock[i]: return
+	# This default applies only when the inner lane AND the full route to it
+	# are free. Do not squeeze riders into intermediate lanes just because the
+	# innermost lane is occupied; retain the existing tactical target instead.
+	var inside: float = TRACK_LANE_POSITIONS[0]
+	if _inner_corridor_clear(i, inside, distances, speeds, lanes, finished):
+		lane_targets[i] = inside
+		lane_lock[i] = minf(lane_lock[i], clock + 1.0)
+		inside_line_requested[i] = true
+	elif was_default and is_equal_approx(lane_targets[i], inside):
+		# Recheck while moving: cancel our own old request if a rider now
+		# occupies the descent. Do not erase a separate tactical lane choice.
+		lane_targets[i] = lanes[i]
 
 # Variant L in the supplied Python simulator: small corrections must not
 # repeatedly spend sprint reserve. Real gaps still permit a stronger catch-up.
@@ -538,6 +590,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			if absf(lane_targets[i] - desired_wheel_lane) > 0.4:
 				lane_targets[i] = desired_wheel_lane
 				lane_lock[i] = clock + 1.0
+		_prefer_inner_line(i, clock, distances, speeds, lanes, finished, m, wheel_i, gap, final_stage)
 		# If already too close to a rider ahead, slow down rather than
 		# automatically leaving their wheel. Move only when passing is viable.
 		var hard_conflict: bool = false

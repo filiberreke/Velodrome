@@ -1,0 +1,116 @@
+[
+  {
+    "script": "tests/test_inside_lane.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 2.156
+  },
+  {
+    "script": "tests/test_inside_lane_launch.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 1.5
+  },
+  {
+    "script": "tests/test_inside_lane_races.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 25.422
+  },
+  {
+    "script": "tests/test_intermediate_sprint_race.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 42.562
+  },
+  {
+    "script": "tests/test_gameplay_headless.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 7.891
+  },
+  {
+    "script": "tests/test_points_race.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 18.266
+  },
+  {
+    "script": "tests/test_scratch_large_field.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 6.5
+  },
+  {
+    "script": "test_x_wheel_follow.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 1.734
+  },
+  {
+    "script": "tests/test_sprinter_economy.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 0.75
+  },
+  {
+    "script": "tests/test_intermediate_sprint.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 0.828
+  },
+  {
+    "script": "test_x_scratch_ai.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 0.735
+  },
+  {
+    "script": "test_scratch_lap_rules.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 0.75
+  },
+  {
+    "script": "tests/test_points_notifications.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 2.875
+  },
+  {
+    "script": "tests/test_menu.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 3.781
+  },
+  {
+    "script": "tests/test_hud.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 2.594
+  },
+  {
+    "script": "tests/test_trainer_control.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 3.265
+  },
+  {
+    "script": "tests/test_pursuit.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 4.0
+  },
+  {
+    "script": "tests/test_team_pursuit.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 7.813
+  },
+  {
+    "script": "tests/test_broadcast_intro.gd",
+    "exit": 0,
+    "errors": [],
+    "seconds": 4.5
+  }
+]

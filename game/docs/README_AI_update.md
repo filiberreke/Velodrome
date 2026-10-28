@@ -1,5 +1,7 @@
 # Velodrome 250 X — zuinig wielvolgen voor sprinters
 
+De actuele AI heeft ook een [voorkeur voor de binnenbaan](README_inside_lane.md): zonder bruikbaar wiel of andere tactische reden voor een hogere lijn gaat een renner naar binnen zodra de route vrij is, ook tijdens het optrekken. De onderstaande historische wielvolgupdate blijft van toepassing.
+
 Update van 23 oktober 2026, gebaseerd op `velodrome_export_2310.zip` en
 `velodrome_250_X_simulator_sprinters_zuinig_wielvolgen_100x50.zip`.
 Dit is een compleet Godot-bronproject, geen gecompileerde Windows-game.

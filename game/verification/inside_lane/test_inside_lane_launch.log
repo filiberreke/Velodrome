@@ -1,0 +1,11 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+INSIDE_LANE_LAUNCH {"baseline_equal":true,"baseline_slow_ids":[],"count":8,"enabled":false,"slow_ids":[]}
+INSIDE_LANE_LAUNCH {"baseline_equal":false,"baseline_slow_ids":[],"count":8,"enabled":true,"slow_ids":[]}
+INSIDE_LANE_LAUNCH {"baseline_equal":true,"baseline_slow_ids":[],"count":12,"enabled":false,"slow_ids":[]}
+INSIDE_LANE_LAUNCH {"baseline_equal":false,"baseline_slow_ids":[],"count":12,"enabled":true,"slow_ids":[]}
+INSIDE_LANE_LAUNCH {"baseline_equal":true,"baseline_slow_ids":[5,11,15],"count":16,"enabled":false,"slow_ids":[5,11,15]}
+INSIDE_LANE_LAUNCH {"baseline_equal":false,"baseline_slow_ids":[5,11,15],"count":16,"enabled":true,"slow_ids":[5,11,15]}
+INSIDE_LANE_LAUNCH_OK

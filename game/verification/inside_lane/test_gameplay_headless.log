@@ -1,0 +1,7 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+GAMEPLAY_RACE: riders=8 laps=10 seconds=261.2 winner=0
+GAMEPLAY_RACE: riders=12 laps=50 seconds=1240.1 winner=1
+GAMEPLAY_HEADLESS_OK
