@@ -351,10 +351,11 @@ func _build_facades_and_railings() -> void:
 	_solid_instances(_box_mesh(Vector3(0.14, 2.12, 0.14)), window_poses, "516776", "Gevel raamstijlen")
 
 func _build_roof() -> void:
-	# Large cantilevered roof, not a flat lid. All levels follow the oval shape.
+	# Large cantilevered roof, with an enclosed high central canopy.
 	_ring_deck(28.8, 49.1, 19.2, 23.3, _material("27354b"), "Donker dakvlak")
 	_ring_deck(29.0, 49.3, 19.42, 23.62, _material("4c3d32"), "Warm houten dakschild")
 	_ring_deck(29.1, 48.9, 19.52, 23.69, _material("76533b"), "Houten plafond tint")
+	_build_central_canopy()
 	# Navy roof fascia and accent stripes.
 	_ring_wall(28.77, 18.73, 19.52, _material(NAVY), "Dakboord donkerblauw")
 	_ring_deck(28.64, 28.79, 18.87, 18.87, _emissive(GOLD, 0.9), "Dak lichtlijn goud")
@@ -406,6 +407,40 @@ func _build_roof() -> void:
 		race_light.spot_range = 37.0
 		race_light.spot_angle = 56.0
 		race_light.shadow_enabled = false
+
+func _build_central_canopy() -> void:
+	# A high, lightweight faceted ceiling spanning the former open centre.
+	# Its underside is above the entire intro camera path and cycling track.
+	var vertices := PackedVector3Array()
+	var indices := PackedInt32Array()
+	var hub := Vector3(0.0, 27.5, 0.0)
+	vertices.append(hub)
+	for i in range(129):
+		var s := LAP * float(i) / 128.0
+		vertices.append(_stadium_point(s, 28.8, 19.2))
+	for i in range(128):
+		indices.append_array(PackedInt32Array([0, i + 1, i + 2]))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var ceiling := MeshInstance3D.new()
+	ceiling.name = "Gesloten hoog plafond boven piste"
+	ceiling.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color("18243b")
+	material.roughness = 0.95
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	ceiling.material_override = material
+	ceiling.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(ceiling)
+	var braces: Array[Transform3D] = []
+	for i in range(24):
+		var s := LAP * float(i) / 24.0
+		braces.append(_between(hub, _stadium_point(s, 28.8, 19.18)))
+	_solid_instances(_box_mesh(Vector3(0.16, 0.21, 1.0)), braces, "3b4b62", "Radiale plafondspanten")
 
 func _between(a: Vector3, b: Vector3) -> Transform3D:
 	var forward: Vector3 = (b - a).normalized()
