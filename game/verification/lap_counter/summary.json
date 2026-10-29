@@ -1,0 +1,37 @@
+{
+  "base_commit": "6155b021026cd6caf3b016ea5ea8d04657fe536a",
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "change": "Personal lap display uses player cumulative distance. Other rider passages and awarded lap credits do not change it. Sprint judging unchanged.",
+  "tests": [
+    {
+      "script": "tests/test_hud.gd",
+      "exit": 0,
+      "errors": [],
+      "seconds": 3.656
+    },
+    {
+      "script": "tests/test_points_race.gd",
+      "exit": 0,
+      "errors": [],
+      "seconds": 68.672
+    },
+    {
+      "script": "tests/test_points_notifications.gd",
+      "exit": 0,
+      "errors": [],
+      "seconds": 3.562
+    }
+  ],
+  "checks": [
+    "Player before and at 250m and 500m crossings",
+    "Other riders ahead and crossing finish",
+    "Lap gains and losses leave personal lap unchanged",
+    "Final display capped at race length",
+    "HUD leaves sprint jury unchanged",
+    "Full points-race rule and notification regression tests"
+  ],
+  "limitations": [
+    "Headless tests only; no visual playtest",
+    "Godot reports existing root certificate store error; no script errors"
+  ]
+}

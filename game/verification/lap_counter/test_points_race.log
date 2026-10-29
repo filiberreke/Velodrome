@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+POINTS_GAMEPLAY {"laps":[-1,0,-1,0,-1,-2,0,0,-3,0,-1,-2,0,0,-2,-1],"points":[-17,0,-20,2,-18,-40,7,0,-55,6,-15,-30,0,3,-34,-14],"seconds":921.700000000141}
+POINTS_RACE_OK
