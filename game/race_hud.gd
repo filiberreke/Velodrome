@@ -515,7 +515,8 @@ func update_race(data: Dictionary) -> void:
 	slipstream_bar.value = reduction
 	slipstream_label.text = "%d%%" % roundi(reduction)
 	slipstream_bar.tooltip_text = "%.0f%% minder luchtweerstand · maximaal %.0f%%" % [reduction, maximum]
-	heart_label.text = "— bpm"
+	var bpm: Variant = data.get("heart_rate_bpm", null)
+	heart_label.text = "%d bpm" % int(bpm) if (bpm is int or bpm is float) and int(bpm) > 0 else "— bpm"
 	# Selection alone never means ERG is active. Future bridge integration supplies
 	# these two fields only after confirming the actual trainer state.
 	var erg_watts: Variant = data.get("erg_target_w", null)
