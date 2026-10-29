@@ -28,10 +28,10 @@ class VirtualBridge:
         self.rx.setblocking(False)
         self.gear = 4
         self.sample = 0
-        self.power = tk.IntVar(value=180)
+        self.power = tk.DoubleVar(value=0)
         self.speed = tk.DoubleVar(value=35)
-        self.cadence = tk.IntVar(value=85)
-        self.hr = tk.IntVar(value=140)
+        self.cadence = tk.DoubleVar(value=0)
+        self.hr = tk.DoubleVar(value=140)
         self.connected = tk.BooleanVar(value=True)
         self.send_gear = tk.BooleanVar(value=True)
         self.packet_drop = tk.BooleanVar(value=False)
@@ -208,8 +208,8 @@ class VirtualBridge:
         self.sample += 1
         if not self.packet_drop.get():
             self.transmit({"type": "telemetry", "valid": self.connected.get(),
-                           "power_w": self.power.get(), "speed_kmh": self.speed.get(),
-                           "cadence_rpm": self.cadence.get(), "heart_rate_bpm": self.hr.get(),
+                           "power_w": round(self.power.get()), "speed_kmh": self.speed.get(),
+                           "cadence_rpm": round(self.cadence.get()), "heart_rate_bpm": round(self.hr.get()),
                            "sample_id": self.sample,
                            "gear": self.gear if self.send_gear.get() and self.mode == self.desired_mode == "SIM" else None})
         try:
