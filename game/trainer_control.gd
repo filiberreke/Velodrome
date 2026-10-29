@@ -189,7 +189,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 	var target_mode := "ERG" if requested_erg > 0 else "SIM"
 	if state.get("desired_mode", "SIM") != target_mode:
 		# Switch modes only within our own session; never take over another controller.
-		if not owned and state.get("desired_mode") != "ERG": return
+		if not owned and state.get("udp_owned", false): return
 		phase = "SWITCHING"
 		_request("set_mode", {"mode": target_mode}, now, true)
 		last_change = now
