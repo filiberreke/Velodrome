@@ -380,8 +380,8 @@ var trainer_ready := false
 var trainer_seen := false
 var zero_stable := 0.0
 const ZERO_CONFIRM_SECONDS := 1.0
-const ZERO_WATTS_THRESHOLD := 2.0
-const ZERO_SPEED_THRESHOLD := 0.2
+const ZERO_WATTS_THRESHOLD := 50.0
+const START_FINAL_SECOND_SPEED_KMH := 10.0
 # Demo-only burst: never alters real KICKR data or sends trainer commands.
 const BOOST_DURATION := 3.0
 const BOOST_POWER_W := 1500.0
@@ -520,7 +520,7 @@ func _physics_process(delta: float) -> void:
 				start_state = "COUNTDOWN"
 				countdown = 3.0
 		elif start_state == "COUNTDOWN":
-			if not _start_conditions_met():
+			if not _start_conditions_met() or (countdown <= 1.0 and not _final_start_speed_ok()):
 				start_state = "WAIT_STOP"
 				zero_stable = 0.0
 			elif countdown > 0.0:
@@ -601,8 +601,14 @@ func _update_countdown_display() -> void:
 
 func _start_conditions_met() -> bool:
 	if trainer_seen:
-		return connected and trainer_ready and watts <= ZERO_WATTS_THRESHOLD and trainer_speed_kmh >= 0.0 and trainer_speed_kmh <= ZERO_SPEED_THRESHOLD
+		return connected and trainer_ready and watts <= ZERO_WATTS_THRESHOLD
 	return watts <= 0.0
+
+func _final_start_speed_ok() -> bool:
+	# Only check trainer speed during the final second of the countdown.
+	if trainer_seen:
+		return trainer_speed_kmh >= 0.0 and trainer_speed_kmh <= START_FINAL_SECOND_SPEED_KMH
+	return true
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
