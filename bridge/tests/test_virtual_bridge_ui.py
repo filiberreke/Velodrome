@@ -73,15 +73,41 @@ class VirtualBridgeTests(unittest.TestCase):
         self.bridge.button('RIGHT')
         self.assertEqual(self.receive(), dict(type='button', button='RIGHT'))
 
+    def test_closed_godot_socket_does_not_stop_scheduled_loop(self):
+        self.receive()
+        with patch.object(self.bridge, 'rx') as receiver:
+            receiver.recvfrom.side_effect = ConnectionResetError(10054, 'Godot socket closed')
+            self.bridge.loop()
+        self.assertEqual(self.receive()['sample_id'], 2)
+        self.bridge.root.after.assert_called_with(100, self.bridge.loop)
+        for error in (ConnectionResetError, ConnectionRefusedError):
+            with patch.object(self.bridge, 'tx') as sender:
+                sender.sendto.side_effect = error()
+                self.bridge.loop()
+        self.bridge.loop()
+        self.assertEqual(self.receive()['sample_id'], 5)
+
     @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
     def test_godot_detection_countdown_and_three_races(self):
+        self.run_integration('test_virtual_bridge.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_manual_team_gears_and_erg_return(self):
+        # A simulator left RELEASED by a previous Godot process must be usable
+        # after an explicit new race start, without restarting the simulator.
+        self.bridge.mode = 'RELEASED'
+        self.bridge.desired_mode = 'ERG'
+        self.bridge.released = True
+        self.run_integration('test_team_bridge.gd')
+
+    def run_integration(self, script):
         # Bind the game on the receiver's ephemeral port, avoiding any running game.
         port = self.receiver.getsockname()[1]
         self.receiver.close()
         repo = SOURCE.parents[2]
         command_port = self.bridge.rx.getsockname()[1]
         command = [os.environ['GODOT_BIN'], '--headless', '--path', str(repo/'game'),
-                   '--script', 'res://tests/test_virtual_bridge.gd', '--',
+                   '--script', 'res://tests/'+script, '--',
                    str(port), str(command_port)]
         with tempfile.TemporaryDirectory() as folder:
             log_path = Path(folder) / 'godot.log'
@@ -96,7 +122,11 @@ class VirtualBridgeTests(unittest.TestCase):
                 while proc.poll() is None and time.monotonic() < deadline:
                     progress = log_path.read_text(errors='replace')
                     self.bridge.packet_drop.set('VIRTUAL_BRIDGE_DROP' in progress and 'VIRTUAL_BRIDGE_RESTORE' not in progress)
-                    if 'VIRTUAL_BRIDGE_SHIFT' in progress and not shifted:
+                    if 'TEAM_BRIDGE_POWER' in progress:
+                        self.bridge.power.set(300)
+                        self.bridge.speed.set(35)
+                        self.bridge.cadence.set(90)
+                    if ('VIRTUAL_BRIDGE_SHIFT' in progress or 'TEAM_BRIDGE_SHIFT' in progress) and not shifted:
                         self.bridge.shift(1)
                         shifted = True
                     self.bridge.loop()

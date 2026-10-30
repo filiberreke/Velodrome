@@ -651,13 +651,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_P:
 			_save_recording("manual")
 		KEY_A, KEY_LEFT:
-			if running and race_mode != 5:
-				player_lane = maxi(0, player_lane - 1)
+			_steer_player(-1)
 		KEY_D, KEY_RIGHT:
-			if running and race_mode == 5:
-				team_race.request_player_exchange()
-			elif running:
-				player_lane = mini(LANES.size() - 1, player_lane + 1)
+			_steer_player(1)
 		KEY_UP, KEY_EQUAL:
 			if not trainer_seen:
 				if start_state == "RACING":
@@ -678,6 +674,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				recovery_left = 0.0
 				boost_used = true
 		KEY_ESCAPE: get_tree().quit()
+
+func _steer_player(direction: int) -> void:
+	if not running:
+		return
+	if race_mode == 5:
+		if direction > 0:
+			team_race.request_player_exchange()
+		return
+	player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
 func _read_bridge() -> void:
 	while udp.get_available_packet_count() > 0:
@@ -729,9 +734,9 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	elif packet.get("type", "") == "button":
 		var key := str(packet.get("button", ""))
 		if key == "SHIFT_UP_RIGHT" or key == "RIGHT":
-			player_lane = mini(LANES.size() - 1, player_lane + 1) if running else player_lane
+			_steer_player(1)
 		elif key == "SHIFT_DOWN_RIGHT" or key == "SHIFT_DOWN_LEFT" or key == "LEFT":
-			player_lane = maxi(0, player_lane - 1) if running else player_lane
+			_steer_player(-1)
 		elif key == "A":
 			_reset()
 
@@ -1192,7 +1197,7 @@ func _update_trainer_control() -> void:
 		if not racing or not trainer_control.error.is_empty() or (last_bridge_telemetry >= 0.0 and not live):
 			trainer_telemetry_resume = false
 		elif live and trainer_control.phase != "RELEASING" and trainer_control.may_resume and trainer_control.state.get("mode") == "RELEASED" and trainer_control.state.get("release_confirmed", false) and not trainer_control.state.get("udp_owned", false):
-			trainer_control.arm()
+			trainer_control.arm(false)
 			trainer_telemetry_resume = false
 	# Existing ERG sessions are preserved by the client's initial status check.
 	var use_erg: bool = active and race_mode == 5 and team_resistance_mode == "ERG" and team_race.ours.has_player_pull and not team_race.ours.player_is_out() and team_race.ours.player_rank() > 0 and team_race.ours.phase == ""

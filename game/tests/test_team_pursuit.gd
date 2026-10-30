@@ -9,6 +9,7 @@ class Model extends "res://main.gd":
 	func _take_finish_photo(_winner: int) -> void: pass
 	func _take_team_finish_photo(_front: float, _offsets: Array[float], _lanes: Array[float], _seconds: float) -> void: pass
 class Screen extends "res://main.gd":
+	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 	func _take_finish_photo(_winner: int) -> void: pass
 	func _take_team_finish_photo(_front: float, _offsets: Array[float], _lanes: Array[float], _seconds: float) -> void: pass
 var failures := 0

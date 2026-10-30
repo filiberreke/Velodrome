@@ -21,13 +21,16 @@ var last_grade := INF
 var last_aero := INF
 var newest_state := -1
 var armed := true
+var allow_released_session := false
 var requested_erg := 0
 var last_target := -1
 
-func arm() -> void:
-	# Called only by the player's explicit start action, never by reconnection.
+func arm(explicit_start: bool = true) -> void:
+	# Explicit start can claim a confirmed release; telemetry recovery is limited
+	# to the existing may_resume permission for our own released session.
 	armed = true
 	error = ""
+	allow_released_session = explicit_start
 
 static func route_grade(previous: Vector3, current: Vector3) -> float:
 	# Bank angle itself is not road grade. Use rise / horizontal travelled path.
@@ -56,6 +59,7 @@ func _request(command: String, params: Dictionary, now: float, mutation: bool = 
 
 func _block(reason: String, release_owned: bool = false, now: float = 0.0) -> void:
 	armed = false
+	allow_released_session = false
 	error = reason
 	push_warning("Trainerkoppeling: " + reason)
 	phase = "BLOCKED"
@@ -110,6 +114,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		return
 	if command == "set_target_power":
 		owned = true
+		allow_released_session = false
 		phase = "ACTIVE"
 		last_target = int(request.packet.watts)
 		return
@@ -124,6 +129,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 	if phase in ["BLOCKED", "RELEASING", "IDLE"]: return
 	if command == "set_grade":
 		owned = true
+		allow_released_session = false
 		may_resume = false
 		phase = "ACTIVE"
 		last_heartbeat = now
@@ -132,12 +138,13 @@ func handle_response(packet: Dictionary, now: float) -> void:
 	elif command == "status" and phase == "PROBE":
 		if not state.get("started", false): return
 		if state.get("waiting_for_feedback", false): return
+		if state.get("mode") == "RELEASED" and not state.get("release_confirmed", false): return
 		if state.get("reconnect_ready", false) and not state.get("release_confirmed", false): return
 		if not state.get("simulation_supported", false):
 			_block("simulation_unsupported")
 		elif state.get("udp_owned", false):
 			_block("control_busy")
-		elif state.get("mode") == "RELEASED" and state.get("release_confirmed", false) and (may_resume or state.get("reconnect_ready", false)):
+		elif state.get("mode") == "RELEASED" and state.get("release_confirmed", false) and (allow_released_session or may_resume or state.get("reconnect_ready", false)):
 			_request("set_mode", {"mode": "SIM"}, now, true)
 		elif state.get("mode") == "SIM" and state.get("desired_mode") == "SIM":
 			phase = "READY"
@@ -213,4 +220,5 @@ func close() -> void:
 	if socket.is_bound():
 		release(Time.get_ticks_msec() / 1000.0)
 		socket.close()
+
 

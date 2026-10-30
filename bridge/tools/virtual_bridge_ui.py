@@ -93,7 +93,15 @@ class VirtualBridge:
 
     def transmit(self, obj):
         if not self.packet_drop.get():
-            self.tx.sendto(json.dumps(obj).encode("utf-8"), (HOST, TELEMETRY_PORT))
+            self.send_udp(self.tx, obj, (HOST, TELEMETRY_PORT))
+
+    @staticmethod
+    def send_udp(sock, obj, address):
+        try:
+            sock.sendto(json.dumps(obj).encode("utf-8"), address)
+        except (ConnectionResetError, ConnectionRefusedError):
+            # A Godot socket can close between receive and reply. Keep polling.
+            pass
 
     def button(self, button):
         self.transmit({"type": "button", "button": button})
@@ -199,7 +207,7 @@ class VirtualBridge:
             reply = {"type": "error", "v": 1, "id": request_id, "ok": False,
                      "code": str(exc), "state": self.snapshot()}
             self.write("COMMAND ERROR: " + str(exc))
-        self.rx.sendto(json.dumps(reply).encode("utf-8"), address)
+        self.send_udp(self.rx, reply, address)
         self.counter += 1
 
     def loop(self):
@@ -217,7 +225,7 @@ class VirtualBridge:
                 data, address = self.rx.recvfrom(4096)
                 if address[0] == HOST:
                     self.command(data, address)
-        except BlockingIOError:
+        except (BlockingIOError, ConnectionResetError, ConnectionRefusedError):
             pass
         self.status.set(f"Verzonden: {self.sample} telemetrieframes | Godot commando's: {self.counter} | "
                         f"Trainer: {self.mode} / {self.backend} | {self.target} W ERG | "
