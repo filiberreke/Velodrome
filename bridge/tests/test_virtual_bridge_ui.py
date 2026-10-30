@@ -118,6 +118,7 @@ class VirtualBridgeTests(unittest.TestCase):
         with subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT) as proc:
             deadline = time.monotonic() + 45
             shifted = False
+            steered = False
             try:
                 while proc.poll() is None and time.monotonic() < deadline:
                     progress = log_path.read_text(errors='replace')
@@ -129,6 +130,9 @@ class VirtualBridgeTests(unittest.TestCase):
                     if ('VIRTUAL_BRIDGE_SHIFT' in progress or 'TEAM_BRIDGE_SHIFT' in progress) and not shifted:
                         self.bridge.shift(1)
                         shifted = True
+                    if 'TEAM_BRIDGE_STEER' in progress and not steered:
+                        self.bridge.button('RIGHT')
+                        steered = True
                     self.bridge.loop()
                     time.sleep(.02)
                 if proc.poll() is None:

@@ -36,3 +36,9 @@ class ButtonMapper:
 
     def map_button(self, button):
         return self.mapping.get(button, "")
+
+    def packet(self, button):
+        action = self.map_button(button)
+        if not action:
+            return None
+        return {"type": "button", "button": action, "source_button": button}

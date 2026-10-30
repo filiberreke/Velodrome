@@ -26,7 +26,7 @@ func run_test() -> void:
 	var sender := PacketPeerUDP.new()
 	sender.set_dest_address("127.0.0.1", game.udp.get_local_port())
 	for count in [3, 4]:
-		for button in ["RIGHT", "SHIFT_UP_RIGHT"]:
+		for button in ["RIGHT"]:
 			prepare_team(game, count)
 			sender.put_packet(JSON.stringify({"type": "button", "button": button}).to_utf8_buffer())
 			for i in range(30):
@@ -37,6 +37,12 @@ func run_test() -> void:
 			check(game.player_lane == 0, "Team input does not modify ignored free-lane selection")
 			game._process_bridge_packet({"type": "button", "button": button})
 			check(game.team_race.ours.exchanges == 1, "Duplicate right cannot restart exchange")
+		for button in ["SHIFT_UP_LEFT", "SHIFT_DOWN_LEFT", "SHIFT_UP_RIGHT", "SHIFT_DOWN_RIGHT"]:
+			prepare_team(game, count)
+			game._process_bridge_packet({"type": "button", "button": button})
+			check(game.team_race.ours.exchanges == 0 and game.player_lane == 0, "Raw shifting must not steer or exchange")
+			game._process_bridge_packet({"type": "button", "button": "RIGHT", "source_button": button})
+			check(game.team_race.ours.exchanges == 0 and game.player_lane == 0, "Mapped shift preserves source and cannot exchange")
 		for button in ["LEFT", "SHIFT_DOWN_LEFT", "SHIFT_DOWN_RIGHT"]:
 			prepare_team(game, count)
 			game.player_lane = 2
