@@ -29,7 +29,7 @@ class VirtualBridge:
         self.gear = 4
         self.sample = 0
         self.power = tk.DoubleVar(value=0)
-        self.speed = tk.DoubleVar(value=35)
+        self.speed = tk.DoubleVar(value=0)
         self.cadence = tk.DoubleVar(value=0)
         self.hr = tk.DoubleVar(value=140)
         self.connected = tk.BooleanVar(value=True)
@@ -234,3 +234,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     VirtualBridge(root)
     root.mainloop()
+
