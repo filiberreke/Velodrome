@@ -733,6 +733,11 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 				watts = 0.0
 	elif packet.get("type", "") == "button":
 		var key := str(packet.get("button", ""))
+		var source := str(packet.get("source_button", key))
+		# Gear paddles can be mapped to LEFT/RIGHT by the real bridge. Preserve
+		# their intent: shifting must never relinquish the player's team head turn.
+		if race_mode == 5 and (source.begins_with("SHIFT_") or key.begins_with("SHIFT_")):
+			return
 		if key == "SHIFT_UP_RIGHT" or key == "RIGHT":
 			_steer_player(1)
 		elif key == "SHIFT_DOWN_RIGHT" or key == "SHIFT_DOWN_LEFT" or key == "LEFT":

@@ -249,10 +249,10 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                             combined.on_button(button)
                         elif shifter is not None:
                             shifter.on_button(button)
-                        action = mapper.map_button(button)
-                        if action:
-                            sender.send({"type": "button", "button": action})
-                            print(f"Ride knop: {button} -> {action}")
+                        packet = mapper.packet(button)
+                        if packet:
+                            sender.send(packet)
+                            print(f"Ride knop: {button} -> {packet['button']}")
                         else:
                             print(f"Ride knop: {button} -> (geen actie)")
                     previous = pressed

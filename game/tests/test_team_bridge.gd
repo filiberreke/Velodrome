@@ -42,8 +42,11 @@ func run_test() -> void:
 	check(game.team_race.velocity[0] > 0.5, "Team is moving before exchange")
 	print("TEAM_BRIDGE_SHIFT")
 	await tick(game, 30)
-	check(game.team_race.ours.player_is_out(), "Actual simulator right shift starts team exchange")
-	check(game.trainer_selected_gear == 5 and game.race_overlay.gear_label.text == "5", "Manual gear shift is received and displayed during exchange")
+	check(not game.team_race.ours.player_is_out() and game.team_race.ours.player_rank() == 0 and game.team_race.ours.exchanges == 0, "Actual simulator shift keeps player on the front")
+	check(game.trainer_selected_gear == 5 and game.race_overlay.gear_label.text == "5", "Manual gear shift updates gear while continuing head turn")
+	print("TEAM_BRIDGE_STEER")
+	await tick(game, 30)
+	check(game.team_race.ours.player_is_out(), "Separate right steering starts team exchange")
 	for i in range(150):
 		await tick(game, 1, 0.2)
 		if not game.team_race.ours.player_is_out(): break
