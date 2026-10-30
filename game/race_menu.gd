@@ -10,6 +10,10 @@ var team_options
 var team_scroll: ScrollContainer
 var pursuit_options
 var demo_settings: VBoxContainer
+var bridge_label: Label
+var bridge_seen := false
+var bridge_live := false
+var bridge_unavailable := false
 const MODES := [
 	{"key": "scratch", "title": "Scratch", "hint": "Eén peloton. Eén finish.", "detail": "Blijf uit de wind, kies je moment en sprint als eerste over de meet.", "race_id": 0},
 	{"key": "pursuit", "title": "Achtervolging", "hint": "Jij, je tegenstander en de klok.", "detail": "Twee renners starten tegenover elkaar. Jaag op de beste tijd of haal je tegenstander in.", "race_id": 4},
@@ -79,8 +83,15 @@ func _ready() -> void:
 	var layout := VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 22)
 	margin.add_child(layout)
+	var brand_row := HBoxContainer.new()
+	layout.add_child(brand_row)
 	var brand := label("VELODROME 250", 19, ACCENT)
-	layout.add_child(brand)
+	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_row.add_child(brand)
+	bridge_label = label("DEMO · nog geen bridge-telemetrie ontvangen", 18, MUTED)
+	bridge_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bridge_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_row.add_child(bridge_label)
 	page_title = label("Kies jouw wedstrijd", 48)
 	layout.add_child(page_title)
 	breadcrumb = label("01  SPELVORM     /     02  WEDSTRIJDINSTELLINGEN", 18, MUTED)
@@ -288,19 +299,32 @@ func select_mode(index: int) -> void:
 	pursuit_options.visible = selected == 1
 	team_options.visible = selected == 2
 	team_scroll.visible = selected == 2
-	demo_settings.visible = selected in [0, 1, 2, 3]
+	demo_settings.visible = selected in [0, 1, 2, 3] and not bridge_seen and not bridge_unavailable
 	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
 	start_button.disabled = selected not in [0, 1, 2, 3]
 	start_button.text = "Start wedstrijd  →" if selected in [0, 1, 2, 3] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
+	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
 	back_button.grab_focus.call_deferred()
+
+func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
+	bridge_seen = seen
+	bridge_live = live
+	bridge_unavailable = unavailable
+	bridge_label.text = "Bridge LIVE · trainertelemetrie ontvangen" if live else ("Bridge ontvangen · wacht op geldige trainerdata" if seen else "DEMO · nog geen bridge-telemetrie ontvangen")
+	if unavailable:
+		bridge_label.text = "Bridge niet beschikbaar: UDP 51723 bezet. Sluit andere spelinstanties en herstart Godot."
+	demo_settings.visible = selected in [0, 1, 2, 3] and not seen and not unavailable
+	start_button.disabled = unavailable or selected not in [0, 1, 2, 3]
+	if selected in [1, 2]:
+		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 
 func _pursuit_changed() -> void:
 	if selected not in [1, 2] or start_button == null:
 		return
 	var current = pursuit_options if selected == 1 else team_options
-	start_button.disabled = not current.can_start()
+	start_button.disabled = bridge_unavailable or not current.can_start()
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:

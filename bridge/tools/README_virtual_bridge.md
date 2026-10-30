@@ -12,16 +12,37 @@ python bridge/tools/virtual_bridge_ui.py
 
 Start vervolgens het Godot-project. Een andere volgorde mag ook, maar herstart Godot als poort 51723 reeds bezet is.
 
+Het menu toont `Bridge LIVE` zodra Godot geldige telemetrie ontvangt; de demo-instellingen verdwijnen dan. Zonder ontvangen telemetrie staat er expliciet `DEMO`. Als een andere spelinstantie UDP 51723 gebruikt, toont het menu de poortfout en kan de wedstrijd niet starten. Sluit de andere spelinstantie en herstart Godot. Een teller in de simulator bewijst alleen dat pakketten verzonden worden, niet welke spelinstantie ze ontvangt.
+
 ## Test van drie opeenvolgende races
 
 1. Zet vermogen, snelheid en cadans op nul om de startvoorwaarden te halen. Laat 'KICKR telemetrie geldig' aangevinkt. Kies in Godot een wedstrijd en start de aftelling.
 2. Verhoog vermogen en snelheid zodra de race gestart is. Klik links en rechts en controleer de rijlijn. Schakel lichter/zwaarder en controleer de versnellingsindicator.
 3. Voltooi of herstart de wedstrijd. Zet vermogen en snelheid opnieuw op nul, start opnieuw en test alles opnieuw. Herhaal een derde keer.
 4. Bij de ploegenachtervolging: controleer in de log de `set_grade`-commando's en hun `aero_scale`, en in ERG de `set_mode`- en `set_target_power`-commando's. De tool simuleert antwoorden, niet de werkelijke fysieke weerstand.
-5. Zet desgewenst 'Simuleer verlies' aan om pakketverlies van telemetrie naar Godot te testen en zet het weer uit.
+5. Zet tijdens een race 'Simuleer verlies' minstens twee seconden aan. Godot geeft zijn trainerregeling na de telemetrietime-out vrij. Zet de optie weer uit: dezelfde race hervat zijn eigen SIM-regeling via een nieuwe statuscontrole; de versnelling verschijnt opnieuw. Test daarna schakelen en links/rechts sturen. Bij ongeldige trainerdata of een commandofout/overname door een andere besturing is er geen automatische heractivering.
 
 ## Beperkingen
 
 Dit is een diagnostische *mock* van de bridge, niet een echte koppeling met Zwift Ride of KICKR. De tool simuleert de poorten en commandostatus, maar test geen Bluetooth, FTMS-indicaties of fysieke weerstand. Hij verstuurt geen zelfstandige ACK voor knopberichten omdat het bestaande protocol die niet kent. De test vervangt de echte bridge tijdelijk; hij injecteert geen knoppen in een gelijktijdig draaiende echte bridge.
 
 De standaardwaarden van vermogen, snelheid en cadans zijn 0 zodat de wedstrijd veilig door zijn startvoorwaarde kan gaan. Hartslag staat op 140 bpm voor HUD/exportcontrole.
+
+## Automatische regressietests
+
+Vanuit de repository:
+
+```powershell
+python -m unittest discover -s bridge/tests -p test_virtual_bridge_ui.py -v
+```
+
+De tests gebruiken echte UDP-sockets en Tcl-variabelen met nagebootste vensters; er is geen beeldscherm of hardware nodig. Voor de extra test met de echte Godot-code, importeer eerst het project en zet `GODOT_BIN`:
+
+```powershell
+$env:GODOT_BIN = 'C:\pad\naar\Godot.exe'
+& $env:GODOT_BIN --headless --path game --editor --import
+python -m unittest discover -s bridge/tests -p test_virtual_bridge_ui.py -v
+```
+
+Deze integratietest gebruikt vrije testpoorten en controleert detectie in het menu, aftelling, drie races, vrijgave bij UDP-verlies, automatisch herstel van de eigen SIM-sessie, versnelling/sturen na herstel en een bezette telemetriepoort. De fysieke weerstand en Bluetooth worden niet getest.
+

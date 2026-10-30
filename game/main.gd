@@ -3,6 +3,7 @@ extends Node3D
 const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
 var trainer_road_grade := 0.0
+var trainer_telemetry_resume := false
 const LAP := 250.0
 const ScratchRules := preload("res://scratch_lap_rules.gd")
 var scratch_rules = ScratchRules.new()
@@ -421,6 +422,7 @@ var last_lap_crossing: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var lap_notice_until: float = 0.0
 var lap_notice: String = ""
 var udp := PacketPeerUDP.new()
+var bridge_bind_error: Error = OK
 var race_overlay
 var trainer_gear := "—"
 # Bridge v0.13.1 optional fields: null means unavailable, independent of KICKR valid.
@@ -465,9 +467,8 @@ var fit_gps_export_path := ""
 func _ready() -> void:
 	player_appearance.load_preferences()
 	Engine.max_fps = 90
-	var err := udp.bind(UDP_PORT, "127.0.0.1")
-	if err != OK:
-		push_warning("UDP poort 51723 niet beschikbaar. Demo blijft bruikbaar.")
+	if _bind_bridge() != OK:
+		push_warning("UDP poort 51723 niet beschikbaar. Sluit andere spelinstanties en herstart Godot.")
 	strava_client = preload("res://strava_client.gd").new()
 	add_child(strava_client)
 	strava_client.status_changed.connect(_on_strava_status)
@@ -482,6 +483,10 @@ func _ready() -> void:
 	broadcast_intro = preload("res://broadcast_intro.gd").new()
 	broadcast_intro.setup(self)
 	_reset()
+
+func _bind_bridge(port: int = UDP_PORT) -> Error:
+	bridge_bind_error = udp.bind(port, "127.0.0.1")
+	return bridge_bind_error
 
 func _now_s() -> float:
 	return Time.get_ticks_msec() / 1000.0
@@ -600,6 +605,8 @@ func _update_countdown_display() -> void:
 	countdown_label.visible = true
 
 func _start_conditions_met() -> bool:
+	if bridge_bind_error != OK:
+		return false
 	if trainer_seen:
 		return connected and trainer_ready and watts <= ZERO_WATTS_THRESHOLD
 	return watts <= 0.0
@@ -762,6 +769,7 @@ func _reset() -> void:
 	if race_overlay != null: race_overlay.popup.clear()
 	if broadcast_intro != null: broadcast_intro.cancel()
 	trainer_control.release(_now_s())
+	trainer_telemetry_resume = false
 	trainer_road_grade = 0.0
 	_save_recording("restart")
 	ride_records = []
@@ -1172,7 +1180,20 @@ func _winner_index() -> int:
 	return best
 
 func _update_trainer_control() -> void:
-	var active: bool = trainer_seen and connected and trainer_ready and running and not finished and start_state == "RACING"
+	var racing: bool = trainer_seen and running and not finished and start_state == "RACING"
+	var live: bool = connected and trainer_ready
+	var active: bool = racing and live
+	# Loss of the whole UDP stream releases our load. Remember only that
+	# release, so fresh telemetry can resume this race through the normal probe.
+	# Invalid trainer samples, command errors and another controller never re-arm.
+	if racing and not active and last_bridge_telemetry < 0.0 and trainer_control.owned and trainer_control.armed:
+		trainer_telemetry_resume = true
+	if trainer_telemetry_resume:
+		if not racing or not trainer_control.error.is_empty() or (last_bridge_telemetry >= 0.0 and not live):
+			trainer_telemetry_resume = false
+		elif live and trainer_control.phase != "RELEASING" and trainer_control.may_resume and trainer_control.state.get("mode") == "RELEASED" and trainer_control.state.get("release_confirmed", false) and not trainer_control.state.get("udp_owned", false):
+			trainer_control.arm()
+			trainer_telemetry_resume = false
 	# Existing ERG sessions are preserved by the client's initial status check.
 	var use_erg: bool = active and race_mode == 5 and team_resistance_mode == "ERG" and team_race.ours.has_player_pull and not team_race.ours.player_is_out() and team_race.ours.player_rank() > 0 and team_race.ours.phase == ""
 	var erg_target: int = clampi(roundi(team_race.ours.target_watts()), 1, 1300) if use_erg else 0
@@ -1993,7 +2014,7 @@ func _difficulty_changed(value: float) -> void:
 	difficulty_label.text = "AI-sterkte · %d%%" % int(ai_difficulty)
 
 func _confirm_start() -> void:
-	if setup_panel == null or start_state != "SETUP":
+	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
 	if choice not in [0, 1, 2, 3]:
@@ -2272,6 +2293,7 @@ func _lean_debug_text() -> String:
 
 func _update_hud() -> void:
 	if setup_panel != null and setup_panel.visible:
+		setup_panel.update_bridge_status(trainer_seen, connected and trainer_ready, bridge_bind_error != OK)
 		return
 	var status := "KICKR LIVE" if connected else ("KICKR WACHT OP DATA" if trainer_seen else "DEMO (startpreset %.0f W)" % demo_launch_watts)
 	if not connected and _power_hold_active():
