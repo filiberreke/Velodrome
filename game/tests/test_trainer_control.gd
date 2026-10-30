@@ -91,6 +91,7 @@ func run_test() -> void:
 	client.close(); server.close()
 	# Initial ERG must never be hijacked.
 	var erg := Client.new(); erg.port = 9
+	erg.arm()
 	erg.tick(true, 5, .31, 200)
 	var probe_id: String = erg.requests.keys()[0]
 	erg.handle_response({"type": "ack", "ok": true, "v": 1, "id": probe_id, "state": {"started": true, "disabled": false, "simulation_supported": true, "mode": "ERG", "desired_mode": "ERG", "udp_owned": false}}, 200.1)
@@ -124,6 +125,33 @@ func run_test() -> void:
 	recovered.handle_response({"type": "ack", "ok": true, "v": 1, "id": recovered_id, "state": recovered_state}, 401.2)
 	check(not recovered.pending.is_empty() and recovered.pending.packet.command == "set_mode" and recovered.pending.packet.mode == "SIM", "Explicit race claims released recovery session without bridge restart")
 	recovered.close()
+	# A new Godot process has no may_resume history, but the player's explicit
+	# race start may claim a confirmed release left by the previous process.
+	var released_state := {"started": true, "disabled": false, "simulation_supported": true, "mode": "RELEASED", "desired_mode": "ERG", "udp_owned": false, "release_confirmed": false}
+	var fresh := Client.new(); fresh.port = 9; fresh.arm()
+	fresh.tick(true, 0, 1, 500)
+	var fresh_id: String = fresh.requests.keys()[0]
+	fresh.handle_response({"type": "ack", "ok": true, "v": 1, "id": fresh_id, "state": released_state.duplicate()}, 500.1)
+	check(fresh.phase == "PROBE" and fresh.pending.is_empty(), "Explicit start waits for confirmed release")
+	fresh.tick(true, 0, 1, 501.1)
+	fresh_id = fresh.requests.keys()[-1]
+	released_state.release_confirmed = true
+	fresh.handle_response({"type": "ack", "ok": true, "v": 1, "id": fresh_id, "state": released_state.duplicate()}, 501.2)
+	check(fresh.pending.get("packet", {}).get("command") == "set_mode", "Explicit start recovers released bridge without previous session history")
+	fresh.close()
+	var implicit := Client.new(); implicit.port = 9
+	implicit.arm(false); implicit.tick(true, 0, 1, 600)
+	var implicit_id: String = implicit.requests.keys()[0]
+	implicit.handle_response({"type": "ack", "ok": true, "v": 1, "id": implicit_id, "state": released_state.duplicate()}, 600.1)
+	check(implicit.phase == "BLOCKED" and implicit.pending.is_empty(), "Automatic recovery cannot claim an unrelated released session")
+	implicit.close()
+	var busy := Client.new(); busy.port = 9; busy.arm()
+	busy.tick(true, 0, 1, 700)
+	var busy_id: String = busy.requests.keys()[0]
+	released_state.udp_owned = true
+	busy.handle_response({"type": "ack", "ok": true, "v": 1, "id": busy_id, "state": released_state.duplicate()}, 700.1)
+	check(busy.phase == "BLOCKED" and busy.pending.is_empty(), "Explicit start cannot claim another controller's session")
+	busy.close()
 	print("TRAINER_CONTROL_OK" if failures == 0 else "TRAINER_CONTROL_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
 
