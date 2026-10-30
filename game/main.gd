@@ -373,6 +373,8 @@ const ATTACK_FADE_END_M := 95.0
 var distances: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var speeds: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var player_lane := 0
+var steering_direction := 0
+var steering_steps := 0
 var watts := 0.0
 # Demo start preset: selected before the countdown, applied ONLY when START fires.
 var demo_launch_watts := 300.0
@@ -689,6 +691,31 @@ func _read_bridge() -> void:
 		_process_bridge_json(udp.get_packet().get_string_from_utf8())
 	_expire_bridge_optional_fields(_now_s())
 
+func _process_steering(value: Variant) -> void:
+	if not (value is int or value is float) or not is_finite(float(value)) or absf(float(value)) > 100.0:
+		return
+	var pressure: float = absf(float(value))
+	if pressure <= 15.0:
+		steering_direction = 0
+		steering_steps = 0
+		return
+	if pressure < 25.0:
+		return
+	var direction: int = 1 if float(value) > 0.0 else -1
+	var steps: int = mini(5, 1 + int((pressure - 25.0) / 15.0))
+	var same_direction: bool = direction == steering_direction
+	var extra: int = maxi(0, steps - steering_steps) if same_direction else steps
+	steering_steps = maxi(steering_steps, steps) if same_direction else steps
+	steering_direction = direction
+	# Consume presses during menus/countdown too: holding through GO must not steer.
+	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
+		return
+	if race_mode == 5:
+		if direction > 0 and not same_direction:
+			team_race.request_player_exchange()
+	elif extra > 0:
+		player_lane = clampi(player_lane + direction * extra, 0, LANES.size() - 1)
+
 func _process_bridge_json(raw: String) -> void:
 	var parser := JSON.new()
 	if parser.parse(raw) != OK or not parser.data is Dictionary:
@@ -696,7 +723,9 @@ func _process_bridge_json(raw: String) -> void:
 	_process_bridge_packet(parser.data)
 
 func _process_bridge_packet(packet: Dictionary) -> void:
-	if packet.get("type", "") == "telemetry":
+	if packet.get("type", "") == "steering":
+		_process_steering(packet.get("value"))
+	elif packet.get("type", "") == "telemetry":
 		if not trainer_seen and start_state == "RACING":
 			_reset() # Avoid attaching a live trainer mid-demo with a flying start.
 		_apply_bridge_optional_fields(packet)
@@ -734,14 +763,10 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	elif packet.get("type", "") == "button":
 		var key := str(packet.get("button", ""))
 		var source := str(packet.get("source_button", key))
-		# Gear paddles can be mapped to LEFT/RIGHT by the real bridge. Preserve
-		# their intent: shifting must never relinquish the player's team head turn.
-		if race_mode == 5 and (source.begins_with("SHIFT_") or key.begins_with("SHIFT_")):
+		if source.begins_with("SHIFT_") or key.begins_with("SHIFT_"):
 			return
-		if key == "SHIFT_UP_RIGHT" or key == "RIGHT":
-			_steer_player(1)
-		elif key == "SHIFT_DOWN_RIGHT" or key == "SHIFT_DOWN_LEFT" or key == "LEFT":
-			_steer_player(-1)
+		if setup_panel != null and setup_panel.visible:
+			setup_panel.bridge_action(key)
 		elif key == "A":
 			_reset()
 
@@ -812,6 +837,8 @@ func _reset() -> void:
 	running = false
 	finished = false
 	player_lane = 0
+	steering_direction = 0
+	steering_steps = 0
 	camera_roll = 0.0
 	pursuit_trace.clear()
 	performance_context.clear(); performance_id = ""; performance_recorded = false

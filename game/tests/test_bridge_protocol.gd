@@ -58,11 +58,13 @@ func run_test() -> void:
 	check(game.trainer_heart_rate_bpm == null, "Malformed or unrelated messages cannot invent telemetry")
 	game.player_lane = 2
 	for button in ["RIGHT", "SHIFT_UP_RIGHT"]: game._process_bridge_packet({"type": "button", "button": button})
-	check(game.player_lane == 4, "Existing right button aliases retained")
+	check(game.player_lane == 2, "Digital navigation and gear buttons do not steer")
 	for button in ["LEFT", "SHIFT_DOWN_LEFT", "SHIFT_DOWN_RIGHT"]: game._process_bridge_packet({"type": "button", "button": button})
-	check(game.player_lane == 1, "Existing left button aliases retained")
+	check(game.player_lane == 2, "Left navigation and gear buttons do not steer")
+	game._process_bridge_packet({"type": "steering", "value": 40})
+	check(game.player_lane == 4, "Analog pressure can move two lanes")
 	game.running = false; game._process_bridge_packet({"type": "button", "button": "RIGHT"})
-	check(game.player_lane == 1, "Buttons do not move rider outside running race")
+	check(game.player_lane == 4, "Buttons do not move rider outside running race")
 	game._process_bridge_packet({"type": "button", "button": "A"})
 	check(game.resets == 1, "Existing A reset button retained")
 	game.trainer_seen = false; game.start_state = "RACING"

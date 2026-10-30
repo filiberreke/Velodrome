@@ -1,5 +1,36 @@
 # Velodrome Bridge v0.15 — lokaal UDP-protocol v1
 
+## Bridge naar Godot: analoge stuurwaarde
+
+Op de bestaande telemetriepoort 127.0.0.1:51723 kan de bridge naast telemetrie
+en knoppen een onafhankelijk bericht verzenden:
+
+```json
+{"type":"steering","value":-55}
+```
+
+`value` is een eindig getal -100..100: negatief links, positief rechts, 0 is
+losgelaten. De bridge combineert alleen de naar buiten gerichte paddlewaarden;
+tegengesteld sturen heft elkaar op en remdruk stuurt niet. Analoge-only BLE-
+meldingen blijven geldig en ontbrekende waarden wissen de andere paddle niet.
+Beide bekende Ride-indelingen worden ondersteund: analoge groep in protobuf-
+veld 2 en herhaalde analoge entries in veld 3, met ZigZag `sint32`.
+
+Godot accepteert geen boolean, string, NaN/Infinity of waarde buiten het bereik.
+Activering vanaf 25, opnieuw losgelaten bij maximaal 15. Niveaus 25/40/55/70/85
+geven 1/2/3/4/5 banen; herhaalde berichten bij vasthouden tellen niet opnieuw.
+Een hogere uitslag voegt alleen de extra banen toe. De bestaande baananimatie
+blijft behouden. Menu, aftelling en finish negeren beweging en verbruiken een
+reeds ingedrukte paddle zodat vasthouden tot GO niet ineens stuurt.
+In ploegenachtervolging vraagt alleen een nieuwe rechter paddlebeweging een
+kopwissel aan; druk verhogen of vasthouden herhaalt deze niet.
+
+Digitale `LEFT/RIGHT/UP/DOWN`-berichten sturen niet meer tijdens een race.
+In het menu verplaatsen zij de focus; `A` kiest en `B` keert terug. Gearknoppen
+worden via `source_button` herkend en blijven buiten navigatie en stuurinput.
+Deze eenrichtingsberichten hebben geen ACK. De commando-envelop en lease op
+51725 blijven ongewijzigd.
+
 ## Spelkoppeling: optionele luchtweerstandsfactor
 
 `set_grade` accepteert daarnaast optioneel `aero_scale`: eindig JSON-getal 0..1,
@@ -236,5 +267,6 @@ geen authenticatie tegen lokale processen.
 Telemetrie op 127.0.0.1:51723 en interne HR op 51724 veranderen niet. Geen ERG-
 statusvelden toegevoegd aan telemetrie: gebruik status op 51725. gear blijft 1..12
 in actieve SIM, anders null; Ride-knopberichten blijven behouden.
+
 
 
