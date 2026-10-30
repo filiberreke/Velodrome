@@ -1,7 +1,6 @@
 extends Node3D
-## Lightweight race-day spectacle: tifo, national flags, and a travelling stand wave.
+## Lightweight race-day spectacle: national flags and a travelling stand wave.
 ## All spectator geometry and density remain untouched.
-const ART := preload("res://assets/branding/velodrome_tifo.svg")
 const LAP := 250.0
 const FLAGS := [
 	["belgium", Color("#171717"), Color("#f5d32d"), Color("#dc2738")],
@@ -18,78 +17,19 @@ const FLAGS := [
 ]
 var arena: Node3D
 var game: Node3D
-var tifo: MeshInstance3D
 var flag_materials: Array[ShaderMaterial] = []
 var wave_material: ShaderMaterial
-var elapsed := 0.0
 var excitement := 0.1
 var lead_s := 0.0
-var previous_state := ""
-var racing_elapsed := 0.0
 
 func _ready() -> void:
 	arena = get_parent() as Node3D
 	game = arena.get_parent() as Node3D
-	_make_tifo()
 	_make_flags()
 	_make_wave()
 
 func _stadium(s: float, off: float, h: float) -> Vector3:
 	return arena._stadium_point(s, off, h)
-
-func _make_tifo() -> void:
-	# First bend, first two tiers: a draped surface, not a billboard.
-	var verts := PackedVector3Array()
-	var uv := PackedVector2Array()
-	var indices := PackedInt32Array()
-	var cols := 52
-	var rows := 18
-	var begin := 3.0
-	var extent := 82.0
-	for y in range(rows + 1):
-		var v := float(y) / float(rows)
-		var off := lerpf(13.6, 29.1, v)
-		var height := lerpf(2.8, 11.55, v) + 0.4 * sin(v * PI)
-		for x in range(cols + 1):
-			var u := float(x) / float(cols)
-			var s := begin + u * extent
-			var pos := _stadium(s, off, height)
-			pos.y += sin(u * PI * 10.0) * sin(v * PI * 7.0) * 0.085
-			verts.append(pos)
-			uv.append(Vector2(u, 1.0 - v))
-			if x < cols and y < rows:
-				var a := y * (cols + 1) + x
-				indices.append_array(PackedInt32Array([a, a + cols + 1, a + 1, a + 1, a + cols + 1, a + cols + 2]))
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = verts
-	arrays[Mesh.ARRAY_TEX_UV] = uv
-	arrays[Mesh.ARRAY_INDEX] = indices
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	tifo = MeshInstance3D.new()
-	tifo.name = "OpeningstifoEersteBocht"
-	tifo.mesh = mesh
-	var mat := ShaderMaterial.new()
-	mat.shader = Shader.new()
-	mat.shader.code = """shader_type spatial;
-render_mode cull_disabled, diffuse_lambert;
-uniform sampler2D art : source_color, filter_linear_mipmap;
-uniform float time_elapsed = 0.0;
-uniform float fold = 1.0;
-void vertex() {
-	float pulse = sin(TIME*1.8 + UV.x*38.0 + UV.y*15.0);
-	VERTEX.y += pulse * 0.09 * fold;
-}
-void fragment() {
-	vec4 c = texture(art, UV);
-	ALBEDO = c.rgb * (0.91 + 0.09*sin(UV.x*75.0 + UV.y*25.0));
-	ROUGHNESS = 0.94;
-}"""
-	mat.set_shader_parameter("art", ART)
-	tifo.material_override = mat
-	tifo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(tifo)
 
 func _flag_mesh() -> ArrayMesh:
 	var v := PackedVector3Array()
@@ -251,14 +191,7 @@ func _make_wave() -> void:
 func _process(delta: float) -> void:
 	if game == null:
 		return
-	elapsed += delta
 	var state := String(game.get("start_state"))
-	if state != previous_state:
-		if state == "RACING":
-			racing_elapsed = 0.0
-		previous_state = state
-	if state == "RACING":
-		racing_elapsed += delta
 	var distances = game.get("distances")
 	var lead := 0.0
 	if distances is Array:
@@ -283,6 +216,3 @@ func _process(delta: float) -> void:
 		var angular_phase := atan2(front.z,front.x) / TAU + 0.5
 		wave_material.set_shader_parameter("wave_center",angular_phase)
 		wave_material.set_shader_parameter("wave_strength",0.7 if final_lap else excitement*0.38)
-	# Stay until the first lap is completed, then fade the overhead cloth out.
-	if tifo:
-		tifo.visible = not bool(game.get("finished")) and (state != "RACING" or lead < LAP)
