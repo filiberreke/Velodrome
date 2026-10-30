@@ -132,7 +132,7 @@ func flight_knots() -> Array:
 	# Times are shared by adjoining Hermite spans: no stop at individual waypoints.
 	# The north infield corridor is centred at x=9.15, below the 2.21 m valance.
 	var points := [
-		[10.0, close_pos], [13.0, Vector3(28, 11, -48)],
+		[10.0, close_pos], [13.0, Vector3(0, 22, -5)],
 		[16.0, Vector3(0, 9, -60)], [19.0, Vector3(-24, 7, -30)],
 		[22.0, Vector3(-24, 5, 22)], [25.0, Vector3(-6, 3.8, 48)],
 		[28.0, Vector3(12, 2.3, 37)], [30.0, Vector3(9.15, 1.95, 29)],
@@ -177,6 +177,10 @@ func sample(time: float) -> Dictionary:
 	if direction.length_squared() < .01: direction = game._direction(game._rider_distance(0, game.distances[0]), game.lane_offsets[0])
 	var target := pos + direction * 8.0
 	target = close_target.lerp(target, smooth_phase((time - WELCOME_END) / 1.5))
+	# Give the first-bend cloth a readable reveal while keeping the flight path.
+	var tifo_focus := smooth_phase((time - 11.0) / 1.5) * (1.0 - smooth_phase((time - 14.0) / 2.0))
+	var tifo_target: Vector3 = game.arena._stadium_point(28.0, 21.35, 8.8)
+	target = target.lerp(tifo_target, tifo_focus)
 	if game.race_mode in [4, 5]:
 		var opponent: int = game.team_size if game.race_mode == 5 else 1
 		var focus := smooth_phase((time - 18.0) / 1.5) * (1.0 - smooth_phase((time - 21.0) / 1.5))

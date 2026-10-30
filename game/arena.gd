@@ -591,9 +591,10 @@ func _build_infield() -> void:
 	pass
 
 func _build_scoreboard() -> void:
-	_box(Vector3(0, 12, -71), Vector3(18, 8, 0.7), _material("0d1c32"))
+	# Opposite bend: the old north backing cut through the first-bend tifo.
+	_box(Vector3(0, 12, 71), Vector3(18, 8, 0.7), _material("0d1c32"))
 	board = Label3D.new()
-	board.position = Vector3(0, 12, -70.4)
+	board.position = Vector3(0, 12, 70.4)
 	board.font_size = 44
 	board.pixel_size = 0.009
 	board.modulate = Color.WHITE

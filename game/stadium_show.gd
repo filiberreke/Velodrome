@@ -1,8 +1,10 @@
 extends Node3D
 ## Lightweight race-day spectacle: tifo, national flags, and a travelling stand wave.
 ## All spectator geometry and density remain untouched.
-const ART := preload("res://assets/branding/velodrome_tifo.svg")
+const ART := preload("res://assets/branding/velodrome_tifo_v2.png")
 const LAP := 250.0
+const TIFO_BEGIN := 10.0
+const TIFO_EXTENT := 36.0
 const FLAGS := [
 	["belgium", Color("#171717"), Color("#f5d32d"), Color("#dc2738")],
 	["netherlands", Color("#c52d35"), Color.WHITE, Color("#194c95")],
@@ -19,6 +21,7 @@ const FLAGS := [
 var arena: Node3D
 var game: Node3D
 var tifo: MeshInstance3D
+var tifo_material: ShaderMaterial
 var flag_materials: Array[ShaderMaterial] = []
 var wave_material: ShaderMaterial
 var elapsed := 0.0
@@ -44,19 +47,20 @@ func _make_tifo() -> void:
 	var indices := PackedInt32Array()
 	var cols := 52
 	var rows := 18
-	var begin := 3.0
-	var extent := 82.0
+	var begin := TIFO_BEGIN
+	var extent := TIFO_EXTENT
 	for y in range(rows + 1):
 		var v := float(y) / float(rows)
 		var off := lerpf(13.6, 29.1, v)
-		var height := lerpf(2.8, 11.55, v) + 0.4 * sin(v * PI)
+		var height := lerpf(4.0, 12.75, v) + 0.4 * sin(v * PI)
 		for x in range(cols + 1):
 			var u := float(x) / float(cols)
 			var s := begin + u * extent
 			var pos := _stadium(s, off, height)
-			pos.y += sin(u * PI * 10.0) * sin(v * PI * 7.0) * 0.085
+			pos.y += sin(u * PI * 8.0) * sin(v * PI * 3.0) * 0.035
 			verts.append(pos)
-			uv.append(Vector2(u, 1.0 - v))
+			# Infield-facing reading direction is opposite the CCW traversal.
+			uv.append(Vector2(1.0 - u, 1.0 - v))
 			if x < cols and y < rows:
 				var a := y * (cols + 1) + x
 				indices.append_array(PackedInt32Array([a, a + cols + 1, a + 1, a + 1, a + cols + 1, a + cols + 2]))
@@ -73,20 +77,27 @@ func _make_tifo() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = Shader.new()
 	mat.shader.code = """shader_type spatial;
-render_mode cull_disabled, diffuse_lambert;
-uniform sampler2D art : source_color, filter_linear_mipmap;
-uniform float time_elapsed = 0.0;
-uniform float fold = 1.0;
+render_mode cull_disabled, unshaded;
+uniform sampler2D art : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
+uniform float cloth_time = 0.0;
+uniform float fold = 0.025;
+uniform float withdrawal = 0.0;
 void vertex() {
-	float pulse = sin(TIME*1.8 + UV.x*38.0 + UV.y*15.0);
-	VERTEX.y += pulse * 0.09 * fold;
+	float edge = pow(abs(UV.y - 0.5) * 2.0, 2.0);
+	float pulse = sin(cloth_time*1.8 + UV.x*25.0 + UV.y*8.0);
+	VERTEX.y += pulse * fold * (0.25 + 0.75*edge) - withdrawal*1.5;
 }
 void fragment() {
 	vec4 c = texture(art, UV);
-	ALBEDO = c.rgb * (0.91 + 0.09*sin(UV.x*75.0 + UV.y*25.0));
+	// Broad, low contrast folds keep the printed wordmark readable in shadow.
+	float cloth = 0.97 + 0.03*sin(UV.x*35.0 + UV.y*9.0);
+	ALBEDO = c.rgb * cloth;
+	// Opaque depth during the reveal; withdraw from the upper edge after lap one.
+	if (UV.y < withdrawal) { discard; }
 	ROUGHNESS = 0.94;
 }"""
 	mat.set_shader_parameter("art", ART)
+	tifo_material = mat
 	tifo.material_override = mat
 	tifo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(tifo)
@@ -283,6 +294,10 @@ func _process(delta: float) -> void:
 		var angular_phase := atan2(front.z,front.x) / TAU + 0.5
 		wave_material.set_shader_parameter("wave_center",angular_phase)
 		wave_material.set_shader_parameter("wave_strength",0.7 if final_lap else excitement*0.38)
-	# Stay until the first lap is completed, then fade the overhead cloth out.
+	# Taut through the reveal; only loosen and lower the cloth while withdrawing.
 	if tifo:
+		var withdrawal := smoothstep(LAP - 24.0, LAP, lead) if state == "RACING" else 0.0
+		tifo_material.set_shader_parameter("cloth_time", elapsed)
+		tifo_material.set_shader_parameter("fold", lerpf(0.025, 0.18, withdrawal))
+		tifo_material.set_shader_parameter("withdrawal", withdrawal)
 		tifo.visible = not bool(game.get("finished")) and (state != "RACING" or lead < LAP)
