@@ -41,8 +41,30 @@ class VirtualBridgeTests(unittest.TestCase):
         for replacement in reversed(self.patches):
             replacement.stop()
 
-    def receive(self):
-        return json.loads(self.receiver.recv(4096))
+    def receive(self, kind=None):
+        while True:
+            packet = json.loads(self.receiver.recv(4096))
+            if kind == 'steering' or packet['type'] != 'steering':
+                return packet
+
+    def test_analog_slider_transmits_pressure_and_release_independently(self):
+        self.receive()
+        self.bridge.left_paddle.set(-85)
+        self.bridge.loop()
+        self.assertEqual(self.receive('steering'), dict(type='steering', value=-85))
+        self.receive()
+        self.bridge.release_paddles()
+        self.bridge.loop()
+        self.assertEqual(self.receive('steering')['value'], 0)
+
+    def test_paddles_braking_cancellation_and_individual_release(self):
+        self.receive()
+        for left, right, expected in [(80, -70, 0), (-85, 85, 0), (-85, 40, -45), (0, 40, 40), (-60, 0, -60)]:
+            self.bridge.left_paddle.set(left)
+            self.bridge.right_paddle.set(right)
+            self.bridge.loop()
+            self.assertEqual(self.receive('steering')['value'], expected)
+            self.receive()
 
     def test_startup_transmits_valid_stationary_telemetry_and_schedules_next_frame(self):
         packet = self.receive()
@@ -130,8 +152,8 @@ class VirtualBridgeTests(unittest.TestCase):
                     if ('VIRTUAL_BRIDGE_SHIFT' in progress or 'TEAM_BRIDGE_SHIFT' in progress) and not shifted:
                         self.bridge.shift(1)
                         shifted = True
-                    if 'TEAM_BRIDGE_STEER' in progress and not steered:
-                        self.bridge.button('RIGHT')
+                    if ('TEAM_BRIDGE_STEER' in progress or 'VIRTUAL_BRIDGE_STEER' in progress) and not steered:
+                        self.bridge.right_paddle.set(25)
                         steered = True
                     self.bridge.loop()
                     time.sleep(.02)

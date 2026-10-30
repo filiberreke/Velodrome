@@ -84,8 +84,14 @@ func run_test() -> void:
 			for tick in range(50):
 				game._physics_process(0.02)
 				await create_timer(0.02).timeout
-				if game.trainer_selected_gear == 5 and game.player_lane == 1: break
-			check(game.trainer_selected_gear == 5 and game.player_lane == 1, "Actual simulator shift and steering packet work after recovery")
+				if game.trainer_selected_gear == 5: break
+			check(game.trainer_selected_gear == 5 and game.player_lane == 0, "Actual simulator shift updates gear without steering after recovery")
+			print("VIRTUAL_BRIDGE_STEER")
+			for tick in range(50):
+				game._physics_process(0.02)
+				await create_timer(0.02).timeout
+				if game.player_lane == 1: break
+			check(game.player_lane == 1, "Actual analog paddle steers after recovery")
 		game._reset()
 		for tick in range(25):
 			game._physics_process(0.02)

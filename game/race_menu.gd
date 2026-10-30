@@ -332,6 +332,24 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		show_choices()
 		get_viewport().set_input_as_handled()
 
+func bridge_action(button: String) -> void:
+	if not visible:
+		return
+	if button == "B":
+		if page in [2, 3]: show_choices()
+		return
+	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
+	if not actions.has(button): return
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	if focused == null or not is_ancestor_of(focused):
+		if page == 1: cards[selected].grab_focus()
+		else: back_button.grab_focus()
+	for pressed in [true, false]:
+		var event := InputEventAction.new()
+		event.action = actions[button]
+		event.pressed = pressed
+		get_viewport().push_input(event)
+
 func show_records() -> void:
 	page = 3
 	page_title.text = "Records"

@@ -4,6 +4,32 @@ Uitbreiding van v0.14, oorspronkelijk gebaseerd op `velodrome_bridge_v0131_udp_g
 FTMS, Zwift Ride left-master, Garmin ANT+ via bestaande Dynastream/libusb0 en
 Godot-communicatie. **Softwarematig getest; hardwarewerking van v0.15 wacht op de usertest.**
 
+## Analoge stuurpaddles
+
+De Ride-decoder verwerkt zowel de oudere geneste analoge groep (veld 2) als
+de actuele herhaalde paddleberichten (veld 3) binnen dezelfde `0x23`-melding.
+Paddle 0 is links en paddle 1 rechts. Naar buiten duwen levert een stuurwaarde
+van -100 tot +100; naar binnen duwen is de remrichting en wordt niet als
+stuurinput doorgegeven. De remrichting verandert de remkracht in het spel niet.
+Een aparte Bluetooth-verbinding of nieuw abonnement is hiervoor niet nodig.
+
+Godot gebruikt drukniveaus 25/40/55/70/85 voor één tot vijf banen per beweging.
+De verplaatsing blijft vloeiend. Vasthouden herhaalt de beweging niet; druk
+verhogen voegt alleen extra bereik toe. Terugkeren tot maximaal 15 maakt de
+volgende beweging mogelijk. Bij ploegenachtervolging vraagt een nieuwe
+rechter stuurbeweging de automatische kopwissel aan; de formatie blijft leidend.
+De digitale richtingstoetsen bedienen de menu's, A kiest en B gaat terug.
+Schakelpaddles sturen niet en bedienen ook de menu's niet.
+
+De virtuele bridge heeft twee afzonderlijke paddle-schuifregelaars, individuele
+loslaatknoppen en een knop om beide los te laten. Werk bridge en Godot samen bij.
+
+Protocolbronnen: [Ride-protocol en oudere captures](https://www.makinolo.com/blog/2024/07/26/zwift-ride-protocol/)
+en [actuele BikeControl Ride-implementatie](https://github.com/OpenBikeControl/bikecontrol/blob/main/lib/bluetooth/devices/zwift/zwift_ride.dart).
+De bestaande digitale knopbitmap is niet gewijzigd; de analoge decoder is
+getest met protocolfixtures en een nagebootst BLE-abonnement. Controle van de
+werkelijke uitslag en het nulpunt op de fysieke Ride blijft nodig.
+
 ## Blijft wachten en opnieuw verbinden
 
 De bridge mag starten voordat KICKR of linker Zwift Ride aanstaan. Hij blijft

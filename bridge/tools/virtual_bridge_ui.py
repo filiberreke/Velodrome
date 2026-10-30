@@ -32,6 +32,9 @@ class VirtualBridge:
         self.speed = tk.DoubleVar(value=0)
         self.cadence = tk.DoubleVar(value=0)
         self.hr = tk.DoubleVar(value=140)
+        self.steering = tk.DoubleVar(value=0)
+        self.left_paddle = tk.DoubleVar(value=0)
+        self.right_paddle = tk.DoubleVar(value=0)
         self.connected = tk.BooleanVar(value=True)
         self.send_gear = tk.BooleanVar(value=True)
         self.packet_drop = tk.BooleanVar(value=False)
@@ -55,16 +58,26 @@ class VirtualBridge:
         for name, var, lo, hi in (("Vermogen (W)", self.power, 0, 900),
                                   ("Snelheid (km/u)", self.speed, 0, 70),
                                   ("Cadans (rpm)", self.cadence, 0, 140),
-                                  ("Hartslag (bpm)", self.hr, 0, 210)):
+                                  ("Hartslag (bpm)", self.hr, 0, 210),
+                                  ("Linker paddle (buiten - / rem +)", self.left_paddle, -100, 100),
+                                  ("Rechter paddle (rem - / buiten +)", self.right_paddle, -100, 100)):
             row = ttk.Frame(frm)
             row.pack(fill="x", pady=3)
-            ttk.Label(row, text=name, width=22).pack(side="left")
+            ttk.Label(row, text=name, width=32).pack(side="left")
             ttk.Scale(row, from_=lo, to=hi, variable=var).pack(side="left", fill="x", expand=True)
             ttk.Label(row, textvariable=var, width=6).pack(side="right")
+        paddles = ttk.Frame(frm)
+        paddles.pack(fill="x", pady=4)
+        for caption, variable in (("Links loslaten", self.left_paddle), ("Rechts loslaten", self.right_paddle)):
+            ttk.Button(paddles, text=caption, command=lambda v=variable: v.set(0)).pack(side="left", padx=3)
+        ttk.Button(paddles, text="Beide loslaten", command=self.release_paddles).pack(side="left", padx=3)
+        ttk.Label(paddles, text="Stuurwaarde:").pack(side="left", padx=3)
+        ttk.Label(paddles, textvariable=self.steering).pack(side="left")
         bar = ttk.Frame(frm)
         bar.pack(fill="x", pady=8)
-        for caption, button in (("Stuur links", "LEFT"), ("Stuur rechts", "RIGHT"),
-                                ("A / reset", "A")):
+        for caption, button in (("Menu links", "LEFT"), ("Menu rechts", "RIGHT"),
+                                ("Menu omhoog", "UP"), ("Menu omlaag", "DOWN"),
+                                ("A / kiezen / reset", "A"), ("B / terug", "B")):
             ttk.Button(bar, text=caption, command=lambda b=button: self.button(b)).pack(side="left", padx=3)
         shift = ttk.Frame(frm)
         shift.pack(fill="x", pady=4)
@@ -90,6 +103,10 @@ class VirtualBridge:
             self.log.delete("1.0", "30.0")
         self.log.see("end")
         self.log.configure(state="disabled")
+
+    def release_paddles(self):
+        self.left_paddle.set(0)
+        self.right_paddle.set(0)
 
     def transmit(self, obj):
         if not self.packet_drop.get():
@@ -214,6 +231,8 @@ class VirtualBridge:
         if not self.running:
             return
         self.sample += 1
+        self.steering.set(max(0, round(self.right_paddle.get())) - max(0, -round(self.left_paddle.get())))
+        self.transmit({'type': 'steering', 'value': round(self.steering.get())})
         if not self.packet_drop.get():
             self.transmit({"type": "telemetry", "valid": self.connected.get(),
                            "power_w": round(self.power.get()), "speed_kmh": self.speed.get(),

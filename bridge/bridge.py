@@ -8,7 +8,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from bleak import BleakClient, BleakScanner
-from ride_protocol import decode_packet
+from ride_protocol import decode_state
+from steering import SteeringState
 from ride_ble import find_characteristics
 from button_mapping import ButtonMapper
 from selection import select_device, select_left_ride
@@ -221,6 +222,7 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
             print("Zwift Ride verbinden:", device.name or "(naam via advertentie)", device.address)
             async with BleakClient(device, timeout=18.0) as client:
                 print("Ride BLE link verbonden; zoeken naar Zwift service...")
+                steering = SteeringState()
                 notify_char, write_char, indicate_char, chars = find_characteristics(client)
                 print("Ride characteristics:", chars)
                 diagnostics = {"received": 0, "decoded": 0}
@@ -234,11 +236,20 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                     if counts[uuid] <= 12:
                         print(f"RIDE RAW channel={uuid} len={len(raw)} hex={raw.hex()}")
                     try:
-                        pressed = decode_packet(raw)
+                        state = decode_state(raw)
                     except (ValueError, IndexError) as exc:
                         if counts[uuid] <= 12:
                             print("Ride decode fout:", str(exc))
                         return
+                    if state is None:
+                        return
+                    axis = steering.update(state['paddles'])
+                    if axis is not None:
+                        sender.send(axis)
+                        if abs(axis['value'] - diagnostics.get('steering_value', 0)) >= 10 or (axis['value'] == 0 and diagnostics.get('steering_value', 0) != 0):
+                            print(f"Ride analoog: links={steering.paddles[0]} rechts={steering.paddles[1]} -> sturen={axis['value']}")
+                            diagnostics['steering_value'] = axis['value']
+                    pressed = state['buttons']
                     if pressed is None:
                         return
                     diagnostics["decoded"] += 1
@@ -274,6 +285,7 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                         last_report = time.monotonic()
         except Exception as exc:
             print("Zwift Ride verbindingsfout:", type(exc).__name__, str(exc))
+        sender.send({'type': 'steering', 'value': 0})
         previous = set()
         await asyncio.sleep(RETRY_SECONDS)
 

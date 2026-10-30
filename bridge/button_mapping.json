@@ -5,5 +5,8 @@
   "SHIFT_DOWN_RIGHT": "RIGHT",
   "LEFT": "LEFT",
   "RIGHT": "RIGHT",
-  "A": "A"
+  "UP": "UP",
+  "DOWN": "DOWN",
+  "A": "A",
+  "B": "B"
 }

@@ -20,7 +20,7 @@ class ButtonPacketTests(unittest.TestCase):
 
     def test_direction_and_reset_buttons_retain_source(self):
         mapper = ButtonMapper.load()
-        for button in ('LEFT', 'RIGHT', 'A'):
+        for button in ('LEFT', 'RIGHT', 'UP', 'DOWN', 'A', 'B'):
             self.assertEqual(mapper.packet(button), dict(type='button', button=button, source_button=button))
 
     def test_unmapped_and_disabled_buttons_emit_no_packet(self):
