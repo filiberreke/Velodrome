@@ -102,6 +102,9 @@ var rider_count_input: SpinBox
 var form_rng := RandomNumberGenerator.new()
 var rider_config := ConfigFile.new()
 var rider_config_ready := false
+var pursuit_opponent_config: Dictionary = {}
+var pursuit_opponent_country := "netherlands"
+const RaceCountries := preload("res://rennersboxen/race_countries.gd")
 
 func _load_rider_config() -> void:
 	# Personal config is intentionally excluded from distributed ZIP updates.
@@ -124,7 +127,7 @@ func _configured_rider(i: int, default_profile: int) -> Dictionary:
 	if actual_name.is_empty(): actual_name = default_name
 	var jersey: Dictionary = {}
 	if rider_config_ready:
-		for key in ["number", "jersey_color", "jersey_secondary", "shorts_color", "helmet_color", "jersey_design", "country_kit", "skinsuit_png", "helmet_png", "visor"]:
+		for key in ["country", "number", "jersey_color", "jersey_secondary", "shorts_color", "helmet_color", "jersey_design", "country_kit", "skinsuit_png", "helmet_png", "visor"]:
 			if rider_config.has_section_key(section, key):
 				jersey[key] = rider_config.get_value(section, key)
 	return {"profile": kind, "name": actual_name.substr(0, 32), "jersey": jersey}
@@ -151,10 +154,14 @@ func _configure_peloton() -> void:
 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
 		# 1 = TT, 2 = sprinter, 3 = attacker.
 		var configured: Dictionary = _configured_rider(i, kind) if i > 0 else {"profile": 0, "name": player_display_name}
-		if race_mode == 4:
-			configured = {"profile": 0 if i == 0 else 1, "name": player_display_name if i == 0 else "Tegenstander"}
+		if race_mode == 4 and i > 0:
+			configured = pursuit_opponent_config.duplicate(true) if not pursuit_opponent_config.is_empty() else _configured_rider(1, 1)
 		if race_mode == 5:
-			configured = {"profile": 0 if i < team_size else 1, "name": player_display_name if i == 0 else ("Ploegmaat %d" % i if i < team_size else "Tegenploeg %d" % (i - team_size + 1))}
+			var ours := i < team_size
+			var outfit: Dictionary = player_appearance.resolve(get_player_appearance_base()) if ours else {"country_kit": pursuit_opponent_country}
+			outfit["country"] = RaceCountries.from_kit(outfit) if ours else pursuit_opponent_country
+			if String(outfit.country).is_empty(): outfit["country"] = "belgium"
+			configured = {"profile": 0 if ours else 1, "name": player_display_name if i == 0 else ("Ploegmaat %d" % i if ours else "%s %d" % [pursuit_opponent_country, i - team_size + 1]), "jersey": outfit}
 		rider_profiles.append(int(configured["profile"]))
 		rider_names.append(String(configured["name"]))
 		rider_forms.append(1.0 if i == 0 or race_mode in [4, 5] else form_rng.randf_range(0.95, 1.05))
@@ -233,12 +240,14 @@ func _spawn_peloton() -> void:
 		rider.set_meta("peloton_index", i)
 		rider.set_meta("pursuit_mode", race_mode in [4, 5])
 		rider.set_meta("jersey_config", rider_kits[i])
-		if rider_config_ready:
+		if rider_config_ready and race_mode not in [4, 5]:
 			var kit_section := "player" if i == 0 else "rider_%02d" % i
 			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", "")))
 			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", "")))
 			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", "")))
 			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", "")))
+		if race_mode == 5:
+			PlayerAppearance.prepare_rider(rider, rider_kits[i])
 		if i == 0:
 			PlayerAppearance.prepare_rider(rider, player_appearance.resolve(get_player_appearance_base()))
 		node.add_child(rider)
@@ -266,7 +275,13 @@ func apply_player_appearance() -> void:
 	# Update the existing player visual in place: preserve pose, cadence and race.
 	if bikes.is_empty() or not is_instance_valid(bikes[0]) or bikes[0].get_child_count() == 0:
 		return
-	PlayerAppearance.apply_to_rider(bikes[0].get_child(0), player_appearance.resolve(get_player_appearance_base()))
+	var outfit: Dictionary = player_appearance.resolve(get_player_appearance_base())
+	for i in range(team_size if race_mode == 5 else 1):
+		if i >= bikes.size(): break
+		PlayerAppearance.apply_to_rider(bikes[i].get_child(0), outfit)
+		if race_mode == 5:
+			rider_kits[i]["country"] = RaceCountries.from_kit(outfit)
+			for key in PlayerAppearance.KEYS: rider_kits[i][key] = outfit.get(key, "")
 	infield_riders_changed.emit()
 
 # AI riders: reactive drafting, overtaking and limited high-intensity energy.
@@ -2097,6 +2112,10 @@ func _confirm_start() -> void:
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
 	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))
+	if choice in [1, 2]:
+		var selected_ai: Dictionary = options.selected_ai()
+		if choice == 1: pursuit_opponent_config = selected_ai
+		else: pursuit_opponent_country = String(selected_ai.get("country", "netherlands"))
 	_configure_peloton()
 	if choice in [1, 2]:
 		_prepare_pursuit(replay, float(options.cp_input.value))
@@ -3027,3 +3046,21 @@ func _rider_label_visible(index: int) -> bool:
 	crowded_labels[index] = neighbours >= 2
 	# World-space proximity includes lapped riders in the same physical bunch.
 	return not crowded_labels[index] and (camera == null or camera.position.distance_to(bikes[index].position) < 40.0)
+
+func available_pursuit_riders() -> Array[Dictionary]:
+	_load_rider_config()
+	var ids: Array[int] = []
+	# All fifteen AI slots supported by the largest race, plus personal extra slots.
+	for i in range(1, 16): ids.append(i)
+	if rider_config_ready:
+		for section in rider_config.get_sections():
+			if section.begins_with("rider_") and section.substr(6).is_valid_int():
+				var id := int(section.substr(6))
+				if id > 0 and id not in ids: ids.append(id)
+	ids.sort()
+	var result: Array[Dictionary] = []
+	for id in ids:
+		var entry := _configured_rider(id, 1 + ((id - 1) % 3))
+		entry["id"] = id
+		result.append(entry)
+	return result

@@ -219,7 +219,7 @@ func _pizza(parent: Node3D) -> void:
 			var angle: float = TAU * float(j)/3.0
 			var at := Vector3(sin(angle),0,cos(angle))*1.04
 			_chair(table,at,angle+PI,"6c5336")
-			if j == i: _person(table,at,angle+PI,false,true)
+			_person(table,at,angle+PI,false,true)
 		host.blockers.append([Vector2(parent.position.x+spots[i].x,parent.position.z+spots[i].z),1.7])
 	var friends := preload("res://assets/people/pizza_vrienden_statafel.glb").instantiate() as Node3D
 	parent.add_child(friends); friends.name = "PizzaVriendenStatafel"

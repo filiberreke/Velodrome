@@ -18,7 +18,7 @@ func _ready() -> void:
 		refresh_rides())
 	opponent_choice.set_item_text(0, "AI-ploeg")
 	opponent_choice.set_item_text(1, "Een vorige ploegprestatie")
-	cp_box.get_child(0).text = "CP tegenploeg · kopvermogen (W)"
+	cp_box.get_child(2).text = "CP tegenploeg · kopvermogen (W)"
 	var resistance_row := HBoxContainer.new()
 	resistance_row.add_theme_constant_override("separation", 12)
 	var resistance_title := _label("Weerstand")
@@ -79,3 +79,14 @@ func _refresh_resistance_hint() -> void:
 
 func team_size() -> int:
 	return teammates.get_selected_id() if teammates != null else 3
+
+func ai_choice_label() -> String:
+	return "Kies land tegenploeg"
+
+func available_ai_entries() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var appearance = preload("res://player_appearance.gd").new()
+	for option in appearance.suit_options:
+		if option.id in ["configured", "default"]: continue
+		result.append({"country": option.id, "name": option.label})
+	return result

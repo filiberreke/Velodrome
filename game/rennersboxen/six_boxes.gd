@@ -11,8 +11,8 @@ func _ready() -> void:
 		var box := Box.new()
 		box.country = Box.COUNTRIES[i]
 		# Local +Z opening faces world -X, toward the back straight.
-		# Zone depth 3.8 m: world x [-16.50, -12.70].
-		box.position = Vector3(-14.60,0,-25.0+10.0*i)
+		# Row moved two metres inward; the front rail meets the new perimeter.
+		box.position = Vector3(preload("res://infield_layout.gd").BOX_X,0,-25.0+10.0*i)
 		box.rotation.y = -PI/2.0
 		add_child(box)
 		boxes.append(box)

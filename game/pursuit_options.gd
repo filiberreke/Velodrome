@@ -9,6 +9,8 @@ var cp_box: VBoxContainer
 var ride_box: VBoxContainer
 var ride_choice: OptionButton
 var rides: Array[Dictionary] = []
+var ai_choice: OptionButton
+var ai_entries: Array[Dictionary] = []
 
 func _label(value: String) -> Label:
 	var node := Label.new()
@@ -37,6 +39,11 @@ func _ready() -> void:
 	opponent_choice.add_item("Een vorige rit")
 	add_child(opponent_choice)
 	cp_box = VBoxContainer.new()
+	cp_box.add_child(_label(ai_choice_label()))
+	ai_choice = _choice()
+	cp_box.add_child(ai_choice)
+	refresh_ai_choices()
+	ai_choice.item_selected.connect(func(_index: int) -> void: changed.emit())
 	cp_box.add_child(_label("CP tegenstander (W)"))
 	cp_input = SpinBox.new()
 	cp_input.min_value = 50
@@ -90,3 +97,23 @@ func refresh_state() -> void:
 	cp_box.visible = not is_replay()
 	ride_box.visible = is_replay()
 	changed.emit()
+
+func ai_choice_label() -> String:
+	return "Kies AI-renner"
+
+func available_ai_entries() -> Array[Dictionary]:
+	var ancestor: Node = get_parent()
+	while ancestor != null:
+		if ancestor.has_method("available_pursuit_riders"):
+			return ancestor.available_pursuit_riders()
+		ancestor = ancestor.get_parent()
+	return []
+
+func refresh_ai_choices() -> void:
+	ai_entries = available_ai_entries()
+	ai_choice.clear()
+	for entry in ai_entries:
+		ai_choice.add_item(String(entry.name))
+
+func selected_ai() -> Dictionary:
+	return ai_entries[ai_choice.selected].duplicate(true) if ai_choice != null and ai_choice.selected >= 0 and ai_choice.selected < ai_entries.size() else {}

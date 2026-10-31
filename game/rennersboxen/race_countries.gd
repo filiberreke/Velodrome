@@ -19,6 +19,10 @@ static func from_kit(config: Dictionary) -> String:
 	return valid_country(String(config.get("country_kit","")))
 
 static func configured_country(game: Node, index: int) -> String:
+	var kits: Array = game.get("rider_kits")
+	if int(game.get("race_mode")) in [4,5] and index < kits.size():
+		var selected := from_kit(kits[index])
+		if not selected.is_empty(): return selected
 	var section := "player" if index==0 else "rider_%02d" % index
 	var kit: Dictionary = {}
 	if bool(game.get("rider_config_ready")):

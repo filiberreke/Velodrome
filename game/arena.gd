@@ -492,6 +492,7 @@ func _infield_ring(offset: float, y0: float, y1: float, material: Material, labe
 	for i in range(steps):
 		var p: Vector3 = _point(LAP * float(i) / float(steps), offset)
 		var q: Vector3 = _point(LAP * float(i + 1) / float(steps), offset)
+		if preload("res://infield_layout.gd").coach_gate((p + q) * 0.5): continue
 		p.y = 0.0
 		q.y = 0.0
 		_quad(verts, normals, p + Vector3.UP * y0, p + Vector3.UP * y1, q + Vector3.UP * y0, q + Vector3.UP * y1)
@@ -507,6 +508,7 @@ func _infield_ring_flat(offset_a: float, offset_b: float, y: float, material: Ma
 		var b: Vector3 = _point(s0, offset_b)
 		var c: Vector3 = _point(s1, offset_a)
 		var d: Vector3 = _point(s1, offset_b)
+		if preload("res://infield_layout.gd").coach_gate((a + c) * 0.5): continue
 		a.y = y
 		b.y = y
 		c.y = y
@@ -517,7 +519,7 @@ func _infield_ring_flat(offset_a: float, offset_b: float, y: float, material: Ma
 func _build_glass_boarding() -> void:
 	# beta.16.13: the inner boarding is now glass between aluminium posts with a handrail,
 	# so the riders stay visible from the infield and vice versa.
-	const OFF := -0.45
+	const OFF := preload("res://infield_layout.gd").FENCE_OFFSET
 	const BASE_Y := -0.06
 	const TOP_Y := 1.08
 	var glass := StandardMaterial3D.new()
@@ -538,6 +540,7 @@ func _build_glass_boarding() -> void:
 	for i in range(count):
 		var s: float = LAP * float(i) / float(count)
 		var p: Vector3 = _point(s, OFF)
+		if preload("res://infield_layout.gd").coach_gate(p, 0.15): continue
 		p.y = (BASE_Y + TOP_Y) * 0.5
 		posts.append(Transform3D(_seat_basis(s), p))
 	_solid_instances(_box_mesh(Vector3(0.06, TOP_Y - BASE_Y, 0.06)), posts, "b7c3cc", "Boarding staanders")

@@ -35,7 +35,7 @@ func _lineup(rng: RandomNumberGenerator) -> Array[Dictionary]:
 		members.append(_member("Mecanicien%d"%(i+1),"mechanic","staff_mechanic" if (i+layout)%2==0 else "staff_mechanic_f",at,yaw))
 	var side := -1.0 if layout==1 else 1.0
 	members.append(_member("Verzorger","carer","staff_mechanic_f" if layout!=2 else "stand_m_relaxed",Vector3(-side*rng.randf_range(1.55,1.85),0,rng.randf_range(1.50,1.75)),rng.randf_range(-0.45,0.45)))
-	members.append(_member("Trainer","coach","staff_official_f" if layout==0 else "staff_official_m",Vector3(side*rng.randf_range(1.55,1.80),0,rng.randf_range(1.15,1.40)),rng.randf_range(-0.65,0.65)))
+	members.append(_member("Trainer","coach","staff_official_f" if layout==0 else "staff_official_m",Vector3(side*rng.randf_range(1.55,1.80),0,rng.randf_range(3.70,3.90)),rng.randf_range(-0.65,0.65)))
 	# Two asymmetric clusters, with at least one leaning supporter on each side.
 	var count := rng.randi_range(3,6)
 	var starts := [rng.randf_range(-3.85,-3.55),rng.randf_range(1.85,2.05)]

@@ -274,7 +274,7 @@ func _terrace(parent: Node3D, coffee: bool) -> void:
 			var angle: float = TAU * float(seat) / 3.0 + float(i % 2) * 0.5
 			var position := Vector3(sin(angle), 0, cos(angle)) * 0.97
 			_chair(table, position, angle + PI, colors[(seat + i) % colors.size()])
-			if seat == i % 3: _person(table, position, angle + PI, coffee, true)
+			_person(table, position, angle + PI, coffee, true)
 		if coffee: _cup(table, Vector3(0.29, 0.77, 0.15), true)
 		else: _fries_cone(table, Vector3(0.29, 0.77, 0.15))
 		host.blockers.append([Vector2(parent.position.x + spots[i].x, parent.position.z + spots[i].z), 1.65])

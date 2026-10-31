@@ -11,7 +11,11 @@ const CrowdKit := preload("res://crowd_kit.gd")
 const FLAG_SCENE: PackedScene = preload("res://assets/crowd/flag_official.glb")
 const SPONSOR: Texture2D = preload("res://wielerpraat.jpg")
 const LAP := 250.0
-const GLASS_OFFSET := -0.45
+const Layout := preload("res://infield_layout.gd")
+const GLASS_OFFSET := Layout.FENCE_OFFSET
+var supporter_count := 0
+var rail_supporter_count := 0
+var supporter_positions: Array[Vector3] = []
 const NEAR_M := 20.0                      # detailed people closer than this, light figures further away
 const TUNNEL_HALF_WIDTH := 2.275
 const TUNNEL_HALF_LENGTH := 4.70
@@ -115,6 +119,9 @@ func _cell_key(p: Vector3) -> String:
 	return "%d_%d" % [int(floor(p.x / 20.0)), int(floor(p.z / 20.0))]
 
 func _person(variant: String, pos: Vector3, yaw: float, look: Array = []) -> void:
+	if not variant.begins_with("staff_"):
+		supporter_count += 1
+		supporter_positions.append(pos)
 	if look.is_empty():
 		look = crowd.call("random_look", rng)
 	var key := _cell_key(pos)
@@ -123,6 +130,7 @@ func _person(variant: String, pos: Vector3, yaw: float, look: Array = []) -> voi
 	CrowdKit.add_to_group(people[key], variant, Transform3D(Basis(Vector3.UP, yaw), pos), look)
 
 func _free_spot(p: Vector3, r: float) -> bool:
+	if Layout.coach_gate(p, 0.3): return false
 	for b in blockers:
 		if Vector2(p.x, p.z).distance_to(b[0]) < float(b[1]) + r:
 			return false
@@ -191,14 +199,14 @@ func _build_floor() -> void:
 		var triangle: Array[Vector3] = [Vector3(0,y,0),Vector3(b.x,y,b.z),Vector3(a.x,y,a.z)]
 		_append_floor_outside_tunnel(floor_v,triangle)
 		# light standing strip along the glass boarding
-		var a0: Vector3 = _at(s0, GLASS_OFFSET)
-		var a1: Vector3 = _at(s0, -3.2)
-		var b0: Vector3 = _at(s1, GLASS_OFFSET)
-		var b1: Vector3 = _at(s1, -3.2)
+		var a0: Vector3 = _at(s0, 0.05)
+		var a1: Vector3 = _at(s0, GLASS_OFFSET)
+		var b0: Vector3 = _at(s1, 0.05)
+		var b1: Vector3 = _at(s1, GLASS_OFFSET)
 		for v in [a0, b0, a1, a1, b0, b1]:
 			strip.append(Vector3(v.x, y + 0.012, v.z))
 	_surface(floor_v, "Middenterrein vloer", "5b7772")
-	_surface(strip, "Staanstrook langs het glas", "b3ad9c")
+	_surface(strip, "Veiligheidszone naast de cote d azur", "969b9e")
 	# Two warm-tiled plazas with joints.
 	var tile := _mat("b3a481")
 	var joint := _mat("9d8f6e")
@@ -303,17 +311,16 @@ func _stall(pos: Vector3, yaw: float, title: String, canopy: String, cloth: Stri
 
 func _high_table(pos: Vector3, people_count: int) -> void:
 	_prop("high_table", pos, rng.randf() * TAU, {"canopy_a": ["ef8736", "268cd3", "df504b", "35ad77"][rng.randi() % 4]}, 0.5)
-	_group_around(pos, people_count, 0.72, ["stand_f_drink", "stand_m_drink", "stand_f_talk", "stand_m_relaxed"])
+	_group_around(pos, maxi(4, people_count), 0.72, ["stand_f_drink", "stand_m_drink", "stand_f_talk", "stand_m_relaxed"])
 
 func _bench(pos: Vector3, yaw: float) -> void:
 	var node := _prop("picnic_bench", pos, yaw, {}, 1.2)
 	# seated people on both benches, facing the table (benches at local z = +-0.62)
 	for side in [-1.0, 1.0]:
 		for x in [-0.55, 0.45]:
-			if rng.randf() < 0.8:
-				var p: Vector3 = node.transform * Vector3(x + rng.randf_range(-0.1, 0.1), 0.0, side * 0.62)
-				var v: String = ["seat_m_relaxed", "seat_f_drink", "seat_f_phone", "seat_m_crossed", "seat_f_clap"][rng.randi() % 5]
-				_person(v, p, yaw + (PI if side > 0.0 else 0.0))
+			var p: Vector3 = node.transform * Vector3(x + rng.randf_range(-0.1, 0.1), 0.0, side * 0.62)
+			var v: String = ["seat_m_relaxed", "seat_f_drink", "seat_f_phone", "seat_m_crossed", "seat_f_clap"][rng.randi() % 5]
+			_person(v, p, yaw + (PI if side > 0.0 else 0.0))
 
 func _light_line(a: Vector3, b: Vector3) -> void:
 	# Festoon lights: a sagging cable with warm bulbs.
@@ -393,7 +400,7 @@ func _build_team_pits() -> void:
 		blockers.append([Vector2(box.position.x,box.position.z),4.8])
 
 func _build_finish_zone() -> void:
-	var line: Vector3 = _at(0.0, -1.0)
+	var line: Vector3 = _at(0.0, GLASS_OFFSET - 1.0)
 	var inward := (_at(0.0, -2.0) - _at(0.0, 0.0)).normalized()
 	var along := (_at(1.0, -1.0) - _at(-1.0, -1.0)).normalized()    # rider direction
 	var table := _prop("officials_table", line + inward * 3.2 - along * 1.8, _yaw_to(-inward), {"counter_cloth": "0b1a2d"}, 1.6)
@@ -426,44 +433,35 @@ func _build_ends() -> void:
 	for end_sign in [-1.0, 1.0]:
 		for i in range(7):
 			var a := PI * (0.12 + 0.76 * float(i) / 6.0)
-			var p := Vector3(cos(a) * 14.2, 0, end_sign * (34.2 + sin(a) * 14.2))
+			var p := Vector3(cos(a) * 12.3, 0, end_sign * (34.2 + sin(a) * 12.3))
 			_prop("beach_flag", p, _yaw_to(-Vector3(p.x, 0, p.z - end_sign * 34.2)), {"beachflag": flags[k % 4]}, 0.4)
 			k += 1
 
 func _build_rail_public() -> void:
-	# Fans lined up against the glass boarding (leaning on the handrail), 1-2 rows deep.
+	# Four continuous rows; leave working boxes and their access corridor open.
 	var s := 0.0
 	while s < LAP:
-		var p: Vector3 = _at(s, GLASS_OFFSET - 0.55)
-		var outward := (_at(s, GLASS_OFFSET) - _at(s, GLASS_OFFSET - 1.0)).normalized()
-		var skip := false
-		if p.x < -11.0 and absf(p.z) < 31.0:            # continuous access in front of the six boxes
-			skip = true
-		if p.x > 11.0 and p.z < -27.0 and p.z > -42.0:   # finish zone
-			skip = true
-		if not skip and rng.randf() < 0.78:
-			var v: String = CrowdKit.RAIL[rng.randi() % 2]
-			if rng.randf() < 0.25:
-				v = ["stand_m_cheer", "stand_f_phone", "stand_m_clap"][rng.randi() % 3]
-			_person(v, p, _yaw_to(outward) + rng.randf_range(-0.15, 0.15))
-			if rng.randf() < 0.45:
-				var back := p - outward * rng.randf_range(0.65, 0.9) + Vector3(rng.randf_range(-0.2, 0.2), 0, rng.randf_range(-0.2, 0.2))
-				_person(["stand_m_relaxed", "stand_f_phone", "stand_m_cheer", "stand_f_drink", "stand_m_clap"][rng.randi() % 5],
-					back, _yaw_to(outward) + rng.randf_range(-0.3, 0.3))
-		s += rng.randf_range(0.62, 0.9)
+		var front := _at(s, GLASS_OFFSET - 0.55)
+		if not (front.x < -10.0 and absf(front.z) < 31.0) and not Layout.coach_gate(front, 0.4):
+			var outward := (_at(s, GLASS_OFFSET) - front).normalized()
+			for row in range(4):
+				var p := _at(s + (0.22 if row % 2 else 0.0), GLASS_OFFSET - 0.55 - row * 0.70)
+				if not _free_spot(p, 0.3): continue
+				var pose: String = CrowdKit.RAIL[rng.randi() % 2] if row == 0 else _random_standing()
+				_person(pose, p, _yaw_to(outward) + rng.randf_range(-0.1, 0.1))
+				rail_supporter_count += 1
+		s += 0.60
 
 func _build_wanderers() -> void:
-	# Loose groups standing around the plazas.
-	var placed := 0
+	# Fill public plaza space while preserving props, stairs and coach access.
 	var tries := 0
-	while placed < 40 and tries < 900:
+	while supporter_count < 2000 and tries < 16000:
 		tries += 1
-		var p := Vector3(rng.randf_range(-11.0, 11.0), 0, rng.randf_range(-29.0, 29.0))
-		if not _free_spot(p, 0.7):
+		var p := Vector3(rng.randf_range(-11.0, 11.0), 0, rng.randf_range(-43.0, 43.0))
+		if Layout.inset(p) < 6.0 or not _free_spot(p, 0.35):
 			continue
-		_group_around(p, rng.randi_range(2, 3), 0.55)
-		blockers.append([Vector2(p.x, p.z), 1.0])
-		placed += 1
+		_person(_random_standing(), p, rng.randf() * TAU)
+		blockers.append([Vector2(p.x, p.z), 0.38])
 
 func _emit_people() -> void:
 	var total := 0

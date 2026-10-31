@@ -34,7 +34,7 @@ func run_test() -> void:
 	check("belgium" in row.assigned_countries,"Player's current country always included")
 	for i in range(6):
 		var box: Node3D = row.boxes[i]
-		check(box.position.is_equal_approx(Vector3(-14.6,0,-25.0+10.0*i)),"Back-straight position "+str(i))
+		check(box.position.is_equal_approx(Vector3(-12.6,0,-25.0+10.0*i)),"Back-straight position "+str(i))
 		check((box.basis*Vector3.FORWARD).x>0.99,"Opening +Z points toward the track on world -X")
 		check(box.curtain_open==1,"Every mass-race cabin is open")
 		check(box.get_meta("bike_source")=="res://assets/riders/velodrome_rider.glb","Use the Bike mesh from the live Blender racing rig")
@@ -59,6 +59,7 @@ func run_test() -> void:
 	game.race_mode = 5
 	game.team_size = 3
 	game.fixture.set_value("rider_03","country_kit","portugal")
+	game.pursuit_opponent_country = "portugal"
 	game._configure_peloton()
 	await process_frame
 	var roster := Countries.roster(game)

@@ -14,7 +14,7 @@ func build(host: Node3D) -> Node3D:
 	var vertices := PackedVector3Array()
 	for i in range(1,outline.size()-1): vertices.append_array([outline[0],outline[i],outline[i+1]])
 	host._surface(vertices,"Terras nieuwe noordbars","b3a481")
-	var spots := [Vector3(-10.5,0,31.0),Vector3(-6.8,0,31.5),Vector3(-3.2,0,32.5),Vector3(-10.5,0,42.5),Vector3(-5.8,0,43.0)]
+	var spots := [Vector3(-10.5,0,31.0),Vector3(-6.8,0,31.5),Vector3(-3.2,0,32.5),Vector3(-8.5,0,40.5),Vector3(-4.8,0,41.5)]
 	var count := 0
 	for index in range(spots.size()):
 		var p: Vector3 = spots[index]
