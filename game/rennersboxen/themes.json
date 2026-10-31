@@ -1,0 +1,79 @@
+[
+  {
+    "id": "belgium",
+    "name": "België",
+    "code": "BEL",
+    "base": "#73c7ef",
+    "ink": "#16191c"
+  },
+  {
+    "id": "netherlands",
+    "name": "Nederland",
+    "code": "NED",
+    "base": "#ff7900",
+    "ink": "#ffffff"
+  },
+  {
+    "id": "france",
+    "name": "Frankrijk",
+    "code": "FRA",
+    "base": "#142e59",
+    "ink": "#ffffff"
+  },
+  {
+    "id": "italy",
+    "name": "Italië",
+    "code": "ITA",
+    "base": "#0968bf",
+    "ink": "#ffffff"
+  },
+  {
+    "id": "germany",
+    "name": "Duitsland",
+    "code": "GER",
+    "base": "#f4f4ee",
+    "ink": "#17191d"
+  },
+  {
+    "id": "great_britain",
+    "name": "Groot-Brittannië",
+    "code": "GBR",
+    "base": "#f5f5ee",
+    "ink": "#122849"
+  },
+  {
+    "id": "denmark",
+    "name": "Denemarken",
+    "code": "DEN",
+    "base": "#bd1930",
+    "ink": "#ffffff"
+  },
+  {
+    "id": "australia",
+    "name": "Australië",
+    "code": "AUS",
+    "base": "#075043",
+    "ink": "#f5c622"
+  },
+  {
+    "id": "new_zealand",
+    "name": "Nieuw-Zeeland",
+    "code": "NZL",
+    "base": "#15171b",
+    "ink": "#eeeeea"
+  },
+  {
+    "id": "portugal",
+    "name": "Portugal",
+    "code": "POR",
+    "base": "#f5f4ed",
+    "ink": "#14294d"
+  },
+  {
+    "id": "united_states",
+    "name": "Verenigde Staten",
+    "code": "USA",
+    "base": "#14284d",
+    "ink": "#ffffff"
+  }
+]

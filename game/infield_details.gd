@@ -2,7 +2,7 @@ extends Node3D
 # Velodrome 250 - beta.16.13: lively infield ("middenterrein").
 # Blender-made people and props (assets/crowd/*.glb, sources in assets/source_blender/crowd).
 #  - fan zone with food truck, stalls, bar, coffee bike, tables, benches, parasols, string lights
-#  - team pits in the four rider colours, mechanics at work stands
+#  - six national six-day sleeping boxes with fenced equipment zones
 #  - finish zone with officials, photographers, TV camera and the flag official
 #  - the flag official (female) only appears in the LAST LAP and waves when riders reach the line
 # Coordinates: right straight x = +18 (finish at z = -34.2, riders travel towards -Z), left x = -18.
@@ -13,8 +13,8 @@ const SPONSOR: Texture2D = preload("res://wielerpraat.jpg")
 const LAP := 250.0
 const GLASS_OFFSET := -0.45
 const NEAR_M := 20.0                      # detailed people closer than this, light figures further away
-const TEAM_COLOURS := ["eac736", "35ad77", "268cd3", "df504b"]   # same as the four riders
-const TEAM_NAMES := ["JIJ", "TIJDRIJDER", "SPRINTER", "AANVALLER"]
+const TUNNEL_HALF_WIDTH := 2.275
+const TUNNEL_HALF_LENGTH := 4.70
 
 var crowd: RefCounted                      # set by arena.gd (shared CrowdKit)
 var game: Node3D
@@ -188,8 +188,8 @@ func _build_floor() -> void:
 		var s1 := LAP * float(i + 1) / float(steps)
 		var a: Vector3 = _at(s0, 0.05)
 		var b: Vector3 = _at(s1, 0.05)
-		for v in [Vector3(0, y, 0), Vector3(b.x, y, b.z), Vector3(a.x, y, a.z)]:
-			floor_v.append(v)
+		var triangle: Array[Vector3] = [Vector3(0,y,0),Vector3(b.x,y,b.z),Vector3(a.x,y,a.z)]
+		_append_floor_outside_tunnel(floor_v,triangle)
 		# light standing strip along the glass boarding
 		var a0: Vector3 = _at(s0, GLASS_OFFSET)
 		var a1: Vector3 = _at(s0, -3.2)
@@ -208,32 +208,79 @@ func _build_floor() -> void:
 			_box(Vector3(0, 0.009, zc + float(k) * 2.0), Vector3(25.0, 0.004, 0.03), joint)
 			_box(Vector3(float(k) * 2.27, 0.009, zc), Vector3(0.03, 0.004, 22.0), joint)
 
+func _clip_floor(polygon: Array[Vector3], axis: int, limit: float, below: bool) -> Array[Vector3]:
+	var result: Array[Vector3] = []
+	if polygon.is_empty():return result
+	var previous := polygon[-1]
+	var previous_in: bool = previous[axis]<=limit if below else previous[axis]>=limit
+	for point in polygon:
+		var point_in: bool = point[axis]<=limit if below else point[axis]>=limit
+		if point_in!=previous_in:
+			var t: float = (limit-previous[axis])/(point[axis]-previous[axis])
+			result.append(previous.lerp(point,t))
+		if point_in:result.append(point)
+		previous = point
+		previous_in = point_in
+	return result
+
+func _append_floor_outside_tunnel(vertices: PackedVector3Array, polygon: Array[Vector3]) -> void:
+	# Subtract the rectangular opening from every original capsule triangle.
+	# Repeated half-plane subtraction partitions the remainder without overlapping faces.
+	var remaining := polygon
+	for cut in [[0,-TUNNEL_HALF_WIDTH,false],[0,TUNNEL_HALF_WIDTH,true],[2,-TUNNEL_HALF_LENGTH,false],[2,TUNNEL_HALF_LENGTH,true]]:
+		var outside := _clip_floor(remaining,cut[0],cut[1],not cut[2])
+		for i in range(1,outside.size()-1):
+			vertices.append(outside[0]);vertices.append(outside[i]);vertices.append(outside[i+1])
+		remaining = _clip_floor(remaining,cut[0],cut[1],cut[2])
+		if remaining.is_empty():break
+
+func _tunnel_rail(parent: Node3D, a: Vector3, b: Vector3) -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.035
+	mesh.bottom_radius = 0.035
+	mesh.height = a.distance_to(b)
+	mesh.radial_segments = 10
+	var node := _mesh(mesh,(a+b)*0.5,steel,parent)
+	var up := (b-a).normalized()
+	var side := up.cross(Vector3.FORWARD if absf(up.z)<0.9 else Vector3.RIGHT).normalized()
+	node.basis = Basis(side,up,side.cross(up))
+
 func _build_tunnel() -> void:
-	# Kept from beta.16.12.5: central rider tunnel with stairs, rails and portal.
-	_box(Vector3(0, 0.065, 0), Vector3(8.6, 0.12, 12.4), stone)
-	_box(Vector3(0, -0.008, 0), Vector3(4.55, 0.025, 9.4), dark)
-	var step_mat := _mat("babcb9")
-	var nose_mat := _mat("f5dfab")
-	for i in range(9):
-		var z: float = -4.0 + float(i) * 0.85
-		var h: float = 0.05 + float(i) * 0.075
-		_box(Vector3(0, h - 0.035, z), Vector3(3.7, 0.12, 0.76), step_mat)
-		_box(Vector3(0, h + 0.028, z - 0.31), Vector3(3.7, 0.012, 0.045), nose_mat)
-	_box(Vector3(0, 1.10, 5.12), Vector3(4.9, 2.05, 0.14), dark)
-	_box(Vector3(0, 2.23, 5.12), Vector3(5.45, 0.3, 0.35), blue)
-	for x in [-2.55, 2.55]:
-		_box(Vector3(x, 1.10, 5.12), Vector3(0.33, 2.15, 0.4), steel)
-		for z in [-3.7, -1.6, 0.5, 2.6, 4.7]:
-			_cylinder(Vector3(x, 0.65, z), 0.038, 1.3, steel)
-		_box(Vector3(x, 1.31, 0.5), Vector3(0.06, 0.075, 9.1), steel)
-	var sign := Label3D.new()
-	sign.text = "TUNNEL  •  EXIT"
-	sign.font_size = 42
-	sign.pixel_size = 0.003
-	sign.position = Vector3(0, 2.42, 5.25)
-	sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	add_child(sign)
-	blockers.append([Vector2(0, 0.5), 6.6])
+	var tunnel := Node3D.new()
+	tunnel.name = "Keldertrap"
+	add_child(tunnel)
+	# Four coping strips, never a solid slab across the opening.
+	for x in [-3.2875,3.2875]:_box(Vector3(x,-0.02,0),Vector3(2.025,0.08,12.4),stone,tunnel)
+	for z in [-5.45,5.45]:_box(Vector3(0,-0.02,z),Vector3(4.55,0.08,1.50),stone,tunnel)
+	var wall := _mat("717a80")
+	for x in [-2.335,2.335]:_box(Vector3(x,-1.44,0),Vector3(0.12,2.82,9.4),wall,tunnel)
+	_box(Vector3(0,-1.44,-4.76),Vector3(4.55,2.82,0.12),wall,tunnel)
+	var step_mat := _mat("616b70")
+	for i in range(15):
+		var top_y: float = -0.03-0.18*float(i+1)
+		var z: float = -4.70+0.28*(float(i)+0.5)
+		_box(Vector3(0,top_y-0.09,z),Vector3(4.31,0.18,0.28),step_mat,tunnel).name = "Trede_%02d" % i
+		_box(Vector3(0,top_y+0.004,z-0.12),Vector3(4.31,0.008,0.025),_mat("253038"),tunnel)
+	_box(Vector3(0,-2.79,2.10),Vector3(4.55,0.12,5.20),wall,tunnel).name = "Kelderbordes"
+	_box(Vector3(0,-1.47,4.76),Vector3(4.55,2.52,0.12),dark,tunnel)
+	for x in [-2.49,2.49]:
+		for z in [-4.6,-2.3,0,2.3,4.7]:_cylinder(Vector3(x,0.55,z),0.035,1.10,steel,tunnel)
+		_tunnel_rail(tunnel,Vector3(x,1.10,-4.6),Vector3(x,1.10,4.7))
+		# The handrail follows the descending stairs inside the stairwell.
+		_tunnel_rail(tunnel,Vector3(signf(x)*2.12,0.72,-4.7),Vector3(signf(x)*2.12,-1.80,-0.5))
+	_tunnel_rail(tunnel,Vector3(-2.49,1.10,4.7),Vector3(2.49,1.10,4.7))
+	var sign := _label(tunnel,"KELDER  ↓",Vector3(0,0.55,4.83),38,Color("eee5c9"),PI)
+	sign.name = "Kelderbord"
+	# Low practical lights make depth visible without flattening the opening.
+	for x in [-1.8,1.8]:
+		var light := OmniLight3D.new()
+		light.position = Vector3(x,-1.25,0.4)
+		light.light_color = Color("ffd89d")
+		light.light_energy = 0.65
+		light.omni_range = 4.0
+		light.shadow_enabled = false
+		tunnel.add_child(light)
+	blockers.append([Vector2(0,0.5),6.6])
 
 func _stall(pos: Vector3, yaw: float, title: String, canopy: String, cloth: String, merch: bool = false) -> Node3D:
 	var node := _prop("stall_tent", pos, yaw, {"canopy_a": canopy, "counter_cloth": cloth, "banner": cloth}, 2.3)
@@ -338,20 +385,14 @@ func _build_north_plaza() -> void:
 		_prop("planter", p, 0.0, {}, 0.8)
 
 func _build_team_pits() -> void:
-	# Four team tents along the back straight (x = -18), open towards the track, in the rider colours.
-	for i in range(4):
-		var z: float = [-21.0, -9.0, 9.0, 21.0][i]
-		var col: String = TEAM_COLOURS[i]
-		var tent := _prop("team_tent", Vector3(-13.6, 0, z), -PI * 0.5, {"canopy_a": col, "banner": col}, 2.4)
-		_label(tent, TEAM_NAMES[i], Vector3(0, 2.55, 1.62), 64, Color.WHITE)
-		var stand := _prop("bike_work_stand", Vector3(-15.6, 0, z - 0.8), PI, {"bike_frame": col}, 1.0)
-		_prop("bike_rack", Vector3(-13.6, 0, z + 2.6), -PI * 0.5, {"bike_frame": col}, 1.3)
-		_person("staff_mechanic", stand.transform * Vector3(0.0, 0, 0.75), stand.rotation.y + PI, crowd.call("staff_look", rng, Color(col), 0.25, 0.1))
-		_person("staff_mechanic_f", Vector3(-14.9, 0, z + 0.9), -PI * 0.5 + 0.4, crowd.call("staff_look", rng, Color(col), 0.25, 0.1))
-		_person("stand_m_relaxed", Vector3(-12.4, 0, z - 0.4), -PI * 0.5 + rng.randf_range(-0.4, 0.4), crowd.call("staff_look", rng, Color(col), 0.25, 0.1))
-		_person("stand_f_talk", Vector3(-12.6, 0, z + 0.7), -PI * 0.5 - 0.6, crowd.call("staff_look", rng, Color(col).darkened(0.3), 0.25, 0.1))
-	for z in [-27.0, -15.0, 15.0, 27.0]:
-		_prop("crowd_barrier", Vector3(-14.4, 0, z), PI * 0.5, {"banner": "0b1a2d"}, 1.3)
+	var row := preload("res://rennersboxen/infield_boxes.gd").new()
+	row.name = "Rennersboxen"
+	add_child(row)
+	row.setup(game)
+	for box in row.boxes:
+		blockers.append([Vector2(box.position.x,box.position.z),4.8])
+		_person("staff_mechanic",box.transform*Vector3(-2.7,0,-0.8),-PI*0.5,
+			crowd.call("staff_look",rng,Color("657a8c"),0.25,0.1))
 
 func _build_finish_zone() -> void:
 	var line: Vector3 = _at(0.0, -1.0)
@@ -398,8 +439,8 @@ func _build_rail_public() -> void:
 		var p: Vector3 = _at(s, GLASS_OFFSET - 0.55)
 		var outward := (_at(s, GLASS_OFFSET) - _at(s, GLASS_OFFSET - 1.0)).normalized()
 		var skip := false
-		if p.x < -11.0 and absf(p.z) < 30.0:            # team pits (back straight)
-			skip = absf(fposmod(p.z + 30.0, 12.0) - 6.0) < 4.2
+		if p.x < -11.0 and absf(p.z) < 31.0:            # continuous access in front of the six boxes
+			skip = true
 		if p.x > 11.0 and p.z < -27.0 and p.z > -42.0:   # finish zone
 			skip = true
 		if not skip and rng.randf() < 0.78:

@@ -1,4 +1,5 @@
 extends Node3D
+signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
 const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
@@ -222,6 +223,7 @@ func _configure_peloton() -> void:
 	if peloton_markers == null:
 		peloton_markers = preload("res://peloton_markers.gd").new()
 		add_child(peloton_markers)
+	infield_riders_changed.emit()
 
 func _spawn_peloton() -> void:
 	for i in range(rider_count):
@@ -265,6 +267,7 @@ func apply_player_appearance() -> void:
 	if bikes.is_empty() or not is_instance_valid(bikes[0]) or bikes[0].get_child_count() == 0:
 		return
 	PlayerAppearance.apply_to_rider(bikes[0].get_child(0), player_appearance.resolve(get_player_appearance_base()))
+	infield_riders_changed.emit()
 
 # AI riders: reactive drafting, overtaking and limited high-intensity energy.
 # Energies are joules ABOVE sustainable output and refill at low intensity.
@@ -1608,8 +1611,25 @@ func _build_world() -> void:
 	light.light_energy = 1.5
 	add_child(light)
 	var floor := MeshInstance3D.new()
-	var ground := PlaneMesh.new()
-	ground.size = Vector2(220, 220)
+	floor.name = "ArenaOndergrond"
+	# The broad underlay needs the same opening as the visible infield floor;
+	# otherwise it hides every below-ground stair despite the cut-out above it.
+	var ground := ArrayMesh.new()
+	var vertices := PackedVector3Array()
+	for bounds in [Rect2(-110,-110,107.725,220),Rect2(2.275,-110,107.725,220),Rect2(-2.275,-110,4.55,105.3),Rect2(-2.275,4.7,4.55,105.3)]:
+		var a := Vector3(bounds.position.x,0,bounds.position.y)
+		var b := Vector3(bounds.position.x,0,bounds.end.y)
+		var c := Vector3(bounds.end.x,0,bounds.position.y)
+		var d := Vector3(bounds.end.x,0,bounds.end.y)
+		vertices.append_array(PackedVector3Array([a,b,c,c,b,d]))
+	var normals := PackedVector3Array()
+	normals.resize(vertices.size())
+	normals.fill(Vector3.UP)
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	ground.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
 	floor.mesh = ground
 	floor.material_override = _mat(Color("294b45"))
 	floor.position.y = -0.2
