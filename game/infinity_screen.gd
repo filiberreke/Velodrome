@@ -11,6 +11,45 @@ const LENGTH_SCALE := 0.39
 var arena: Node3D
 var display_materials: Array[ShaderMaterial] = []
 var perimeter := 0.0
+signal stadium_cue(kind: String, payload: Dictionary)
+var scoreboard: Node
+var edge_material: StandardMaterial3D
+
+func set_scoreboard_layout(enabled: bool) -> void:
+	for material in display_materials: material.set_shader_parameter("zoned_content", enabled)
+
+func set_side_content(texture: Texture2D) -> void:
+	if texture == null: return
+	for material in display_materials:
+		material.set_shader_parameter("branding_texture", texture)
+		material.set_shader_parameter("brand_aspect", float(texture.get_width()) / maxf(1.0, float(texture.get_height())))
+
+func _zone_centers(inner: bool, total: float) -> Array[Vector4]:
+	# Find the four world-space cardinal points through the actual ring mesh.
+	# This remains correct for the reversed inner UV direction and a seam that
+	# is not at a cardinal point. Never infer the stadium orientation from UV 0.
+	var scores: Array[float] = [INF, INF, INF, INF]
+	var centers: Array[float] = [0., 0., 0., 0.]
+	var distance := 0.0
+	for i in range(SEGMENTS + 1):
+		var p := point(float(i) / SEGMENTS, THICKNESS if inner else 0.0)
+		if i > 0: distance += p.distance_to(point(float(i - 1) / SEGMENTS, THICKNESS if inner else 0.0))
+		var costs: Array[float] = [absf(p.z) + maxf(-p.x, 0.) * 100., absf(p.z) + maxf(p.x, 0.) * 100., absf(p.x) + maxf(-p.z, 0.) * 100., absf(p.x) + maxf(p.z, 0.) * 100.]
+		for zone in 4:
+			if costs[zone] < scores[zone]:
+				scores[zone] = costs[zone]
+				centers[zone] = total - distance if inner else distance
+	centers.sort()
+	var brands: Array[float] = []
+	for i in 4:
+		var next: float = centers[(i + 1) % 4] + (total if i == 3 else 0.0)
+		brands.append(fposmod((centers[i] + next) * .5, total))
+	return [Vector4(centers[0], centers[1], centers[2], centers[3]), Vector4(brands[0], brands[1], brands[2], brands[3])]
+
+func set_edge_reaction(amount: float) -> void:
+	if edge_material != null:
+		var energy := 0.45 + clampf(amount, 0.0, 1.0) * 0.7
+		if not is_equal_approx(edge_material.emission_energy_multiplier, energy): edge_material.emission_energy_multiplier = energy
 
 func point(u: float, inset := 0.0) -> Vector3:
 	var p: Vector3 = arena._point(u * 250.0, -7.0)
@@ -66,9 +105,15 @@ func build(owner_arena: Node3D) -> void:
 		kit.box("HoistMotors", top - Vector3.UP * 0.3, Vector3(0.6, 0.42, 0.42))
 		kit.box("PanelSpines", p, Vector3(0.5, 0.16, 0.5))
 	kit.flush(self)
+	edge_material = kit.materials["TurquoiseEdge"]
 	make_display(false)
 	make_display(true)
 	set_content(preload("res://assets/boarding/velodrome-boarding.png"))
+	scoreboard = preload("res://infinity_scoreboard.gd").new()
+	scoreboard.name = "Scoreboard"
+	add_child(scoreboard)
+	scoreboard.stadium_cue.connect(func(kind: String, payload: Dictionary): stadium_cue.emit(kind, payload))
+	scoreboard.setup(self, arena.main)
 
 func make_display(inner: bool) -> void:
 	var vertices := PackedVector3Array()
@@ -103,6 +148,13 @@ func make_display(inner: bool) -> void:
 	mat.shader = preload("res://infinity_screen.gdshader")
 	mat.set_shader_parameter("screen_height", HEIGHT)
 	mat.set_shader_parameter("panel_pitch", total / roundf(total / (HEIGHT * 3.0)))
+	var zones: Array[Vector4] = _zone_centers(inner, total)
+	mat.set_shader_parameter("perimeter_m", total)
+	mat.set_shader_parameter("score_centers", zones[0])
+	mat.set_shader_parameter("brand_centers", zones[1])
+	mat.set_shader_parameter("score_width", HEIGHT * 3.0)
+	mat.set_shader_parameter("brand_width", HEIGHT * 3.0)
+	mat.set_shader_parameter("branding_texture", preload("res://assets/boarding/velodrome-boarding.png"))
 	display_materials.append(mat)
 	var node := MeshInstance3D.new()
 	node.name = "InnerLED" if inner else "OuterLED"

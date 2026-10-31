@@ -1,0 +1,64 @@
+[
+  {
+    "test": "test_infinity_scoreboard",
+    "exit_code": 0,
+    "seconds": 3.3,
+    "errors": [],
+    "final_recheck": "PASS after final pagination/crossfade and four fixed display zones"
+  },
+  {
+    "test": "test_infinity_integration",
+    "exit_code": 0,
+    "seconds": 8.41,
+    "errors": [],
+    "final_recheck": "PASS after final pagination/crossfade and four fixed display zones"
+  },
+  {
+    "test": "test_arena_roof",
+    "exit_code": 0,
+    "seconds": 8.17,
+    "errors": []
+  },
+  {
+    "test": "test_broadcast_intro",
+    "exit_code": 0,
+    "seconds": 9.43,
+    "errors": []
+  },
+  {
+    "test": "test_hud",
+    "exit_code": 0,
+    "seconds": 7.35,
+    "errors": []
+  },
+  {
+    "test": "test_points_notifications",
+    "exit_code": 0,
+    "seconds": 8.44,
+    "errors": []
+  },
+  {
+    "test": "test_gameplay_headless",
+    "exit_code": 0,
+    "seconds": 15.2,
+    "errors": []
+  },
+  {
+    "test": "test_points_race",
+    "exit_code": 0,
+    "seconds": 34.85,
+    "errors": []
+  },
+  {
+    "test": "test_pursuit",
+    "exit_code": 0,
+    "seconds": 10.48,
+    "errors": []
+  },
+  {
+    "test": "test_team_pursuit",
+    "exit_code": 0,
+    "seconds": 15.56,
+    "errors": []
+  }
+]

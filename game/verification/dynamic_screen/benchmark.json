@@ -1,0 +1,34 @@
+[
+  {
+    "content_updates": 0,
+    "dynamic": false,
+    "elapsed_s": 2.61919,
+    "frame_ms": 43.6531666666667,
+    "resolution": "1536x512",
+    "scoreboard_cameras": 0
+  },
+  {
+    "content_updates": 17,
+    "dynamic": true,
+    "elapsed_s": 2.48128,
+    "frame_ms": 41.3546666666667,
+    "resolution": "1536x512",
+    "scoreboard_cameras": 0
+  },
+  {
+    "content_updates": 0,
+    "dynamic": false,
+    "elapsed_s": 2.546287,
+    "frame_ms": 42.4381166666667,
+    "resolution": "1536x512",
+    "scoreboard_cameras": 0
+  },
+  {
+    "content_updates": 19,
+    "dynamic": true,
+    "elapsed_s": 2.56883,
+    "frame_ms": 42.8138333333333,
+    "resolution": "1536x512",
+    "scoreboard_cameras": 0
+  }
+]

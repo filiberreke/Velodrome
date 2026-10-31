@@ -14,6 +14,8 @@ func run() -> void:
 	for component in ["ArenaRoofStructure", "ProfessionalFloodlights", "InfinityScreen"]:
 		check(arena.has_node(component), "Missing integrated component: " + component)
 	var screen = arena.get_node("InfinityScreen")
+	screen.scoreboard.suspend_scoreboard()
+	screen.set_content(preload("res://assets/boarding/velodrome-boarding.png"))
 	check(is_equal_approx(screen.BOTTOM, 13.0) and screen.BOTTOM + screen.HEIGHT < 16.0, "Requested 13 m screen clearance")
 	check(screen.perimeter > 80 and screen.perimeter < 100, "Compact screen proportional to central infield")
 	for surface in ["OuterLED", "InnerLED"]:
