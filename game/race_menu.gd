@@ -335,6 +335,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func bridge_action(button: String) -> void:
 	if not visible:
 		return
+	if pursuit_options != null and is_instance_valid(pursuit_options.active_picker):
+		pursuit_options.active_picker.bridge_action(button)
+		return
 	if button == "B":
 		if page in [2, 3]: show_choices()
 		return

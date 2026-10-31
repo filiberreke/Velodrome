@@ -1,7 +1,7 @@
 extends CanvasLayer
 # Local display preferences; no trainer or gameplay dependencies.
 const OPTIONS := [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440)]
-const SETTINGS_PATH := "user://display_settings.cfg"
+const SETTINGS_PATH := "user://config/display_settings.cfg"
 var resolution := Vector2i(1920, 1080)
 var render_scale := 0.85
 var fullscreen := true
@@ -25,7 +25,7 @@ var helmet_choice: OptionButton
 var visor_choice: OptionButton
 var appearance_preview
 var appearance_status: Label
-const RIDER_PATH := "user://rider_profile.cfg"
+const RIDER_PATH := "user://config/rider_profile.cfg"
 
 func _ready() -> void:
 	layer = 25
@@ -37,7 +37,7 @@ func _ready() -> void:
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_PATH) != OK:
+	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") != OK:
 		return
 	var w := int(cfg.get_value("display", "width", 1920))
 	var h := int(cfg.get_value("display", "height", 1080))
@@ -72,13 +72,13 @@ func _save_settings() -> void:
 	cfg.set_value("display", "fullscreen", fullscreen)
 	cfg.set_value("arena", "crowd_density", crowd_density)
 	cfg.set_value("presentation", "always_show_intro", always_show_intro)
-	var err := cfg.save(SETTINGS_PATH)
+	var err := cfg.save(preload("res://config_paths.gd").user_path("display_settings.cfg"))
 	if err != OK:
 		push_warning("Beeldinstellingen niet opgeslagen: %d" % err)
 
 func _load_rider_profile() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(RIDER_PATH) != OK:
+	if preload("res://config_paths.gd").load_user(cfg, "rider_profile.cfg") != OK:
 		return
 	get_parent().set("player_display_name", str(cfg.get_value("rider", "name", "JIJ")).strip_edges())
 	if str(get_parent().get("player_display_name")).is_empty():
@@ -92,7 +92,7 @@ func _save_rider_profile() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("rider", "name", get_parent().get("player_display_name"))
 	cfg.set_value("rider", "weight_kg", get_parent().get("player_weight_kg"))
-	cfg.save(RIDER_PATH)
+	cfg.save(preload("res://config_paths.gd").user_path("rider_profile.cfg"))
 
 func _build_menu() -> void:
 	var toolbar := Control.new()

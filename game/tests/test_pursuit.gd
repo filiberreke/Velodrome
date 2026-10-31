@@ -14,6 +14,7 @@ class Model extends "res://main.gd":
 		pass
 
 class Screen extends "res://main.gd":
+	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 	func _take_finish_photo(_winner: int) -> void:
 		pass
 
@@ -165,7 +166,7 @@ func run_test() -> void:
 	var menu = screen.setup_panel
 	menu.select_mode(1)
 	var options = menu.pursuit_options
-	check(options.distance_m() == 1000 and options.cp_input.value == 250.0 and not menu.start_button.disabled, "Pursuit defaults: 1 km, AI, CP 250 W")
+	check(options.distance_m() == 1000 and options.cp_input.value == 265.0 and not menu.start_button.disabled, "Pursuit defaults: 1 km, selected sample rider, CP 265 W")
 	options.opponent_choice.select(1)
 	options.refresh_state()
 	check(menu.start_button.disabled, "Missing saved ride disables replay start")

@@ -41,7 +41,7 @@ func _ready() -> void:
 	main = get_parent()
 	crowd = CrowdKit.new()
 	var cfg := ConfigFile.new()
-	if cfg.load("user://display_settings.cfg") == OK:
+	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") == OK:
 		crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
 	_build_boarding()
 	_build_concourses()

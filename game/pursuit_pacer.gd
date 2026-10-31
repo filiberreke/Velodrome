@@ -2,6 +2,8 @@ extends RefCounted
 ## One constant, distance-budgeted effort; no draft, randomness or final sprint.
 const WPRIME_J := 20000.0
 const BUDGET_FRACTION := 0.98
+var wprime_j := WPRIME_J
+var max_power_w := INF
 var cp_w := 250.0
 var target_w := 250.0
 var reserve_j := WPRIME_J
@@ -33,13 +35,13 @@ static func duration(game: Node3D, distance: float, power: float, origin: float,
 
 func prepare(game: Node3D, distance: float, cp: float, origin: float, lane: float) -> void:
 	cp_w = clampf(cp, 50.0, 800.0)
-	reserve_j = WPRIME_J
+	reserve_j = wprime_j
 	var low: float = cp_w
-	var high: float = cp_w + 550.0
+	var high: float = minf(cp_w + 550.0, maxf(cp_w, max_power_w))
 	for iteration in range(22):
 		var candidate: float = (low + high) * 0.5
 		var seconds: float = duration(game, distance, candidate, origin, lane)
-		if (candidate - cp_w) * seconds <= WPRIME_J * BUDGET_FRACTION:
+		if (candidate - cp_w) * seconds <= wprime_j * BUDGET_FRACTION:
 			low = candidate
 		else:
 			high = candidate

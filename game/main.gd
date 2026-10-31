@@ -102,6 +102,12 @@ var rider_count_input: SpinBox
 var form_rng := RandomNumberGenerator.new()
 var rider_config := ConfigFile.new()
 var rider_config_ready := false
+const Catalog := preload("res://rider_catalog.gd")
+const ConfigPaths := preload("res://config_paths.gd")
+var rider_identities: Array[Dictionary] = []
+var ai_personal_records = preload("res://rider_records.gd").new()
+var ai_recorded: Array[bool] = []
+var ai_observed_peak: Array[float] = []
 var pursuit_opponent_config: Dictionary = {}
 var pursuit_opponent_country := "netherlands"
 const RaceCountries := preload("res://rennersboxen/race_countries.gd")
@@ -109,28 +115,13 @@ const RaceCountries := preload("res://rennersboxen/race_countries.gd")
 func _load_rider_config() -> void:
 	# Personal config is intentionally excluded from distributed ZIP updates.
 	# Prefer per-project file so players can edit names in a text editor.
-	var err: Error = rider_config.load("res://riders_config.cfg")
+	var err: Error = ConfigPaths.load_project(rider_config, "riders_config.cfg", true)
 	rider_config_ready = err == OK
 	if err != OK and err != ERR_FILE_NOT_FOUND:
 		push_warning("Velodrome: riders_config.cfg kon niet worden ingelezen (%d); standaardnamen worden gebruikt." % err)
 
 func _configured_rider(i: int, default_profile: int) -> Dictionary:
-	var section := "rider_%02d" % i
-	var profile_name: String = String(rider_config.get_value(section, "profile", "")).strip_edges().to_lower() if rider_config_ready else ""
-	var kind: int = default_profile
-	match profile_name:
-		"tt", "time_trialist", "tijdrijder": kind = 1
-		"sprinter": kind = 2
-		"attacker", "aanvaller": kind = 3
-	var default_name: String = PROFILE_NAMES[kind - 1] + " %02d" % i
-	var actual_name: String = String(rider_config.get_value(section, "name", default_name)).strip_edges() if rider_config_ready else default_name
-	if actual_name.is_empty(): actual_name = default_name
-	var jersey: Dictionary = {}
-	if rider_config_ready:
-		for key in ["country", "number", "jersey_color", "jersey_secondary", "shorts_color", "helmet_color", "jersey_design", "country_kit", "skinsuit_png", "helmet_png", "visor"]:
-			if rider_config.has_section_key(section, key):
-				jersey[key] = rider_config.get_value(section, key)
-	return {"profile": kind, "name": actual_name.substr(0, 32), "jersey": jersey}
+	return Catalog.entry(rider_config, i, default_profile)
 
 func _profile(i: int) -> int:
 	return rider_profiles[i] if i < rider_profiles.size() else 1
@@ -149,6 +140,9 @@ func _configure_peloton() -> void:
 	rider_profiles.clear()
 	rider_names.clear()
 	rider_forms.clear()
+	rider_identities.clear()
+	ai_recorded.resize(rider_count); ai_recorded.fill(false)
+	ai_observed_peak.resize(rider_count); ai_observed_peak.fill(0.0)
 	rider_kits.clear()
 	for i in range(rider_count):
 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
@@ -162,9 +156,10 @@ func _configure_peloton() -> void:
 			outfit["country"] = RaceCountries.from_kit(outfit) if ours else pursuit_opponent_country
 			if String(outfit.country).is_empty(): outfit["country"] = "belgium"
 			configured = {"profile": 0 if ours else 1, "name": player_display_name if i == 0 else ("Ploegmaat %d" % i if ours else "%s %d" % [pursuit_opponent_country, i - team_size + 1]), "jersey": outfit}
+		rider_identities.append(configured.duplicate(true))
 		rider_profiles.append(int(configured["profile"]))
 		rider_names.append(String(configured["name"]))
-		rider_forms.append(1.0 if i == 0 or race_mode in [4, 5] else form_rng.randf_range(0.95, 1.05))
+		rider_forms.append(1.0 if i == 0 or race_mode in [4, 5] else form_rng.randf_range(0.975, 1.025))
 		var kit: Dictionary = configured.get("jersey", {})
 		kit = kit.duplicate()
 		kit["number"] = clampi(int(kit.get("number", i + 1)), 1, 99)
@@ -218,6 +213,7 @@ func _configure_peloton() -> void:
 		x_ai = PointsAI.new() if race_mode == 1 else XScratchAI.new()
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
+		x_ai.configure_riders(rider_identities, rider_forms)
 	for node in bikes: node.queue_free()
 	bikes.clear()
 	crowded_labels.clear()
@@ -240,6 +236,7 @@ func _spawn_peloton() -> void:
 		rider.set_meta("peloton_index", i)
 		rider.set_meta("pursuit_mode", race_mode in [4, 5])
 		rider.set_meta("jersey_config", rider_kits[i])
+		rider.set_meta("body_shapes", rider_identities[i].get("morphs", {}))
 		if rider_config_ready and race_mode not in [4, 5]:
 			var kit_section := "player" if i == 0 else "rider_%02d" % i
 			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", "")))
@@ -572,6 +569,7 @@ func _physics_process(delta: float) -> void:
 	# the player is still racing. Their race times/distances remain frozen.
 	if start_state == "RACING":
 		_update_coasting(delta)
+		_record_ai_performances()
 	if finished:
 		finish_elapsed += delta
 		if (finish_elapsed >= FINISH_PRESENTATION_SECONDS or _all_riders_finished()) and finish_overlay != null:
@@ -2118,9 +2116,9 @@ func _confirm_start() -> void:
 		else: pursuit_opponent_country = String(selected_ai.get("country", "netherlands"))
 	_configure_peloton()
 	if choice in [1, 2]:
-		_prepare_pursuit(replay, float(options.cp_input.value))
+		_prepare_pursuit(replay, options.configured_cp())
 		if choice == 2:
-			team_race.prepare(self, replay, float(options.cp_input.value))
+			team_race.prepare(self, replay, options.configured_cp())
 			team_race.ours.configure_factors(options.configured_factors())
 	else:
 		_tt_prepare_event()
@@ -2657,8 +2655,11 @@ func _prepare_pursuit(replay: Dictionary, cp: float) -> void:
 	recovery_left = 0.0
 	pursuit_pacer = PursuitPacer.new()
 	if pursuit_replay.is_empty():
+		if not pursuit_opponent_config.is_empty():
+			pursuit_pacer.wprime_j = float(pursuit_opponent_config.get("w_prime_j", 20000.0))
+			pursuit_pacer.max_power_w = float(pursuit_opponent_config.get("max_power_w", 800.0))
 		pursuit_pacer.prepare(self, _race_length(), cp, _rider_distance(1, 0.0), LANES[0])
-		rider_names[1] = "AI-tegenstander"
+		rider_names[1] = String(pursuit_opponent_config.get("name", "AI-tegenstander"))
 	else:
 		rider_names[1] = "Rit: " + String(pursuit_replay["name"]).left(24)
 	if bikes.size() > 1 and bikes[1].get_child_count() > 1:
@@ -2770,6 +2771,7 @@ func _update_pursuit(dt: float) -> void:
 			_register_lap_crossings(i, previous, step, dt)
 			if previous + step >= _race_length():
 				end_time = clock - dt + dt * (_race_length() - previous) / maxf(step, 0.000001)
+		if i > 0: ai_power_w[i] = power
 		_register_pursuit_half_crossings(i, previous, step, dt, power)
 		distances[i] = minf(_race_length(), previous + step)
 		var crossed: bool = distances[i] >= _race_length() - 0.000001
@@ -3061,6 +3063,17 @@ func available_pursuit_riders() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for id in ids:
 		var entry := _configured_rider(id, 1 + ((id - 1) % 3))
-		entry["id"] = id
 		result.append(entry)
 	return result
+
+func _record_ai_performances() -> void:
+	if race_mode == 5: return # A team result is not an individual time record.
+	if race_mode == 4 and not pursuit_replay.is_empty(): return
+	for i in range(1, mini(rider_count, rider_identities.size())):
+		var power: float = ai_power_w[i] if i < ai_power_w.size() else 0.0
+		ai_observed_peak[i] = maxf(ai_observed_peak[i], power)
+		if finish_times[i] >= 0.0 and not ai_recorded[i]:
+			ai_recorded[i] = true
+			var identity: Dictionary = rider_identities[i]
+			var parameters := {"cp_w":pursuit_pacer.cp_w if race_mode == 4 else float(identity.get("cp_w",0.0)), "max_power_w":float(identity.get("max_power_w",0.0)), "w_prime_j":float(identity.get("w_prime_j",0.0))}
+			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1] else 80.0, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)

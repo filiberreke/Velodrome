@@ -11,6 +11,8 @@ var portrait_riders: Array[int] = []
 var saved_layers: Array[Dictionary] = []
 var stack: VBoxContainer
 var portraits_ready := false
+var passport: PanelContainer
+var original_style: StyleBoxFlat
 
 func setup(owner_game: Node3D) -> void:
 	game = owner_game
@@ -25,6 +27,7 @@ func setup(owner_game: Node3D) -> void:
 	style.content_margin_right = 20
 	style.content_margin_top = 16
 	style.content_margin_bottom = 16
+	original_style = style
 	add_theme_stylebox_override("panel", style)
 	custom_minimum_size = Vector2(350, 0)
 	stack = VBoxContainer.new()
@@ -37,7 +40,7 @@ func _process(_delta: float) -> void:
 	if not visible: return
 	# Autowrapped labels settle after container sorting; fit the final content
 	# instead of retaining the temporary height from the first layout pass.
-	size = Vector2(350, get_combined_minimum_size().y)
+	fit_content()
 	position = Vector2(28, maxf(70, (get_viewport_rect().size.y - size.y) * 0.5))
 
 func _label(value: String, font_size: int, color := Color.WHITE) -> void:
@@ -50,6 +53,25 @@ func _label(value: String, font_size: int, color := Color.WHITE) -> void:
 
 func prepare() -> void:
 	clear()
+	if game.race_mode == 4 and game.pursuit_replay.is_empty() and not game.pursuit_opponent_config.is_empty():
+		profile = game.pursuit_opponent_config.duplicate(true)
+		profile["cp_w"] = game.pursuit_pacer.cp_w
+		profile["w_prime_j"] = game.pursuit_pacer.wprime_j
+		profile["max_power_w"] = game.pursuit_pacer.max_power_w
+		profile["riders"] = [game.rider_names[1]]
+		passport = preload("res://rider_passport.gd").new()
+		passport.entry = profile
+		passport.interactive = false
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		custom_minimum_size.x = 450
+		stack.custom_minimum_size.x = 450
+		stack.add_child(passport)
+		fit_content()
+		return
+	add_theme_stylebox_override("panel", original_style)
+	custom_minimum_size.x = 350
+	stack.custom_minimum_size.x = 310
+
 	var team: bool = game.race_mode == 5
 	var first: int = game.team_size if team else 1
 	var count: int = game.team_size if team else 1
@@ -122,6 +144,7 @@ func update_portraits() -> void:
 
 func clear() -> void:
 	hide()
+	passport = null
 	for saved in saved_layers:
 		if is_instance_valid(saved.node): saved.node.layers = saved.layers
 	saved_layers.clear()
@@ -136,3 +159,6 @@ func clear() -> void:
 		for child in stack.get_children():
 			stack.remove_child(child)
 			child.queue_free()
+
+func fit_content() -> void:
+	size = Vector2(450 if is_instance_valid(passport) else 350, get_combined_minimum_size().y)

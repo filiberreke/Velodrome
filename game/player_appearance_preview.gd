@@ -53,6 +53,17 @@ func set_back_view(back: bool) -> void:
 	back_view = back
 	_update_camera()
 
+func show_identity(entry: Dictionary) -> void:
+	if rider != null: rider.free()
+	rider = Visual.new()
+	rider.set_meta("rider_index", int(entry.profile))
+	rider.set_meta("body_shapes", entry.morphs)
+	rider.set_meta("jersey_config", entry.jersey)
+	Appearance.prepare_rider(rider, entry.jersey)
+	stage.add_child(rider)
+	var bike := rider.rig_scene.find_child("Bike", true, false) as MeshInstance3D
+	if bike != null: bike.visible = false
+
 func _update_camera() -> void:
 	if camera == null: return
 	camera.position = Vector3(0, 2.7, -3.5) if back_view else Vector3(0, 1.05, 3.5)

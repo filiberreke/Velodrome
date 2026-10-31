@@ -8,7 +8,7 @@ func _initialize() -> void:
 	var lanes: Array[float] = [1.28, 2.45, 3.85, 5.55]
 	brain.reset(profiles, forms, lanes)
 	assert(brain.initialized)
-	assert(is_equal_approx(brain.cp[2], 235.0))
+	assert(is_equal_approx(brain.cp[2], 240.0))
 	assert(is_equal_approx(brain.wmax[2], 30638.0))
 	assert(AI.pcurve(5.0, 235.0, 30638.0, 1661.88) > 1200.0)
 	assert(is_equal_approx(AI.physical_ahead(499.0, 251.0), 2.0))

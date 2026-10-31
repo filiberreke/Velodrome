@@ -1,5 +1,15 @@
 # Velodrome 250 X — achtervolging
 
+## Rennerpaspoorten en configuratie — 1 november 2026
+
+De rennerkeuze heeft een raster van kwartetkaarten met portret, landsvlag,
+specialiteit en afgeronde vermogenswaarden. De achtervolgingsintro gebruikt
+dezelfde kaart. Vaste factoren behouden de bestaande profielgedragingen.
+De nieuwe sample staat in `config/riders_config.example.cfg`, met alle
+factoren op `1.0`. Persoonlijke renner- en Strava-configuratie horen nu in
+`config/`; bestaande bestanden krijgen bij laden een veilige migratie.
+Zie [config/README.txt](config/README.txt) voor parameters en recordopslag.
+
 23 oktober 2026. **Dit is een patch met uitsluitend gewijzigde en nieuwe bestanden**
 voor de versie met HUD v2. De bestaande assets, `project.godot` en hoofdscene blijven nodig.
 
