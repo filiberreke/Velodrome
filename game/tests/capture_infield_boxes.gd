@@ -50,6 +50,11 @@ func run_capture() -> void:
 	await process_frame
 	game._set_menu_visible(false)
 	hide_ui(game)
+	# Physics is frozen for architectural captures; still place the racers on
+	# their actual track coordinates instead of leaving them at world origin.
+	game._update_visuals(0.0)
+	game._update_boost_dog(0.0)
+	for bike in game.bikes:assert(Vector2(bike.position.x,bike.position.z).length()>10.0)
 	camera = Camera3D.new()
 	camera.far = 250
 	viewport.add_child(camera)
@@ -70,6 +75,9 @@ func run_capture() -> void:
 	game.race_mode = 4
 	game._configure_peloton()
 	await process_frame
+	game._update_visuals(0.0)
+	game._update_boost_dog(0.0)
+	for bike in game.bikes:assert(Vector2(bike.position.x,bike.position.z).length()>10.0)
 	await snapshot("achtervolging_twee_open",Vector3(-24,12,0),Vector3(-14.6,0.8,0),42,true)
 	viewport.free()
 	print("INFIELD_CAPTURES_OK")
