@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://wqpwnxfrm2b2"
+
+[deps]
+
+files=["res://verification/inside_lane/races.ai.translation", "res://verification/inside_lane/races.dt.translation", "res://verification/inside_lane/races.finish.translation", "res://verification/inside_lane/races.inner.translation", "res://verification/inside_lane/races.inside.translation", "res://verification/inside_lane/races.inside.translation", "res://verification/inside_lane/races.laps.translation", "res://verification/inside_lane/races.mean.translation", "res://verification/inside_lane/races.mode.translation", "res://verification/inside_lane/races.prefer.translation", "res://verification/inside_lane/races.riders.translation", "res://verification/inside_lane/races.seed.translation"]
+
+source_file="res://verification/inside_lane/races.csv"
+dest_files=["res://verification/inside_lane/races.ai.translation", "res://verification/inside_lane/races.dt.translation", "res://verification/inside_lane/races.finish.translation", "res://verification/inside_lane/races.inner.translation", "res://verification/inside_lane/races.inside.translation", "res://verification/inside_lane/races.inside.translation", "res://verification/inside_lane/races.laps.translation", "res://verification/inside_lane/races.mean.translation", "res://verification/inside_lane/races.mode.translation", "res://verification/inside_lane/races.prefer.translation", "res://verification/inside_lane/races.riders.translation", "res://verification/inside_lane/races.seed.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
