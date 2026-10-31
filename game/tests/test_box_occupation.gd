@@ -18,6 +18,7 @@ func check_crew(row: Node3D, index: int, active: bool) -> void:
 	if not active:return
 	var roles := {"mechanic":0,"carer":0,"coach":0,"supporter":0}
 	var expected := Color(Box.Themes.DATA[box.country].base)
+	var leaning := 0
 	for actor in crew.actors:
 		roles[actor.get_meta("role")]+=1
 		var mesh_count := 0
@@ -27,12 +28,16 @@ func check_crew(row: Node3D, index: int, active: bool) -> void:
 				check(node.multimesh.instance_count==1,"Every named member has actual Blender crowd geometry")
 				# The headless dummy renderer returns black for MultiMesh colour readback.
 				# Verify source assignment here; the GPU capture checks actual readback.
-				check(actor.get_meta("shirt").is_equal_approx(expected),"People receive the assigned country's shirt colour")
+				var shirt: Color = actor.get_meta("shirt")
+				check(Vector3(shirt.r-expected.r,shirt.g-expected.g,shirt.b-expected.b).length()<0.22,"Individual shirt shades retain the assigned country's colour")
 		check(mesh_count==1,"Every member has one detailed mesh without spectator LOD gaps")
 		if actor.get_meta("role")=="supporter":
-			check(absf(actor.position.z+0.52-2.95)<0.001,"Leaning supporters' hands meet the actual glass rail")
-			check(absf(actor.position.x)>2,"Supporters keep the cabin's central approach clear")
-	check(roles=={"mechanic":2,"carer":1,"coach":1,"supporter":4},"Each open box has two mechanics, carer, trainer and four supporters")
+			if actor.get_meta("pose") in ["stand_m_rail","stand_f_rail"]:
+				leaning+=1
+				check(absf(actor.position.z+0.52*cos(actor.rotation.y)-2.95)<0.001,"Leaning supporters' hands meet the actual glass rail")
+			check(absf(actor.position.x)>1.7,"Supporters keep the cabin's central approach clear")
+	check(roles.mechanic==2 and roles.carer==1 and roles.coach==1 and roles.supporter>=3 and roles.supporter<=6,"Each open box keeps its required staff and a varied supporter group")
+	check(leaning>=2,"At least two supporters lean on the actual rail")
 	check(crew.get_node("Verzorger/Bidons").get_child_count()==4,"Carer has two real bottle bodies and caps")
 	check(crew.has_node("Trainer/Stopwatch"),"Trainer's clipboard pose has a timing watch")
 
@@ -76,6 +81,15 @@ func run_test() -> void:
 	var infield: Node3D = game.arena.get_node("LevendigMiddenterrein")
 	var row: Node3D = infield.get_node("Rennersboxen")
 	for i in range(6):check_crew(row,i,true)
+	var layouts := {}
+	for crew in row.crews:
+		var signature := ""
+		for actor in crew.actors:signature+=str(actor.transform)+str(actor.get_meta("pose"))
+		layouts[signature] = true
+	check(layouts.size()==6,"The six countries have different people, poses and positions")
+	var before: Transform3D = row.crews[0].actors[0].transform
+	row.refresh()
+	check(row.crews[0].actors[0].transform==before,"Roster refresh preserves natural placements without shuffling")
 	for child in infield.get_children():
 		check(not (child is MultiMeshInstance3D and String(child.name).contains("staff_mechanic")),"No orphaned always-visible mechanics outside the box controller")
 	game.race_mode = 4

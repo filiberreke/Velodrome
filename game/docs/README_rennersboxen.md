@@ -52,11 +52,14 @@ dranghekken blijven staan. De hele buitenzone wordt direct bij de sluitopdracht
 verborgen, ook tijdens de gordijnanimatie.
 
 Bij elke open box staan twee mecaniciens met gereedschap, een gewone verzorger
-met twee bidons en een trainer met klembord en stopwatch. Vier supporters in
-de landenkleuren leunen op de echte glazen boarding om hun renner aan te moedigen.
+met twee bidons en een trainer met stopwatch (soms met klembord). Per land staan
+drie tot zes supporters in losse, ongelijke groepjes: minstens twee leunen op
+de echte glazen boarding, anderen klappen, juichen, praten of drinken.
 Hun handpositie ligt op de bestaande leuning, buiten het materiaalvak maar
-achter het glas; zij houden de centrale toegang vrij. Alle personen gebruiken
-bestaande Blender-crowdmodellen met de gedeelde crowd-shader. De maximaal 48
+achter het glas; zij houden de centrale toegang vrij. Landen hebben verschillende
+werkposities, kijkrichtingen, mannen/vrouwen, lichaamsbouw en kledingnuances.
+Een vaste seed per land voorkomt verspringen bij rosterupdates of heropenen.
+Alle personen gebruiken bestaande Blender-crowdmodellen met de gedeelde crowd-shader. De maximaal 60
 boxpersonages gebruiken het gedetailleerde mesh zonder afstandsonderbreking.
 Hun kledingkleur verandert mee met het toegewezen land. De oude altijd zichtbare
 mecanicien is verwijderd uit de losse middenterrein-MultiMeshes.
@@ -87,7 +90,7 @@ blijven van toepassing.
 
 `res://tests/test_box_occupation.gd` vergelijkt alle fietssurfaces met beide
 actuele koersrigs, inclusief vertices, indices en materiaalwaarden. De test
-controleert ook de acht echte personages per open box, landenkleuren,
+controleert ook de vereiste rollen en gevarieerde bezetting per open box, landenkleuren,
 bidons, de positie aan het glas en een lege buitenzone tijdens en na sluiten.
 
 De controles voor spelverloop, spelersoutfit, achtervolging en ploegenachtervolging
