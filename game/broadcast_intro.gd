@@ -177,6 +177,10 @@ func sample(time: float) -> Dictionary:
 	if direction.length_squared() < .01: direction = game._direction(game._rider_distance(0, game.distances[0]), game.lane_offsets[0])
 	var target := pos + direction * 8.0
 	target = close_target.lerp(target, smooth_phase((time - WELCOME_END) / 1.5))
+	# A brief inward glance on the existing north-bend flight reveals the roof
+	# and compact suspended screen. Positions, timing and cabin cues stay intact.
+	var arena_glance := smooth_phase((time - 12.0) / 2.0) * (1.0 - smooth_phase((time - 17.0) / 2.0))
+	target = target.lerp(Vector3(0.0, 14.3, 0.0), arena_glance * 0.45)
 	if game.race_mode in [4, 5]:
 		var opponent: int = game.team_size if game.race_mode == 5 else 1
 		var focus := smooth_phase((time - 18.0) / 1.5) * (1.0 - smooth_phase((time - 21.0) / 1.5))

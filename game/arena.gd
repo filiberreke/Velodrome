@@ -360,15 +360,10 @@ func _build_roof() -> void:
 	_ring_wall(28.77, 18.73, 19.52, _material(NAVY), "Dakboord donkerblauw")
 	_ring_deck(28.64, 28.79, 18.87, 18.87, _emissive(GOLD, 0.9), "Dak lichtlijn goud")
 	_ring_wall(49.11, 22.5, 24.0, _material(NAVY_DARK), "Buitenste dakrand")
-	# Thin timber rafters at regular intervals, true 3D beams drawn via MultiMesh.
-	var beams: Array[Transform3D] = []
-	var beams_mesh: Mesh = _box_mesh(Vector3(0.20, 0.30, 1.0))
-	for i in range(58):
-		var s: float = LAP * float(i) / 58.0
-		var inside: Vector3 = _stadium_point(s, 28.8, 19.0)
-		var outside: Vector3 = _stadium_point(s, 49.3, 23.25)
-		beams.append(_between(inside, outside))
-	_solid_instances(beams_mesh, beams, "2b2528", "58 houten dakspanten")
+	# Separate static components share meshes and leave effective lights intact.
+	preload("res://arena_roof.gd").new().build(self)
+	preload("res://arena_floodlights.gd").new().build(self)
+	preload("res://infinity_screen.gd").new().build(self)
 	# Outer steel supports, placed BEHIND the seating, not on the cycling surface.
 	var supports: Array[Transform3D] = []
 	for i in range(46):
@@ -436,11 +431,6 @@ func _build_central_canopy() -> void:
 	ceiling.material_override = material
 	ceiling.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(ceiling)
-	var braces: Array[Transform3D] = []
-	for i in range(24):
-		var s := LAP * float(i) / 24.0
-		braces.append(_between(hub, _stadium_point(s, 28.8, 19.18)))
-	_solid_instances(_box_mesh(Vector3(0.16, 0.21, 1.0)), braces, "3b4b62", "Radiale plafondspanten")
 
 func _between(a: Vector3, b: Vector3) -> Transform3D:
 	var forward: Vector3 = (b - a).normalized()

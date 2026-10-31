@@ -1,0 +1,127 @@
+{
+  "engine": "Godot 4.7.2 Compatibility",
+  "tests": [
+    {
+      "test": "test_arena_roof",
+      "exit_code": 0,
+      "seconds": 3.86,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_broadcast_intro",
+      "exit_code": 0,
+      "seconds": 3.79,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_commentary_box",
+      "exit_code": 0,
+      "seconds": 4.21,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_menu",
+      "exit_code": 0,
+      "seconds": 3.17,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_hud",
+      "exit_code": 0,
+      "seconds": 3.87,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_gameplay_headless",
+      "exit_code": 0,
+      "seconds": 7.55,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_inside_lane_races",
+      "exit_code": 1,
+      "seconds": 301.7,
+      "errors": []
+    },
+    {
+      "test": "test_points_race",
+      "exit_code": 0,
+      "seconds": 22.35,
+      "errors": []
+    },
+    {
+      "test": "test_points_notifications",
+      "exit_code": 0,
+      "seconds": 3.92,
+      "errors": []
+    },
+    {
+      "test": "test_pursuit",
+      "exit_code": 0,
+      "seconds": 5.07,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_team_pursuit",
+      "exit_code": 0,
+      "seconds": 7.4,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_team_first_wheel",
+      "exit_code": 0,
+      "seconds": 1.74,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_trainer_control",
+      "exit_code": 0,
+      "seconds": 2.5,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_bridge_steering",
+      "exit_code": 0,
+      "seconds": 1.45,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_tour_details",
+      "exit_code": 0,
+      "seconds": 3.9,
+      "errors": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    }
+  ],
+  "incomplete": [
+    "test_inside_lane_races: 300 second timeout; not passed",
+    "test_intermediate_sprint: additional rule-check attempt interrupted by runner elapsed-time timeout; not passed",
+    "test_intermediate_sprint_race: stopped during long simulation; not completed",
+    "test_team_bridge: integration harness requires simulator endpoints/arguments; run without harness stopped; not passed",
+    "test_virtual_bridge: not run; requires external bridge harness",
+    "Physical trainer, long manual highest-quality race and active tifo deployment not tested"
+  ]
+}
