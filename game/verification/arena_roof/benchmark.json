@@ -1,0 +1,26 @@
+[
+  {
+    "draw_calls": 1782,
+    "frame_ms": 39.527075,
+    "new_components": false,
+    "primitives": 1069126
+  },
+  {
+    "draw_calls": 1798,
+    "frame_ms": 40.638475,
+    "new_components": true,
+    "primitives": 1165566
+  },
+  {
+    "draw_calls": 1782,
+    "frame_ms": 39.836275,
+    "new_components": false,
+    "primitives": 1069126
+  },
+  {
+    "draw_calls": 1798,
+    "frame_ms": 40.832925,
+    "new_components": true,
+    "primitives": 1165566
+  }
+]
