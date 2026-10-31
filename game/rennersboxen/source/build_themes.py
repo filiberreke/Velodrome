@@ -160,6 +160,8 @@ def main():
         country=item['id']
         lines.append('    '+json.dumps(country)+': {')
         lines.append('        "name": '+json.dumps(item['name'],ensure_ascii=False)+',')
+        lines.append('        "base": '+json.dumps(item['base'])+',')
+        lines.append('        "ink": '+json.dumps(item['ink'])+',')
         for part in ('panel','curtain','header'):
             lines.append(f'        "{part}": preload("res://rennersboxen/textures/{country}/{part}.png"),')
         lines.append('    },')

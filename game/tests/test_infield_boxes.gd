@@ -37,7 +37,7 @@ func run_test() -> void:
 		check(box.position.is_equal_approx(Vector3(-14.6,0,-25.0+10.0*i)),"Back-straight position "+str(i))
 		check((box.basis*Vector3.FORWARD).x>0.99,"Opening +Z points toward the track on world -X")
 		check(box.curtain_open==1,"Every mass-race cabin is open")
-		check(box.get_meta("bike_source")=="7984692dc0792b839c5b40f2806e849a6ea18107","Reuse the original Velodrome bike meshes")
+		check(box.get_meta("bike_source")=="res://assets/riders/velodrome_rider.glb","Use the Bike mesh from the live Blender racing rig")
 	check(not infield.has_node("team_tent"),"Old tents removed rather than overlapped")
 	# National PNGs override a configured kit, matching PlayerAppearance.
 	check(Countries.from_kit({"skinsuit_png":"res://assets/riders/national_kits/italy/skinsuit.png","country_kit":"germany"})=="italy","Read actual selected national texture")

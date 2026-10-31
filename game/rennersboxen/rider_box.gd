@@ -1,14 +1,15 @@
 @tool
 extends Node3D
-## One metre = one Godot unit. Front = local +Z. No external game dependencies.
-## Import the complete res://rennersboxen folder, then drag scenes/*.tscn into a scene.
+signal activity_changed(active: bool)
+## One metre = one Godot unit. Front = local +Z.
+## Reuses the game's Blender Bike meshes from res://assets/riders/.
 
 const COUNTRIES := ["belgium", "netherlands", "france", "italy", "germany", "great_britain", "denmark", "australia", "new_zealand", "portugal", "united_states"]
 const BOX_SIZE := Vector3(2.60, 2.10, 2.50)
 const ZONE_SIZE := Vector2(8.60, 3.80)
 const Themes = preload("res://rennersboxen/themes.gd")
-const EXISTING_BIKE: PackedScene = preload("res://assets/bikes/track_bike.glb")
-const BIKE_SOURCE_BLOB := "7984692dc0792b839c5b40f2806e849a6ea18107"
+const BIKE_SCENES := {"track": preload("res://assets/riders/velodrome_rider.glb"), "pursuit": preload("res://assets/riders/velodrome_pursuit.glb")}
+const BIKE_PATHS := {"track":"res://assets/riders/velodrome_rider.glb", "pursuit":"res://assets/riders/velodrome_pursuit.glb"}
 
 @export_enum("belgium", "netherlands", "france", "italy", "germany", "great_britain", "denmark", "australia", "new_zealand", "portugal", "united_states") var country: String = "belgium":
 	set(value):
@@ -19,6 +20,12 @@ const BIKE_SOURCE_BLOB := "7984692dc0792b839c5b40f2806e849a6ea18107"
 	set(value):
 		curtain_open = clampf(value, 0.0, 1.0)
 		_update_curtains()
+		if not is_instance_valid(_tween) or not _tween.is_running(): _set_activity(curtain_open>0.001)
+@export_enum("track", "pursuit") var bike_variant: String = "track":
+	set(value):
+		if value not in BIKE_SCENES or value==bike_variant:return
+		bike_variant = value
+		_schedule_build()
 @export var include_equipment: bool = true:
 	set(value):
 		include_equipment = value
@@ -34,8 +41,11 @@ const BIKE_SOURCE_BLOB := "7984692dc0792b839c5b40f2806e849a6ea18107"
 
 static var _materials: Dictionary = {}
 static var _curtain_cache: Dictionary = {}
-static var _bike_parts: Array[Dictionary] = []
+static var _bike_parts: Dictionary = {}
 var _geometry: Node3D
+var _exterior: Node3D
+var _draw_target: Node3D
+var _active := true
 var _curtains: Array[MeshInstance3D] = []
 var _build_pending := false
 var _tween: Tween
@@ -55,11 +65,21 @@ func set_country(id: String) -> bool:
 
 func set_open(open: bool, seconds: float = 0.45) -> void:
 	if _tween: _tween.kill()
+	_set_activity(open)
 	if seconds <= 0.0 or not is_inside_tree():
 		curtain_open = 1.0 if open else 0.0
 	else:
 		_tween = create_tween()
 		_tween.tween_property(self, "curtain_open", 1.0 if open else 0.0, seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func is_active() -> bool:
+	return _active
+
+func _set_activity(active: bool) -> void:
+	var changed := _active!=active
+	_active = active
+	if is_instance_valid(_exterior):_exterior.visible = active
+	if changed:activity_changed.emit(active)
 
 func _mat(hex: String, metal: float = 0.0) -> StandardMaterial3D:
 	# Small shared palette: retain national colours, batch similar hardware finishes.
@@ -96,7 +116,7 @@ func _mesh(mesh: Mesh, pos: Vector3, material: Material, node_name: String = "De
 	n.material_override = material
 	n.position = pos
 	n.name = node_name
-	_geometry.add_child(n)
+	(_draw_target if is_instance_valid(_draw_target) else _geometry).add_child(n)
 	return n
 
 func _box(pos: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
@@ -126,50 +146,91 @@ func _ball(pos: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	n.scale = size
 	return n
 
-func _cache_bike_parts(node: Node, parent_transform: Transform3D = Transform3D.IDENTITY) -> void:
-	var transform_here := parent_transform
-	if node is Node3D: transform_here *= node.transform
-	if node is MeshInstance3D:
-		for surface in node.mesh.get_surface_count():
-			_bike_parts.append({"name": String(node.name), "mesh": node.mesh, "surface": surface,
-				"transform": transform_here, "material": node.get_active_material(surface)})
-	for child in node.get_children(): _cache_bike_parts(child,transform_here)
-
 func _ensure_bike_parts() -> void:
-	if not _bike_parts.is_empty(): return
-	var imported := EXISTING_BIKE.instantiate()
-	_cache_bike_parts(imported)
+	if _bike_parts.has(bike_variant):return
+	# The live racer is an integrated Blender rig. Take only its actual Bike mesh,
+	# retaining every surface/material and bind-position vertex, without the cyclist.
+	var imported: Node3D = BIKE_SCENES[bike_variant].instantiate()
+	var bike := imported.find_child("Bike",true,false) as MeshInstance3D
+	assert(bike!=null and bike.skin!=null)
+	var rear_bind := -1
+	for i in bike.skin.get_bind_count():
+		if bike.skin.get_bind_name(i)==&"wheel_r":rear_bind=i
+	assert(rear_bind>=0)
+	var parts: Array[Dictionary] = []
+	for surface in bike.mesh.get_surface_count():
+		var original := bike.mesh.surface_get_arrays(surface)
+		var arrays := original.duplicate()
+		# Clear skin attributes to use the existing geometry as a static parked bike.
+		arrays[Mesh.ARRAY_BONES] = null
+		arrays[Mesh.ARRAY_WEIGHTS] = null
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+		var wheel := _rear_wheel_surface(original,rear_bind)
+		parts.append({"mesh":mesh,"wheel":wheel,"material":bike.get_active_material(surface)})
+	_bike_parts[bike_variant] = parts
 	imported.free()
+
+func _rear_wheel_surface(arrays: Array, bind_index: int) -> ArrayMesh:
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+	var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	var stride: int = bones.size()/vertices.size()
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var triangles := 0
+	for face in range(0,indices.size(),3):
+		var rear := true
+		for j in range(3):
+			var weight := 0.0
+			for k in stride:
+				var at: int = indices[face+j]*stride+k
+				if bones[at]==bind_index:weight+=weights[at]
+			if weight<0.999:rear=false
+		if not rear:continue
+		for j in range(3):
+			var index := indices[face+j]
+			st.set_normal(normals[index])
+			st.add_vertex(vertices[index])
+		triangles+=1
+	if triangles==0:return null
+	# Match the indexed source meshes before batching with complete bicycles.
+	# Mixing unindexed stock wheels and indexed bikes drops the former's faces.
+	st.index()
+	return st.commit()
 
 func _existing_bike_meshes(transform_here: Transform3D, wheels_only: bool = false) -> void:
 	_ensure_bike_parts()
-	for part in _bike_parts:
-		if wheels_only and not part.name.begins_with("rear_"): continue
-		var n := _mesh(part.mesh,Vector3.ZERO,part.material,"ExistingBikePart")
-		n.transform = transform_here*part.transform
-		n.set_meta("source_asset","res://assets/bikes/track_bike.glb")
+	for part in _bike_parts[bike_variant]:
+		var mesh: Mesh = part.wheel if wheels_only else part.mesh
+		if mesh==null:continue
+		var n := _mesh(mesh,Vector3.ZERO,part.material,"RaceBikePart")
+		n.transform = transform_here
+		n.set_meta("source_asset",BIKE_PATHS[bike_variant])
 
 func _wheel(center: Vector3) -> void:
-	# Spare wheels reuse the existing model too. Display at a 0.345 m tyre radius.
-	var basis := Basis(Vector3.UP,PI/2.0).scaled(Vector3.ONE*(0.345/0.419))
-	_existing_bike_meshes(Transform3D(basis,center-basis*Vector3(0,0.42,-0.69)),true)
+	# Rear-wheel triangles come from the same Blender Bike mesh, at native scale.
+	var basis := Basis(Vector3.UP,PI/2.0)
+	_existing_bike_meshes(Transform3D(basis,center-basis*Vector3(0,0.335,-0.40)),true)
 
 func _bike(at: Vector3, rollers: bool = false) -> void:
 	var basis := Basis(Vector3.UP,PI/2.0)
-	var origin := at
+	var origin := at-basis*Vector3(0,0,0.09)
 	if rollers:
-		# Native model: wheelbase 1.38 m, tyre radius .419 m, hub height .420 m.
+		# Race Blender model: wheelbase .98 m, tyre radius/hub height .335 m.
 		# Three drums touch both tyres; pitch accounts for the two rear contact points.
-		var rear_hub_y := 0.055+sqrt(pow(0.419+0.048,2)-pow(0.15,2))
-		var front_hub_y := 0.055+0.419+0.048
-		var pitch := asin((front_hub_y-rear_hub_y)/1.38)
+		var rear_hub_y := 0.055+sqrt(pow(0.335+0.048,2)-pow(0.12,2))
+		var front_hub_y := 0.055+0.335+0.048
+		var pitch := asin((front_hub_y-rear_hub_y)/0.98)
 		var tilt := Basis(Vector3.BACK,pitch)
 		basis = tilt*basis
-		origin += Vector3(0,(rear_hub_y+front_hub_y)*0.5,0)-tilt*Vector3(0,0.42,0)
+		origin = at+Vector3(0,(rear_hub_y+front_hub_y)*0.5,0)-basis*Vector3(0,0.335,0.09)
 		var metal := _mat("b3bec8",0.7)
 		for z in [-0.34,0.34]:
-			_box(at+Vector3(0,0.025,z),Vector3(2.15,0.05,0.035),_mat("252e38"))
-		for x in [-0.69*cos(pitch)-0.15,-0.69*cos(pitch)+0.15,0.69*cos(pitch)]:
+			_box(at+Vector3(0,0.025,z),Vector3(1.65,0.05,0.035),_mat("252e38"))
+		for x in [-0.49*cos(pitch)-0.12,-0.49*cos(pitch)+0.12,0.49*cos(pitch)]:
 			_rod(at+Vector3(x,0.055,-0.32),at+Vector3(x,0.055,0.32),0.048,metal)
 	_existing_bike_meshes(Transform3D(basis,origin))
 
@@ -199,6 +260,10 @@ func rebuild() -> void:
 	_geometry = Node3D.new()
 	_geometry.name = "Geometry"
 	add_child(_geometry)
+	_draw_target = _geometry
+	_exterior = Node3D.new()
+	_exterior.name = "ExteriorEquipment"
+	_geometry.add_child(_exterior)
 	var silver := _mat("acb7c1",0.75)
 	var inside := _mat("c4c6c5")
 	var navy := _mat("16243c")
@@ -238,11 +303,15 @@ func rebuild() -> void:
 		for k in range(3):
 			_box(hp+Vector3(-0.075+k*0.075,0.111,0),Vector3(0.025,0.012,0.17),_mat("26313b"))
 	# Wheel rail: no canopy; wheels stand above the rear wall.
-	for x in [-1.13,1.13]:_rod(Vector3(x,2.10,-1.10),Vector3(x,2.62,-1.10),0.019,silver)
-	_rod(Vector3(-1.15,2.29,-1.10),Vector3(1.15,2.29,-1.10),0.022,silver)
-	for i in range(6):_wheel(Vector3(-0.95+float(i)*0.38,2.48,-1.10))
+	if include_equipment:
+		_draw_target = _exterior
+		for x in [-1.13,1.13]:_rod(Vector3(x,2.10,-1.10),Vector3(x,2.62,-1.10),0.019,silver)
+		_rod(Vector3(-1.15,2.29,-1.10),Vector3(1.15,2.29,-1.10),0.022,silver)
+		for i in range(6):_wheel(Vector3(-0.95+float(i)*0.38,2.48,-1.10))
+	_draw_target = _geometry
 	_panel(Vector3(0,2.125,1.295),0.70,0.12,0,_print("header"))
 	if include_equipment:
+		_draw_target = _exterior
 		_bike(Vector3(-2.72,0.0,0.20),true)
 		_bike(Vector3(2.72,0.0,-0.20))
 		_bike(Vector3(2.72,0.0,-0.92))
@@ -251,11 +320,14 @@ func rebuild() -> void:
 		for y in [0.04,0.38]:_box(Vector3(-1.85,y,0.98),Vector3(0.59,0.035,0.43),silver)
 		_box(Vector3(-1.85,0.24,1.19),Vector3(0.12,0.05,0.015),silver)
 		_box(Vector3(1.85,0.17,0.93),Vector3(0.50,0.34,0.42),_mat("242f3b"))
+	_draw_target = _geometry
 	if include_barriers:
 		for start in [-4.2,-1.4,1.4]:_barrier(Vector3(start,0,-1.65),Vector3(start+2.8,0,-1.65))
 		for side in [-1.0,1.0]:_barrier(Vector3(side*4.2,0,-1.65),Vector3(side*4.2,0,0.92))
 	if collision_enabled: _build_collision()
-	_merge_static()
+	_merge_static(_geometry)
+	_merge_static(_exterior)
+	_exterior.visible = _active
 	for i in range(2):
 		var node := MeshInstance3D.new()
 		node.name = "CurtainLeft" if i==0 else "CurtainRight"
@@ -264,7 +336,7 @@ func rebuild() -> void:
 		_curtains.append(node)
 	_update_curtains()
 	set_meta("footprint",ZONE_SIZE if include_equipment or include_barriers else Vector2(2.60,2.50))
-	set_meta("bike_source",BIKE_SOURCE_BLOB)
+	set_meta("bike_source",BIKE_PATHS[bike_variant])
 
 func _build_collision() -> void:
 	var body := StaticBody3D.new()
@@ -281,11 +353,11 @@ func _build_collision() -> void:
 		n.position = item[0]
 		body.add_child(n)
 
-func _merge_static() -> void:
+func _merge_static(parent: Node3D) -> void:
 	# A material batch replaces hundreds of individual mesh draw calls.
 	var groups: Dictionary = {}
 	var originals: Array[Node] = []
-	for n in _geometry.get_children():
+	for n in parent.get_children():
 		if n is MeshInstance3D:
 			var material: Material = n.material_override
 			if not groups.has(material):
@@ -296,13 +368,13 @@ func _merge_static() -> void:
 			groups[material].append_from(n.mesh,0,n.transform)
 			originals.append(n)
 	for n in originals:
-		_geometry.remove_child(n)
+		parent.remove_child(n)
 		n.free()
 	for material in groups:
 		var n := MeshInstance3D.new()
 		n.name = "StaticBatch"
 		n.mesh = groups[material].commit()
-		_geometry.add_child(n)
+		parent.add_child(n)
 
 func _update_curtains() -> void:
 	if _curtains.size()!=2: return

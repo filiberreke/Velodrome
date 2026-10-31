@@ -58,6 +58,7 @@ func configure(start_list: Array[String], player_country: String, mode: String =
 		var active := i<selected.size()
 		boxes[i].visible = active
 		if active:
+			boxes[i].bike_variant = "track" if mode=="mass" else "pursuit"
 			boxes[i].set_country(selected[i])
 			boxes[i].set_open(mode=="mass" or selected[i] in racing_countries)
 	return true

@@ -4,8 +4,15 @@ De vier oude materiaalposten zijn vervangen door zes zesdaagseboxen langs het
 rechte stuk tegenover start/finish. De goedgekeurde ontwerpen zijn uitgevoerd
 als Godot-meshes, met elf nationale materiaalsets en geplooide schuifgordijnen.
 Iedere box bevat een bed, een plank met helmen en drinkbussen, een wielrek,
-een rollenfiets en twee reservefietsen. Fietsen en losse wielen hergebruiken
-`assets/bikes/track_bike.glb`; dat bestaande model is niet gewijzigd.
+een rollenfiets en twee reservefietsen. Fietsen en losse wielen gebruiken de
+werkelijke `Bike`-mesh uit `assets/riders/velodrome_rider.glb`: dezelfde
+Blender-export als de koers, met oranje/wit frame, dicht achterwiel en driespaaks
+voorwiel. Bij achtervolging gebruiken de boxen de `Bike`-mesh uit
+`assets/riders/velodrome_pursuit.glb`, inclusief het tijdritstuur. De rigbestanden
+blijven ongewijzigd. Alleen de skinning is uit de geparkeerde kopie weggelaten;
+vertices, driehoeken, materialen en schaal zijn overgenomen.
+
+De oudere losse `assets/bikes/track_bike.glb` wordt hier niet meer gebruikt.
 
 ## Opstelling
 
@@ -14,8 +21,8 @@ een rollenfiets en twee reservefietsen. Fietsen en losse wielen hergebruiken
 - Centra: x = -14,60 m; z = -25, -15, -5, 5, 15, 25 m.
 - Materiaalzones beslaan x = -16,50 tot -12,70 m en samen 58,60 m van het
   rechte stuk. Tussen de zones blijft 1,40 m vrij. Openingen wijzen naar de baan.
-- De oude tenten zijn verwijderd. Publiek langs het glas wordt niet meer in
-  de toegangszone van de boxen geplaatst. Dranghekken scheiden materiaal en publiek.
+- De oude tenten zijn verwijderd. Dranghekken scheiden materiaal en publiek.
+  De doorgang voor het midden van elke box blijft vrij.
 
 ## Landen en wedstrijden
 
@@ -36,6 +43,23 @@ iedere frame de meshes te herbouwen.
 - Bij minder dan zes landen vervolledigen landen met nul starters de rij;
   gelijke aantallen worden stabiel op ID gesorteerd. In andere wedstrijden
   blijven alle zes boxen open.
+
+## Bezetting van de materiaalzone
+
+Een gesloten box heeft buiten geen fietsen, rollenbank, materiaal- of wielvoorraad
+en geen bijbehorende staf of supporters. Het gordijn sluit; de box en vaste
+dranghekken blijven staan. De hele buitenzone wordt direct bij de sluitopdracht
+verborgen, ook tijdens de gordijnanimatie.
+
+Bij elke open box staan twee mecaniciens met gereedschap, een gewone verzorger
+met twee bidons en een trainer met klembord en stopwatch. Vier supporters in
+de landenkleuren leunen op de echte glazen boarding om hun renner aan te moedigen.
+Hun handpositie ligt op de bestaande leuning, buiten het materiaalvak maar
+achter het glas; zij houden de centrale toegang vrij. Alle personen gebruiken
+bestaande Blender-crowdmodellen met de gedeelde crowd-shader. De maximaal 48
+boxpersonages gebruiken het gedetailleerde mesh zonder afstandsonderbreking.
+Hun kledingkleur verandert mee met het toegewezen land. De oude altijd zichtbare
+mecanicien is verwijderd uit de losse middenterrein-MultiMeshes.
 
 De landen: België, Nederland, Frankrijk, Italië, Duitsland, Groot-Brittannië,
 Denemarken, Australië, Nieuw-Zeeland, Portugal, Verenigde Staten.
@@ -60,6 +84,11 @@ controleert de echte game-opbouw, landenrangschikking, live outfitwissel,
 beide achtervolgingsmodi, terugschakelen naar andere wedstrijden, de
 vloeroppervlakte en de ondergrondse treden. De gewone race- en middenterreintests
 blijven van toepassing.
+
+`res://tests/test_box_occupation.gd` vergelijkt alle fietssurfaces met beide
+actuele koersrigs, inclusief vertices, indices en materiaalwaarden. De test
+controleert ook de acht echte personages per open box, landenkleuren,
+bidons, de positie aan het glas en een lege buitenzone tijdens en na sluiten.
 
 De controles voor spelverloop, spelersoutfit, achtervolging en ploegenachtervolging
 slagen op deze wijziging. De oudere `test_north_infield.gd` meldt twee bestaande

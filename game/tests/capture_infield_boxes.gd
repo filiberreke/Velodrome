@@ -27,7 +27,7 @@ func snapshot(file_name: String, position: Vector3, target: Vector3, size: float
 	camera.size = size
 	camera.fov = size
 	camera.make_current()
-	for i in range(6):await RenderingServer.frame_post_draw
+	for i in range(40):await RenderingServer.frame_post_draw
 	var image := viewport.get_texture().get_image()
 	assert(image.save_png(OUTPUT+file_name+".png")==OK)
 	print("CAPTURED "+file_name)
@@ -48,12 +48,21 @@ func run_capture() -> void:
 	hide_ui(game)
 	await process_frame
 	await process_frame
+	game._set_menu_visible(false)
 	hide_ui(game)
 	camera = Camera3D.new()
 	camera.far = 250
 	viewport.add_child(camera)
 	await snapshot("zes_boxen_overzicht",Vector3(-24,12,0),Vector3(-14.6,0.8,0),42,true)
 	var row: Node3D = game.arena.get_node("LevendigMiddenterrein/Rennersboxen")
+	for crew in row.crews:
+		for actor in crew.actors:
+			var expected: Color = actor.get_meta("shirt")
+			for node in actor.get_children():
+				if node is MultiMeshInstance3D:
+					var actual: Color = node.multimesh.get_instance_color(0)
+					assert(absf(actual.r-expected.r)<0.005 and absf(actual.g-expected.g)<0.005 and absf(actual.b-expected.b)<0.005)
+	print("CREW_GPU_COLORS_OK")
 	var index: int = row.assigned_countries.find("belgium")
 	var at: Vector3 = row.boxes[index].global_position
 	await snapshot("belgische_box",at+Vector3(-8.5,3.3,3.8),at+Vector3(0,1.15,0),54)

@@ -388,11 +388,9 @@ func _build_team_pits() -> void:
 	var row := preload("res://rennersboxen/infield_boxes.gd").new()
 	row.name = "Rennersboxen"
 	add_child(row)
-	row.setup(game)
+	row.setup(game,crowd)
 	for box in row.boxes:
 		blockers.append([Vector2(box.position.x,box.position.z),4.8])
-		_person("staff_mechanic",box.transform*Vector3(-2.7,0,-0.8),-PI*0.5,
-			crowd.call("staff_look",rng,Color("657a8c"),0.25,0.1))
 
 func _build_finish_zone() -> void:
 	var line: Vector3 = _at(0.0, -1.0)
