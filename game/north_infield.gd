@@ -20,7 +20,7 @@ func build(infield: Node3D) -> Array[Node3D]:
 	_mixed(mixed)
 	var podium: Node3D = host._prop("podium", Vector3(9.4, 0, 16), -PI * 0.5, {"banner": "0b1a2d"}, 2.6)
 	podium.name = "Podium"
-	host._label(podium, "VELODROME 250", Vector3(0, 2.15, -0.84), 72, Color("f2c05e"))
+	preload("res://podium_sponsor_wall.gd").build(podium)
 	for i in range(5):
 		host._person("stand_m_clap" if i % 2 == 0 else "stand_f_phone", Vector3(6.4, 0, 14 + float(i)), PI * 0.5)
 	var beer := _root("BierTrustNoOne", Vector3(0, 0, 41.5))
@@ -259,3 +259,4 @@ func _oven_mouth(parent: Node3D) -> void:
 		var opening := PackedVector3Array([Vector3(0,SPRING,FRONT+0.012),Vector3(cos(a)*INNER,SPRING+sin(a)*INNER,FRONT+0.012),Vector3(cos(b)*INNER,SPRING+sin(b)*INNER,FRONT+0.012)])
 		_surface(tunnel,opening,PackedVector3Array([Vector3.FORWARD,Vector3.FORWARD,Vector3.FORWARD]),PackedVector2Array(),_mat("201a17"),"DonkereHaard")
 	_box(tunnel,Vector3(0,(1.20+SPRING)*0.5,FRONT+0.025),Vector3(INNER*2,SPRING-1.20,0.025),"201a17")
+

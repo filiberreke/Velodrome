@@ -6,6 +6,8 @@ var resolution := Vector2i(1920, 1080)
 var render_scale := 0.85
 var fullscreen := true
 var crowd_density := 0.60
+var always_show_intro := false
+var intro_check: CheckButton
 var crowd_slider: HSlider
 var crowd_label: Label
 var panel_root: Control
@@ -45,6 +47,7 @@ func _load_settings() -> void:
 	render_scale = clampf(float(cfg.get_value("display", "render_scale", 0.85)), 0.5, 1.0)
 	fullscreen = bool(cfg.get_value("display", "fullscreen", true))
 	crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
+	always_show_intro = bool(cfg.get_value("presentation", "always_show_intro", false))
 
 func _apply_display() -> void:
 	# Keep 2D UI at the reference viewport resolution while scaling 3D separately.
@@ -68,6 +71,7 @@ func _save_settings() -> void:
 	cfg.set_value("display", "render_scale", render_scale)
 	cfg.set_value("display", "fullscreen", fullscreen)
 	cfg.set_value("arena", "crowd_density", crowd_density)
+	cfg.set_value("presentation", "always_show_intro", always_show_intro)
 	var err := cfg.save(SETTINGS_PATH)
 	if err != OK:
 		push_warning("Beeldinstellingen niet opgeslagen: %d" % err)
@@ -221,6 +225,15 @@ func _build_menu() -> void:
 	fullscreen_check.text = "Volledig scherm"
 	fullscreen_check.button_pressed = fullscreen
 	box.add_child(fullscreen_check)
+	intro_check = CheckButton.new()
+	intro_check.text = "Intro bij elke wedstrijd tonen"
+	intro_check.button_pressed = always_show_intro
+	intro_check.tooltip_text = "Uit: alleen bij de eerste wedstrijd van deze sessie. Aan: bij elke wedstrijd."
+	box.add_child(intro_check)
+	var intro_hint := Label.new()
+	intro_hint.text = "Uit: alleen de eerste wedstrijd van de sessie. Aan: elke wedstrijd."
+	intro_hint.add_theme_color_override("font_color", Color("b4d4e9"))
+	box.add_child(intro_hint)
 	var info := Label.new()
 	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nDruk op F10 om dit menu te openen of sluiten."
 	info.add_theme_color_override("font_color", Color("b4d4e9"))
@@ -348,6 +361,7 @@ func _on_apply() -> void:
 	resolution = OPTIONS[resolution_choice.selected]
 	render_scale = float(scale_slider.value)
 	fullscreen = fullscreen_check.button_pressed
+	always_show_intro = intro_check.button_pressed
 	crowd_density = float(crowd_slider.value)
 	_apply_display()
 	_save_settings()
@@ -360,6 +374,7 @@ func toggle_menu() -> void:
 		_close_settings()
 	else:
 		_sync_appearance_controls()
+		intro_check.button_pressed = always_show_intro
 		panel_root.show()
 		_on_settings_tab_changed(appearance_tabs.current_tab)
 
