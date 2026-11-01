@@ -46,7 +46,7 @@ func run_test() -> void:
 	var options = game.setup_panel.pursuit_options
 	check(options.ai_entries.size() == 16, "All fifteen AI slots and extra configured riders are selectable")
 	for i in options.ai_entries.size():
-		if options.ai_entries[i].id == 14: options.ai_choice.select(i)
+		if options.ai_entries[i].slot == 14: options.ai_choice.select(i)
 	game.pursuit_opponent_config = options.selected_ai()
 	game.race_mode = 4
 	game._configure_peloton()

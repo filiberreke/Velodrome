@@ -1,6 +1,6 @@
 extends "res://x_scratch_ai.gd"
 ## Points-only tactical adaptation; shared CP/Wprime physiology is inherited.
-## Scratch retains its original CP and tactical step unchanged.
+## Both disciplines share the approved 265/240/250 W bases; tactics stay discipline-specific.
 var jury
 const IntermediateSprint := preload("res://points_intermediate_sprint.gd")
 var intermediate_sprint = IntermediateSprint.new()

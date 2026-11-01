@@ -1,5 +1,6 @@
 extends SceneTree
-const Game := preload("res://main.gd")
+class Game extends "res://main.gd":
+	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 var failures := 0
 
 func check(ok: bool, message: String) -> void:
@@ -17,6 +18,7 @@ func run_test() -> void:
 	await process_frame
 	await process_frame
 	var menu = game.setup_panel
+	game.get_node("GameSettings").always_show_intro = true
 	check(menu.visible and menu.page == 1, "Opening screen is mode gallery")
 	check(menu.cards.size() == 7 and menu.previews.size() == 7, "Six mode cards plus Records tile")
 	var expected := ["Scratch", "Achtervolging", "Ploegenachtervolging", "Puntenkoers", "Ploegkoers", "Keirin"]
@@ -64,7 +66,7 @@ func run_test() -> void:
 	for bike in game.bikes:
 		check(bike.visible, "Riders restored on start")
 	for person in people:
-		if person.name != "Vlagdame":
+		if is_instance_valid(person) and person.name != "Vlagdame":
 			check(person.visible, "Spectators and infield people restored on start")
 	game._reset()
 	check(menu.visible and menu.page == 1 and not game.race_overlay.visible, "Reset returns to clean gallery")

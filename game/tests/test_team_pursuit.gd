@@ -115,6 +115,7 @@ func run_test() -> void:
 	var game = Screen.new(); root.add_child(game); game.set_physics_process(false)
 	await process_frame; await process_frame
 	game.setup_panel.select_mode(2)
+	game.setup_panel.pursuit_flow.next_step()
 	var options = game.setup_panel.team_options
 	check(options.team_size() == 3 and options.cp_input.value == 250.0, "Team menu defaults")
 	options.teammates.select(1); options.teammates.item_selected.emit(1)
@@ -176,6 +177,9 @@ func run_test() -> void:
 	check(not game.pursuit_saved_id.is_empty() and game.pursuit_save_button.disabled, "Real result save button stores named team performance once")
 	var saved_path: String = directory.path_join(game.pursuit_saved_id + ".json")
 	game._reset(); game.setup_panel.select_mode(2)
+	game.setup_panel.pursuit_flow.select_size(4)
+	options.library.directory = directory
+	game.setup_panel.pursuit_flow.next_step()
 	options.opponent_choice.select(1); options.refresh_rides()
 	check(options.can_start(), "Saved performance available in team menu")
 	game._confirm_start(); game.broadcast_intro.finish()

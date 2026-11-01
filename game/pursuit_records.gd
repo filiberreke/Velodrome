@@ -48,7 +48,7 @@ func save(name: String, distance: int, seconds: float, samples: Array[Dictionary
 	if title.is_empty():
 		return {"error": "Geef je rit eerst een naam."}
 	var id: String = Crypto.new().generate_random_bytes(12).hex_encode()
-	var record := {"version": VERSION, "physics": PHYSICS, "id": id, "name": title, "distance_m": distance, "time_s": seconds, "created_at": Time.get_unix_time_from_system(), "samples": samples.duplicate(true)}
+	var record := {"version": VERSION, "physics": PHYSICS, "id": id, "name": title, "distance_m": distance, "time_s": seconds, "created_at": Time.get_unix_time_from_system(), "created_local": Time.get_datetime_string_from_system(false, true), "samples": samples.duplicate(true)}
 	for key in ["performance_id", "player_name", "finished_at", "finished_local"]:
 		if metadata.has(key): record[key] = metadata[key]
 	if event_kind == "team":
@@ -169,3 +169,22 @@ static func time_at_distance(record: Dictionary, distance: float) -> float:
 	var b: Dictionary = samples[high]
 	var fraction: float = clampf((distance - float(a["d"])) / maxf(0.000001, float(b["d"]) - float(a["d"])), 0.0, 1.0)
 	return lerpf(float(a["t"]), float(b["t"]), fraction)
+
+static func average_power(record: Dictionary) -> float:
+	var samples: Array = record.get("samples", [])
+	var joules := 0.0
+	for i in range(1, samples.size()):
+		var dt: float = float(samples[i].t) - float(samples[i-1].t)
+		joules += maxf(0.0, dt) * (float(samples[i].p) + float(samples[i-1].p)) * 0.5
+	return joules / maxf(0.000001, float(record.get("time_s", 0.0)))
+
+static func scaled_replay(record: Dictionary, percent: float) -> Dictionary:
+	# Transform an in-memory copy; the saved personal achievement is never edited.
+	var result := record.duplicate(true)
+	var factor := clampf(percent, 30.0, 150.0) / 100.0
+	result["source_time_s"] = float(record.time_s)
+	result["playback_percent"] = percent
+	if is_equal_approx(factor, 1.0): return result
+	result["time_s"] = float(record.time_s) / factor
+	for sample in result.samples: sample["t"] = float(sample.t) / factor
+	return result
