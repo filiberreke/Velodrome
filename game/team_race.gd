@@ -23,6 +23,7 @@ func prepare(game: Node3D, previous: Dictionary, cp: float) -> void:
 	replay = Records.first_wheel_record(previous)
 	pacer = Pacer.new()
 	if replay.is_empty():
+		pacer.difficulty_percent = game.pursuit_opponent_percent
 		pacer.prepare(game, game._race_length(), cp, game.PURSUIT_START_M + 125.0, game.LANES[0])
 	game.pursuit_trace.assign([{"t": 0.0, "d": 0.0, "p": 0.0, "lane": game.LANES[0], "front": 0.0}])
 	for i in range(1, game.team_size): game.rider_names[i] = "Ploegmaat %d" % i

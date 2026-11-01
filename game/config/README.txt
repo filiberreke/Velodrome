@@ -57,8 +57,14 @@ De AI-slider blijft gevraagd vermogen * percentage / 80 toepassen, voor de
 bestaande fysiologische begrenzing; 80% blijft het referentieniveau.
 
 Achtervolging gebruikt de geselecteerde identiteit en diens CP, piek en
-W-prime. De bestaande manuele CP-keuze blijft beschikbaar. Zoals tevoren
-heeft deze spelvorm geen gelote massakoers-dagvorm of tactische AI-slider.
+W-prime, zonder gelote massakoers-dagvorm. Eerst kies je de afstand; daarna
+kies je met pijlen een AI-profiel of eigen prestatie. Op deze tweede pagina
+stel je ook de sterkte in. Bij AI is 80% het basisniveau: gevraagd vermogen
+* percentage / 80, daarna de bestaande fysiologische begrenzing. Bij eigen
+prestaties is 100% het originele tempo; het percentage schaalt de tijdlijn
+alleen voor deze wedstrijd. Het opgeslagen ritbestand blijft ongewijzigd.
+De laatst gekozen tegenstander en sterkte worden per discipline en
+ploeggrootte bewaard in user://config/opponent_selection.cfg.
 Ploegenachtervolging behoudt zijn bestaande treinmodel en nationale teams.
 
 Lichaam en outfit
@@ -90,6 +96,7 @@ geen individueel AI-record. De 1km-kaartwaarde gebruikt passende prestaties
 op het referentieniveau of een opgegeven startrecord. Tijden en watts op
 kaartjes worden afgerond; de opgeslagen resultaten blijven precies.
 
-Het raster en de achtervolgingsintro delen dezelfde kwartetkaart, met
-landsvlag, portret, specialiteitskleur, iconen en vergelijkbare statbalken.
-Filteren kan op naam, land en specialiteit; Escape/Terug sluit het raster.
+De tegenstanderselectie en de achtervolgingsintro delen dezelfde kwartetkaart,
+met landsvlag, portret, specialiteitskleur, iconen en vergelijkbare statbalken.
+Pijlen wisselen van tegenstander. Eigen prestaties tonen datum/tijd, gereden
+tijd, gemiddeld vermogen en een vermogensgrafiek. Escape/Terug gaat een stap terug.

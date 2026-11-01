@@ -110,6 +110,7 @@ var ai_recorded: Array[bool] = []
 var ai_observed_peak: Array[float] = []
 var pursuit_opponent_config: Dictionary = {}
 var pursuit_opponent_country := "netherlands"
+var pursuit_opponent_percent := 80.0
 const RaceCountries := preload("res://rennersboxen/race_countries.gd")
 
 func _load_rider_config() -> void:
@@ -2089,6 +2090,7 @@ func _confirm_start() -> void:
 	var choice: int = int(setup_panel.get("selected"))
 	if choice not in [0, 1, 2, 3]:
 		return
+	if choice in [1,2] and setup_panel.page != 4: return
 	var replay: Dictionary = {}
 	var options = null
 	if choice in [1, 2]:
@@ -2099,8 +2101,13 @@ func _confirm_start() -> void:
 			replay = options.library.load_ride(options.selected_ride_id())
 			if replay.is_empty() or replay["distance_m"] != options.distance_m():
 				options.refresh_rides()
-				setup_panel.get("status_label").text = "Deze rit is niet meer beschikbaar. Kies een andere tegenstander."
+				setup_panel.pursuit_flow._load_candidates(true)
+				setup_panel.pursuit_flow.status.text = "Deze rit is niet meer beschikbaar. Kies een andere tegenstander."
+				setup_panel.pursuit_flow.status.show()
 				return
+	if choice in [1,2]:
+		pursuit_opponent_percent = float(options.opponent_percent)
+		if not replay.is_empty(): replay = PursuitRecords.scaled_replay(replay, pursuit_opponent_percent)
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
 	race_mode = 5 if choice == 2 else (4 if choice == 1 else (1 if choice == 3 else 0))
@@ -2658,6 +2665,7 @@ func _prepare_pursuit(replay: Dictionary, cp: float) -> void:
 		if not pursuit_opponent_config.is_empty():
 			pursuit_pacer.wprime_j = float(pursuit_opponent_config.get("w_prime_j", 20000.0))
 			pursuit_pacer.max_power_w = float(pursuit_opponent_config.get("max_power_w", 800.0))
+		pursuit_pacer.difficulty_percent = pursuit_opponent_percent
 		pursuit_pacer.prepare(self, _race_length(), cp, _rider_distance(1, 0.0), LANES[0])
 		rider_names[1] = String(pursuit_opponent_config.get("name", "AI-tegenstander"))
 	else:
@@ -3076,4 +3084,4 @@ func _record_ai_performances() -> void:
 			ai_recorded[i] = true
 			var identity: Dictionary = rider_identities[i]
 			var parameters := {"cp_w":pursuit_pacer.cp_w if race_mode == 4 else float(identity.get("cp_w",0.0)), "max_power_w":float(identity.get("max_power_w",0.0)), "w_prime_j":float(identity.get("w_prime_j",0.0))}
-			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1] else 80.0, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
+			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)

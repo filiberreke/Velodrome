@@ -6,6 +6,8 @@ const Records := preload("res://pursuit_records.gd")
 var library = Records.new()
 var records_store = preload("res://performance_records.gd").new()
 var records_page: VBoxContainer
+var pursuit_flow: VBoxContainer
+var footer_label: Label
 var team_options
 var team_scroll: ScrollContainer
 var pursuit_options
@@ -152,12 +154,15 @@ func _ready() -> void:
 		content.add_child(hint)
 		card.pressed.connect(select_mode.bind(i))
 	_build_settings(layout)
+	pursuit_flow = preload("res://pursuit_flow.gd").new()
+	pursuit_flow.menu = self
+	layout.add_child(pursuit_flow)
 	records_page = preload("res://records_page.gd").new()
 	records_page.store = records_store
 	layout.add_child(records_page)
 	records_page.back_requested.connect(show_choices)
-	var footer := label("Kies een spelvorm om verder te gaan.    •    F10  Instellingen", 17, MUTED)
-	layout.add_child(footer)
+	footer_label = label("Kies een spelvorm om verder te gaan.    •    F10  Instellingen", 17, MUTED)
+	layout.add_child(footer_label)
 	show_choices()
 
 func _build_settings(layout: VBoxContainer) -> void:
@@ -263,6 +268,9 @@ func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: i
 	return input
 
 func show_choices() -> void:
+	footer_label.show()
+	page_title.add_theme_font_size_override("font_size",48)
+	if pursuit_flow != null: pursuit_flow.hide()
 	if page == 2 and selected in [0, 3]: field_settings[selected] = [int(count_input.value), int(laps_input.value)]
 	page = 1
 	page_title.text = "Kies jouw wedstrijd"
@@ -275,11 +283,14 @@ func show_choices() -> void:
 
 func select_mode(index: int) -> void:
 	if page == 2 and selected in [0, 3]: field_settings[selected] = [int(count_input.value), int(laps_input.value)]
+	footer_label.show()
+	page_title.add_theme_font_size_override("font_size",48)
 	selected = clampi(index, 0, MODES.size() - 1)
 	if selected == 6:
 		show_records()
 		return
 	records_page.hide()
+	if pursuit_flow != null: pursuit_flow.hide()
 	page = 2
 	page_title.text = "Stel je wedstrijd in"
 	choice_page.hide()
@@ -307,6 +318,10 @@ func select_mode(index: int) -> void:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
 	back_button.grab_focus.call_deferred()
+	if selected in [1,2]:
+		settings_page.hide()
+		footer_label.hide()
+		pursuit_flow.begin(selected == 2)
 
 func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_seen = seen
@@ -319,6 +334,7 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	start_button.disabled = unavailable or selected not in [0, 1, 2, 3]
 	if selected in [1, 2]:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
+	if pursuit_flow != null and pursuit_flow.visible: pursuit_flow.update_bridge()
 
 func _pursuit_changed() -> void:
 	if selected not in [1, 2] or start_button == null:
@@ -328,8 +344,9 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and page in [2, 3] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
-		show_choices()
+	if visible and page in [2, 3, 4] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+		if selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
+		else: show_choices()
 		get_viewport().set_input_as_handled()
 
 func bridge_action(button: String) -> void:
@@ -337,6 +354,9 @@ func bridge_action(button: String) -> void:
 		return
 	if pursuit_options != null and is_instance_valid(pursuit_options.active_picker):
 		pursuit_options.active_picker.bridge_action(button)
+		return
+	if selected in [1,2] and pursuit_flow.visible:
+		pursuit_flow.bridge_action(button)
 		return
 	if button == "B":
 		if page in [2, 3]: show_choices()
@@ -354,6 +374,9 @@ func bridge_action(button: String) -> void:
 		get_viewport().push_input(event)
 
 func show_records() -> void:
+	footer_label.show()
+	page_title.add_theme_font_size_override("font_size",48)
+	if pursuit_flow != null: pursuit_flow.hide()
 	page = 3
 	page_title.text = "Records"
 	breadcrumb.text = "ALL-TIME TOP 10 · ACHTERVOLGING & PLOEGENACHTERVOLGING"

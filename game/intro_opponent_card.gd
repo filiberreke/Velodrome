@@ -124,7 +124,8 @@ func prepare() -> void:
 		_label("Wedstrijdvermogen  %d W" % pacer.target_w, 17, Color("bfcede"))
 	else:
 		profile["time_s"] = replay.get("time_s", 0.0)
-		_label("Vorige prestatie  %.2f s" % float(profile.time_s), 18)
+		_label("Gereden tijd  %.2f s" % float(replay.get("source_time_s", profile.time_s)), 18)
+		if not is_equal_approx(float(replay.get("playback_percent",100.0)),100.0): _label("Doeltijd %.2f s · %d%%" % [float(profile.time_s), roundi(float(replay.playback_percent))],17)
 		_label("%d m · opgenomen rit" % int(replay.get("distance_m", 0)), 17, Color("bfcede"))
 	_label(" · ".join(profile.riders), 13, Color("bfcede"))
 	size = Vector2(350, 0)

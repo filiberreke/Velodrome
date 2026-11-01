@@ -165,6 +165,7 @@ func run_test() -> void:
 	await process_frame
 	var menu = screen.setup_panel
 	menu.select_mode(1)
+	menu.pursuit_flow.next_step()
 	var options = menu.pursuit_options
 	check(options.distance_m() == 1000 and options.cp_input.value == 265.0 and not menu.start_button.disabled, "Pursuit defaults: 1 km, selected sample rider, CP 265 W")
 	options.opponent_choice.select(1)
@@ -197,6 +198,7 @@ func run_test() -> void:
 	check(not screen.pursuit_saved_id.is_empty() and screen.pursuit_save_button.disabled, "Save button persists a named ride and prevents duplicate click")
 	screen._reset()
 	menu.select_mode(1)
+	menu.pursuit_flow.next_step()
 	options.opponent_choice.select(1)
 	options.refresh_state()
 	check(not menu.start_button.disabled and options.rides.size() == 1, "Saved attempt becomes selectable opponent")

@@ -13,6 +13,7 @@ var ai_choice: OptionButton
 var ai_entries: Array[Dictionary] = []
 var picker_button: Button
 var active_picker: Control
+var opponent_percent := 80.0
 
 func _label(value: String) -> Label:
 	var node := Label.new()

@@ -4,6 +4,7 @@ const WPRIME_J := 20000.0
 const BUDGET_FRACTION := 0.98
 var wprime_j := WPRIME_J
 var max_power_w := INF
+var difficulty_percent := 80.0
 var cp_w := 250.0
 var target_w := 250.0
 var reserve_j := WPRIME_J
@@ -49,8 +50,10 @@ func prepare(game: Node3D, distance: float, cp: float, origin: float, lane: floa
 	predicted_seconds = duration(game, distance, target_w, origin, lane)
 
 func power(dt: float) -> float:
-	if dt <= 0.0:
-		return target_w
-	var expenditure: float = minf(reserve_j, maxf(0.0, target_w - cp_w) * dt)
+	# Preserve the game's existing requested-power percentage / 80 convention.
+	var demand := minf(max_power_w, target_w * difficulty_percent / 80.0)
+	if dt <= 0.0: return demand
+	if demand <= cp_w: return demand
+	var expenditure: float = minf(reserve_j, (demand - cp_w) * dt)
 	reserve_j -= expenditure
 	return cp_w + expenditure / dt

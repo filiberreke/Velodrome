@@ -25,6 +25,7 @@ func run() -> void:
 		await process_frame
 		game.setup_panel.select_mode(choice)
 		if choice == 2: game.setup_panel.team_options.teammates.select(scenario[1] - 3)
+		if game.setup_panel.pursuit_flow.visible: game.setup_panel.pursuit_flow.next_step()
 		game._confirm_start()
 		game._update_visuals(0.0)
 		var intro = game.broadcast_intro
@@ -91,6 +92,7 @@ func run() -> void:
 		check(game.start_state == "RACING" and game.running, "Countdown failed to start racing")
 		game._reset()
 		game.setup_panel.select_mode((choice + 1) % 3)
+		if game.setup_panel.pursuit_flow.visible: game.setup_panel.pursuit_flow.next_step()
 		game._confirm_start()
 		check(not intro.active and not intro.overlay.visible and game.start_state == "WAIT_STOP", "Second event replayed intro")
 		game.trainer_seen = true; game.connected = true; game.trainer_ready = true
