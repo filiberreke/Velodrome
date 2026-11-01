@@ -15,6 +15,15 @@ var poll_elapsed := 0.1
 var render_elapsed := 0.1
 var render_count := 0
 var suspended := false
+var elimination_photo: Texture2D
+var elimination_photo_seconds := 0.0
+
+func show_elimination_photo(texture: Texture2D, seconds: float = 5.0) -> void:
+	if texture == null or screen == null: return
+	elimination_photo = texture
+	elimination_photo_seconds = seconds
+	screen.set_content(texture)
+	screen.set_scoreboard_layout(false)
 var cue_age := 10.0
 
 func setup(owner_screen: Node3D, owner_game: Node3D) -> void:
@@ -37,6 +46,14 @@ func _on_cue(kind: String, payload: Dictionary) -> void:
 	stadium_cue.emit(kind, payload)
 
 func _process(delta: float) -> void:
+	if elimination_photo_seconds > 0.0:
+		elimination_photo_seconds -= delta
+		if elimination_photo_seconds <= 0.0:
+			elimination_photo = null
+			screen.set_content(viewport.get_texture())
+			screen.set_scoreboard_layout(true)
+		else:
+			return
 	if suspended or not is_instance_valid(game) or viewport == null: return
 	poll_elapsed += delta
 	render_elapsed += delta
@@ -57,6 +74,8 @@ func _process(delta: float) -> void:
 
 func resume_scoreboard() -> void:
 	suspended = false
+	elimination_photo_seconds = 0.0
+	elimination_photo = null
 	screen.set_content(viewport.get_texture())
 	poll_elapsed = 0.1
 

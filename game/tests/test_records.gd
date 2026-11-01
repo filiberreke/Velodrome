@@ -95,12 +95,12 @@ func run_test() -> void:
 	root.add_child(game); game.set_physics_process(false)
 	await process_frame; await process_frame
 	var menu = game.setup_panel
-	check(menu.cards.size() == 7 and menu.cards[6].name == "records", "Separate seventh Records tile")
+	check(menu.cards.size() == 8 and menu.cards[7].name == "records", "Separate final Records tile")
 	check(menu.cards[2].find_child("Status", true, false).text == "SPEEL", "Team pursuit status updated on home page")
 	for card in menu.cards:
 		var rect: Rect2 = card.get_global_rect()
-		check(rect.end.x <= 1920.1 and rect.end.y <= 1080.1, "All seven tiles stay within screen")
-	menu.cards[6].pressed.emit(); await process_frame; await process_frame
+		check(rect.end.x <= 1920.1 and rect.end.y <= 1080.1, "All eight tiles stay within screen")
+	menu.cards[7].pressed.emit(); await process_frame; await process_frame
 	check(menu.page == 3 and menu.records_page.visible and not menu.settings_page.visible, "Records tile opens separate page")
 	check(menu.records_page.shown.size() == 10 and menu.records_page.rows.get_child_count() == 10, "Top 10 entries rendered")
 	var page = menu.records_page
@@ -111,7 +111,7 @@ func run_test() -> void:
 	check(page.back_button.get_global_rect().end.y <= 1080.1, "Records navigation fits viewport")
 	page.back_button.pressed.emit()
 	check(menu.page == 1 and not page.visible, "Back returns to mode gallery")
-	menu.cards[6].pressed.emit()
+	menu.cards[7].pressed.emit()
 	var escape := InputEventKey.new(); escape.keycode = KEY_ESCAPE; escape.pressed = true
 	menu._unhandled_key_input(escape)
 	check(menu.page == 1, "Escape returns from Records")

@@ -2,7 +2,10 @@ extends RefCounted
 ## One-shot 3D postcards built from the actual game rider rig and track textures.
 const Rider := preload("res://rider_visual.gd")
 const Wood: Texture2D = preload("res://assets/textures/velodrome_wood_pine.png")
-const Colours := ["ffab45", "43ccd4", "e86267", "8da0ff"]
+const COUNTRIES := ["belgium", "italy", "netherlands", "france", "germany", "denmark"]
+# Imported bike: trailing edge is 0.564 m behind the model origin.
+const REAR_EDGE_Z := -0.564
+const ELIMINATION_FINISH_Z := 0.0
 
 static func box(world: Node3D, position: Vector3, dimensions: Vector3, colour: Color) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
@@ -20,7 +23,8 @@ static func box(world: Node3D, position: Vector3, dimensions: Vector3, colour: C
 static func rider(world: Node3D, position: Vector3, team: int, reverse: bool = false) -> Node3D:
 	var node := Rider.new()
 	node.set_meta("rider_index", team % 4)
-	node.set_meta("jersey_config", {"jersey_color": Colours[team % 4], "helmet_color": Colours[team % 4], "jersey_design": "solid"})
+	node.set_meta("jersey_config", {"country_kit": COUNTRIES[posmod(team, COUNTRIES.size())]})
+	node.set_meta("preview_rider", true)
 	world.add_child(node)
 	node.position = position
 	node.rotation.y = PI if reverse else 0.0
@@ -77,6 +81,15 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 		"madison":
 			for i in range(4):
 				rider(world, Vector3(-3.4 + i * 2.2, 0, 1.0 if i < 2 else -1.5), 0 if i < 2 else 1)
+		"elimination":
+			# Look from behind: all six riders have crossed; the last rear tyre
+			# has only just cleared the narrow black finish mark.
+			box(world, Vector3(0, 0.025, ELIMINATION_FINISH_Z), Vector3(13, 0.025, 0.42), Color("fff8e9"))
+			var finish:=box(world, Vector3(0, 0.043, ELIMINATION_FINISH_Z), Vector3(13, 0.012, 0.035), Color("18202a"))
+			finish.name="EliminationFinishLine"
+			var positions:=[Vector3(-2.5,0,-5.4),Vector3(-0.3,0,-5.8),Vector3(2.2,0,-5.1),Vector3(-1.5,0,-3.0),Vector3(1.3,0,-2.8),Vector3(0.1,0,REAR_EDGE_Z-0.025)]
+			for i in positions.size():
+				var cyclist:=rider(world,positions[i],i,true);cyclist.name="EliminationRider%d"%i
 		"keirin":
 			var pacer := rider(world, Vector3(0, 0, 4.3), 3)
 			# An engine under the existing bicycle frame distinguishes the pacing bike.

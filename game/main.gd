@@ -11,6 +11,14 @@ var scratch_rules = ScratchRules.new()
 const XScratchAI := preload("res://x_scratch_ai.gd")
 var x_ai = XScratchAI.new()
 const PointsAI := preload("res://points_ai.gd")
+const EliminationRules := preload("res://elimination_race_rules.gd")
+const EliminationAI := preload("res://elimination_ai.gd")
+const EliminationTraffic := preload("res://elimination_traffic.gd")
+var elimination_rules = EliminationRules.new()
+var elimination_notice: Label
+var elimination_notice_until := -1.0
+var elimination_exit: Dictionary = {}
+const REAR_TRAILING_EDGE_M := 1.674 # Front-tip race reference +1.110; rear hub (0.79-0.98), tyre radius 0.374 => rear edge -0.564. Check against imported bike.
 const PointsRules := preload("res://points_race_rules.gd")
 var points_rules = PointsRules.new()
 const PelotonState := preload("res://peloton_state.gd")
@@ -171,6 +179,7 @@ func _configure_peloton() -> void:
 	finish_times.resize(count); finish_times.fill(-1.0)
 	scratch_rules.reset(count)
 	if race_mode == 1: points_rules.reset(count, race_laps)
+	elimination_exit.clear()
 	peloton_state.reset(); peloton_info.clear()
 	race_event_message = ""; race_event_until = -1.0
 	for badge in rider_energy_badges: badge.queue_free()
@@ -203,18 +212,22 @@ func _configure_peloton() -> void:
 		var lane: float = LANES[0] if race_mode in [4, 5] else LANES[i % LANES.size()]
 		# Extra scratch riders start on the next row, not inside the first six.
 		# Use the same real position for tactics, physics and rendering.
-		if race_mode in [0, 1]:
+		if race_mode in [0, 1, 2]:
 			distances[i] = -2.4 * float(i / LANES.size())
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
 		ai_energy_j[i] = 0.0 if i == 0 else AI_CAPACITY_J[type_id] * _form(i)
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
-	if race_mode in [0, 1]:
-		x_ai = PointsAI.new() if race_mode == 1 else XScratchAI.new()
+	if race_mode in [0, 1, 2]:
+		x_ai = PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 		x_ai.configure_riders(rider_identities, rider_forms)
+	if race_mode == 2:
+		var rear_positions: Array[float] = []
+		for distance in distances: rear_positions.append(distance - REAR_TRAILING_EDGE_M)
+		elimination_rules.reset(count, rear_positions)
 	for node in bikes: node.queue_free()
 	bikes.clear()
 	crowded_labels.clear()
@@ -582,6 +595,8 @@ func _physics_process(delta: float) -> void:
 	_update_boost_dog(delta)
 	_update_countdown_display()
 	_update_hud()
+	if elimination_notice != null:
+		elimination_notice.visible = race_mode == 2 and clock < elimination_notice_until and start_state == "RACING"
 
 func _update_countdown_display() -> void:
 	# Huge floating numbers above the start line: 3 - 2 - 1 - GO!, always filling the view.
@@ -905,7 +920,7 @@ func _draft_target(rider: int) -> float:
 		draft_leaders[rider] = -1
 		return 0.0
 	# Non-scratch modes retain the exact prior drafting model.
-	if race_mode not in [0, 1]:
+	if race_mode not in [0, 1, 2]:
 		if speeds[rider] < DRAFT_MIN_SPEED_MPS:
 			return 0.0
 		var old_best := 0.0
@@ -938,7 +953,7 @@ func _draft_target(rider: int) -> float:
 	for other in range(rider_count):
 		if other == rider or finish_times[other] >= 0.0:
 			continue
-		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1] else distances[other] - distances[rider]
+		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2] else distances[other] - distances[rider]
 		if gap <= 0.35 or gap >= 9.0:
 			continue
 		var lateral: float = absf(lane_offsets[other] - lane_offsets[rider])
@@ -948,7 +963,7 @@ func _draft_target(rider: int) -> float:
 		if real_gap < 1.0 or real_gap > 9.0:
 			continue
 		var drag_benefit: float = 0.62 * maxf(0.0, 1.0 - gap / 10.0) * maxf(0.18, 1.0 - lateral / 1.25)
-		if race_mode in [0, 1]:
+		if race_mode in [0, 1, 2]:
 			var more_wheels := 0
 			for third in range(rider_count):
 				if third == rider or finish_times[third] >= 0.0:
@@ -977,7 +992,7 @@ func _effective_draft_strength(rider: int) -> float:
 	if race_mode in [4, 5]:
 		return 0.0
 	var strength: float = clampf(draft_strengths[rider], 0.0, 1.0)
-	if race_mode not in [0, 1]:
+	if race_mode not in [0, 1, 2]:
 		return strength
 	var speed_ratio: float = clampf((speeds[rider] - SCRATCH_DRAFT_RAMP_START_MPS) / (SCRATCH_DRAFT_RAMP_END_MPS - SCRATCH_DRAFT_RAMP_START_MPS), 0.0, 1.0)
 	return strength * lerpf(SCRATCH_DRAFT_LOW_SPEED_SCALE, 1.0, speed_ratio)
@@ -985,14 +1000,14 @@ func _effective_draft_strength(rider: int) -> float:
 func _draft_drag_reduction(rider: int) -> float:
 	if race_mode in [4, 5]:
 		return 0.0
-	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION
+	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2] else DRAFT_MAX_DRAG_REDUCTION
 	return limit * _effective_draft_strength(rider)
 
 func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
 	if race_mode in [4, 5]:
 		draft_strength = 0.0
 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
-	if race_mode in [0, 1, 4, 5]:
+	if race_mode in [0, 1, 2, 4, 5]:
 		var v: float = maxf(current_speed, 0.0)
 		var aero_factor: float = maxf(1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION, 1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION * draft_strength)
 		var drag: float = 0.5 * 1.20 * 0.334 * v * v * aero_factor
@@ -1177,11 +1192,11 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode == 4:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
-	if race_mode not in [0, 1]:
+	if race_mode not in [0, 1, 2]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
-		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1] and x_ai.initialized else ai_lane_targets[i])
+		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2] and x_ai.initialized else ai_lane_targets[i])
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
 	return heights
@@ -1218,6 +1233,16 @@ func _race_better(a: int, b: int) -> bool:
 		return team_race.better(a / team_size, b / team_size) if a / team_size != b / team_size else distances[a] > distances[b]
 	if race_mode == 0:
 		return scratch_rules.better(a, b, finish_times, distances)
+	if race_mode == 2:
+		var a_out: int = elimination_rules.eliminated.find(a)
+		var b_out: int = elimination_rules.eliminated.find(b)
+		if a_out >= 0 and b_out >= 0: return a_out > b_out
+		if a_out >= 0: return false
+		if b_out >= 0: return true
+		if finish_times[a] >= 0.0 and finish_times[b] >= 0.0: return finish_times[a] < finish_times[b]
+		if finish_times[a] >= 0.0: return true
+		if finish_times[b] >= 0.0: return false
+		return distances[a] > distances[b]
 	if finish_times[a] >= 0.0 and finish_times[b] >= 0.0:
 		return finish_times[a] < finish_times[b]
 	if finish_times[a] >= 0.0:
@@ -1227,9 +1252,10 @@ func _race_better(a: int, b: int) -> bool:
 	return distances[a] > distances[b]
 
 func _winner_index() -> int:
+	if race_mode == 2 and elimination_rules.remaining_count() > 2: return -1
 	var best := -1
 	for i in range(finish_times.size()):
-		if finish_times[i] >= 0.0 and (best < 0 or _race_better(i, best)):
+		if finish_times[i] >= 0.0 and (race_mode != 2 or not elimination_rules.eliminated.has(i)) and (best < 0 or _race_better(i, best)):
 			best = i
 	return best
 
@@ -1270,7 +1296,7 @@ func _advance_race(dt: float) -> void:
 	if trainer_seen:
 		boost_left = 0.0
 		recovery_left = 0.0
-	var boost_active: bool = race_mode != 1 and not trainer_seen and boost_left > 0.0
+	var boost_active: bool = race_mode not in [1, 2] and not trainer_seen and boost_left > 0.0
 	var previous_distances: Array[float] = distances.duplicate()
 	var prior_lanes: Array[float] = lane_offsets.duplicate()
 	var lateral_height_changes: Array[float] = _move_lanes(dt)
@@ -1280,16 +1306,19 @@ func _advance_race(dt: float) -> void:
 		effective_drafts.append(_effective_draft_strength(rider))
 	var new_lap_event: int = points_rules.events.size() if race_mode == 1 else scratch_rules.events.size()
 	var x_powers: Array[float] = []
-	if race_mode in [0, 1]:
+	if race_mode in [0, 1, 2]:
 		x_ai.human_power_w = watts
+		if race_mode == 2:
+			x_ai.elimination_line_m = elimination_rules.next_line_m
+			x_ai.final_line_m = _race_length()
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
 	var new_finisher := false
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
 			continue
-		var power: float = watts if i == 0 else (x_powers[i] if race_mode in [0, 1] else _ai_choose_power(i, dt))
-		if race_mode in [0, 1] and i > 0:
+		var power: float = watts if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
+		if race_mode in [0, 1, 2] and i > 0:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
 			ai_role[i] = x_ai.modes[i]
@@ -1324,7 +1353,8 @@ func _advance_race(dt: float) -> void:
 		if i != 0:
 			ai_stall_time[i] = ai_stall_time[i] + dt if speeds[i] < 0.6 and power >= 80.0 else 0.0
 		var actual_step: float = speeds[i] * dt / metric
-		_register_lap_crossings(i, previous, actual_step, dt)
+		if race_mode != 2:
+			_register_lap_crossings(i, previous, actual_step, dt)
 		distances[i] = previous + actual_step if race_mode == 1 else minf(_race_length(), previous + actual_step)
 		if _profile(i) == 1:
 			tt_effort_remaining = clampf(1.0 - distances[i] / _race_length(), 0.0, 1.0)
@@ -1336,7 +1366,7 @@ func _advance_race(dt: float) -> void:
 			player_speed_peak_kmh = maxf(player_speed_peak_kmh, speeds[i] * 3.6)
 			if player_samples.is_empty() or absf(player_samples[-1].x - distances[i]) >= 2.5 or distances[i] >= _race_length():
 				player_samples.append(Vector2(distances[i], power))
-		if race_mode != 1 and distances[i] >= _race_length():
+		if race_mode not in [1, 2] and distances[i] >= _race_length():
 			new_finisher = true
 			if i == 1:
 				tt_effort_remaining = 0.0
@@ -1344,6 +1374,19 @@ func _advance_race(dt: float) -> void:
 			finish_times[i] = clock - dt + dt * fraction
 			coast_distances[i] = _race_length()
 			coast_speeds[i] = speeds[i]
+	if race_mode == 2:
+		EliminationTraffic.resolve(previous_distances, distances, speeds, lane_offsets, finish_times, dt)
+		for i in range(rider_count):
+			if finish_times[i] >= 0.0: continue
+			var travelled: float = maxf(0.0, distances[i] - previous_distances[i])
+			_register_lap_crossings(i, previous_distances[i], travelled, dt)
+			if distances[i] >= _race_length():
+				var fraction: float = clampf((_race_length() - previous_distances[i]) / maxf(travelled, 0.00001), 0.0, 1.0)
+				finish_times[i] = clock - dt + fraction * dt
+				coast_distances[i] = _race_length()
+				coast_speeds[i] = speeds[i]
+				new_finisher = true
+		_update_elimination_jury(dt)
 	if race_mode == 1:
 		var old_finishes: Array[float] = finish_times.duplicate()
 		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
@@ -1375,7 +1418,7 @@ func _advance_race(dt: float) -> void:
 		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	# Capture while the winner is crossing, rather than after the LAST rider
 	# finishes. A subsequently finishing lap winner replaces the earlier photo.
-	if new_finisher:
+	if new_finisher and race_mode != 2:
 		var provisional_winner: int = _winner_index()
 		if provisional_winner >= 0 and provisional_winner != finish_photo_rider:
 			_take_finish_photo(provisional_winner)
@@ -1385,7 +1428,7 @@ func _advance_race(dt: float) -> void:
 			recovery_excess = maxf(0.0, boosted_speed - baseline_speed)
 			recovery_left = BOOST_RECOVERY_SECONDS
 	if finish_times[0] >= 0.0 and not finished:
-		_register_performance()
+		if race_mode != 2: _register_performance()
 		finished = true
 		finish_elapsed = 0.0
 		running = false
@@ -1463,8 +1506,12 @@ func _visual_lean(i: int) -> float:
 # Only appearance continues after crossing; measured race distances and finish times stay locked.
 func _update_coasting(dt: float) -> void:
 	for i in range(rider_count):
-		if finish_times[i] < 0.0 or coast_speeds[i] <= 0.0:
+		if finish_times[i] < 0.0:
 			continue
+		if race_mode == 2 and elimination_exit.has(i):
+			_update_eliminated_exit(i, dt)
+			continue
+		if coast_speeds[i] <= 0.0: continue
 		var old_speed: float = coast_speeds[i]
 		coast_speeds[i] = maxf(0.0, old_speed - COAST_BRAKE_MPS2 * dt)
 		coast_distances[i] += (old_speed + coast_speeds[i]) * 0.5 * dt / _path_metric(_rider_distance(i, coast_distances[i]), lane_offsets[i])
@@ -1504,7 +1551,7 @@ func _update_visuals(dt: float) -> void:
 	for i in range(rider_count):
 		var lateral: float = lane_offsets[i]
 		var display_distance: float = coast_distances[i] if finish_times[i] >= 0.0 else distances[i]
-		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 1, 4, 5] else 0.0
+		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 1, 2, 4, 5] else 0.0
 		display_distance = _rider_distance(i, display_distance)
 		var position: Vector3 = _at(display_distance - FRONT_WHEEL_TIP_M - starting_grid, lateral)
 		# Imported Blender wheel mesh reaches local ground at y=0.  On the
@@ -1516,6 +1563,12 @@ func _update_visuals(dt: float) -> void:
 		var lean_target: float = _visual_lean(i)
 		visual_rolls[i] = lerp_angle(visual_rolls[i], lean_target, clampf(dt * (12.0 if lean_target == 0.0 else 5.0), 0.0, 1.0))
 		bikes[i].rotation.z = visual_rolls[i]
+		if race_mode == 2 and elimination_exit.has(i) and int(elimination_exit[i]["stage"]) >= 1:
+			var exit_state: Dictionary = elimination_exit[i]
+			bikes[i].position = Vector3(exit_state["position"]) + Vector3.UP * 0.09
+			var head: Vector3 = Vector3(exit_state["heading"])
+			bikes[i].rotation.y = atan2(head.x, head.z)
+			bikes[i].rotation.z = 0.0
 		var visual: Node = bikes[i].get_child(0)
 		var cadence_visual: float = cadence if i == 0 and connected and cadence >= 0.0 else clampf(speeds[i] * 6.0, 0.0, 120.0)
 		if race_mode == 5 and i == 0 and team_race.ours.player_is_out() and watts <= 0.0:
@@ -1523,7 +1576,7 @@ func _update_visuals(dt: float) -> void:
 		if finish_times[i] >= 0.0:
 			# Continue the normal cycling loop at progressively lower cadence while coasting.
 			# beta.16.16: the race winner sits up and raises both arms.
-			visual.call("set_victory", i == _winner_index())
+			visual.call("set_victory", race_mode != 2 and i == _winner_index())
 			visual.call("pedal", dt, clampf(coast_speeds[i] * 5.5, 0.0, 110.0), 120.0)
 		else:
 			visual.call("set_victory", false)
@@ -1817,6 +1870,16 @@ func _build_hud() -> void:
 	race_overlay = preload("res://race_hud.gd").new()
 	layer.add_child(race_overlay)
 	race_hud_items.append(race_overlay)
+	elimination_notice = Label.new()
+	elimination_notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	elimination_notice.position = Vector2(-420, 135)
+	elimination_notice.custom_minimum_size = Vector2(840, 90)
+	elimination_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	elimination_notice.add_theme_font_size_override("font_size", 38)
+	elimination_notice.add_theme_color_override("font_color", Color("ffe6c8"))
+	elimination_notice.visible = false
+	layer.add_child(elimination_notice)
+	race_hud_items.append(elimination_notice)
 	# Existing detailed readouts live in the scrollable developer layer.
 	hud = Label.new()
 	note = Label.new()
@@ -2053,6 +2116,10 @@ func _grab_finish_photo() -> void:
 	if img == null or img.is_empty():
 		return
 	finish_photo_rect.texture = ImageTexture.create_from_image(img)
+	if race_mode == 2 and arena != null:
+		var stadium_screen: Node = arena.find_child("InfinityScreen", true, false)
+		if stadium_screen != null and stadium_screen.get("scoreboard") != null:
+			stadium_screen.scoreboard.show_elimination_photo(finish_photo_rect.texture, 5.0)
 
 func _rider_name(index: int) -> String:
 	return player_display_name if index == 0 else (rider_names[index] if index < rider_names.size() else "AI")
@@ -2088,7 +2155,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2, 3]:
+	if choice not in [0, 1, 2, 3, 5]:
 		return
 	if choice in [1,2] and setup_panel.page != 4: return
 	var replay: Dictionary = {}
@@ -2110,13 +2177,13 @@ func _confirm_start() -> void:
 		if not replay.is_empty(): replay = PursuitRecords.scaled_replay(replay, pursuit_opponent_percent)
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 5 if choice == 2 else (4 if choice == 1 else (1 if choice == 3 else 0))
-	race_laps = int(options.distance_m() / LAP) if choice in [1, 2] else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))
+	race_mode = 5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))
+	race_laps = int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30)))
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
-	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))
+	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 5 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12)))
 	if choice in [1, 2]:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
@@ -3075,7 +3142,7 @@ func available_pursuit_riders() -> Array[Dictionary]:
 	return result
 
 func _record_ai_performances() -> void:
-	if race_mode == 5: return # A team result is not an individual time record.
+	if race_mode in [2, 5]: return # Elimination exits and team results are not individual distance records.
 	if race_mode == 4 and not pursuit_replay.is_empty(): return
 	for i in range(1, mini(rider_count, rider_identities.size())):
 		var power: float = ai_power_w[i] if i < ai_power_w.size() else 0.0
@@ -3085,3 +3152,105 @@ func _record_ai_performances() -> void:
 			var identity: Dictionary = rider_identities[i]
 			var parameters := {"cp_w":pursuit_pacer.cp_w if race_mode == 4 else float(identity.get("cp_w",0.0)), "max_power_w":float(identity.get("max_power_w",0.0)), "w_prime_j":float(identity.get("w_prime_j",0.0))}
 			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
+
+func _update_elimination_jury(dt: float) -> void:
+	var rear: Array[float] = []
+	for i in range(rider_count): rear.append(distances[i] - REAR_TRAILING_EDGE_M)
+	var event: Dictionary = elimination_rules.sample(rear, clock - dt, dt)
+	if event.is_empty(): return
+	var loser: int = int(event.get("eliminated_id", -1))
+	if loser < 0:
+		elimination_notice.text = "FOTOFINISH · JURYBESLISSING"
+		elimination_notice_until = clock + 4.0
+		return
+	finish_times[loser] = clock
+	coast_distances[loser] = distances[loser]
+	coast_speeds[loser] = speeds[loser]
+	elimination_exit[loser] = {"stage": 0, "start_d": coast_distances[loser], "position": Vector3.ZERO, "target": _elimination_box_target(loser), "heading": Vector3.FORWARD}
+	elimination_notice.text = "AFGEVALLEN · %s" % _rider_name(loser).to_upper()
+	elimination_notice_until = clock + 4.0
+	_take_elimination_photo(loser, float(event.get("line_m", 0.0)))
+	if loser == 0 and not finished:
+		finished = true
+		finish_elapsed = 0.0
+		_save_recording("elimination")
+
+func _take_elimination_photo(rider: int, line_m: float) -> void:
+	if finish_photo_viewport == null: return
+	var spot: Vector3 = _at(line_m - 3.4, FINISH_PHOTO_INFIELD_OFFSET)
+	spot.y = 1.5
+	finish_photo_camera.global_position = spot
+	finish_photo_camera.look_at(_at(line_m + 0.6, lane_offsets[rider]) + Vector3.UP * 0.65, Vector3.UP)
+	finish_photo_caption.text = "AFVALLING · ACHTERWIEL · %s" % _rider_name(rider).to_upper()
+	finish_photo_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	if not finish_photo_capture_pending:
+		finish_photo_capture_pending = true
+		RenderingServer.frame_post_draw.connect(_grab_finish_photo, CONNECT_ONE_SHOT)
+
+func _elimination_box_target(rider: int) -> Vector3:
+	# The six cabins belong to countries, not individual riders.
+	# Without a matching cabin, ride PAST the complete box row and stop on
+	# the grey access zone. Never substitute an unrelated country's cabin.
+	var row: Node = arena.find_child("Rennersboxen", true, false) if arena != null else null
+	var roster: Dictionary = RaceCountries.roster(self)
+	var countries: Array = roster.get("start_list", [])
+	var country: String = String(countries[rider]) if rider < countries.size() else ""
+	var box_index := -1
+	if row != null:
+		var assigned: Array = row.get("assigned_countries")
+		if assigned.has(country):
+			box_index = assigned.find(country)
+	var slot := 0
+	for key in elimination_exit:
+		var other_target: Vector3 = elimination_exit[key].get("target", Vector3.ZERO)
+		if box_index < 0:
+			# The box row spans z=-25..25. All unassigned riders stop BEYOND
+			# its northern end, with independent spaces on the grey zone.
+			if other_target.z >= 29.0:
+				slot += 1
+		elif absf(other_target.z - (-25.0 + 10.0 * float(box_index))) < 3.0:
+			slot += 1
+	if box_index < 0:
+		return Vector3(-14.1, 0.15, 30.0 + 2.0 * float(slot))
+	return Vector3(-14.1 - 0.45 * float(slot % 2), 0.15, -25.0 + 10.0 * float(box_index) + 0.85 * float(slot / 2))
+
+func _update_eliminated_exit(rider: int, dt: float) -> void:
+	var route: Dictionary = elimination_exit[rider]
+	var stage: int = int(route["stage"])
+	if stage == 3:
+		coast_speeds[rider] = 0.0
+		return
+	if stage == 0:
+		var travelled: float = coast_distances[rider] - float(route["start_d"])
+		# Stay clear of the still-racing bunch before descending toward the apron.
+		if travelled > 25.0:
+			lane_offsets[rider] = move_toward(lane_offsets[rider], LANES[0], LANE_CHANGE_MPS * dt)
+		# Keep rolling until the gate halfway along the opposite straight.
+		var target_coast_speed: float = 5.0 if travelled > 62.0 else (8.0 if travelled > 28.0 else 13.0)
+		var braking: float = 2.2 if travelled > 62.0 else 1.1
+		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
+		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
+		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - 90.8) <= 0.4:
+			route["stage"] = 1
+			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
+			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
+	else:
+		# The gate at z=0 is a real gap in the inner boarding. Once inside,
+		# travel along the infield access corridor to the appropriate country cabin.
+		var current: Vector3 = route["position"]
+		var destination: Vector3 = Vector3(-14.1, 0.15, 0.0) if stage == 1 else Vector3(route["target"])
+		var vector: Vector3 = destination - current
+		vector.y = 0.0
+		var speed: float = minf(3.1, maxf(0.0, vector.length() * 1.5))
+		coast_speeds[rider] = speed
+		if vector.length() > 0.01:
+			route["heading"] = vector.normalized()
+			current = current.move_toward(destination, speed * dt)
+			current.y = 0.15
+			route["position"] = current
+		if current.distance_to(destination) < 0.12:
+			if stage == 1: route["stage"] = 2
+			else:
+				route["stage"] = 3
+				coast_speeds[rider] = 0.0
+	elimination_exit[rider] = route

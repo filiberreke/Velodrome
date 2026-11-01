@@ -20,9 +20,9 @@ func run_test() -> void:
 	var menu = game.setup_panel
 	game.get_node("GameSettings").always_show_intro = true
 	check(menu.visible and menu.page == 1, "Opening screen is mode gallery")
-	check(menu.cards.size() == 7 and menu.previews.size() == 7, "Six mode cards plus Records tile")
-	var expected := ["Scratch", "Achtervolging", "Ploegenachtervolging", "Puntenkoers", "Ploegkoers", "Keirin"]
-	for i in range(6):
+	check(menu.cards.size() == 8 and menu.previews.size() == 8, "Seven mode cards plus Records tile")
+	var expected := ["Scratch", "Achtervolging", "Ploegenachtervolging", "Puntenkoers", "Ploegkoers", "Afvalling", "Keirin"]
+	for i in range(7):
 		check(menu.MODES[i]["title"] == expected[i], "Requested card order")
 		check(menu.previews[i].own_world_3d, "Preview isolated from stadium and racing world")
 		var bounds: Rect2 = menu.cards[i].get_global_rect()
@@ -36,7 +36,7 @@ func run_test() -> void:
 	check(people.size() > 0, "Stadium crowd is available for race restoration")
 	for person in people:
 		check(not person.visible, "Stadium empty in menus")
-	for index in range(4, 6):
+	for index in [4, 6]:
 		menu.cards[index].pressed.emit()
 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")
@@ -79,7 +79,7 @@ func run_test() -> void:
 	menu.back_button.pressed.emit()
 	menu.cards[3].pressed.emit()
 	menu.start_button.pressed.emit()
-	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Start shows broadcast intro before HUD")
+	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Repeat-intro test setting applies to the second event")
 	game.broadcast_intro.finish()
 	check(game.race_mode == 1 and game.rider_count == 16 and game.race_laps == 40, "Points mode starts with its own settings")
 	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0), "Points CP configuration is passed through")

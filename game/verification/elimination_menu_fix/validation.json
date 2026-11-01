@@ -1,0 +1,95 @@
+{
+  "base_main_commit": "a6479a7323ef140b9d8c90d6aa4e28f84c5e97ce",
+  "integrated_elimination_commit": "75f880b9f3b64085216902f88129ddb5201914c2",
+  "tests": [
+    {
+      "log": "elimination_combined_elimination_menu_fix.log",
+      "marker": "ELIMINATION_MENU_FIX failures=0",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_pursuit_flow.log",
+      "marker": "PURSUIT_FLOW failures=0",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_rider_profiles.log",
+      "marker": "RIDER_PROFILES failures=0",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_menu.log",
+      "marker": "MENU_FLOW_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_records.log",
+      "marker": "PERSONAL_RECORDS_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_pursuit.log",
+      "marker": "PURSUIT_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_team_pursuit.log",
+      "marker": "TEAM_PURSUIT_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_broadcast_intro.log",
+      "marker": "BROADCAST_INTRO_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_elimination_rules.log",
+      "marker": "Elimination rules basic tests passed",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_elimination_traffic.log",
+      "marker": "Elimination traffic 4 tests passed",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_capture.log",
+      "marker": "ELIMINATION_PREVIEW_CAPTURES_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "elimination_combined_gameplay.log",
+      "marker": "GAMEPLAY_HEADLESS_OK",
+      "result": "PASS"
+    }
+  ],
+  "actual_mouse_start_tested_participants": [
+    4,
+    12,
+    16
+  ],
+  "gallery_order": [
+    "scratch",
+    "pursuit",
+    "team_pursuit",
+    "points",
+    "madison",
+    "elimination",
+    "keirin",
+    "records"
+  ],
+  "all_race_preview_riders_national_kits": true,
+  "elimination_preview_riders": 6,
+  "preview_camera_matches_other_modes": true,
+  "last_rear_tyre_past_finish_m": 0.025,
+  "main_rider_profiles_config_migration_and_two_step_pursuit_preserved": true,
+  "rendered_screens_visually_checked": [
+    "mode_gallery.png",
+    "elimination.png",
+    "elimination_settings.png"
+  ],
+  "notes": [
+    "Local Godot reports root certificate-store and imported-resource UID fallback warnings.",
+    "Headless tests can report material-is-null during portrait teardown."
+  ]
+}
