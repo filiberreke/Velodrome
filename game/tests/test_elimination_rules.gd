@@ -27,5 +27,18 @@ func _initialize() -> void:
     # With two remaining, elimination stops: final sprint is separate.
     var final_positions: Array[float] = [2000.0, 2001.0, 507.0, 1005.0]
     assert(jury.sample(final_positions, 5.0, 1.0).is_empty())
+    # A leader crosses 1000 m before the last rider has crossed 500 m.
+    # Its true next-line time must survive the delayed first decision.
+    jury.reset(4, start)
+    var spread: Array[float] = [1100.0, 1050.0, 900.0, 490.0]
+    assert(jury.sample(spread, 0.0, 10.0).is_empty())
+    var catch_up: Array[float] = [1200.0, 1150.0, 950.0, 510.0]
+    result = jury.sample(catch_up, 10.0, 1.0)
+    assert(int(result.eliminated_id) == 3)
+    var next_crossing: Array[float] = [1300.0, 1250.0, 1010.0, 510.0]
+    result = jury.sample(next_crossing, 11.0, 1.0)
+    assert(int(result.eliminated_id) == 2)
+    assert(is_equal_approx(float(result.crossing_times_s[0]), 1000.0 / 1100.0 * 10.0))
+    assert(jury.remaining_count() == 2)
     print("Elimination rules basic tests passed")
     quit()

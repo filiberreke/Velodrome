@@ -8,6 +8,7 @@ const TIE_EPSILON_SECONDS := 0.0005
 var active: Array[bool] = []
 var last_rear_m: Array[float] = []
 var crossing_s: Dictionary = {}
+var future_crossings: Dictionary = {}
 var next_line_m := ELIMINATION_INTERVAL_M
 var eliminated: Array[int] = []
 var initialized := false
@@ -19,6 +20,7 @@ func reset(count: int, rear_positions: Array[float]) -> void:
         active.append(true)
     last_rear_m = rear_positions.duplicate()
     crossing_s.clear()
+    future_crossings.clear()
     eliminated.clear()
     next_line_m = ELIMINATION_INTERVAL_M
     initialized = true
@@ -38,12 +40,23 @@ func sample(rear_positions: Array[float], start_time_s: float, dt: float) -> Dic
     if remaining_count() <= 2:
         return {}
     for i in range(active.size()):
-        if not active[i] or crossing_s.has(i):
+        if not active[i]:
             continue
         var step: float = rear_positions[i] - previous[i]
-        if step > 0.0 and previous[i] < next_line_m and rear_positions[i] >= next_line_m:
-            var fraction: float = (next_line_m - previous[i]) / step
-            crossing_s[i] = start_time_s + fraction * dt
+        if step <= 0.0: continue
+        # Fast riders can pass a later jury line while the tail is still
+        # completing this one. Keep those real interpolated crossings; they
+        # must not be lost when next_line_m advances after a late decision.
+        var line: float = maxf(next_line_m, (floorf(previous[i] / ELIMINATION_INTERVAL_M) + 1.0) * ELIMINATION_INTERVAL_M)
+        while line <= rear_positions[i] and line <= (active.size() - 2) * ELIMINATION_INTERVAL_M:
+            var time_s: float = start_time_s + (line - previous[i]) / step * dt
+            if is_equal_approx(line, next_line_m):
+                crossing_s[i] = time_s
+            else:
+                var key := roundi(line)
+                if not future_crossings.has(key): future_crossings[key] = {}
+                future_crossings[key][i] = time_s
+            line += ELIMINATION_INTERVAL_M
     if crossing_s.size() < remaining_count():
         return {}
     var ordering: Array[int] = []
@@ -71,5 +84,8 @@ func sample(rear_positions: Array[float], start_time_s: float, dt: float) -> Dic
     event["eliminated_id"] = last_id
     event["remaining"] = remaining_count()
     next_line_m += ELIMINATION_INTERVAL_M
-    crossing_s.clear()
+    crossing_s = future_crossings.get(roundi(next_line_m), {}).duplicate()
+    future_crossings.erase(roundi(next_line_m))
+    for id in crossing_s.keys():
+        if not active[id]: crossing_s.erase(id)
     return event
