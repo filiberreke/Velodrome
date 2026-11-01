@@ -50,7 +50,7 @@ func sample(rear_positions: Array[float], start_time_s: float, dt: float) -> Dic
     for i in range(active.size()):
         if active[i]:
             ordering.append(i)
-    ordering.sort_custom(func(a: int, b: int) -> bool: return float(crossing_s[a]) < float(crossing_s[b]))
+    ordering.sort_custom(func(a: int, b: int) -> bool: return (float(crossing_s[a]) < float(crossing_s[b])) if not is_equal_approx(float(crossing_s[a]), float(crossing_s[b])) else a < b)
     var last_id: int = ordering[ordering.size() - 1]
     var penultimate_id: int = ordering[ordering.size() - 2]
     var gap_s: float = float(crossing_s[last_id]) - float(crossing_s[penultimate_id])
@@ -63,11 +63,13 @@ func sample(rear_positions: Array[float], start_time_s: float, dt: float) -> Dic
         "eliminated_id": -1,
         "remaining": remaining_count()
     }
-    if not event["photo_review"]:
-        active[last_id] = false
-        eliminated.append(last_id)
-        event["eliminated_id"] = last_id
-        event["remaining"] = remaining_count()
+    # Preserve progression for a playable prototype. Extremely tight passages
+    # are flagged for visual review, but the maximum interpolated crossing time
+    # (deterministic rider-ID fallback for an exact floating-point tie) decides.
+    active[last_id] = false
+    eliminated.append(last_id)
+    event["eliminated_id"] = last_id
+    event["remaining"] = remaining_count()
     next_line_m += ELIMINATION_INTERVAL_M
     crossing_s.clear()
     return event
