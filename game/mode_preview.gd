@@ -34,7 +34,7 @@ static func rider(world: Node3D, position: Vector3, team: int, reverse: bool = f
 static func make(owner_node: Node, mode: String) -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "Spelbeeld_" + mode
-	viewport.size = Vector2i(640, 300)
+	viewport.size = Vector2i(640, 420)
 	viewport.own_world_3d = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	viewport.msaa_3d = Viewport.MSAA_2X
@@ -44,7 +44,7 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 	var sky := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("12283c")
+	environment.background_color = Color("e0edf5")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("c6dded")
 	environment.ambient_light_energy = 0.85
@@ -90,6 +90,12 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 			var positions:=[Vector3(-2.5,0,-5.4),Vector3(-0.3,0,-5.8),Vector3(2.2,0,-5.1),Vector3(-1.5,0,-3.0),Vector3(1.3,0,-2.8),Vector3(0.1,0,REAR_EDGE_Z-0.025)]
 			for i in positions.size():
 				var cyclist:=rider(world,positions[i],i,true);cyclist.name="EliminationRider%d"%i
+		"time_trial":
+			rider(world, Vector3(0, 0, 1.2), 0)
+		"tempo":
+			rider(world, Vector3(-2, 0, 4.6), 2)
+			for i in range(5):
+				rider(world, Vector3(-2.4 + (i % 3) * 2.0, 0, -2 + (i / 3) * 2.4), i)
 		"keirin":
 			var pacer := rider(world, Vector3(0, 0, 4.3), 3)
 			# An engine under the existing bicycle frame distinguishes the pacing bike.
@@ -98,9 +104,9 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 				rider(world, Vector3(0.5 * sin(float(i)), 0, 1.6 - i * 2.3), i)
 	var camera := Camera3D.new()
 	world.add_child(camera)
-	camera.position = Vector3(12, 10, 14)
-	camera.look_at(Vector3(0, 0.4, 0))
+	camera.position = Vector3(9, 4.2, 11)
+	camera.look_at(Vector3(0, 0.8, 0))
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 11.5
+	camera.size = 10.5
 	camera.current = true
 	return viewport

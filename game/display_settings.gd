@@ -1,4 +1,5 @@
 extends CanvasLayer
+const MenuStyle := preload("res://menu_theme.gd")
 # Local display preferences; no trainer or gameplay dependencies.
 const OPTIONS := [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440)]
 const SETTINGS_PATH := "user://config/display_settings.cfg"
@@ -96,23 +97,25 @@ func _save_rider_profile() -> void:
 
 func _build_menu() -> void:
 	var toolbar := Control.new()
+	toolbar.theme = MenuStyle.create()
 	toolbar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	toolbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toolbar)
 	var open_button := Button.new()
-	open_button.text = "INSTELLINGEN [F10]"
+	open_button.text = "Instellingen  ·  F10"
 	open_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	open_button.offset_left = -218
-	open_button.offset_right = -16
-	open_button.offset_top = 14
-	open_button.offset_bottom = 54
+	open_button.offset_left = -295
+	open_button.offset_right = -64
+	open_button.offset_top = 48
+	open_button.offset_bottom = 100
 	open_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	open_button.pressed.connect(toggle_menu)
 	toolbar.add_child(open_button)
 
 	panel_root = ColorRect.new()
 	panel_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panel_root.color = Color(0.02, 0.05, 0.10, 0.88)
+	panel_root.theme = MenuStyle.create()
+	panel_root.color = Color(0.07, 0.16, 0.27, 0.46)
 	panel_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel_root.visible = false
 	add_child(panel_root)
@@ -120,10 +123,10 @@ func _build_menu() -> void:
 	centered.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel_root.add_child(centered)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(1060, 820)
+	panel.custom_minimum_size = Vector2(1160, 900)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("10253c")
-	style.border_color = Color("42d9ed")
+	style.bg_color = MenuStyle.IVORY
+	style.border_color = MenuStyle.BLUE
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(18)
 	style.set_content_margin_all(24)
@@ -133,9 +136,10 @@ func _build_menu() -> void:
 	outer.add_theme_constant_override("separation", 18)
 	panel.add_child(outer)
 	var title := Label.new()
-	title.text = "INSTELLINGEN"
+	title.text = "Instellingen"
+	title.add_theme_font_override("font", MenuStyle.heading())
 	title.add_theme_font_size_override("font_size", 30)
-	title.add_theme_color_override("font_color", Color("ffb44c"))
+	title.add_theme_color_override("font_color", MenuStyle.WOOD)
 	outer.add_child(title)
 	appearance_tabs = TabContainer.new()
 	appearance_tabs.custom_minimum_size = Vector2(0, 620)
@@ -152,7 +156,7 @@ func _build_menu() -> void:
 	player_tab.add_child(box)
 	var player_heading := Label.new()
 	player_heading.text = "RENNE R  /  SPELERSPROFIEL".replace("RENNE R", "RENNER")
-	player_heading.add_theme_color_override("font_color", Color("42d9ed"))
+	player_heading.add_theme_color_override("font_color", MenuStyle.BLUE)
 	box.add_child(player_heading)
 	var name_label := Label.new()
 	name_label.text = "Naam van speler"
@@ -178,7 +182,7 @@ func _build_menu() -> void:
 	appearance_tabs.add_child(box)
 	var display_heading := Label.new()
 	display_heading.text = "BEELDINSTELLINGEN"
-	display_heading.add_theme_color_override("font_color", Color("42d9ed"))
+	display_heading.add_theme_color_override("font_color", MenuStyle.BLUE)
 	box.add_child(display_heading)
 	var res_label := Label.new()
 	res_label.text = "Vensterresolutie (in volledig scherm geldt de schermresolutie)"
@@ -232,11 +236,11 @@ func _build_menu() -> void:
 	box.add_child(intro_check)
 	var intro_hint := Label.new()
 	intro_hint.text = "Uit: alleen de eerste wedstrijd van de sessie. Aan: elke wedstrijd."
-	intro_hint.add_theme_color_override("font_color", Color("b4d4e9"))
+	intro_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(intro_hint)
 	var info := Label.new()
 	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nDruk op F10 om dit menu te openen of sluiten."
-	info.add_theme_color_override("font_color", Color("b4d4e9"))
+	info.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(info)
 	box = VBoxContainer.new()
 	box.name = "Strava"
@@ -244,7 +248,7 @@ func _build_menu() -> void:
 	appearance_tabs.add_child(box)
 	var account_heading := Label.new()
 	account_heading.text = "STRAVA"
-	account_heading.add_theme_color_override("font_color", Color("42d9ed"))
+	account_heading.add_theme_color_override("font_color", MenuStyle.BLUE)
 	box.add_child(account_heading)
 	var reconnect_button := Button.new()
 	reconnect_button.text = "STRAVA OPNIEUW KOPPELEN"
@@ -254,12 +258,13 @@ func _build_menu() -> void:
 	actions.add_theme_constant_override("separation", 12)
 	outer.add_child(actions)
 	var apply_button := Button.new()
-	apply_button.text = "TOEPASSEN EN BEWAREN"
+	apply_button.text = "Toepassen en bewaren"
+	MenuStyle.primary(apply_button)
 	apply_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	apply_button.pressed.connect(_on_apply)
 	actions.add_child(apply_button)
 	var close_button := Button.new()
-	close_button.text = "SLUITEN"
+	close_button.text = "Sluiten"
 	close_button.pressed.connect(_close_settings)
 	actions.add_child(close_button)
 	appearance_tabs.tab_changed.connect(_on_settings_tab_changed)
@@ -288,11 +293,11 @@ func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -
 	box.add_child(visor_choice)
 	var hint := Label.new()
 	hint.text = "Het wielerpak omvat ook de broek.\nJe keuze geldt alleen voor jouw renner.\nBewaar om je keuze in de wedstrijd te gebruiken."
-	hint.add_theme_color_override("font_color", Color("b4d4e9"))
+	hint.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(hint)
 	appearance_status = Label.new()
 	appearance_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	appearance_status.add_theme_color_override("font_color", Color("ffb44c"))
+	appearance_status.add_theme_color_override("font_color", MenuStyle.WOOD)
 	box.add_child(appearance_status)
 	var preview_box := VBoxContainer.new()
 	player_tab.add_child(preview_box)

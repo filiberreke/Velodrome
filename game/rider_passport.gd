@@ -1,4 +1,5 @@
 extends PanelContainer
+const MenuStyle := preload("res://menu_theme.gd")
 ## One reusable quartet card for the roster and the pursuit broadcast.
 signal selected(entry: Dictionary)
 signal records_requested(entry: Dictionary)
@@ -71,7 +72,7 @@ class Emblem extends Control:
 static func country_name(id: String) -> String:
 	return "België" if id == "belgium" else String(Appearance.COUNTRY_NAMES.get(id,id.capitalize()))
 
-func text(value: String, font_size: int, color: Color = Color.WHITE) -> Label:
+func text(value: String, font_size: int, color: Color = MenuStyle.INK) -> Label:
 	var node := Label.new()
 	node.text = value
 	node.add_theme_font_size_override("font_size",font_size)
@@ -79,11 +80,12 @@ func text(value: String, font_size: int, color: Color = Color.WHITE) -> Label:
 	return node
 
 func _ready() -> void:
-	accent = [Color("d8e4f2"),Color("64dfd3"),Color("ffc266"),Color("f18eaf")][int(entry.profile)]
+	theme = MenuStyle.create()
+	accent = MenuStyle.BLUE
 	custom_minimum_size = Vector2(340, 412 if interactive else 370)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var skin := StyleBoxFlat.new()
-	skin.bg_color = Color("14263b")
+	skin.bg_color = MenuStyle.PAPER
 	skin.border_color = accent.darkened(.35)
 	skin.set_border_width_all(2)
 	skin.set_corner_radius_all(18)
@@ -97,7 +99,7 @@ func _ready() -> void:
 	var badge := text(Catalog.TYPES[int(entry.profile)].to_upper(),15,accent)
 	badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(badge)
-	top.add_child(text("#%02d" % int(entry.jersey.get("number",entry.slot)),16,Color("8298b1")))
+	top.add_child(text("#%02d" % int(entry.jersey.get("number",entry.slot)),16,MenuStyle.MUTED))
 	var name_label := text(entry.name,26)
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(name_label)
@@ -108,7 +110,7 @@ func _ready() -> void:
 	flag.country = entry.country
 	flag.custom_minimum_size = Vector2(38,24)
 	country_row.add_child(flag)
-	country_row.add_child(text(country_name(entry.country),17,Color("c2d0df")))
+	country_row.add_child(text(country_name(entry.country),17,MenuStyle.MUTED))
 	var line := HSeparator.new()
 	line.modulate = accent.darkened(.5)
 	column.add_child(line)
@@ -145,7 +147,7 @@ func _ready() -> void:
 	trophy.kind = "record";trophy.tint = accent;trophy.custom_minimum_size = Vector2(26,26)
 	record_row.add_child(trophy)
 	var record_s := best_1000m()
-	record_row.add_child(text("1 km  ·  %d s" % roundi(record_s) if record_s > 0 else "1 km  ·  Nog geen record",16,Color("bacbdf")))
+	record_row.add_child(text("1 km  ·  %d s" % roundi(record_s) if record_s > 0 else "1 km  ·  Nog geen record",16,MenuStyle.MUTED))
 	if interactive:
 		var actions := HBoxContainer.new()
 		actions.add_theme_constant_override("separation",8)
@@ -156,7 +158,7 @@ func _ready() -> void:
 		choose.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var button_skin := StyleBoxFlat.new();button_skin.bg_color = accent;button_skin.set_corner_radius_all(8)
 		choose.add_theme_stylebox_override("normal",button_skin)
-		choose.add_theme_color_override("font_color",Color("102337"))
+		MenuStyle.primary(choose)
 		choose.pressed.connect(func():selected.emit(entry))
 		actions.add_child(choose)
 		var records := Button.new();records.text = "Profiel & records";records.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -169,10 +171,10 @@ func _meter(parent: Control, kind: String, caption: String, value: float, maximu
 	parent.add_child(block)
 	var row := HBoxContainer.new();row.add_theme_constant_override("separation",6);block.add_child(row)
 	var icon := Emblem.new();icon.kind = kind;icon.tint = accent;icon.custom_minimum_size = Vector2(25,25);row.add_child(icon)
-	var title := text(caption,14,Color("b0c2d6"));title.size_flags_horizontal = Control.SIZE_EXPAND_FILL;row.add_child(title)
+	var title := text(caption,14,MenuStyle.MUTED);title.size_flags_horizontal = Control.SIZE_EXPAND_FILL;row.add_child(title)
 	row.add_child(text("%d %s" % [roundi(value),unit],16))
 	var meter := ProgressBar.new();meter.show_percentage = false;meter.max_value = maximum;meter.value = value;meter.custom_minimum_size.y = 7
-	var back := StyleBoxFlat.new();back.bg_color = Color("243c56");back.set_corner_radius_all(4)
+	var back := StyleBoxFlat.new();back.bg_color = MenuStyle.PALE;back.set_corner_radius_all(4)
 	var fill := StyleBoxFlat.new();fill.bg_color = accent;fill.set_corner_radius_all(4)
 	meter.add_theme_stylebox_override("background",back);meter.add_theme_stylebox_override("fill",fill);block.add_child(meter)
 

@@ -19,7 +19,7 @@ func run_test()->void:
 	var menu=game.setup_panel
 	var order:Array[String]=[]
 	for entry in menu.MODES:order.append(entry.key)
-	check(order==["scratch","pursuit","team_pursuit","points","madison","elimination","keirin","records"],"Elimination directly precedes keirin; Records remains last")
+	check(order==["scratch","pursuit","team_pursuit","points","madison","elimination","keirin","time_trial","tempo","records"],"Elimination directly precedes keirin; Records remains last")
 	for i in range(7):
 		var riders:=0
 		for node in menu.previews[i].get_child(0).get_children():
@@ -49,7 +49,7 @@ func run_test()->void:
 				game.clock+=.1;game.watts=350;game._update_race(.1)
 			check(game.elimination_rules.remaining_count()==3 and not game.elimination_exit.is_empty(),"Combined main runs the rear-wheel jury and eliminates a rider")
 		game._reset()
-	menu.cards[7].pressed.emit();check(menu.page==3 and menu.records_page.visible,"Reordered Records card still opens records")
+	menu.cards[9].pressed.emit();check(menu.page==3 and menu.records_page.visible,"Reordered Records card still opens records")
 	game.free()
 	print("ELIMINATION_MENU_FIX failures=",failures)
 	quit(0 if failures==0 else 1)

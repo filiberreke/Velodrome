@@ -1,4 +1,5 @@
 extends RefCounted
+const MenuSkin := preload("res://menu_theme.gd")
 
 static func results(game) -> void:
 	if game.finish_results == null or game.finish_table == null: return
@@ -15,14 +16,14 @@ static func results(game) -> void:
 	for child in game.finish_table.get_children():
 		game.finish_table.remove_child(child)
 		child.queue_free()
-	var gold := Color("f4d46a")
-	var white := Color("f3f7fc")
-	var header := Color(0.08, 0.28, 0.42, 0.97)
+	var gold := MenuSkin.INK
+	var white := MenuSkin.INK
+	var header := MenuSkin.PALE
 	for cell in [["PL.",54],["RENNER",205],["PUNTEN",100],["RONDEN + / −",140],["SPRINTPUNTEN PER RONDE",300]]:
 		game._result_cell(cell[0], gold, header, cell[1], false, true)
 	for rank in range(order.size()):
 		var id: int = order[rank]
-		var bg := Color(0.30, 0.27, 0.13, 0.94) if rank == 0 else Color(0.08, 0.17, 0.28, 0.94)
+		var bg := MenuSkin.GOLD if rank == 0 else MenuSkin.PAPER
 		var sprint_text := ""
 		for sprint in jury.sprints:
 			var place: int = sprint.order.find(id)

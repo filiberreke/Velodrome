@@ -1,5 +1,6 @@
 extends VBoxContainer
 ## Two explicit steps. Legacy option controls remain a hidden race configuration model.
+const MenuStyle:=preload("res://menu_theme.gd")
 const Paths:=preload("res://config_paths.gd")
 var menu
 var options
@@ -37,21 +38,22 @@ var proceed_button:Button
 var status:Label
 var syncing:=false
 
-func text(value:String,size:int=20,color:Color=Color("e9f2fa"))->Label:
+func text(value:String,size:int=20,color:Color=MenuStyle.INK)->Label:
 	var node:=Label.new();node.text=value;node.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	node.add_theme_font_size_override("font_size",size);node.add_theme_color_override("font_color",color)
 	return node
 
 func button(value:String,width:float=200)->Button:
 	var node:=Button.new();node.text=value;node.custom_minimum_size=Vector2(width,50);node.add_theme_font_size_override("font_size",21)
-	var selected:=StyleBoxFlat.new();selected.bg_color=Color("183847");selected.border_color=Color("51d7df");selected.set_border_width_all(2);selected.set_corner_radius_all(8)
-	node.add_theme_stylebox_override("pressed",selected);node.add_theme_color_override("font_pressed_color",Color("67e2e6"))
+	var selected:=StyleBoxFlat.new();selected.bg_color=MenuStyle.BLUE;selected.border_color=MenuStyle.BLUE;selected.set_border_width_all(2);selected.set_corner_radius_all(8)
+	node.add_theme_stylebox_override("pressed",selected);node.add_theme_color_override("font_pressed_color",Color.WHITE)
 	return node
 
 func center_row(parent:Control)->HBoxContainer:
 	var row:=HBoxContainer.new();row.alignment=BoxContainer.ALIGNMENT_CENTER;row.add_theme_constant_override("separation",18);parent.add_child(row);return row
 
 func _ready()->void:
+	theme=MenuStyle.create()
 	size_flags_vertical=Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation",10)
 	distance_page=VBoxContainer.new();distance_page.add_theme_constant_override("separation",20);distance_page.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_child(distance_page)
@@ -75,24 +77,25 @@ func _ready()->void:
 		advanced_rows.append(row);factor_controls.append(input)
 		input.value_changed.connect(func(value):if team and options!=null:options.factor_inputs[rank].value=value)
 	opponent_page=VBoxContainer.new();opponent_page.add_theme_constant_override("separation",6);opponent_page.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_child(opponent_page)
-	summary_label=text("",18,Color("a6bfd5"));opponent_page.add_child(summary_label)
+	summary_label=text("",18,MenuStyle.MUTED);opponent_page.add_child(summary_label)
 	var tabs:=center_row(opponent_page);ai_tab=button("AI-renners",260);replay_tab=button("Eigen prestaties",260);ai_tab.toggle_mode=true;replay_tab.toggle_mode=true;tabs.add_child(ai_tab);tabs.add_child(replay_tab)
 	ai_tab.pressed.connect(func():select_kind(0));replay_tab.pressed.connect(func():select_kind(1))
 	var carousel:=center_row(opponent_page);carousel.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	left_arrow=button("‹",70);left_arrow.custom_minimum_size.y=90;left_arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(left_arrow);left_arrow.pressed.connect(func():cycle(-1))
 	card_holder=CenterContainer.new();card_holder.custom_minimum_size=Vector2(500,390);carousel.add_child(card_holder)
 	right_arrow=button("›",70);right_arrow.custom_minimum_size.y=90;right_arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(right_arrow);right_arrow.pressed.connect(func():cycle(1))
-	counter=text("",17,Color("b3c6d9"));opponent_page.add_child(counter)
+	counter=text("",17,MenuStyle.MUTED);opponent_page.add_child(counter)
 	var strength_row:=center_row(opponent_page);strength_row.add_child(text("Sterkte tegenstander",20))
 	strength_slider=HSlider.new();strength_slider.min_value=30;strength_slider.max_value=150;strength_slider.step=5;strength_slider.custom_minimum_size=Vector2(320,36);strength_row.add_child(strength_slider)
 	strength_input=SpinBox.new();strength_input.min_value=30;strength_input.max_value=150;strength_input.step=5;strength_input.suffix="%";strength_input.custom_minimum_size=Vector2(115,40);strength_row.add_child(strength_input)
 	strength_slider.value_changed.connect(_strength_changed);strength_input.value_changed.connect(_strength_changed)
-	strength_hint=text("",16,Color("a6bfd5"));opponent_page.add_child(strength_hint)
+	strength_hint=text("",16,MenuStyle.MUTED);opponent_page.add_child(strength_hint)
 	demo_row=center_row(distance_page);demo_row.add_child(text("Demo-startvermogen",16));demo_input=SpinBox.new();demo_input.min_value=0;demo_input.max_value=900;demo_input.step=25;demo_input.suffix="W";demo_input.custom_minimum_size=Vector2(130,36);demo_row.add_child(demo_input)
 	demo_input.value_changed.connect(func(value):if menu!=null:menu.demo_power_input.value=value)
-	status=text("",17,Color("e8c780"));add_child(status)
+	status=text("",17,MenuStyle.INK);add_child(status)
 	var navigation:=center_row(self);previous_button=button("← Spelvormen",250);proceed_button=button("Kies tegenstander →",350);navigation.add_child(previous_button);navigation.add_child(proceed_button)
-	proceed_button.add_theme_stylebox_override("normal",menu.panel_style(Color("51d7df")));proceed_button.add_theme_color_override("font_color",Color("10273b"))
+	proceed_button.add_theme_stylebox_override("normal",menu.panel_style(MenuStyle.BLUE));proceed_button.add_theme_color_override("font_color",Color.WHITE)
+	MenuStyle.primary(proceed_button)
 	previous_button.pressed.connect(back);proceed_button.pressed.connect(next_step)
 	hide()
 
@@ -144,7 +147,7 @@ func _show_step()->void:
 	proceed_button.text="Start wedstrijd →"if step==2 else"Kies tegenstander →"
 	menu.page_title.text="Kies je tegenstander"if step==2 else"Kies je wedstrijd"
 	menu.page_title.add_theme_font_size_override("font_size",36)
-	menu.breadcrumb.text="01  WEDSTRIJD     /     02  TEGENSTANDER"
+	menu.breadcrumb.text="02  Instellingen     /     Tegenstander"
 	if step==2:summary_label.text="%s  ·  %d km%s"%["Ploegenachtervolging"if team else"Achtervolging",options.distance_m()/1000,"  ·  %d renners"%options.team_size()if team else""]
 	update_bridge();proceed_button.grab_focus.call_deferred()
 

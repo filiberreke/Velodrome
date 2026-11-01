@@ -1,4 +1,5 @@
 extends Node3D
+const MenuSkin := preload("res://menu_theme.gd")
 signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
 const TrainerControl := preload("res://trainer_control.gd")
@@ -1926,7 +1927,8 @@ func _build_hud() -> void:
 	# Finishing overlay: semi-transparent backdrop and a proper results table.
 	finish_overlay = ColorRect.new()
 	finish_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	finish_overlay.color = Color(0.025, 0.055, 0.095, 0.89)
+	finish_overlay.theme = MenuSkin.create()
+	finish_overlay.color = Color(0.07, 0.16, 0.27, 0.46)
 	finish_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	finish_overlay.hide()
 	layer.add_child(finish_overlay)
@@ -1936,8 +1938,8 @@ func _build_hud() -> void:
 	var shell := PanelContainer.new()
 	shell.custom_minimum_size = Vector2(1300, 0)     # beta.16.17: room for the finish photo
 	var shell_style := StyleBoxFlat.new()
-	shell_style.bg_color = Color(0.03, 0.09, 0.17, 0.91)
-	shell_style.border_color = Color("30d7f5")
+	shell_style.bg_color = MenuSkin.IVORY
+	shell_style.border_color = MenuSkin.WOOD
 	shell_style.set_border_width_all(2)
 	shell_style.set_corner_radius_all(22)
 	shell_style.set_content_margin_all(26)
@@ -1950,33 +1952,34 @@ func _build_hud() -> void:
 	title_row.add_theme_constant_override("separation", 14)
 	sheet.add_child(title_row)
 	var orange_bar := ColorRect.new()
-	orange_bar.color = Color("ff9938")
+	orange_bar.color = MenuSkin.WOOD
 	orange_bar.custom_minimum_size = Vector2(10, 76)
 	title_row.add_child(orange_bar)
 	var heading_stack := VBoxContainer.new()
 	title_row.add_child(heading_stack)
 	finish_heading = Label.new()
+	finish_heading.add_theme_font_override("font", MenuSkin.heading())
 	finish_heading.add_theme_font_size_override("font_size", 37)
-	finish_heading.add_theme_color_override("font_color", Color("fff6e8"))
+	finish_heading.add_theme_color_override("font_color", MenuSkin.INK)
 	heading_stack.add_child(finish_heading)
 	var subtitle := Label.new()
 	finish_subtitle = subtitle
 	subtitle.text = "S P R I N T   2 5 0 M     |     OFFICIELE WEDSTRIJDRESULTATEN"
 	subtitle.add_theme_font_size_override("font_size", 14)
-	subtitle.add_theme_color_override("font_color", Color("42daed"))
+	subtitle.add_theme_color_override("font_color", MenuSkin.MUTED)
 	heading_stack.add_child(subtitle)
 	title_row.add_spacer(false)
 	finish_badge = Label.new()
 	finish_badge.add_theme_font_size_override("font_size", 26)
-	finish_badge.add_theme_color_override("font_color", Color("ffb23f"))
+	finish_badge.add_theme_color_override("font_color", MenuSkin.INK)
 	title_row.add_child(finish_badge)
 	var accent := ColorRect.new()
-	accent.color = Color("ff9938")
+	accent.color = MenuSkin.WOOD
 	accent.custom_minimum_size = Vector2(0, 3)
 	sheet.add_child(accent)
 	finish_results = Label.new()
 	finish_results.add_theme_font_size_override("font_size", 16)
-	finish_results.add_theme_color_override("font_color", Color("d9e8f5"))
+	finish_results.add_theme_color_override("font_color", MenuSkin.INK)
 	sheet.add_child(finish_results)
 	var table_row := HBoxContainer.new()
 	table_row.add_theme_constant_override("separation", 16)
@@ -2009,12 +2012,12 @@ func _build_hud() -> void:
 	pursuit_save_button = Button.new()
 	pursuit_save_button.text = "Rit opslaan"
 	pursuit_save_button.custom_minimum_size = Vector2(220, 52)
-	_style_finish_button(pursuit_save_button, Color("51d7df"), Color("092a39"))
+	_style_finish_button(pursuit_save_button, MenuSkin.BLUE, Color.WHITE)
 	pursuit_save_button.pressed.connect(_save_pursuit_ride)
 	save_row.add_child(pursuit_save_button)
 	pursuit_save_status = Label.new()
 	pursuit_save_status.add_theme_font_size_override("font_size", 18)
-	pursuit_save_status.add_theme_color_override("font_color", Color("a8bdce"))
+	pursuit_save_status.add_theme_color_override("font_color", MenuSkin.MUTED)
 	pursuit_save_box.add_child(pursuit_save_status)
 	pursuit_save_box.hide()
 	var buttons := HBoxContainer.new()
@@ -2024,7 +2027,7 @@ func _build_hud() -> void:
 	var again := Button.new()
 	again.text = "⟲  OPNIEUW SPELEN"
 	again.custom_minimum_size = Vector2(260, 58)
-	_style_finish_button(again, Color("ffbb45"), Color("111e32"))
+	_style_finish_button(again, MenuSkin.BLUE, Color.WHITE)
 	again.pressed.connect(_reset)
 	buttons.add_child(again)
 	var strava_button := Button.new()
@@ -2038,13 +2041,13 @@ func _build_hud() -> void:
 	var fit_button := Button.new()
 	fit_button.text = "↓  EXPORT .FIT"
 	fit_button.custom_minimum_size = Vector2(210, 58)
-	_style_finish_button(fit_button, Color("113554"), Color("ffffff"), Color("32d9f0"))
+	_style_finish_button(fit_button, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	fit_button.pressed.connect(func(): _export_strava_fit(true))
 	buttons.add_child(fit_button)
 	var quit := Button.new()
 	quit.text = "■  STOPPEN"
 	quit.custom_minimum_size = Vector2(185, 58)
-	_style_finish_button(quit, Color("152b42"), Color.WHITE, Color("6da0bc"))
+	_style_finish_button(quit, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	quit.pressed.connect(func(): get_tree().quit())
 	buttons.add_child(quit)
 
@@ -2667,9 +2670,9 @@ func _refresh_fullscreen_results() -> void:
 	for child in finish_table.get_children():
 		finish_table.remove_child(child)
 		child.queue_free()
-	var white := Color("f3f7fc")
-	var gold := Color("f4d46a")
-	var header_bg := Color(0.08, 0.28, 0.42, 0.97)
+	var white := MenuSkin.INK
+	var gold := MenuSkin.INK
+	var header_bg := MenuSkin.PALE
 	_result_cell("PL.", gold, header_bg, 54, false, true)
 	_result_cell("RENNER", gold, header_bg, 205, false, true)
 	_result_cell("EINDTIJD", gold, header_bg, 120, true, true)
@@ -2680,10 +2683,10 @@ func _refresh_fullscreen_results() -> void:
 		if finish_times[index] >= 0.0:
 			leader_time = finish_times[index]
 			break
-	var rider_colors: Array[Color] = [Color("f4d46a"), Color("46d49a"), Color("55aafa"), Color("fc817c")]
+	var rider_colors: Array[Color] = [MenuSkin.INK, MenuSkin.INK, MenuSkin.INK, MenuSkin.INK]
 	for rank in range(ordered.size()):
 		var rider: int = ordered[rank]
-		var row_bg: Color = Color(0.30, 0.27, 0.13, 0.94) if rank == 0 else (Color(0.10, 0.20, 0.32, 0.92) if rank % 2 == 0 else Color(0.065, 0.15, 0.26, 0.92))
+		var row_bg: Color = MenuSkin.GOLD if rank == 0 else (MenuSkin.PAPER if rank % 2 == 0 else MenuSkin.IVORY)
 		var display_time: String = "%.2f s" % finish_times[rider] if finish_times[rider] >= 0.0 else "Onderweg"
 		if race_mode == 0 and scratch_rules.credits[rider] != 0:
 			display_time += "  (%+d ronde)" % scratch_rules.credits[rider]
