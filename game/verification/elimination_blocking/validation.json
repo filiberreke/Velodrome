@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-01",
+  "base_main": "99feb518d71fd852df961255f3151e100dde4ce9",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "tests": [
+    {
+      "script": "res://tests/test_elimination_merging.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_MERGING failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_traffic.gd",
+      "result": "PASS",
+      "marker": "Elimination traffic 5 tests passed"
+    },
+    {
+      "script": "res://tests/test_elimination_assist.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_ASSIST failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_gameplay.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_GAMEPLAY failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_corrections.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_CORRECTIONS failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_menu_fix.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_MENU_FIX failures=0"
+    },
+    {
+      "script": "res://tests/test_gameplay_headless.gd",
+      "result": "PASS",
+      "marker": "GAMEPLAY_HEADLESS_OK"
+    },
+    {
+      "script": "res://tests/test_points_race.gd",
+      "result": "PASS",
+      "marker": "POINTS_RACE_OK"
+    }
+  ],
+  "changes": [
+    "Unsafe lateral merges yield before longitudinal collision resolution; manual, assisted and AI requests share the same rule.",
+    "Physical lateral clearance is 0.65 m centre-to-centre, converted to horizontal lane offsets using actual track banking. A separate 0.02 m offset margin prevents contact while waiting to merge.",
+    "The HUD distinguishes an unsafe merge from an actual longitudinal blockage."
+  ],
+  "regression_cases": [
+    "Manual outward and inward cut-in cannot stop the incumbent, for either rider index order.",
+    "Simultaneous opposite merges preserve lateral order; closing rear traffic blocks unsafe insertion.",
+    "A rider just inside the lateral margin cannot step through the physical collision boundary.",
+    "Adjacent lines at 0.70 m on the straight, or 0.52 m horizontal offset with 1.31 banking scale, do not clamp either rider.",
+    "Main.gd holds a manual lane request until the gap opens, then completes it. Actual adjacent-line physics at 60 Hz generates no false blockage warning.",
+    "Full 4/12/16-rider elimination races complete with correct elimination count and bounded physiology."
+  ],
+  "limitations": [
+    "Headless reconstructions of the reported situations, not a replay of the exact screenshot state.",
+    "Full elimination simulations use 0.1 s steps; a targeted actual-physics test also runs at 1/60 s.",
+    "No physical Zwift Ride/KICKR or new on-track visual playtest.",
+    "Existing import cache reused; certificate/UID and Blender configuration warnings remain."
+  ]
+}

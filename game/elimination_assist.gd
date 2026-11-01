@@ -1,17 +1,20 @@
 extends RefCounted
 ## Lane requests only. Power, speed and collision limits remain in main.gd.
-const CLEARANCE := 0.88
+const Traffic = preload("res://elimination_traffic.gd")
+const CLEARANCE := Traffic.LATERAL_CLEARANCE_M
 const FOLLOWING := 2.2
 var enabled := false
 var manual_until := -1.0
 var blocked_until := -1.0
 var target := -1.0
+var lateral_scales: Array[float] = []
 
 func reset() -> void:
 	enabled = false
 	manual_until = -1.0
 	blocked_until = -1.0
 	target = -1.0
+	lateral_scales.clear()
 
 func manual(clock: float) -> void:
 	manual_until = clock + 2.0
@@ -24,11 +27,12 @@ func observe(clock: float, requested: float, actual: float, dt: float) -> void:
 		blocked_until = clock + 0.45
 
 func corridor_clear(candidate: float, distances: Array[float], speeds: Array[float], lanes: Array[float], done: Array[float], requests: Array[float], lateral_speed: float) -> bool:
-	var low := minf(lanes[0], candidate) - CLEARANCE
-	var high := maxf(lanes[0], candidate) + CLEARANCE
 	var horizon := absf(candidate - lanes[0]) / maxf(0.1, lateral_speed) + 0.5
 	for j in range(1, distances.size()):
 		if done[j] >= 0.0: continue
+		var width: float = Traffic.lateral_clearance(0, j, lateral_scales)
+		var low := minf(lanes[0], candidate) - width
+		var high := maxf(lanes[0], candidate) + width
 		# Include the AI's intended swept corridor, and closing traffic behind.
 		if maxf(lanes[j], requests[j]) <= low or minf(lanes[j], requests[j]) >= high: continue
 		var gap := fposmod(distances[j] - distances[0] + 125.0, 250.0) - 125.0
@@ -36,7 +40,7 @@ func corridor_clear(candidate: float, distances: Array[float], speeds: Array[flo
 		var nearest := 0.0 if gap * future <= 0.0 else minf(absf(gap), absf(future))
 		# Allow leaving the wheel that caused the block, provided its gap is
 		# not already overlapping. All other crossed corridors need merge room.
-		var leaving_wheel := absf(lanes[j] - lanes[0]) < CLEARANCE and absf(lanes[j] - candidate) >= CLEARANCE and gap >= FOLLOWING - 0.01
+		var leaving_wheel := absf(lanes[j] - lanes[0]) < width and absf(lanes[j] - candidate) >= width and gap >= FOLLOWING - 0.01
 		if nearest < (FOLLOWING - 0.01 if leaving_wheel else 4.5): return false
 	return true
 
