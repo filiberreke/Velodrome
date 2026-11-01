@@ -19,8 +19,8 @@ Een gedubbelde renner kan geen normale 500 m-passage afwachten indien de jury he
 ## Beeld
 
 - Bestaand: `main.gd` beschikt over `finish_photo_viewport`, `finish_photo_camera` en `_grab_finish_photo()`.
-- Niet zomaar de bestaande foto gebruiken: die is op de winnaar en voorwiel gericht.
-- Maak bij iedere passage een freeze-frame met alle laatste achterwielen, met finishlijn als verticale referentie en een eventuele fotofinish-overlay.
+- Niet zomaar de bestaande foto gebruiken: die is op de winnaar en voorwiel gericht. De eliminatiefoto kijkt uitdrukkelijk vanaf **vóór de meetlijn, aan de aanrijzijde** in de richting van de naderende renners, zodat het achterwiel zichtbaar is wanneer het de lijn overschrijdt. Dus niet de bestaande camerapositie +3.4 m na de lijn hergebruiken: kies een positie met negatieve afstand t.o.v. de meetlijn en richt op het achterwielcontactvlak. Verifieer de cameraoriëntatie visueel in Godot (positie 'voor de meet' bedoelt aanrijzijde).
+- Maak bij iedere passage een freeze-frame met alle laatste achterwielen, gefotografeerd vanaf de aanrijzijde van de meetlijn, met finishlijn als verticale referentie en een eventuele fotofinish-overlay. De juridisch beslissende tijd blijft uit de geïnterpoleerde achterwielpassage komen.
 - Koppel een tijdelijke Texture2D-presentatie aan `infinity_scoreboard.gd` / `infinity_screen.gd`. Herstel daarna de normale scoreboardtexture. De foto is dus een race-uitzending, niet het scorebord permanent vervangen.
 - Houd de visuele snapshot gescheiden van het tijdsoordeel, dat uit de interpolatie volgt.
 
