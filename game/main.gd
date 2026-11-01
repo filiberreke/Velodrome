@@ -214,7 +214,7 @@ func _configure_peloton() -> void:
 		var lane: float = LANES[0] if race_mode in [4, 5] else LANES[i % LANES.size()]
 		# Extra scratch riders start on the next row, not inside the first six.
 		# Use the same real position for tactics, physics and rendering.
-		if race_mode in [0, 1]:
+		if race_mode in [0, 1, 2]:
 			distances[i] = -2.4 * float(i / LANES.size())
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
@@ -1391,7 +1391,7 @@ func _advance_race(dt: float) -> void:
 		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	# Capture while the winner is crossing, rather than after the LAST rider
 	# finishes. A subsequently finishing lap winner replaces the earlier photo.
-	if new_finisher:
+	if new_finisher and race_mode != 2:
 		var provisional_winner: int = _winner_index()
 		if provisional_winner >= 0 and provisional_winner != finish_photo_rider:
 			_take_finish_photo(provisional_winner)
@@ -1401,7 +1401,7 @@ func _advance_race(dt: float) -> void:
 			recovery_excess = maxf(0.0, boosted_speed - baseline_speed)
 			recovery_left = BOOST_RECOVERY_SECONDS
 	if finish_times[0] >= 0.0 and not finished:
-		_register_performance()
+		if race_mode != 2: _register_performance()
 		finished = true
 		finish_elapsed = 0.0
 		running = false
@@ -2079,6 +2079,10 @@ func _grab_finish_photo() -> void:
 	if img == null or img.is_empty():
 		return
 	finish_photo_rect.texture = ImageTexture.create_from_image(img)
+	if race_mode == 2 and arena != null:
+		var stadium_screen: Node = arena.find_child("InfinityScreen", true, false)
+		if stadium_screen != null and stadium_screen.get("scoreboard") != null:
+			stadium_screen.scoreboard.show_elimination_photo(finish_photo_rect.texture, 5.0)
 
 func _rider_name(index: int) -> String:
 	return player_display_name if index == 0 else (rider_names[index] if index < rider_names.size() else "AI")
