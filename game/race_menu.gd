@@ -21,14 +21,15 @@ const MODES := [
 	{"key": "points", "title": "Puntenkoers", "hint": "Elke sprint een nieuwe kans.", "detail": "Elke 10 ronden: 5–3–2–1 punten. Dubbele punten aan de finish. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 1},
 	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Bouw snelheid op achter de gangmaker en kies je moment zodra de finale begint.", "race_id": 3},
-	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1}
+	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1},
+	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2}
 ]
 const INK := Color("f3f5fa")
 const MUTED := Color("a8bdce")
 const ACCENT := Color("51d7df")
 var page := 1
 var selected := 0
-var field_settings := {0: [8, 10], 3: [16, 40]}
+var field_settings := {0: [8, 10], 3: [16, 40], 7: [12, 22]}
 var cards: Array[Button] = []
 var previews: Array[SubViewport] = []
 var choice_page: VBoxContainer
@@ -42,6 +43,7 @@ var status_label: Label
 var start_button: Button
 var back_button: Button
 var count_input: SpinBox
+var elimination_count_picker: OptionButton
 var laps_input: SpinBox
 var demo_power_input: SpinBox
 var difficulty_slider: HSlider
@@ -144,7 +146,7 @@ func _ready() -> void:
 		var mode_title := label(MODES[i]["title"], 25)
 		mode_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		heading.add_child(mode_title)
-		var status := label("TOP 10" if i == 6 else ("SPEEL" if i in [0, 1, 2, 3] else "BINNENKORT"), 13, ACCENT if i in [0, 1, 2, 3, 6] else MUTED)
+		var status := label("TOP 10" if i == 6 else ("SPEEL" if i in [0, 1, 2, 3, 7] else "BINNENKORT"), 13, ACCENT if i in [0, 1, 2, 3, 6] else MUTED)
 		status.name = "Status"
 		heading.add_child(status)
 		var hint := label(MODES[i]["hint"], 19, MUTED)
@@ -197,6 +199,11 @@ func _build_settings(layout: VBoxContainer) -> void:
 	race_settings.add_theme_constant_override("separation", 16)
 	options.add_child(race_settings)
 	count_input = _number(race_settings, "Deelnemers · inclusief jou", 6, 12, 8)
+	elimination_count_picker = OptionButton.new()
+	for amount in [4, 12, 16]: elimination_count_picker.add_item("%d deelnemers" % amount, amount)
+	elimination_count_picker.select(1)
+	race_settings.add_child(elimination_count_picker)
+	elimination_count_picker.visible = false
 	laps_input = _number(race_settings, "Ronden · 250 meter per ronde", 1, 30, 10)
 	difficulty_label = label("AI-sterkte · 80%", 22)
 	race_settings.add_child(difficulty_label)
@@ -263,7 +270,7 @@ func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: i
 	return input
 
 func show_choices() -> void:
-	if page == 2 and selected in [0, 3]: field_settings[selected] = [int(count_input.value), int(laps_input.value)]
+	if page == 2 and selected in [0, 3, 7]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 7 else int(count_input.value), int(laps_input.value)]
 	page = 1
 	page_title.text = "Kies jouw wedstrijd"
 	choice_page.show()
@@ -274,7 +281,7 @@ func show_choices() -> void:
 		cards[selected].grab_focus.call_deferred()
 
 func select_mode(index: int) -> void:
-	if page == 2 and selected in [0, 3]: field_settings[selected] = [int(count_input.value), int(laps_input.value)]
+	if page == 2 and selected in [0, 3, 7]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 7 else int(count_input.value), int(laps_input.value)]
 	selected = clampi(index, 0, MODES.size() - 1)
 	if selected == 6:
 		show_records()
@@ -288,7 +295,10 @@ func select_mode(index: int) -> void:
 	selected_title.text = MODES[selected]["title"]
 	selected_description.text = MODES[selected]["detail"]
 	selected_art.texture = previews[selected].get_texture()
-	race_settings.visible = selected in [0, 3]
+	race_settings.visible = selected in [0, 3, 7]
+	count_input.visible = selected != 7
+	elimination_count_picker.visible = selected == 7
+	laps_input.visible = selected != 7
 	if selected in [0, 3]:
 		count_input.max_value = 16 if selected == 3 else 12
 		laps_input.max_value = 120 if selected == 3 else 30
@@ -296,13 +306,16 @@ func select_mode(index: int) -> void:
 		laps_input.step = 10 if selected == 3 else 1
 		count_input.value = field_settings[selected][0]
 		laps_input.value = field_settings[selected][1]
+	if selected == 7:
+		for idx in range(elimination_count_picker.item_count):
+			if elimination_count_picker.get_item_id(idx) == field_settings[7][0]: elimination_count_picker.select(idx)
 	pursuit_options.visible = selected == 1
 	team_options.visible = selected == 2
 	team_scroll.visible = selected == 2
-	demo_settings.visible = selected in [0, 1, 2, 3] and not bridge_seen and not bridge_unavailable
-	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
-	start_button.disabled = selected not in [0, 1, 2, 3]
-	start_button.text = "Start wedstrijd  →" if selected in [0, 1, 2, 3] else "Binnenkort"
+	demo_settings.visible = selected in [0, 1, 2, 3, 7] and not bridge_seen and not bridge_unavailable
+	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 7] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+	start_button.disabled = selected not in [0, 1, 2, 3, 7]
+	start_button.text = "Start wedstrijd  →" if selected in [0, 1, 2, 3, 7] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
@@ -315,8 +328,8 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_label.text = "Bridge LIVE · trainertelemetrie ontvangen" if live else ("Bridge ontvangen · wacht op geldige trainerdata" if seen else "DEMO · nog geen bridge-telemetrie ontvangen")
 	if unavailable:
 		bridge_label.text = "Bridge niet beschikbaar: UDP 51723 bezet. Sluit andere spelinstanties en herstart Godot."
-	demo_settings.visible = selected in [0, 1, 2, 3] and not seen and not unavailable
-	start_button.disabled = unavailable or selected not in [0, 1, 2, 3]
+	demo_settings.visible = selected in [0, 1, 2, 3, 7] and not seen and not unavailable
+	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 7]
 	if selected in [1, 2]:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 
