@@ -3197,7 +3197,9 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		if travelled > 25.0:
 			lane_offsets[rider] = move_toward(lane_offsets[rider], LANES[0], LANE_CHANGE_MPS * dt)
 		# Keep rolling until the gate halfway along the opposite straight.
-		coast_speeds[rider] = move_toward(coast_speeds[rider], 6.5, 0.55 * dt)
+		var target_coast_speed: float = 5.0 if travelled > 62.0 else (8.0 if travelled > 28.0 else 13.0)
+		var braking: float = 2.2 if travelled > 62.0 else 1.1
+		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
 		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - 90.8) <= 0.4:
 			route["stage"] = 1
