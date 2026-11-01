@@ -3,6 +3,7 @@ extends "res://x_scratch_ai.gd"
 ## Only physics and rendering remain owned by main.gd.
 var elimination_line_m := 500.0
 var final_line_m := 7500.0
+var lateral_scales: Array[float] = []
 
 func _inner_corridor_clear(i: int, candidate: float, distances: Array[float], speeds: Array[float], lanes: Array[float], finished: Array[float]) -> bool:
     if not super._inner_corridor_clear(i, candidate, distances, speeds, lanes, finished): return false
@@ -102,7 +103,8 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
             if j == i:
                 continue
             var ahead: float = distances[j] - distances[i]
-            if ahead > 0.1 and ahead < 7.0 and absf(lanes[j] - lanes[i]) < 0.88 and ahead < blocking_gap:
+            var collision_width: float = preload("res://elimination_traffic.gd").lateral_clearance(i, j, lateral_scales)
+            if ahead > 0.1 and ahead < 7.0 and absf(lanes[j] - lanes[i]) < collision_width and ahead < blocking_gap:
                 blocked_by = j
                 blocking_gap = ahead
         var candidate: float = lanes[i]

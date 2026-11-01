@@ -114,3 +114,31 @@ en bestaande null-material-meldingen bij het opruimen staan in het validatiebest
 De bestaande importcache is hergebruikt. De headless editor meldt dat Blender
 niet ingesteld is; een volledige nieuwe import van bron-.blend-bestanden is
 hier niet gecontroleerd.
+
+
+## Invoegen en naast elkaar rijden (1 november 2026)
+
+Onveilig invoegen wordt nu vóór de lengtebotsingscontrole tegengehouden,
+zowel bij handmatig sturen als bij inhaalhulp en AI. De invoegende renner
+wacht naast de bestaande rijlijn; de aanwezige renner wordt niet abrupt
+afgeremd om de invoeger ruimte te geven. Zodra het gat veilig is, wordt
+de aangevraagde rijlijnwissel alsnog voltooid. De HUD toont tijdens het wachten
+`GEEN RUIMTE OM IN TE VOEGEN · HOUD JE RIJLIJN`.
+
+De zijafstand gebruikt 0,65 m fysieke afstand tussen de fietscentra en rekent
+de banking om naar horizontale rijlijnoffsets. De oude brede strook van 0,88 m
+is vervallen voor botsingen. Daarmee kunnen renners zichtbaar naast elkaar
+rijden zonder onterecht op de snelheid van de andere rijlijn begrensd te worden.
+De botsingscontrole, AI-blokkadeherkenning en inhaalhulp gebruiken dezelfde maat.
+
+```bash
+godot --headless --path game --script res://tests/test_elimination_merging.gd
+```
+
+Acht relevante headless suites slaagden opnieuw, inclusief volledige afvalling
+met 4/12/16 deelnemers en scratch-/puntenkoersregressies. De nieuwe test dekt
+in-/uitwaarts invoegen, omgekeerde rennerindices, gelijktijdige wissels,
+achteropkomend verkeer, grensafronding, naast elkaar rijden op banking en
+de daadwerkelijke main.gd-integratie. Zie `verification/elimination_blocking/validation.json`.
+Dit zijn gereconstrueerde situaties; geen replay van de exacte screenshotstand,
+geen fysieke Ride/KICKR-test en geen nieuwe visuele rijtest op de baan.

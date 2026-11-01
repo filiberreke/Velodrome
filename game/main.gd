@@ -16,6 +16,7 @@ const EliminationAI := preload("res://elimination_ai.gd")
 const EliminationTraffic := preload("res://elimination_traffic.gd")
 var elimination_rules = EliminationRules.new()
 var elimination_assist = preload("res://elimination_assist.gd").new()
+var elimination_lane_blocked := false
 var elimination_notice: Label
 var elimination_notice_until := -1.0
 var elimination_exit: Dictionary = {}
@@ -1201,6 +1202,8 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode == 4:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
+	var previous_lanes: Array[float] = lane_offsets.duplicate()
+	if race_mode == 2: elimination_assist.lateral_scales = _elimination_lane_scales()
 	if race_mode not in [0, 1, 2]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
@@ -1214,7 +1217,19 @@ func _move_lanes(dt: float) -> Array[float]:
 			x_ai.lane_targets[0] = target
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
+	if race_mode == 2:
+		var requested: Array[float] = lane_offsets.duplicate()
+		lane_offsets = EliminationTraffic.constrain_lanes(distances, speeds, previous_lanes, requested, finish_times, elimination_assist.lateral_scales, dt)
+		elimination_lane_blocked = absf(requested[0] - lane_offsets[0]) > 0.0001
+		for i in range(rider_count):
+			heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lanes[i]).y
 	return heights
+
+func _elimination_lane_scales() -> Array[float]:
+	var scales: Array[float] = []
+	for i in range(rider_count):
+		scales.append(_at(distances[i], lane_offsets[i] + 1.0).distance_to(_at(distances[i], lane_offsets[i])))
+	return scales
 
 func _race_length() -> float:
 	return float(race_laps) * LAP
@@ -1326,6 +1341,7 @@ func _advance_race(dt: float) -> void:
 		if race_mode == 2:
 			x_ai.elimination_line_m = elimination_rules.next_line_m
 			x_ai.final_line_m = _race_length()
+			x_ai.lateral_scales = _elimination_lane_scales()
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
 	var new_finisher := false
@@ -1391,7 +1407,7 @@ func _advance_race(dt: float) -> void:
 			coast_speeds[i] = speeds[i]
 	if race_mode == 2:
 		var free_player_step: float = distances[0] - previous_distances[0]
-		EliminationTraffic.resolve(previous_distances, distances, speeds, lane_offsets, finish_times, dt)
+		EliminationTraffic.resolve(previous_distances, distances, speeds, lane_offsets, finish_times, dt, _elimination_lane_scales())
 		if finish_times[0] < 0.0:
 			elimination_assist.observe(clock, free_player_step, distances[0] - previous_distances[0], dt)
 			# Carry collision-limited momentum into the next physical step.
@@ -2608,6 +2624,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 	if race_mode == 2 and running and not finished and finish_times[0] < 0.0 and start_state == "RACING":
 		var blocking_notice: String = elimination_assist.notice(clock)
 		if not blocking_notice.is_empty(): notice = blocking_notice
+		if elimination_lane_blocked: notice = "GEEN RUIMTE OM IN TE VOEGEN · HOUD JE RIJLIJN"
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
 	if race_mode == 4:
@@ -3283,6 +3300,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 	elimination_exit[rider] = route
 
 func _clear_elimination_feedback() -> void:
+	elimination_lane_blocked = false
 	elimination_notice_until = -1.0
 	if elimination_notice != null:
 		elimination_notice.text = ""
