@@ -12,11 +12,12 @@ const XScratchAI := preload("res://x_scratch_ai.gd")
 var x_ai = XScratchAI.new()
 const PointsAI := preload("res://points_ai.gd")
 const EliminationRules := preload("res://elimination_race_rules.gd")
+const EliminationAI := preload("res://elimination_ai.gd")
 var elimination_rules = EliminationRules.new()
 var elimination_notice: Label
 var elimination_notice_until := -1.0
 var elimination_exit: Dictionary = {}
-const REAR_TRAILING_EDGE_M := 2.11
+const REAR_TRAILING_EDGE_M := 1.674 # Frontmost tyre to trailing edge of rear tyre: 0.98 m wheelbase + 2 * 0.347 m tyre radius (verify on imported mesh).
 const PointsRules := preload("res://points_race_rules.gd")
 var points_rules = PointsRules.new()
 const PelotonState := preload("res://peloton_state.gd")
@@ -222,7 +223,7 @@ func _configure_peloton() -> void:
 		ai_energy_j[i] = 0.0 if i == 0 else AI_CAPACITY_J[type_id] * _form(i)
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
 	if race_mode in [0, 1, 2]:
-		x_ai = PointsAI.new() if race_mode == 1 else XScratchAI.new()
+		x_ai = PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 	if race_mode == 2:
@@ -1296,6 +1297,9 @@ func _advance_race(dt: float) -> void:
 	var x_powers: Array[float] = []
 	if race_mode in [0, 1, 2]:
 		x_ai.human_power_w = watts
+		if race_mode == 2:
+			x_ai.elimination_line_m = elimination_rules.next_line_m
+			x_ai.final_line_m = _race_length()
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
 	var new_finisher := false
