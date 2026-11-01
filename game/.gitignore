@@ -1,2 +1,6 @@
 riders_config.cfg
 strava_config.cfg
+config/*.cfg
+!config/*.example.cfg
+config/*.json
+config/*.tmp

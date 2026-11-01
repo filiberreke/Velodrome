@@ -1,0 +1,84 @@
+{
+  "base_commit": "7efadcbcae06180a63ee09f05d827676d5e5a582",
+  "tests": [
+    {
+      "log": "profiles_identity_test.log",
+      "result": "PASS",
+      "marker": "RIDER_PROFILES failures=0"
+    },
+    {
+      "log": "profiles_menu_final.log",
+      "result": "PASS",
+      "marker": "MENU_FLOW_OK"
+    },
+    {
+      "log": "profiles_team_final.log",
+      "result": "PASS",
+      "marker": "TEAM_PURSUIT_OK"
+    },
+    {
+      "log": "profiles_intro_final.log",
+      "result": "PASS",
+      "marker": "BROADCAST_INTRO_OK"
+    },
+    {
+      "log": "profiles_pursuit_final.log",
+      "result": "PASS",
+      "marker": "PURSUIT_OK"
+    },
+    {
+      "log": "profiles_gameplay.log",
+      "result": "PASS",
+      "marker": "GAMEPLAY_HEADLESS_OK"
+    },
+    {
+      "log": "profiles_points.log",
+      "result": "PASS",
+      "marker": "POINTS_RACE_OK"
+    },
+    {
+      "log": "profiles_ai.log",
+      "result": "PASS",
+      "marker": "X_SCRATCH_AI_OK"
+    },
+    {
+      "log": "profiles_appearance.log",
+      "result": "PASS",
+      "marker": "Player appearance settings: PASS"
+    },
+    {
+      "log": "profiles_infield_update.log",
+      "result": "PASS",
+      "marker": "INFIELD_UPDATE failures=0"
+    },
+    {
+      "log": "profiles_capture.log",
+      "result": "PASS",
+      "marker": "RIDER_PROFILES_CAPTURES_OK"
+    }
+  ],
+  "sample_riders": 13,
+  "all_sample_factors": 1.0,
+  "approved_base_cp_w": {
+    "tt": 265,
+    "sprinter": 240,
+    "attacker": 250
+  },
+  "day_form": [
+    0.975,
+    1.025
+  ],
+  "ai_percentage_formula": "requested watts * percentage / 80 before existing physiology",
+  "latest_intro_preserved": true,
+  "screenshots_visually_reviewed": [
+    "rider_passports.png",
+    "filtered_passport.png",
+    "pursuit_selection.png",
+    "pursuit_intro_passport.png"
+  ],
+  "environment_notes": [
+    "Windows root certificate-store warning and cached-import UID fallback warnings exist in this local environment.",
+    "Headless dummy renderer can report material-is-null during portrait teardown; GPU captures show no such error."
+  ],
+  "private_config_files_committed": false
+}

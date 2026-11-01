@@ -11,6 +11,9 @@ var ride_choice: OptionButton
 var rides: Array[Dictionary] = []
 var ai_choice: OptionButton
 var ai_entries: Array[Dictionary] = []
+var picker_button: Button
+var active_picker: Control
+var opponent_percent := 80.0
 
 func _label(value: String) -> Label:
 	var node := Label.new()
@@ -43,7 +46,7 @@ func _ready() -> void:
 	ai_choice = _choice()
 	cp_box.add_child(ai_choice)
 	refresh_ai_choices()
-	ai_choice.item_selected.connect(func(_index: int) -> void: changed.emit())
+	ai_choice.item_selected.connect(func(_index: int) -> void: _ai_selected())
 	cp_box.add_child(_label("CP tegenstander (W)"))
 	cp_input = SpinBox.new()
 	cp_input.min_value = 50
@@ -53,6 +56,13 @@ func _ready() -> void:
 	cp_input.custom_minimum_size.y = 52
 	cp_input.get_line_edit().add_theme_font_size_override("font_size", 24)
 	cp_box.add_child(cp_input)
+	if uses_rider_picker():
+		picker_button = Button.new()
+		picker_button.text = "Bekijk alle rennerpaspoorten →"
+		picker_button.custom_minimum_size.y = 44
+		cp_box.add_child(picker_button)
+		picker_button.pressed.connect(open_picker)
+		_ai_selected()
 	add_child(cp_box)
 	ride_box = VBoxContainer.new()
 	ride_box.add_child(_label("Opgeslagen rit"))
@@ -117,3 +127,35 @@ func refresh_ai_choices() -> void:
 
 func selected_ai() -> Dictionary:
 	return ai_entries[ai_choice.selected].duplicate(true) if ai_choice != null and ai_choice.selected >= 0 and ai_choice.selected < ai_entries.size() else {}
+
+func uses_rider_picker() -> bool:
+	return true
+
+func configured_cp() -> float:
+	var entry := selected_ai()
+	if entry.has("cp_w") and is_equal_approx(cp_input.value, float(roundi(entry.cp_w))):
+		return float(entry.cp_w) # Round only the card/control text, not the physiology.
+	return cp_input.value
+
+func _ai_selected() -> void:
+	var entry := selected_ai()
+	if cp_input != null and entry.has("cp_w"): cp_input.value = roundi(entry.cp_w)
+	changed.emit()
+
+func open_picker() -> void:
+	if is_instance_valid(active_picker): return
+	var picker = preload("res://rider_picker.gd").new()
+	active_picker = picker
+	picker.entries = ai_entries
+	var overlay := CanvasLayer.new()
+	overlay.layer = 30
+	picker.layer = overlay
+	get_tree().root.add_child(overlay)
+	overlay.tree_exited.connect(func(): active_picker = null)
+	overlay.add_child(picker)
+	picker.selected.connect(func(entry: Dictionary):
+		for i in ai_entries.size():
+			if ai_entries[i].id == entry.id:
+				ai_choice.select(i)
+				_ai_selected()
+				break)

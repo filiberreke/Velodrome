@@ -118,7 +118,7 @@ func _apply_rider_profile(index: int) -> void:
 		var shape_name: String = String(body.mesh.get_blend_shape_name(shape_index))
 		var profile_key: int = SHAPE_KEYS.find(shape_name)
 		if profile_key >= 0:
-			body.set_blend_shape_value(shape_index, float(RIDER_SHAPES[index][profile_key]))
+			body.set_blend_shape_value(shape_index, clampf(float((get_meta("body_shapes", {}) as Dictionary).get(shape_name, RIDER_SHAPES[index][profile_key])), -1.0, 1.0))
 	# Independent material overrides on every instance. Neither mutate shared
 	# GLB materials nor tint skin, chain, tires, visor or other bike parts.
 	var palettes: Array[Dictionary] = [

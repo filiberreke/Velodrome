@@ -90,3 +90,6 @@ func available_ai_entries() -> Array[Dictionary]:
 		if option.id in ["configured", "default"]: continue
 		result.append({"country": option.id, "name": option.label})
 	return result
+
+func uses_rider_picker() -> bool:
+	return false

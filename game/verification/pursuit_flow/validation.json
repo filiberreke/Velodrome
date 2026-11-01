@@ -1,0 +1,62 @@
+{
+  "parent_commit": "2df1d790cb76fb56f2cdfa61bf9c658f6e501d30",
+  "tests": [
+    {
+      "log": "flow_pursuit_flow.log",
+      "marker": "PURSUIT_FLOW failures=0",
+      "result": "PASS"
+    },
+    {
+      "log": "flow_pursuit.log",
+      "marker": "PURSUIT_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "flow_team_pursuit.log",
+      "marker": "TEAM_PURSUIT_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "flow_broadcast_intro.log",
+      "marker": "BROADCAST_INTRO_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "flow_menu.log",
+      "marker": "MENU_FLOW_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "flow_rider_profiles.log",
+      "marker": "RIDER_PROFILES failures=0",
+      "result": "PASS"
+    },
+    {
+      "log": "flow_gameplay.log",
+      "marker": "GAMEPLAY_HEADLESS_OK",
+      "result": "PASS"
+    },
+    {
+      "log": "pursuit_flow_capture.log",
+      "marker": "PURSUIT_FLOW_CAPTURES_OK",
+      "result": "PASS"
+    }
+  ],
+  "two_mandatory_pages": true,
+  "last_opponent_persisted": true,
+  "ai_percentage_reference": 80,
+  "personal_replay_percentage_reference": 100,
+  "saved_replay_unchanged": true,
+  "visually_reviewed": [
+    "01_individual_distance.png",
+    "02_individual_opponent.png",
+    "03_individual_previous_ride.png",
+    "04_team_distance.png",
+    "05_team_opponent.png",
+    "06_team_previous_ride.png"
+  ],
+  "environment_notes": [
+    "Godot reports certificate-store and cached-import UID warnings in this environment.",
+    "Portrait teardown reports material-is-null renderer warnings; rendered cards were visually reviewed."
+  ]
+}

@@ -4,8 +4,8 @@ signal status_changed(message: String)
 signal activity_created(activity_id: String)
 const TOKEN_URL := "https://www.strava.com/oauth/token"
 const UPLOAD_URL := "https://www.strava.com/api/v3/uploads"
-const CONFIG_PATH := "res://strava_config.cfg"
-const TOKEN_STORE := "user://strava_tokens.cfg"
+const CONFIG_PATH := "res://config/strava_config.cfg"
+const TOKEN_STORE := "user://config/strava_tokens.cfg"
 var upload_path := ""
 var upload_name := "Velodrome 250 - Virtual Track Sprint"
 var config := ConfigFile.new()
@@ -37,11 +37,11 @@ func _config_value(name: String) -> String:
 	return str(config.get_value("strava", name, "")).strip_edges()
 
 func _ready() -> void:
-	config.load(CONFIG_PATH)
-	tokens.load(TOKEN_STORE)
+	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
+	preload("res://config_paths.gd").load_user(tokens, "strava_tokens.cfg")
 
 func begin_export(path: String, title: String = "Velodrome 250 - Virtual Track Sprint") -> void:
-	config.load(CONFIG_PATH)
+	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
 	if working:
 		_emit("Een upload is al bezig.")
 		return
@@ -51,7 +51,7 @@ func begin_export(path: String, title: String = "Velodrome 250 - Virtual Track S
 		_emit("FIT-bestand ontbreekt. Exporteer eerst de rit.")
 		return
 	if _config_value("client_id").is_empty() or _config_value("client_secret").is_empty():
-		_emit("Vul eerst client_id en client_secret in strava_config.cfg in.")
+		_emit("Vul eerst client_id en client_secret in config/strava_config.cfg in.")
 		return
 	var refresh: String = str(tokens.get_value("tokens", "refresh_token", ""))
 	if refresh.is_empty():
@@ -63,12 +63,12 @@ func begin_export(path: String, title: String = "Velodrome 250 - Virtual Track S
 
 # Explicit reauthorization: ignore previously saved read-only refresh tokens.
 func reconnect() -> void:
-	config.load(CONFIG_PATH)
+	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
 	if working:
 		_emit("Wacht tot de huidige Strava-aanvraag is afgerond.")
 		return
 	if _config_value("client_id").is_empty() or _config_value("client_secret").is_empty():
-		_emit("Vul eerst client_id en client_secret in strava_config.cfg in.")
+		_emit("Vul eerst client_id en client_secret in config/strava_config.cfg in.")
 		return
 	# No tokens are transmitted or shared here. A fresh OAuth approval replaces them.
 	_show_authorize()
@@ -81,7 +81,7 @@ func _show_authorize() -> void:
 	# Reload config so edits made while the game is running are picked up.
 	var client_id: String = _config_value("client_id")
 	if not client_id.is_valid_int() or int(client_id) <= 0:
-		_emit("Strava Client ID ontbreekt of is ongeldig. Vul het numerieke client_id in strava_config.cfg in.")
+		_emit("Strava Client ID ontbreekt of is ongeldig. Vul het numerieke client_id in config/strava_config.cfg in.")
 		return
 	var params := PackedStringArray([
 		"client_id=" + client_id.uri_encode(),
@@ -129,7 +129,7 @@ func _save_tokens(data: Dictionary) -> void:
 		tokens.set_value("tokens", "access_token", str(data["access_token"]))
 	if data.has("expires_at"):
 		tokens.set_value("tokens", "expires_at", int(data["expires_at"]))
-	tokens.save(TOKEN_STORE)
+	tokens.save(preload("res://config_paths.gd").user_path("strava_tokens.cfg"))
 
 func _form(data: Dictionary) -> PackedByteArray:
 	var parts := PackedStringArray()

@@ -9,7 +9,7 @@ const DRIVETRAIN := 0.975
 const MASS := 80.0
 const CRR := 0.004
 const G := 9.81
-const CP := [0.0, 270.86, 235.0, 250.0]
+const CP := [0.0, 265.0, 240.0, 250.0]
 const WMAX := [0.0, 24120.4, 30638.0, 32658.4]
 const PMAX := [0.0, 856.79, 1661.88, 1149.10]
 const MODE_DRAFT := 0
@@ -663,3 +663,15 @@ func _takeover_lane(i: int, group: Array, distances: Array[float], lanes: Array[
 			if separation < 1.45 and absf(float(candidate)-lanes[j]) < 0.85: cost += 100.0
 		if cost < best_cost: best_cost = cost; best = float(candidate)
 	return best
+
+func configure_riders(identities: Array[Dictionary], forms: Array[float]) -> void:
+	# Called after reset: no additional RNG draws, no changes to sampled character.
+	for i in range(1, mini(cp.size(), identities.size())):
+		var identity: Dictionary = identities[i]
+		if not identity.has("cp_factor"): continue
+		# Multiplication by 1.0 preserves the neutral reset values exactly.
+		cp[i] *= float(identity.cp_factor)
+		wmax[i] *= float(identity.w_prime_factor)
+		pmax[i] *= float(identity.max_power_factor)
+		pmax[i] = maxf(cp[i] + 1.0, pmax[i])
+		wprime[i] = wmax[i]

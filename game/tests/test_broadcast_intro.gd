@@ -11,12 +11,12 @@ func _initialize() -> void: call_deferred("run")
 func run() -> void:
 	# Exercise persisted settings without leaving changes in the player's files.
 	var saved_preferences: Dictionary = {}
-	for path in ["user://display_settings.cfg", "user://rider_profile.cfg", "user://player_appearance.cfg"]:
+	for path in ["user://config/display_settings.cfg", "user://config/rider_profile.cfg", "user://config/player_appearance.cfg"]:
 		saved_preferences[path] = FileAccess.get_file_as_bytes(path) if FileAccess.file_exists(path) else null
 	var defaults := ConfigFile.new()
-	defaults.load("user://display_settings.cfg")
+	defaults.load("user://config/display_settings.cfg")
 	if defaults.has_section_key("presentation", "always_show_intro"): defaults.erase_section_key("presentation", "always_show_intro")
-	defaults.save("user://display_settings.cfg")
+	defaults.save("user://config/display_settings.cfg")
 	for scenario in [[0, 3], [1, 3], [2, 3], [2, 4]]:
 		var choice: int = scenario[0]
 		var game := IntroGame.new()
@@ -25,6 +25,7 @@ func run() -> void:
 		await process_frame
 		game.setup_panel.select_mode(choice)
 		if choice == 2: game.setup_panel.team_options.teammates.select(scenario[1] - 3)
+		if game.setup_panel.pursuit_flow.visible: game.setup_panel.pursuit_flow.next_step()
 		game._confirm_start()
 		game._update_visuals(0.0)
 		var intro = game.broadcast_intro
@@ -48,7 +49,7 @@ func run() -> void:
 				check(pose.position.distance_to(hold.position) < 0.0001 and pose.target.distance_to(hold.target) < 0.0001, "Opponent framing moved during hold")
 			intro.elapsed = 9.0; intro.advance(0.0)
 			check(intro.opponent_card.visible and not intro.opponent_card.profile.name.is_empty(), "Profile missing")
-			check(intro.opponent_card.portraits.size() == (game.team_size if choice == 2 else 1), "Portrait count incorrect")
+			check(intro.opponent_card.portraits.size() == game.team_size if choice == 2 else is_instance_valid(intro.opponent_card.passport), "Actual opponent portrait/passport missing")
 			check(intro.opponent_card.profile.cp_w == (game.team_race.pacer.cp_w if choice == 2 else game.pursuit_pacer.cp_w), "Card differs from actual opponent capacity")
 			var replay := {"name": "Opgeslagen tegenstander", "time_s": 70.5, "distance_m": 1000}
 			if choice == 2: game.team_race.replay = replay
@@ -91,6 +92,7 @@ func run() -> void:
 		check(game.start_state == "RACING" and game.running, "Countdown failed to start racing")
 		game._reset()
 		game.setup_panel.select_mode((choice + 1) % 3)
+		if game.setup_panel.pursuit_flow.visible: game.setup_panel.pursuit_flow.next_step()
 		game._confirm_start()
 		check(not intro.active and not intro.overlay.visible and game.start_state == "WAIT_STOP", "Second event replayed intro")
 		game.trainer_seen = true; game.connected = true; game.trainer_ready = true

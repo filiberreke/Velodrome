@@ -1,6 +1,6 @@
 extends RefCounted
 ## Player-only choices. Independent from display settings and personal race configs.
-const SAVE_PATH := "user://player_appearance.cfg"
+const SAVE_PATH := "user://config/player_appearance.cfg"
 const KEYS := ["country_kit", "skinsuit_png", "helmet_png", "visor"]
 const COUNTRY_NAMES := {
 	"denmark": "Denemarken", "portugal": "Portugal", "italy": "Italië",
@@ -48,7 +48,8 @@ func load_preferences() -> void:
 	helmet_id = "configured"
 	visor_id = "configured"
 	var cfg := ConfigFile.new()
-	if cfg.load(settings_path) != OK: return
+	var error: Error = preload("res://config_paths.gd").load_user(cfg, "player_appearance.cfg") if settings_path == SAVE_PATH else cfg.load(settings_path)
+	if error != OK: return
 	suit_id = String(_find(suit_options, str(cfg.get_value("appearance", "suit", "configured"))).id)
 	helmet_id = String(_find(helmet_options, str(cfg.get_value("appearance", "helmet", "configured"))).id)
 	var saved := str(cfg.get_value("appearance", "visor", "configured"))
@@ -62,6 +63,7 @@ func save_choices(suit: String, helmet: String, visor: String) -> Error:
 	cfg.set_value("appearance", "suit", next_suit)
 	cfg.set_value("appearance", "helmet", next_helmet)
 	cfg.set_value("appearance", "visor", next_visor)
+	if settings_path == SAVE_PATH: preload("res://config_paths.gd").user_path("player_appearance.cfg")
 	var error := cfg.save(settings_path)
 	if error == OK:
 		suit_id = next_suit

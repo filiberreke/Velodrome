@@ -261,12 +261,12 @@ def build():
             skinsuit_png=f'res://assets/riders/national_kits/{country}/skinsuit.png',
             helmet_png=f'res://assets/riders/national_kits/{country}/helmet.png',visor='donker'))
     (DEST/'catalog.json').write_text(json.dumps(catalog,indent=2)+'\n',encoding='utf-8')
-    cfg=['; Optional country examples. Copy selected keys into your personal riders_config.cfg.',
+    cfg=['; Optional country examples. Copy selected keys into your personal config/riders_config.cfg.',
          '; These assignments are samples only; no personal configuration is distributed.','']
     for i,entry in enumerate(catalog,1):
         cfg += [f'; {entry["name"]} - {entry["sleeves"]} sleeves',f'[rider_{i:02d}]',
                 f'skinsuit_png="{entry["skinsuit_png"]}"',f'helmet_png="{entry["helmet_png"]}"','visor="donker"','']
-    (HERE.parent.parent/'riders_national_kits.example.cfg').write_text('\n'.join(cfg),encoding='utf-8')
+    (HERE.parent.parent/'config'/'riders_national_kits.example.cfg').write_text('\n'.join(cfg),encoding='utf-8')
     print('Generated 20 editable SVGs, catalog and example config')
 
 
