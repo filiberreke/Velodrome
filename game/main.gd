@@ -11,6 +11,12 @@ var scratch_rules = ScratchRules.new()
 const XScratchAI := preload("res://x_scratch_ai.gd")
 var x_ai = XScratchAI.new()
 const PointsAI := preload("res://points_ai.gd")
+const EliminationRules := preload("res://elimination_race_rules.gd")
+var elimination_rules = EliminationRules.new()
+var elimination_notice: Label
+var elimination_notice_until := -1.0
+var elimination_exit: Dictionary = {}
+const REAR_TRAILING_EDGE_M := 2.11
 const PointsRules := preload("res://points_race_rules.gd")
 var points_rules = PointsRules.new()
 const PelotonState := preload("res://peloton_state.gd")
@@ -175,6 +181,7 @@ func _configure_peloton() -> void:
 	finish_times.resize(count); finish_times.fill(-1.0)
 	scratch_rules.reset(count)
 	if race_mode == 1: points_rules.reset(count, race_laps)
+	elimination_exit.clear()
 	peloton_state.reset(); peloton_info.clear()
 	race_event_message = ""; race_event_until = -1.0
 	for badge in rider_energy_badges: badge.queue_free()
@@ -218,6 +225,10 @@ func _configure_peloton() -> void:
 		x_ai = PointsAI.new() if race_mode == 1 else XScratchAI.new()
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
+	if race_mode == 2:
+		var rear_positions: Array[float] = []
+		for distance in distances: rear_positions.append(distance - REAR_TRAILING_EDGE_M)
+		elimination_rules.reset(count, rear_positions)
 	for node in bikes: node.queue_free()
 	bikes.clear()
 	crowded_labels.clear()
@@ -939,7 +950,7 @@ func _draft_target(rider: int) -> float:
 	for other in range(rider_count):
 		if other == rider or finish_times[other] >= 0.0:
 			continue
-		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1] else distances[other] - distances[rider]
+		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2] else distances[other] - distances[rider]
 		if gap <= 0.35 or gap >= 9.0:
 			continue
 		var lateral: float = absf(lane_offsets[other] - lane_offsets[rider])
@@ -986,14 +997,14 @@ func _effective_draft_strength(rider: int) -> float:
 func _draft_drag_reduction(rider: int) -> float:
 	if race_mode in [4, 5]:
 		return 0.0
-	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION
+	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2] else DRAFT_MAX_DRAG_REDUCTION
 	return limit * _effective_draft_strength(rider)
 
 func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
 	if race_mode in [4, 5]:
 		draft_strength = 0.0
 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
-	if race_mode in [0, 1, 4, 5]:
+	if race_mode in [0, 1, 2, 4, 5]:
 		var v: float = maxf(current_speed, 0.0)
 		var aero_factor: float = maxf(1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION, 1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION * draft_strength)
 		var drag: float = 0.5 * 1.20 * 0.334 * v * v * aero_factor
@@ -1182,7 +1193,7 @@ func _move_lanes(dt: float) -> Array[float]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
-		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1] and x_ai.initialized else ai_lane_targets[i])
+		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2] and x_ai.initialized else ai_lane_targets[i])
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
 	return heights
@@ -1289,8 +1300,8 @@ func _advance_race(dt: float) -> void:
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
 			continue
-		var power: float = watts if i == 0 else (x_powers[i] if race_mode in [0, 1] else _ai_choose_power(i, dt))
-		if race_mode in [0, 1] and i > 0:
+		var power: float = watts if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
+		if race_mode in [0, 1, 2] and i > 0:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
 			ai_role[i] = x_ai.modes[i]
@@ -1818,6 +1829,16 @@ func _build_hud() -> void:
 	race_overlay = preload("res://race_hud.gd").new()
 	layer.add_child(race_overlay)
 	race_hud_items.append(race_overlay)
+	elimination_notice = Label.new()
+	elimination_notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	elimination_notice.position = Vector2(-420, 135)
+	elimination_notice.custom_minimum_size = Vector2(840, 90)
+	elimination_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	elimination_notice.add_theme_font_size_override("font_size", 38)
+	elimination_notice.add_theme_color_override("font_color", Color("ffe6c8"))
+	elimination_notice.visible = false
+	layer.add_child(elimination_notice)
+	race_hud_items.append(elimination_notice)
 	# Existing detailed readouts live in the scrollable developer layer.
 	hud = Label.new()
 	note = Label.new()
@@ -2089,7 +2110,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2, 3]:
+	if choice not in [0, 1, 2, 3, 7]:
 		return
 	var replay: Dictionary = {}
 	var options = null
@@ -2105,13 +2126,13 @@ func _confirm_start() -> void:
 				return
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 5 if choice == 2 else (4 if choice == 1 else (1 if choice == 3 else 0))
-	race_laps = int(options.distance_m() / LAP) if choice in [1, 2] else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))
+	race_mode = 5 if choice == 2 else (4 if choice == 1 else (2 if choice == 7 else (1 if choice == 3 else 0)))
+	race_laps = int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 7 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30)))
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
-	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))
+	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 7 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12)))
 	if choice in [1, 2]:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
@@ -3064,3 +3085,37 @@ func available_pursuit_riders() -> Array[Dictionary]:
 		entry["id"] = id
 		result.append(entry)
 	return result
+
+func _update_elimination_jury(dt: float) -> void:
+	var rear: Array[float] = []
+	for i in range(rider_count): rear.append(distances[i] - REAR_TRAILING_EDGE_M)
+	var event: Dictionary = elimination_rules.sample(rear, clock - dt, dt)
+	if event.is_empty(): return
+	var loser: int = int(event.get("eliminated_id", -1))
+	if loser < 0:
+		elimination_notice.text = "FOTOFINISH · JURYBESLISSING"
+		elimination_notice_until = clock + 4.0
+		return
+	finish_times[loser] = clock
+	coast_distances[loser] = distances[loser]
+	coast_speeds[loser] = speeds[loser]
+	elimination_exit[loser] = true
+	elimination_notice.text = "AFGEVALLEN · %s" % _rider_name(loser).to_upper()
+	elimination_notice_until = clock + 4.0
+	_take_elimination_photo(loser, float(event.get("line_m", 0.0)))
+	if loser == 0 and not finished:
+		finished = true
+		finish_elapsed = 0.0
+		_save_recording("elimination")
+
+func _take_elimination_photo(rider: int, line_m: float) -> void:
+	if finish_photo_viewport == null: return
+	var spot: Vector3 = _at(line_m - 3.4, FINISH_PHOTO_INFIELD_OFFSET)
+	spot.y = 1.5
+	finish_photo_camera.global_position = spot
+	finish_photo_camera.look_at(_at(line_m + 0.6, lane_offsets[rider]) + Vector3.UP * 0.65, Vector3.UP)
+	finish_photo_caption.text = "AFVALLING · ACHTERWIEL · %s" % _rider_name(rider).to_upper()
+	finish_photo_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	if not finish_photo_capture_pending:
+		finish_photo_capture_pending = true
+		RenderingServer.frame_post_draw.connect(_grab_finish_photo, CONNECT_ONE_SHOT)
