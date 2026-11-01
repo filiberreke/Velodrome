@@ -3167,23 +3167,31 @@ func _take_elimination_photo(rider: int, line_m: float) -> void:
 		RenderingServer.frame_post_draw.connect(_grab_finish_photo, CONNECT_ONE_SHOT)
 
 func _elimination_box_target(rider: int) -> Vector3:
-	# The six physical cabins belong to countries, not riders.
+	# The six cabins belong to countries, not individual riders.
+	# Without a matching cabin, ride PAST the complete box row and stop on
+	# the grey access zone. Never substitute an unrelated country's cabin.
 	var row: Node = arena.find_child("Rennersboxen", true, false) if arena != null else null
-	var box_index: int = rider % 6
+	var roster: Dictionary = RaceCountries.roster(self)
+	var countries: Array = roster.get("start_list", [])
+	var country: String = String(countries[rider]) if rider < countries.size() else ""
+	var box_index := -1
 	if row != null:
-		var roster: Dictionary = RaceCountries.roster(self)
-		var countries: Array = roster.get("start_list", [])
-		var country: String = String(countries[rider]) if rider < countries.size() else ""
 		var assigned: Array = row.get("assigned_countries")
 		if assigned.has(country):
 			box_index = assigned.find(country)
-	# A waiting position in the access corridor in front of the cabin openings.
-	var duplicate: int = 0
+	var slot := 0
 	for key in elimination_exit:
-		var target: Vector3 = elimination_exit[key].get("target", Vector3.ZERO)
-		if absf(target.z - (-25.0 + 10.0 * float(box_index))) < 1.5:
-			duplicate += 1
-	return Vector3(-14.1 - 0.45 * float(duplicate % 2), 0.15, -25.0 + 10.0 * float(box_index) + 0.85 * float(duplicate / 2))
+		var other_target: Vector3 = elimination_exit[key].get("target", Vector3.ZERO)
+		if box_index < 0:
+			# The box row spans z=-25..25. All unassigned riders stop BEYOND
+			# its northern end, with independent spaces on the grey zone.
+			if other_target.z >= 29.0:
+				slot += 1
+		elif absf(other_target.z - (-25.0 + 10.0 * float(box_index))) < 3.0:
+			slot += 1
+	if box_index < 0:
+		return Vector3(-14.1, 0.15, 30.0 + 2.0 * float(slot))
+	return Vector3(-14.1 - 0.45 * float(slot % 2), 0.15, -25.0 + 10.0 * float(box_index) + 0.85 * float(slot / 2))
 
 func _update_eliminated_exit(rider: int, dt: float) -> void:
 	var route: Dictionary = elimination_exit[rider]
