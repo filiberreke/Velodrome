@@ -47,7 +47,7 @@ Bij een desktopinstallatie van Godot kan de laatste stap ook door `game/project.
 - `REAR_TRAILING_EDGE_M` is berekend uit de Blender-wielgeometrie, maar moet nog worden vergeleken met de geïmporteerde mesh. De juryinterpolatie zelf gebruikt dit punt.
 - De gewone SubViewport-camera levert een visuele finishfoto, geen professionele lijnscancamera.
 - Bij exact gelijke geïnterpoleerde tijden beslist een reproduceerbare tie-breaker. In een latere versie is een handmatige fotofinishjury mogelijk.
-- Er zijn zes fysieke landenboxen. Wanneer de landenlijst van maximaal zestien deelnemers meer dan zes landen bevat, kan niet iedereen een eigen fysieke landenbox krijgen; ontbrekende landen gebruiken voorlopig een toegewezen vrije box.
+- Er zijn zes fysieke landenboxen. Wanneer de landenlijst van maximaal zestien deelnemers meer dan zes landen bevat, kan niet iedereen een eigen fysieke landenbox krijgen; rennners zonder eigen landenbox rijden door langs de grijze toegangszone en stoppen net voorbij de volledige boxenrij, op afzonderlijke plaatsen.
 - De fotocamera, exitroute, AI en menu zijn nog NIET in een echte Godot-runtime getest. Vervang eventuele Godot-parsefouten niet met stilzwijgende aanpassingen in main: test eerst deze branch en meld de foutregel.
 
 ## Architectuur
