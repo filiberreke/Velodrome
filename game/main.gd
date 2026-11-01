@@ -15,6 +15,7 @@ const EliminationRules := preload("res://elimination_race_rules.gd")
 const EliminationAI := preload("res://elimination_ai.gd")
 const EliminationTraffic := preload("res://elimination_traffic.gd")
 var elimination_rules = EliminationRules.new()
+var elimination_assist = preload("res://elimination_assist.gd").new()
 var elimination_notice: Label
 var elimination_notice_until := -1.0
 var elimination_exit: Dictionary = {}
@@ -214,6 +215,11 @@ func _configure_peloton() -> void:
 		# Use the same real position for tactics, physics and rendering.
 		if race_mode in [0, 1, 2]:
 			distances[i] = -2.4 * float(i / LANES.size())
+		if race_mode == 2:
+			# A compact two-abreast grid keeps the standing start on the
+			# lower banking; the highest lane can stall at launch power.
+			lane = LANES[0] + float(i % 2)
+			distances[i] = -3.0 * float(i / 2)
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
@@ -716,6 +722,7 @@ func _steer_player(direction: int) -> void:
 		if direction > 0:
 			team_race.request_player_exchange()
 		return
+	_manual_elimination_steering()
 	player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
 func _read_bridge() -> void:
@@ -742,6 +749,7 @@ func _process_steering(value: Variant) -> void:
 	# Consume presses during menus/countdown too: holding through GO must not steer.
 	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
 		return
+	_manual_elimination_steering()
 	if race_mode == 5:
 		if direction > 0 and not same_direction:
 			team_race.request_player_exchange()
@@ -832,6 +840,7 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _reset() -> void:
+	_clear_elimination_feedback()
 	points_notifications.reset()
 	if race_overlay != null: race_overlay.popup.clear()
 	if broadcast_intro != null: broadcast_intro.cancel()
@@ -1197,6 +1206,12 @@ func _move_lanes(dt: float) -> Array[float]:
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
 		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2] and x_ai.initialized else ai_lane_targets[i])
+		if race_mode == 2 and i == 0 and running and start_state == "RACING":
+			var automatic: float = elimination_assist.lane(clock, distances, speeds, lane_offsets, finish_times, x_ai.lane_targets, LANES, LANE_CHANGE_MPS)
+			if automatic >= 0.0:
+				target = automatic
+				if elimination_assist.target >= 0.0: player_lane = _nearest_player_lane(elimination_assist.target)
+			x_ai.lane_targets[0] = target
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
 	return heights
@@ -1375,12 +1390,17 @@ func _advance_race(dt: float) -> void:
 			coast_distances[i] = _race_length()
 			coast_speeds[i] = speeds[i]
 	if race_mode == 2:
+		var free_player_step: float = distances[0] - previous_distances[0]
 		EliminationTraffic.resolve(previous_distances, distances, speeds, lane_offsets, finish_times, dt)
+		if finish_times[0] < 0.0:
+			elimination_assist.observe(clock, free_player_step, distances[0] - previous_distances[0], dt)
+			# Carry collision-limited momentum into the next physical step.
+			baseline_speed = speeds[0]
 		for i in range(rider_count):
 			if finish_times[i] >= 0.0: continue
 			var travelled: float = maxf(0.0, distances[i] - previous_distances[i])
 			_register_lap_crossings(i, previous_distances[i], travelled, dt)
-			if distances[i] >= _race_length():
+			if distances[i] >= _race_length() and elimination_rules.remaining_count() <= 2:
 				var fraction: float = clampf((_race_length() - previous_distances[i]) / maxf(travelled, 0.00001), 0.0, 1.0)
 				finish_times[i] = clock - dt + fraction * dt
 				coast_distances[i] = _race_length()
@@ -2134,6 +2154,7 @@ func _set_menu_visible(is_visible: bool) -> void:
 		return
 	setup_panel.visible = is_visible
 	if is_visible:
+		_clear_elimination_feedback()
 		setup_panel.call("show_choices")
 	_set_race_hud_visible(not is_visible)
 	if result_panel != null:
@@ -2188,6 +2209,9 @@ func _confirm_start() -> void:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
 		else: pursuit_opponent_country = String(selected_ai.get("country", "netherlands"))
+	var use_elimination_assist: bool = choice == 5 and setup_panel.elimination_assist_toggle.button_pressed
+	_clear_elimination_feedback()
+	elimination_assist.enabled = use_elimination_assist
 	_configure_peloton()
 	if choice in [1, 2]:
 		_prepare_pursuit(replay, options.configured_cp())
@@ -2581,6 +2605,9 @@ func _update_compact_hud(order: Array[int]) -> void:
 		notice = "Finish · %.2f s" % finish_times[0]
 	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
+	if race_mode == 2 and running and not finished and finish_times[0] < 0.0 and start_state == "RACING":
+		var blocking_notice: String = elimination_assist.notice(clock)
+		if not blocking_notice.is_empty(): notice = blocking_notice
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
 	if race_mode == 4:
@@ -2608,7 +2635,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else _hud_leader_gap(order), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3254,3 +3281,35 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 				route["stage"] = 3
 				coast_speeds[rider] = 0.0
 	elimination_exit[rider] = route
+
+func _clear_elimination_feedback() -> void:
+	elimination_notice_until = -1.0
+	if elimination_notice != null:
+		elimination_notice.text = ""
+		elimination_notice.hide()
+	elimination_assist.reset()
+	if setup_panel != null and setup_panel.elimination_assist_toggle != null:
+		setup_panel.elimination_assist_toggle.button_pressed = false
+
+func _nearest_player_lane(offset: float) -> int:
+	var nearest := 0
+	for i in range(LANES.size()):
+		if absf(LANES[i] - offset) < absf(LANES[nearest] - offset): nearest = i
+	return nearest
+
+func _manual_elimination_steering() -> void:
+	if race_mode != 2: return
+	if elimination_assist.target >= 0.0:
+		player_lane = _nearest_player_lane(lane_offsets[0])
+	elimination_assist.manual(clock)
+
+func _hud_elimination_gap() -> String:
+	if finish_times[0] >= 0.0: return "Afgevallen" if elimination_rules.eliminated.has(0) else "Finish"
+	var opponents: Array[int] = []
+	for i in range(1, rider_count):
+		if finish_times[i] < 0.0: opponents.append(i)
+	if opponents.is_empty(): return "—"
+	opponents.sort_custom(func(a: int, b: int) -> bool: return distances[a] < distances[b])
+	# When the player is last, show the negative gap to the next active rider.
+	# Eliminated/coasting riders never become the reference.
+	return "%+.1f m" % (distances[0] - distances[opponents[0]])

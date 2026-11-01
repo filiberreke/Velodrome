@@ -54,5 +54,14 @@ func _initialize() -> void:
         for i in range(16): upcoming[i] += 7.0
         Traffic.resolve(prior, upcoming, speeds, lanes, done, 0.5)
         for v in speeds: assert(v > 10.0)
-    print("Elimination traffic 4 tests passed")
+    # 5: outer-lane speed must stay in physical m/s, not reference-track m/s.
+    previous = [102.2, 100.0]
+    upcoming = [102.9, 100.8]
+    speeds = [10.5, 12.0]
+    lanes = [7.18, 7.18]
+    done = [-1.0, -1.0]
+    Traffic.resolve(previous, upcoming, speeds, lanes, done, 0.1)
+    assert(is_equal_approx(upcoming[1], 100.7))
+    assert(is_equal_approx(speeds[1], 10.5))
+    print("Elimination traffic 5 tests passed")
     quit()

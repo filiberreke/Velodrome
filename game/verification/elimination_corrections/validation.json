@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-01",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "base_main": "7d195ea3f1fcd080cb424dc17670270152b274ba",
+  "original_elimination_branch_commit": "75f880b9f3b64085216902f88129ddb5201914c2",
+  "tests": [
+    {
+      "script": "res://tests/test_elimination_assist.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_ASSIST failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_corrections.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_CORRECTIONS failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_gameplay.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_GAMEPLAY failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_menu_fix.gd",
+      "result": "PASS",
+      "marker": "ELIMINATION_MENU_FIX failures=0"
+    },
+    {
+      "script": "res://tests/test_elimination_rules.gd",
+      "result": "PASS",
+      "marker": "Elimination rules basic tests passed"
+    },
+    {
+      "script": "res://tests/test_elimination_traffic.gd",
+      "result": "PASS",
+      "marker": "Elimination traffic 5 tests passed"
+    },
+    {
+      "script": "res://tests/test_pursuit_flow.gd",
+      "result": "PASS",
+      "marker": "PURSUIT_FLOW failures=0"
+    },
+    {
+      "script": "res://tests/test_rider_profiles.gd",
+      "result": "PASS",
+      "marker": "RIDER_PROFILES failures=0"
+    },
+    {
+      "script": "res://tests/test_menu.gd",
+      "result": "PASS",
+      "marker": "MENU_FLOW_OK"
+    },
+    {
+      "script": "res://tests/test_records.gd",
+      "result": "PASS",
+      "marker": "PERSONAL_RECORDS_OK"
+    },
+    {
+      "script": "res://tests/test_pursuit.gd",
+      "result": "PASS",
+      "marker": "PURSUIT_OK"
+    },
+    {
+      "script": "res://tests/test_team_pursuit.gd",
+      "result": "PASS",
+      "marker": "TEAM_PURSUIT_OK"
+    },
+    {
+      "script": "res://tests/test_broadcast_intro.gd",
+      "result": "PASS",
+      "marker": "BROADCAST_INTRO_OK"
+    },
+    {
+      "script": "res://tests/test_gameplay_headless.gd",
+      "result": "PASS",
+      "marker": "GAMEPLAY_HEADLESS_OK"
+    },
+    {
+      "script": "res://tests/test_points_race.gd",
+      "result": "PASS",
+      "marker": "POINTS_RACE_OK"
+    },
+    {
+      "script": "res://tests/test_points_notifications.gd",
+      "result": "PASS",
+      "marker": "POINTS_NOTIFICATIONS_OK"
+    }
+  ],
+  "elimination_full_races": [
+    {
+      "riders": 4,
+      "duration_s": 151.5,
+      "mean_cruising_ai_span_m": 10.8
+    },
+    {
+      "riders": 12,
+      "duration_s": 570.8,
+      "mean_cruising_ai_span_m": 32.4
+    },
+    {
+      "riders": 16,
+      "duration_s": 739.0,
+      "mean_cruising_ai_span_m": 58.6
+    }
+  ],
+  "elimination_simulation_dt_s": 0.1,
+  "visual_check": "Rendered and inspected 1920x1080 elimination settings with default-off toggle; Start button remains visible.",
+  "limitations": [
+    "Ride steering tested through protocol handlers, not physical Zwift Ride/trainer hardware.",
+    "Full elimination simulations use real main.gd physics and jury, with rendering, recording, rider mesh spawn and elimination photos suppressed. They do not validate the visual exit routes or photofinish.",
+    "Bunch metric samples the settled first cruising phase (clock >30 s, leader <300 m), not every lap, difficulty or rider configuration.",
+    "Existing engine warnings: local root certificate store, imported rider texture UID fallbacks; pursuit flow and intro tests also report null material during teardown. No script errors in successful test runs.",
+    "An initial points notification test failed because its fixed UDP port was unavailable. The test fixture now uses an ephemeral port; rerun passed.",
+    "Existing imported asset cache reused. Headless editor reports no configured Blender path; fresh source .blend reimport not validated."
+  ]
+}

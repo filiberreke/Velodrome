@@ -45,6 +45,7 @@ var status_label: Label
 var start_button: Button
 var back_button: Button
 var count_input: SpinBox
+var elimination_assist_toggle: CheckButton
 var elimination_count_picker: OptionButton
 var laps_input: SpinBox
 var demo_power_input: SpinBox
@@ -209,6 +210,12 @@ func _build_settings(layout: VBoxContainer) -> void:
 	elimination_count_picker.select(1)
 	race_settings.add_child(elimination_count_picker)
 	elimination_count_picker.visible = false
+	elimination_assist_toggle = CheckButton.new()
+	elimination_assist_toggle.text = "Inhaalhulp · automatisch veilig uitwijken"
+	elimination_assist_toggle.tooltip_text = "Standaard UIT. Bij blokkering verschijnt een waarschuwing. AAN: veilig rijlijn wisselen; zelf sturen heeft voorrang en pauzeert de hulp 2 seconden."
+	elimination_assist_toggle.button_pressed = false
+	elimination_assist_toggle.visible = false
+	race_settings.add_child(elimination_assist_toggle)
 	laps_input = _number(race_settings, "Ronden · 250 meter per ronde", 1, 30, 10)
 	difficulty_label = label("AI-sterkte · 80%", 22)
 	race_settings.add_child(difficulty_label)
@@ -309,6 +316,7 @@ func select_mode(index: int) -> void:
 	race_settings.visible = selected in [0, 3, 5]
 	count_input.visible = selected != 5
 	elimination_count_picker.visible = selected == 5
+	elimination_assist_toggle.visible = selected == 5
 	laps_input.visible = selected != 5
 	if selected in [0, 3]:
 		count_input.max_value = 16 if selected == 3 else 12

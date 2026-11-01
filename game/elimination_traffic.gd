@@ -33,7 +33,12 @@ static func resolve(previous: Array[float], upcoming: Array[float], speeds: Arra
         if max_progress < upcoming[follower]:
             # Never move a rider backwards. A pre-existing overlap can only
             # be resolved by waiting for the leader to clear it.
+            var requested_step: float = upcoming[follower] - previous[follower]
             upcoming[follower] = maxf(previous[follower], max_progress)
-            speeds[follower] = maxf(0.0, (upcoming[follower] - previous[follower]) / dt)
+            # Progress is measured on the common 250 m reference, whereas
+            # speed is metres along the actual banked lane. Preserve that
+            # metric: assigning reference m/s repeatedly stalls outer riders.
+            var fraction: float = clampf((upcoming[follower] - previous[follower]) / maxf(requested_step, 0.000001), 0.0, 1.0)
+            speeds[follower] *= fraction
             clamped += 1
     return clamped
