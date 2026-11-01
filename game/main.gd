@@ -17,7 +17,7 @@ var elimination_rules = EliminationRules.new()
 var elimination_notice: Label
 var elimination_notice_until := -1.0
 var elimination_exit: Dictionary = {}
-const REAR_TRAILING_EDGE_M := 1.674 # Frontmost tyre to trailing edge of rear tyre: 0.98 m wheelbase + 2 * 0.347 m tyre radius (verify on imported mesh).
+const REAR_TRAILING_EDGE_M := 1.674 # Front-tip race reference +1.110; rear hub (0.79-0.98), tyre radius 0.374 => rear edge -0.564. Check against imported bike.
 const PointsRules := preload("res://points_race_rules.gd")
 var points_rules = PointsRules.new()
 const PelotonState := preload("res://peloton_state.gd")
@@ -1233,6 +1233,16 @@ func _race_better(a: int, b: int) -> bool:
 		return team_race.better(a / team_size, b / team_size) if a / team_size != b / team_size else distances[a] > distances[b]
 	if race_mode == 0:
 		return scratch_rules.better(a, b, finish_times, distances)
+	if race_mode == 2:
+		var a_out: int = elimination_rules.eliminated.find(a)
+		var b_out: int = elimination_rules.eliminated.find(b)
+		if a_out >= 0 and b_out >= 0: return a_out > b_out
+		if a_out >= 0: return false
+		if b_out >= 0: return true
+		if finish_times[a] >= 0.0 and finish_times[b] >= 0.0: return finish_times[a] < finish_times[b]
+		if finish_times[a] >= 0.0: return true
+		if finish_times[b] >= 0.0: return false
+		return distances[a] > distances[b]
 	if finish_times[a] >= 0.0 and finish_times[b] >= 0.0:
 		return finish_times[a] < finish_times[b]
 	if finish_times[a] >= 0.0:
@@ -1242,9 +1252,10 @@ func _race_better(a: int, b: int) -> bool:
 	return distances[a] > distances[b]
 
 func _winner_index() -> int:
+	if race_mode == 2 and elimination_rules.remaining_count() > 2: return -1
 	var best := -1
 	for i in range(finish_times.size()):
-		if finish_times[i] >= 0.0 and (best < 0 or _race_better(i, best)):
+		if finish_times[i] >= 0.0 and (race_mode != 2 or not elimination_rules.eliminated.has(i)) and (best < 0 or _race_better(i, best)):
 			best = i
 	return best
 
@@ -1285,7 +1296,7 @@ func _advance_race(dt: float) -> void:
 	if trainer_seen:
 		boost_left = 0.0
 		recovery_left = 0.0
-	var boost_active: bool = race_mode != 1 and not trainer_seen and boost_left > 0.0
+	var boost_active: bool = race_mode not in [1, 2] and not trainer_seen and boost_left > 0.0
 	var previous_distances: Array[float] = distances.duplicate()
 	var prior_lanes: Array[float] = lane_offsets.duplicate()
 	var lateral_height_changes: Array[float] = _move_lanes(dt)
@@ -1528,7 +1539,7 @@ func _update_visuals(dt: float) -> void:
 	for i in range(rider_count):
 		var lateral: float = lane_offsets[i]
 		var display_distance: float = coast_distances[i] if finish_times[i] >= 0.0 else distances[i]
-		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 1, 4, 5] else 0.0
+		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 1, 2, 4, 5] else 0.0
 		display_distance = _rider_distance(i, display_distance)
 		var position: Vector3 = _at(display_distance - FRONT_WHEEL_TIP_M - starting_grid, lateral)
 		# Imported Blender wheel mesh reaches local ground at y=0.  On the
@@ -3147,9 +3158,9 @@ func _elimination_box_target(rider: int) -> Vector3:
 	var row: Node = arena.find_child("Rennersboxen", true, false) if arena != null else null
 	var box_index: int = rider % 6
 	if row != null:
-		var country: String = String(rider_kits[rider].get("country", ""))
-		if country.is_empty():
-			country = String(RaceCountries.from_kit(rider_kits[rider]))
+		var roster: Dictionary = RaceCountries.roster(self)
+		var countries: Array = roster.get("start_list", [])
+		var country: String = String(countries[rider]) if rider < countries.size() else ""
 		var assigned: Array = row.get("assigned_countries")
 		if assigned.has(country):
 			box_index = assigned.find(country)
@@ -3175,7 +3186,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		# Keep rolling until the gate halfway along the opposite straight.
 		coast_speeds[rider] = move_toward(coast_speeds[rider], 6.5, 0.55 * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
-		if travelled >= 88.0:
+		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - 90.8) <= 0.4:
 			route["stage"] = 1
 			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
 			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
