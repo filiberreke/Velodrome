@@ -13,6 +13,7 @@ var x_ai = XScratchAI.new()
 const PointsAI := preload("res://points_ai.gd")
 const EliminationRules := preload("res://elimination_race_rules.gd")
 const EliminationAI := preload("res://elimination_ai.gd")
+const EliminationTraffic := preload("res://elimination_traffic.gd")
 var elimination_rules = EliminationRules.new()
 var elimination_notice: Label
 var elimination_notice_until := -1.0
@@ -1353,7 +1354,8 @@ func _advance_race(dt: float) -> void:
 		if i != 0:
 			ai_stall_time[i] = ai_stall_time[i] + dt if speeds[i] < 0.6 and power >= 80.0 else 0.0
 		var actual_step: float = speeds[i] * dt / metric
-		_register_lap_crossings(i, previous, actual_step, dt)
+		if race_mode != 2:
+			_register_lap_crossings(i, previous, actual_step, dt)
 		distances[i] = previous + actual_step if race_mode == 1 else minf(_race_length(), previous + actual_step)
 		if _profile(i) == 1:
 			tt_effort_remaining = clampf(1.0 - distances[i] / _race_length(), 0.0, 1.0)
@@ -1365,7 +1367,7 @@ func _advance_race(dt: float) -> void:
 			player_speed_peak_kmh = maxf(player_speed_peak_kmh, speeds[i] * 3.6)
 			if player_samples.is_empty() or absf(player_samples[-1].x - distances[i]) >= 2.5 or distances[i] >= _race_length():
 				player_samples.append(Vector2(distances[i], power))
-		if race_mode != 1 and distances[i] >= _race_length():
+		if race_mode not in [1, 2] and distances[i] >= _race_length():
 			new_finisher = true
 			if i == 1:
 				tt_effort_remaining = 0.0
@@ -1374,6 +1376,17 @@ func _advance_race(dt: float) -> void:
 			coast_distances[i] = _race_length()
 			coast_speeds[i] = speeds[i]
 	if race_mode == 2:
+		EliminationTraffic.resolve(previous_distances, distances, speeds, lane_offsets, finish_times, dt)
+		for i in range(rider_count):
+			if finish_times[i] >= 0.0: continue
+			var travelled: float = maxf(0.0, distances[i] - previous_distances[i])
+			_register_lap_crossings(i, previous_distances[i], travelled, dt)
+			if distances[i] >= _race_length():
+				var fraction: float = clampf((_race_length() - previous_distances[i]) / maxf(travelled, 0.00001), 0.0, 1.0)
+				finish_times[i] = clock - dt + fraction * dt
+				coast_distances[i] = _race_length()
+				coast_speeds[i] = speeds[i]
+				new_finisher = true
 		_update_elimination_jury(dt)
 	if race_mode == 1:
 		var old_finishes: Array[float] = finish_times.duplicate()
