@@ -221,7 +221,7 @@ func _configure_peloton() -> void:
 		var type_id := _profile(i)
 		ai_energy_j[i] = 0.0 if i == 0 else AI_CAPACITY_J[type_id] * _form(i)
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
-	if race_mode in [0, 1]:
+	if race_mode in [0, 1, 2]:
 		x_ai = PointsAI.new() if race_mode == 1 else XScratchAI.new()
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
@@ -594,6 +594,8 @@ func _physics_process(delta: float) -> void:
 	_update_boost_dog(delta)
 	_update_countdown_display()
 	_update_hud()
+	if elimination_notice != null:
+		elimination_notice.visible = race_mode == 2 and clock < elimination_notice_until and start_state == "RACING"
 
 func _update_countdown_display() -> void:
 	# Huge floating numbers above the start line: 3 - 2 - 1 - GO!, always filling the view.
@@ -917,7 +919,7 @@ func _draft_target(rider: int) -> float:
 		draft_leaders[rider] = -1
 		return 0.0
 	# Non-scratch modes retain the exact prior drafting model.
-	if race_mode not in [0, 1]:
+	if race_mode not in [0, 1, 2]:
 		if speeds[rider] < DRAFT_MIN_SPEED_MPS:
 			return 0.0
 		var old_best := 0.0
@@ -960,7 +962,7 @@ func _draft_target(rider: int) -> float:
 		if real_gap < 1.0 or real_gap > 9.0:
 			continue
 		var drag_benefit: float = 0.62 * maxf(0.0, 1.0 - gap / 10.0) * maxf(0.18, 1.0 - lateral / 1.25)
-		if race_mode in [0, 1]:
+		if race_mode in [0, 1, 2]:
 			var more_wheels := 0
 			for third in range(rider_count):
 				if third == rider or finish_times[third] >= 0.0:
@@ -989,7 +991,7 @@ func _effective_draft_strength(rider: int) -> float:
 	if race_mode in [4, 5]:
 		return 0.0
 	var strength: float = clampf(draft_strengths[rider], 0.0, 1.0)
-	if race_mode not in [0, 1]:
+	if race_mode not in [0, 1, 2]:
 		return strength
 	var speed_ratio: float = clampf((speeds[rider] - SCRATCH_DRAFT_RAMP_START_MPS) / (SCRATCH_DRAFT_RAMP_END_MPS - SCRATCH_DRAFT_RAMP_START_MPS), 0.0, 1.0)
 	return strength * lerpf(SCRATCH_DRAFT_LOW_SPEED_SCALE, 1.0, speed_ratio)
@@ -1189,7 +1191,7 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode == 4:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
-	if race_mode not in [0, 1]:
+	if race_mode not in [0, 1, 2]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
@@ -1292,7 +1294,7 @@ func _advance_race(dt: float) -> void:
 		effective_drafts.append(_effective_draft_strength(rider))
 	var new_lap_event: int = points_rules.events.size() if race_mode == 1 else scratch_rules.events.size()
 	var x_powers: Array[float] = []
-	if race_mode in [0, 1]:
+	if race_mode in [0, 1, 2]:
 		x_ai.human_power_w = watts
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
@@ -1356,6 +1358,8 @@ func _advance_race(dt: float) -> void:
 			finish_times[i] = clock - dt + dt * fraction
 			coast_distances[i] = _race_length()
 			coast_speeds[i] = speeds[i]
+	if race_mode == 2:
+		_update_elimination_jury(dt)
 	if race_mode == 1:
 		var old_finishes: Array[float] = finish_times.duplicate()
 		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
