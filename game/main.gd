@@ -1483,8 +1483,12 @@ func _visual_lean(i: int) -> float:
 # Only appearance continues after crossing; measured race distances and finish times stay locked.
 func _update_coasting(dt: float) -> void:
 	for i in range(rider_count):
-		if finish_times[i] < 0.0 or coast_speeds[i] <= 0.0:
+		if finish_times[i] < 0.0:
 			continue
+		if race_mode == 2 and elimination_exit.has(i):
+			_update_eliminated_exit(i, dt)
+			continue
+		if coast_speeds[i] <= 0.0: continue
 		var old_speed: float = coast_speeds[i]
 		coast_speeds[i] = maxf(0.0, old_speed - COAST_BRAKE_MPS2 * dt)
 		coast_distances[i] += (old_speed + coast_speeds[i]) * 0.5 * dt / _path_metric(_rider_distance(i, coast_distances[i]), lane_offsets[i])
@@ -1536,6 +1540,12 @@ func _update_visuals(dt: float) -> void:
 		var lean_target: float = _visual_lean(i)
 		visual_rolls[i] = lerp_angle(visual_rolls[i], lean_target, clampf(dt * (12.0 if lean_target == 0.0 else 5.0), 0.0, 1.0))
 		bikes[i].rotation.z = visual_rolls[i]
+		if race_mode == 2 and elimination_exit.has(i) and int(elimination_exit[i]["stage"]) >= 1:
+			var exit_state: Dictionary = elimination_exit[i]
+			bikes[i].position = Vector3(exit_state["position"]) + Vector3.UP * 0.09
+			var head: Vector3 = Vector3(exit_state["heading"])
+			bikes[i].rotation.y = atan2(head.x, head.z)
+			bikes[i].rotation.z = 0.0
 		var visual: Node = bikes[i].get_child(0)
 		var cadence_visual: float = cadence if i == 0 and connected and cadence >= 0.0 else clampf(speeds[i] * 6.0, 0.0, 120.0)
 		if race_mode == 5 and i == 0 and team_race.ours.player_is_out() and watts <= 0.0:
@@ -1543,7 +1553,7 @@ func _update_visuals(dt: float) -> void:
 		if finish_times[i] >= 0.0:
 			# Continue the normal cycling loop at progressively lower cadence while coasting.
 			# beta.16.16: the race winner sits up and raises both arms.
-			visual.call("set_victory", i == _winner_index())
+			visual.call("set_victory", race_mode != 2 and i == _winner_index())
 			visual.call("pedal", dt, clampf(coast_speeds[i] * 5.5, 0.0, 110.0), 120.0)
 		else:
 			visual.call("set_victory", false)
@@ -3111,7 +3121,7 @@ func _update_elimination_jury(dt: float) -> void:
 	finish_times[loser] = clock
 	coast_distances[loser] = distances[loser]
 	coast_speeds[loser] = speeds[loser]
-	elimination_exit[loser] = true
+	elimination_exit[loser] = {"stage": 0, "start_d": coast_distances[loser], "position": Vector3.ZERO, "target": _elimination_box_target(loser), "heading": Vector3.FORWARD}
 	elimination_notice.text = "AFGEVALLEN · %s" % _rider_name(loser).to_upper()
 	elimination_notice_until = clock + 4.0
 	_take_elimination_photo(loser, float(event.get("line_m", 0.0)))
@@ -3131,3 +3141,61 @@ func _take_elimination_photo(rider: int, line_m: float) -> void:
 	if not finish_photo_capture_pending:
 		finish_photo_capture_pending = true
 		RenderingServer.frame_post_draw.connect(_grab_finish_photo, CONNECT_ONE_SHOT)
+
+func _elimination_box_target(rider: int) -> Vector3:
+	# The six physical cabins belong to countries, not riders.
+	var row: Node = arena.find_child("Rennersboxen", true, false) if arena != null else null
+	var box_index: int = rider % 6
+	if row != null:
+		var country: String = String(rider_kits[rider].get("country", ""))
+		if country.is_empty():
+			country = String(RaceCountries.from_kit(rider_kits[rider]))
+		var assigned: Array = row.get("assigned_countries")
+		if assigned.has(country):
+			box_index = assigned.find(country)
+	# A waiting position in the access corridor in front of the cabin openings.
+	var duplicate: int = 0
+	for key in elimination_exit:
+		var target: Vector3 = elimination_exit[key].get("target", Vector3.ZERO)
+		if absf(target.z - (-25.0 + 10.0 * float(box_index))) < 1.5:
+			duplicate += 1
+	return Vector3(-14.1 - 0.45 * float(duplicate % 2), 0.15, -25.0 + 10.0 * float(box_index) + 0.85 * float(duplicate / 2))
+
+func _update_eliminated_exit(rider: int, dt: float) -> void:
+	var route: Dictionary = elimination_exit[rider]
+	var stage: int = int(route["stage"])
+	if stage == 3:
+		coast_speeds[rider] = 0.0
+		return
+	if stage == 0:
+		var travelled: float = coast_distances[rider] - float(route["start_d"])
+		# Stay clear of the still-racing bunch before descending toward the apron.
+		if travelled > 25.0:
+			lane_offsets[rider] = move_toward(lane_offsets[rider], LANES[0], LANE_CHANGE_MPS * dt)
+		# Keep rolling until the gate halfway along the opposite straight.
+		coast_speeds[rider] = move_toward(coast_speeds[rider], 6.5, 0.55 * dt)
+		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
+		if travelled >= 88.0:
+			route["stage"] = 1
+			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
+			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
+	else:
+		# The gate at z=0 is a real gap in the inner boarding. Once inside,
+		# travel along the infield access corridor to the appropriate country cabin.
+		var current: Vector3 = route["position"]
+		var destination: Vector3 = Vector3(-14.1, 0.15, 0.0) if stage == 1 else Vector3(route["target"])
+		var vector: Vector3 = destination - current
+		vector.y = 0.0
+		var speed: float = minf(3.1, maxf(0.0, vector.length() * 1.5))
+		coast_speeds[rider] = speed
+		if vector.length() > 0.01:
+			route["heading"] = vector.normalized()
+			current = current.move_toward(destination, speed * dt)
+			current.y = 0.15
+			route["position"] = current
+		if current.distance_to(destination) < 0.12:
+			if stage == 1: route["stage"] = 2
+			else:
+				route["stage"] = 3
+				coast_speeds[rider] = 0.0
+	elimination_exit[rider] = route
