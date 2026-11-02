@@ -414,12 +414,12 @@ func _update_solo(data: Dictionary) -> void:
 	var elapsed := float(data["seconds"])
 	solo_elapsed_label.text = clock_text(elapsed)
 	var estimate: Variant = estimated_finish(elapsed, float(data.get("solo_remaining_m", 0.0)), float(data.get("speed_kmh", 0.0)))
-	solo_estimate_label.text = "—" if estimate == null else solo_clock(float(estimate)).get_slice(".", 0)
+	solo_estimate_label.text = "—" if data.get("run_up", false) or estimate == null else solo_clock(float(estimate)).get_slice(".", 0)
 	var reference: Dictionary = data.get("solo_reference", {})
 	var kind := str(data.get("solo_reference_kind", "none"))
 	var reference_splits: Array = reference.get("splits", []) if kind != "none" else []
 	var titles := {"last": "Laatste rit", "recent": "Recent PR · 60 dagen", "alltime": "All-time PR"}
-	solo_reference_label.text = "Tijd per 125 m" if reference_splits.is_empty() else str(titles.get(kind, "Referentie"))
+	solo_reference_label.text = "Aanloopronde · klok start bij GO!" if data.get("run_up", false) else ("Tijd per 125 m" if reference_splits.is_empty() else str(titles.get(kind, "Referentie")))
 	var crossings: Array = data.get("solo_crossings", [])
 	var count := int(data.get("solo_distance_m", 500)) / 125
 	for i in range(solo_rows.size()):

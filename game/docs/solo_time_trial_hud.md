@@ -6,7 +6,7 @@ Pending checkpoints show a dash. Completed checkpoints show seconds with three d
 without a minutes prefix.
 
 The selected last ride, recent PR (inclusive 60-day window), or all-time PR
-supplies the comparison splits, filtered by distance. Delta is own 125 m segment time
+supplies the comparison splits, filtered by distance and standing/flying start type. Delta is own 125 m segment time
 minus the corresponding reference segment time: negative is green, positive is red, zero is neutral.
 No reference or missing reference split means no delta. The selected reference
 is captured before the ride and does not change when the new result is saved.
@@ -18,7 +18,9 @@ Below 1 km/h, or with invalid speed, the estimate is a dash. At the finish,
 both clocks use the exact recorded finish time, displayed with one decimal
 for elapsed time and whole minutes/seconds for the estimate. Race position, lap count,
 leader gap and surrounding riders are hidden in this mode, as is drafting.
-Other modes keep their existing layout; switching back restores it.
+During a flying-start run-up, elapsed time remains zero, all checkpoints remain pending,
+and the estimate is a dash. Only the dark status panel counts down the distance
+each 50 m; the large overlay stays hidden until GO at the start of the timed distance. Other modes keep their existing layout; switching back restores it.
 
 ## Validation — 2 November 2026
 

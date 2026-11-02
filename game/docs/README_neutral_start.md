@@ -24,8 +24,9 @@ ook over het vliegende startsein heen. Daardoor blijft de oprijronde in de train
 staan, zonder de wedstrijdtijd of uitslag te beïnvloeden. De demo-opname gebruikt
 dezelfde indeling. Herstarten wist de startfase en de opname zoals voorheen.
 
-Achtervolging, ploegenachtervolging en tijdrit behouden hun staande start. Tempo
-en Madison zijn niet toegevoegd door deze wijziging.
+Achtervolging en ploegenachtervolging behouden hun staande start. Tijdrit heeft
+een afzonderlijke keuze voor een [staande of vliegende start](README_time_trial.md);
+de aanloop daarvoor kent geen snelheidslimiet. Tempo en Madison zijn niet toegevoegd.
 
 ## Implementatie en controle
 

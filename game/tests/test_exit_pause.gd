@@ -36,11 +36,13 @@ func run_test() -> void:
 	game.broadcast_intro.finish()
 	game._physics_process(0.01)
 	check(not ui.exit_button.visible, "Exit hidden from start staging")
-	for state in ["WAIT_STOP", "COUNTDOWN", "RACING"]:
+	for state in ["WAIT_STOP", "COUNTDOWN", "NEUTRAL", "RUN_UP", "RACING"]:
 		game.start_state = state
-		game.running = state == "RACING"
+		game.running = state in ["NEUTRAL", "RUN_UP", "RACING"]
 		game.clock = 12.0
 		game.countdown = 2.0
+		var neutral_time: float = game.neutral_start.elapsed
+		var run_up_time: float = game.flying_start.elapsed
 		var distance: float = game.distances[0]
 		var lane: int = game.player_lane
 		escape(game)
@@ -51,6 +53,7 @@ func run_test() -> void:
 		game._process_bridge_packet({"type":"button", "button":"A"})
 		check(game.start_state == state and game.race_paused, "Controller cannot reset paused event")
 		check(game.clock == 12.0 and game.countdown == 2.0 and game.distances[0] == distance, "Race and countdown frozen")
+		check(game.neutral_start.elapsed == neutral_time and game.flying_start.elapsed == run_up_time, "Opening-lap clocks remain frozen while paused")
 		check(game.player_lane == lane, "Keyboard and trainer steering blocked while paused")
 		ui.leave_button.pressed.emit()
 		check(ui.confirming_leave and game.race_paused, "Leaving requires confirmation")
