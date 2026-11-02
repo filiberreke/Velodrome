@@ -176,3 +176,19 @@ Pas het enginepad eventueel aan. Zoek naar `PURSUIT_OK`, `PURSUIT_LEVELS_OK`,
 Tests schrijven hun proefritten in een tijdelijke map onder `tests/tmp_pursuit_*`,
 naast `tests/pursuit_results.json`, en verwachten een schoon project zonder
 persoonlijke rennersconfiguratie. De proefritten worden niet in deze ZIP meegeleverd.
+
+## Spel afsluiten en wedstrijd pauzeren
+
+Het deurpictogram rechtsboven sluit de toepassing af vanuit alle menu's,
+instellingen, de intro en na de finish. Tijdens de startprocedure en wedstrijd
+verdwijnt dit pictogram. Druk dan op **Escape** voor het pauzemenu:
+
+- **Wedstrijd hervatten** (of nogmaals Escape) behoudt de wedstrijdstand.
+- **Wedstrijd verlaten** vraagt bevestiging en brengt je terug naar het
+  hoofdmenu. Daar kun je het spel afsluiten. Escape annuleert de bevestiging.
+
+Pauzeren bevriest de wedstrijdklok, afstand en het aftellen. Telemetrie blijft
+binnenkomen, maar wordt tijdens de pauze niet aan de ritopname toegevoegd.
+De toepassing geeft haar trainerweerstand vrij en wacht bij hervatten op de
+lopende vrijgave voordat ze de bestaande trainerkoppeling opnieuw gebruikt.
+De bestaande terugnavigatie met Escape in de menu's blijft behouden.
