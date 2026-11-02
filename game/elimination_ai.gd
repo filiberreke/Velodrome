@@ -108,7 +108,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
                 blocked_by = j
                 blocking_gap = ahead
         var candidate: float = lanes[i]
-        if blocked_by >= 0 and (imminent > 0.10 or (distances[active[0]] - distances[i] > 15.0 and speeds[i] > speeds[blocked_by] + 0.5)):
+        if blocked_by >= 0 and (imminent > 0.10 or speeds[i] >= speeds[blocked_by] - 0.4 or speeds[blocked_by] < 4.0):
             var options: Array[float] = []
             for direction in [-1.0, 1.0]:
                 var lane: float = clampf(lanes[i] + direction * 1.20, TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
@@ -130,7 +130,9 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
             var wheel_lane: float = lanes[wheel] if wheel >= 0 and wheel_gap > 6.0 else lanes[i]
             candidate = wheel_lane if _inner_corridor_clear(i, wheel_lane, distances, speeds, lanes, finished) else lanes[i]
         # Avoid burning the launch in repeated uphill/downhill lane changes.
-        if clock < 14.0:
+        # Keep a stable launch only when unimpeded. A slow or stationary rider
+        # ahead MUST be passable from the first second of the race.
+        if clock < 14.0 and blocked_by < 0:
             candidate = lanes[i]
         lane_targets[i] = candidate
         output[i] = _phys_power(i, target * (difficulty / 80.0), dt)
