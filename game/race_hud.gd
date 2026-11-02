@@ -51,6 +51,12 @@ var popup: Label
 var status_label: Label
 var row_normal: StyleBoxFlat
 var row_player: StyleBoxFlat
+var solo_panel: PanelContainer
+var solo_reference_label: Label
+var solo_rows: Array[Dictionary] = []
+var solo_bottom: HBoxContainer
+var solo_elapsed_label: Label
+var solo_estimate_label: Label
 
 static func style(fill: Color = Color(0.15, 0.17, 0.19, 0.72), border: Color = Color(0.39, 0.42, 0.45, 0.60)) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
@@ -100,6 +106,7 @@ func _ready() -> void:
 	_build_nearby()
 	_build_points_standings()
 	_build_team_laps()
+	_build_solo_checkpoints()
 	_build_bottom()
 	_build_developer()
 	status_panel = panel(self, Control.PRESET_CENTER_TOP, -410, 80, 410, 142)
@@ -341,6 +348,89 @@ func _build_bottom() -> void:
 	pursuit_time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	position.add_child(pursuit_time_label)
 	pursuit_time_label.hide()
+	solo_bottom = HBoxContainer.new()
+	solo_bottom.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	solo_bottom.alignment = BoxContainer.ALIGNMENT_CENTER
+	solo_bottom.add_theme_constant_override("separation", 120)
+	row.add_child(solo_bottom)
+	for title in ["GEREDEN TIJD", "GESCHATTE EINDTIJD"]:
+		var column := VBoxContainer.new()
+		solo_bottom.add_child(column)
+		column.add_child(text(title, 16, MUTED))
+		var value := text("—", 40)
+		column.add_child(value)
+		if title == "GEREDEN TIJD": solo_elapsed_label = value
+		else: solo_estimate_label = value
+	solo_bottom.hide()
+
+func _build_solo_checkpoints() -> void:
+	solo_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	solo_panel.add_child(column)
+	column.add_child(text("HALVE-RONDETIJDEN · 125 M", 16, MUTED))
+	solo_reference_label = text("", 16, MUTED)
+	column.add_child(solo_reference_label)
+	for i in range(8):
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		column.add_child(row)
+		var distance := text("%d m" % ((i + 1) * 125), 19, MUTED)
+		distance.custom_minimum_size.x = 72
+		row.add_child(distance)
+		var elapsed := text("—", 20)
+		elapsed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		elapsed.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(elapsed)
+		var delta := text("", 19)
+		delta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(delta)
+		solo_rows.append({"row": row, "elapsed": elapsed, "delta": delta})
+	solo_panel.tooltip_text = "Cumulatieve tijd sinds de start · negatief/groen = sneller, positief/rood = langzamer dan de referentie."
+	solo_panel.hide()
+
+static func solo_clock(seconds: float) -> String:
+	var ticks := maxi(0, int(floor(seconds * 1000.0 + 0.00001)))
+	return "%02d:%02d.%03d" % [ticks / 60000, (ticks / 1000) % 60, ticks % 1000]
+
+static func estimated_finish(elapsed: float, remaining_m: float, speed_kmh: float) -> Variant:
+	if not is_finite(elapsed) or not is_finite(remaining_m): return null
+	if remaining_m <= 0.0: return maxf(0.0, elapsed)
+	# Below walking speed the instantaneous prediction is not useful.
+	if not is_finite(speed_kmh) or speed_kmh < 1.0: return null
+	return maxf(0.0, elapsed) + remaining_m / (speed_kmh / 3.6)
+
+func _update_solo(data: Dictionary) -> void:
+	var solo := bool(data.get("solo_time_trial", false))
+	solo_panel.visible = solo
+	solo_bottom.visible = solo
+	lap_label.get_parent().visible = not solo
+	position_label.get_parent().visible = not solo
+	if not solo: return
+	nearby_panel.hide()
+	team_laps_panel.hide()
+	scratch_center.hide()
+	pursuit_center.hide()
+	var elapsed := float(data["seconds"])
+	solo_elapsed_label.text = solo_clock(elapsed)
+	var estimate: Variant = estimated_finish(elapsed, float(data.get("solo_remaining_m", 0.0)), float(data.get("speed_kmh", 0.0)))
+	solo_estimate_label.text = "—" if estimate == null else solo_clock(float(estimate))
+	var reference: Dictionary = data.get("solo_reference", {})
+	var kind := str(data.get("solo_reference_kind", "none"))
+	var reference_splits: Array = reference.get("splits", []) if kind != "none" else []
+	var titles := {"last": "Laatste rit", "recent": "Recent PR · 60 dagen", "alltime": "All-time PR"}
+	solo_reference_label.text = "Cumulatieve tijd" if reference_splits.is_empty() else str(titles.get(kind, "Referentie"))
+	var crossings: Array = data.get("solo_crossings", [])
+	var count := int(data.get("solo_distance_m", 500)) / 125
+	for i in range(solo_rows.size()):
+		var row: Dictionary = solo_rows[i]
+		row.row.visible = i < count
+		row.elapsed.text = solo_clock(float(crossings[i])) if i < crossings.size() else "—"
+		row.delta.text = ""
+		if i >= crossings.size() or i >= reference_splits.size(): continue
+		var delta := snappedf(float(crossings[i]) - float(reference_splits[i]), 0.001)
+		row.delta.text = "%+.3f s" % delta if delta != 0.0 else "0.000 s"
+		row.delta.add_theme_color_override("font_color", Color("68e09b") if delta < 0.0 else (Color("ff7b86") if delta > 0.0 else MUTED))
 
 func _build_pursuit_bar(row: HBoxContainer) -> void:
 	pursuit_center = HBoxContainer.new()
@@ -495,6 +585,7 @@ static func nearby_ids(order: Array[int], player: int = 0) -> Array[int]:
 func update_race(data: Dictionary) -> void:
 	_update_pursuit_bar(data)
 	_update_team_laps(data)
+	_update_solo(data)
 	slipstream_heading.visible = bool(data.get("draft_enabled", true))
 	slipstream_bar.visible = bool(data.get("draft_enabled", true))
 	var team: bool = bool(data.get("team_mode", false))
