@@ -7,7 +7,8 @@ const UPLOAD_URL := "https://www.strava.com/api/v3/uploads"
 const CONFIG_PATH := "res://config/strava_config.cfg"
 const TOKEN_STORE := "user://config/strava_tokens.cfg"
 var upload_path := ""
-var upload_name := "Velodrome 250 - Virtual Track Sprint"
+var upload_name := "Velodrome"
+var upload_description := ""
 var config := ConfigFile.new()
 var tokens := ConfigFile.new()
 var pending_code := ""
@@ -40,13 +41,14 @@ func _ready() -> void:
 	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
 	preload("res://config_paths.gd").load_user(tokens, "strava_tokens.cfg")
 
-func begin_export(path: String, title: String = "Velodrome 250 - Virtual Track Sprint") -> void:
+func begin_export(path: String, title: String = "Velodrome", description: String = "") -> void:
 	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
 	if working:
 		_emit("Een upload is al bezig.")
 		return
 	upload_path = path
-	upload_name = title.strip_edges() if not title.strip_edges().is_empty() else "Velodrome 250 - Virtual Track Sprint"
+	upload_name = title.strip_edges() if not title.strip_edges().is_empty() else "Velodrome"
+	upload_description = description
 	if not FileAccess.file_exists(path):
 		_emit("FIT-bestand ontbreekt. Exporteer eerst de rit.")
 		return
@@ -175,7 +177,7 @@ func _send_fit(access_token: String) -> void:
 	file.close()
 	var boundary := "----Velodrome250FITUploadBoundary"
 	var body := PackedByteArray()
-	var form_parts := {"data_type": "fit", "sport_type": "VirtualRide", "name": upload_name, "description": "Velodrome 250: virtuele piste 53 N, 30 W"}
+	var form_parts := {"data_type": "fit", "sport_type": "VirtualRide", "name": upload_name, "description": upload_description}
 	for key in form_parts:
 		body.append_array(("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n" % [boundary, key, form_parts[key]]).to_utf8_buffer())
 	body.append_array(("--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"velodrome250.fit\"\r\nContent-Type: application/octet-stream\r\n\r\n" % boundary).to_utf8_buffer())

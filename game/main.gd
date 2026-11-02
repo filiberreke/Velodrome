@@ -38,6 +38,10 @@ var race_event_sound: AudioStreamPlayer
 const PursuitPacer := preload("res://pursuit_pacer.gd")
 const PursuitRecords := preload("res://pursuit_records.gd")
 var pursuit_library = PursuitRecords.new()
+const TimeTrialRecords := preload("res://time_trial_records.gd")
+var time_trial_records = TimeTrialRecords.new()
+var time_trial_reference: Dictionary = {}
+var time_trial_reference_kind := "last"
 const TeamRace := preload("res://team_race.gd")
 var team_race = TeamRace.new()
 var team_size := 3
@@ -150,6 +154,8 @@ func _configure_peloton() -> void:
 		rider_count = team_size * 2
 	elif race_mode == 4:
 		rider_count = 2
+	elif race_mode == 7:
+		rider_count = 1
 	# Deterministic inside each event; new race = new day form.
 	form_rng.randomize()
 	_load_rider_config()
@@ -177,7 +183,7 @@ func _configure_peloton() -> void:
 		rider_identities.append(configured.duplicate(true))
 		rider_profiles.append(int(configured["profile"]))
 		rider_names.append(String(configured["name"]))
-		rider_forms.append(1.0 if i == 0 or race_mode in [4, 5] else form_rng.randf_range(0.975, 1.025))
+		rider_forms.append(1.0 if i == 0 or race_mode in [4, 5, 7] else form_rng.randf_range(0.975, 1.025))
 		var kit: Dictionary = configured.get("jersey", {})
 		kit = kit.duplicate()
 		kit["number"] = clampi(int(kit.get("number", i + 1)), 1, 99)
@@ -218,7 +224,7 @@ func _configure_peloton() -> void:
 	lane_offsets.resize(count)
 	ai_lane_targets.resize(count)
 	for i in range(count):
-		var lane: float = LANES[0] if race_mode in [4, 5] else LANES[i % LANES.size()]
+		var lane: float = LANES[0] if race_mode in [4, 5, 7] else LANES[i % LANES.size()]
 		# Extra scratch riders start on the next row, not inside the first six.
 		# Use the same real position for tactics, physics and rendering.
 		if race_mode in [0, 1, 2]:
@@ -262,7 +268,7 @@ func _spawn_peloton() -> void:
 		var rider := preload("res://rider_visual.gd").new()
 		rider.set_meta("rider_index", _profile(i))
 		rider.set_meta("peloton_index", i)
-		rider.set_meta("pursuit_mode", race_mode in [4, 5])
+		rider.set_meta("pursuit_mode", race_mode in [4, 5, 7])
 		rider.set_meta("jersey_config", rider_kits[i])
 		rider.set_meta("body_shapes", rider_identities[i].get("morphs", {}))
 		if rider_config_ready and race_mode not in [4, 5]:
@@ -393,7 +399,8 @@ var finish_table: GridContainer
 var finish_heading: Label
 var strava_client: Node
 var strava_activity_url := ""
-var strava_desired_title := "Velodrome - scratch"
+var strava_desired_title := "Velodrome"
+var strava_desired_description := ""
 var strava_save_screenshot := false
 var strava_screenshot_path := ""
 var finish_badge: Label
@@ -937,7 +944,7 @@ func _reset() -> void:
 # An opponent in front and approximately on the same line shields a rider.
 # The game has no collisions yet: gaps < 1.2m are excluded to avoid rewarding overlap.
 func _draft_target(rider: int) -> float:
-	if race_mode in [4, 5]:
+	if race_mode in [4, 5, 7]:
 		draft_leaders[rider] = -1
 		return 0.0
 	# Non-scratch modes retain the exact prior drafting model.
@@ -1010,7 +1017,7 @@ func _update_drafting(dt: float) -> void:
 # Effective (speed-adjusted) draft is shared by physics, AI planning, HUD and CSV.
 # Only scratch uses the new speed ramp. Legacy modes remain unchanged.
 func _effective_draft_strength(rider: int) -> float:
-	if race_mode in [4, 5]:
+	if race_mode in [4, 5, 7]:
 		return 0.0
 	var strength: float = clampf(draft_strengths[rider], 0.0, 1.0)
 	if race_mode not in [0, 1, 2]:
@@ -1019,13 +1026,13 @@ func _effective_draft_strength(rider: int) -> float:
 	return strength * lerpf(SCRATCH_DRAFT_LOW_SPEED_SCALE, 1.0, speed_ratio)
 
 func _draft_drag_reduction(rider: int) -> float:
-	if race_mode in [4, 5]:
+	if race_mode in [4, 5, 7]:
 		return 0.0
 	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2] else DRAFT_MAX_DRAG_REDUCTION
 	return limit * _effective_draft_strength(rider)
 
 func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
-	if race_mode in [4, 5]:
+	if race_mode in [4, 5, 7]:
 		draft_strength = 0.0
 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
 	if race_mode in [0, 1, 2, 4, 5]:
@@ -1210,7 +1217,7 @@ func _ai_choose_power(i: int, dt: float) -> float:
 	return ai_power_w[i] * (ai_difficulty / 80.0)
 
 func _move_lanes(dt: float) -> Array[float]:
-	if race_mode == 4:
+	if race_mode in [4, 7]:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
 	var previous_lanes: Array[float] = lane_offsets.duplicate()
@@ -1334,7 +1341,7 @@ func _advance_race(dt: float) -> void:
 	if race_mode == 5:
 		team_race.step(self, dt)
 		return
-	if race_mode == 4:
+	if race_mode in [4, 7]:
 		_update_pursuit(dt)
 		return
 	if trainer_seen:
@@ -2230,7 +2237,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2, 3, 5]:
+	if choice not in [0, 1, 2, 3, 5, 7]:
 		return
 	if choice in [1,2] and setup_panel.page != 4: return
 	var replay: Dictionary = {}
@@ -2252,13 +2259,13 @@ func _confirm_start() -> void:
 		if not replay.is_empty(): replay = PursuitRecords.scaled_replay(replay, pursuit_opponent_percent)
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))
-	race_laps = int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30)))
+	race_mode = 7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0))))
+	race_laps = int(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))))
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
-	rider_count = team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 5 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12)))
+	rider_count = 1 if choice == 7 else (team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 5 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))))
 	if choice in [1, 2]:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
@@ -2273,7 +2280,11 @@ func _confirm_start() -> void:
 		selected_startlist.assign(setup_panel.startlist_page.lineup.duplicate(true))
 		startlist_mode = race_mode
 	_configure_peloton()
-	if choice in [1, 2]:
+	if choice == 7:
+		time_trial_reference_kind = ["last", "recent", "alltime", "none"][setup_panel.time_trial_reference.selected]
+		time_trial_reference = time_trial_records.references(int(_race_length())).get(time_trial_reference_kind, {})
+		_prepare_pursuit({}, 0.0)
+	elif choice in [1, 2]:
 		_prepare_pursuit(replay, options.configured_cp())
 		if choice == 2:
 			team_race.prepare(self, replay, options.configured_cp())
@@ -2696,7 +2707,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -2731,9 +2742,9 @@ func _refresh_fullscreen_results() -> void:
 	for n in range(rider_count): ordered.append(n)
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
-	finish_heading.text = "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
+	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
 	if finish_subtitle != null:
-		finish_subtitle.text = "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
+		finish_subtitle.text = "SOLO · 125 M TUSSENTIJDEN" if race_mode == 7 else "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
 	if pursuit_save_box != null:
 		pursuit_save_box.visible = race_mode == 4 and finish_times[0] >= 0.0
 	finish_badge.text = "#%d / %d" % [player_place, rider_count]
@@ -2784,7 +2795,7 @@ func _refresh_fullscreen_results() -> void:
 			if scratch_rules.credits[rider] != leader_credit:
 				gap = "%d ronde(n)" % (leader_credit - scratch_rules.credits[rider])
 		if rank == 0:
-			gap = "WINNAAR"
+			gap = "SOLO" if race_mode == 7 else "WINNAAR"
 		var laps_display := ""
 		for lap in range(lap_times[rider].size()):
 			if lap > 0:
@@ -2801,7 +2812,7 @@ func _refresh_fullscreen_results() -> void:
 func _rider_distance(rider: int, progress: float) -> float:
 	if race_mode == 5:
 		return progress + PURSUIT_START_M + float(rider / team_size) * LAP * 0.5
-	return progress + PURSUIT_START_M + float(rider) * LAP * 0.5 if race_mode == 4 else progress
+	return progress + PURSUIT_START_M + float(rider) * LAP * 0.5 if race_mode == 4 else (progress + PURSUIT_START_M if race_mode == 7 else progress)
 
 func _prepare_pursuit(replay: Dictionary, cp: float) -> void:
 	performance_context.clear()
@@ -2819,14 +2830,14 @@ func _prepare_pursuit(replay: Dictionary, cp: float) -> void:
 	boost_left = 0.0
 	recovery_left = 0.0
 	pursuit_pacer = PursuitPacer.new()
-	if pursuit_replay.is_empty():
+	if pursuit_replay.is_empty() and race_mode != 7:
 		if not pursuit_opponent_config.is_empty():
 			pursuit_pacer.wprime_j = float(pursuit_opponent_config.get("w_prime_j", 20000.0))
 			pursuit_pacer.max_power_w = float(pursuit_opponent_config.get("max_power_w", 800.0))
 		pursuit_pacer.difficulty_percent = pursuit_opponent_percent
 		pursuit_pacer.prepare(self, _race_length(), cp, _rider_distance(1, 0.0), LANES[0])
 		rider_names[1] = String(pursuit_opponent_config.get("name", "AI-tegenstander"))
-	else:
+	elif not pursuit_replay.is_empty():
 		rider_names[1] = "Rit: " + String(pursuit_replay["name"]).left(24)
 	if bikes.size() > 1 and bikes[1].get_child_count() > 1:
 		bikes[1].get_child(1).text = _rider_name(1)
@@ -2843,8 +2854,9 @@ func _pursuit_move_lanes(dt: float) -> Array[float]:
 	lane_offsets[0] = move_toward(lane_offsets[0], LANES[player_lane], LANE_CHANGE_MPS * dt)
 	heights[0] = _at(position, lane_offsets[0]).y - previous
 	# The opponent is always on the lowest line, including saved-ride playback.
-	lane_offsets[1] = LANES[0]
-	ai_lane_targets[1] = LANES[0]
+	if race_mode == 4:
+		lane_offsets[1] = LANES[0]
+		ai_lane_targets[1] = LANES[0]
 	return heights
 
 func _record_pursuit_sample(seconds: float, distance: float, force: bool = false) -> void:
@@ -2910,7 +2922,7 @@ func _update_pursuit(dt: float) -> void:
 	draft_strengths.fill(0.0)
 	draft_leaders.fill(-1)
 	var new_finisher := false
-	for i in range(2):
+	for i in range(1 if race_mode == 7 else 2):
 		if finish_times[i] >= 0.0:
 			continue
 		var previous: float = distances[i]
@@ -2965,7 +2977,10 @@ func _update_pursuit(dt: float) -> void:
 	if new_finisher:
 		_take_finish_photo(_winner_index())
 	if finish_times[0] >= 0.0 and not finished:
-		_register_performance()
+		if race_mode == 7:
+			time_trial_records.add(int(_race_length()), finish_times[0], pursuit_half_crossings[0])
+		else:
+			_register_performance()
 		finished = true
 		running = false
 		finish_elapsed = 0.0
@@ -3020,12 +3035,43 @@ func _on_strava_activity_created(activity_id: String) -> void:
 	done.canceled.connect(done.queue_free)
 	done.popup_centered(Vector2i(650, 290))
 
+func _strava_activity_title() -> String:
+	for mode in preload("res://race_menu.gd").MODES:
+		if int(mode["race_id"]) == race_mode:
+			return "Velodrome - " + String(mode["title"])
+	return "Velodrome"
+
+func _strava_activity_description() -> String:
+	if race_mode == 7:
+		var lines: PackedStringArray = []
+		lines.append("Tijd: %.3f s" % finish_times[0] if finish_times[0] >= 0.0 else "Tijdrit nog niet voltooid.")
+		if not lap_times[0].is_empty():
+			lines.append("Rondetijden (250 m):")
+			for lap in range(lap_times[0].size()):
+				lines.append("Ronde %d: %.3f s" % [lap + 1, float(lap_times[0][lap])])
+		return "\n".join(lines)
+	if race_mode == 5:
+		if team_race.times[0] < 0.0 or team_race.times[1] < 0.0:
+			return "Uitslag nog niet definitief."
+		return "Uitslag: %d/2" % (2 if team_race.better(1, 0) else 1)
+	if not _all_riders_finished():
+		return "Uitslag nog niet definitief."
+	var order: Array[int] = []
+	for rider in range(rider_count): order.append(rider)
+	order.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
+	var description := "Uitslag: %d/%d" % [order.find(0) + 1, rider_count]
+	if race_mode == 1:
+		description += ", %d punten" % points_rules.points[0]
+	return description
+
 func _export_to_strava() -> void:
+	strava_desired_title = _strava_activity_title()
+	strava_desired_description = _strava_activity_description()
 	# Use a plain Window rather than ConfirmationDialog internals: Godot 4 has no get_vbox().
 	var dialog := Window.new()
 	dialog.title = "Export naar Strava"
-	dialog.size = Vector2i(730, 340)
-	dialog.min_size = Vector2i(660, 320)
+	dialog.size = Vector2i(730, 510)
+	dialog.min_size = Vector2i(660, 450)
 	dialog.transient = true
 	dialog.exclusive = true
 	add_child(dialog)
@@ -3049,6 +3095,14 @@ func _export_to_strava() -> void:
 	var title_input := LineEdit.new()
 	title_input.text = strava_desired_title
 	content.add_child(title_input)
+	var description_label := Label.new()
+	description_label.text = "Beschrijving"
+	content.add_child(description_label)
+	var description_preview := RichTextLabel.new()
+	description_preview.text = strava_desired_description
+	description_preview.custom_minimum_size.y = 115
+	description_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(description_preview)
 	var picture_check := CheckBox.new()
 	picture_check.text = "Sla uitslagenscherm op als PNG in Downloads"
 	picture_check.button_pressed = strava_save_screenshot
@@ -3079,7 +3133,7 @@ func _export_to_strava() -> void:
 	upload_button.pressed.connect(func():
 		strava_desired_title = title_input.text.strip_edges()
 		if strava_desired_title.is_empty():
-			strava_desired_title = "Velodrome - scratch"
+			strava_desired_title = _strava_activity_title()
 		strava_save_screenshot = picture_check.button_pressed
 		dialog.hide()
 		_start_strava_upload_with_capture()
@@ -3128,7 +3182,7 @@ func _start_strava_upload() -> void:
 		return
 	file.store_buffer(payload)
 	file.close()
-	strava_client.call("begin_export", ProjectSettings.globalize_path(temp_path), strava_desired_title)
+	strava_client.call("begin_export", ProjectSettings.globalize_path(temp_path), strava_desired_title, strava_desired_description)
 
 func _register_performance() -> void:
 	if race_mode not in [4, 5] or performance_recorded or finish_times[0] < 0.0:

@@ -1,5 +1,6 @@
 extends SceneTree
-const Game := preload("res://main.gd")
+class Game extends "res://main.gd":
+	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 const HUD := preload("res://race_hud.gd")
 var failures := 0
 
