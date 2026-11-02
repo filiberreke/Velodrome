@@ -37,7 +37,7 @@ func run_test() -> void:
 	game.race_mode = 4
 	game.lane_offsets[0] = game.LANES[0]
 	game._pursuit_move_lanes(0.1)
-	check(game.lane_offsets[0] > game.LANES[0] and game.lane_offsets[0] < game.LANES[5], "Multi-lane target moves smoothly rather than teleporting")
+	check(game.lane_offsets[0] > game.LANES[0] and game.lane_offsets[0] < game.LANES[game.player_lane], "Multi-lane target moves smoothly rather than teleporting")
 	game.race_mode = 0
 	game.player_lane = 2; steer(game, 0)
 	for name in ["LEFT", "RIGHT", "SHIFT_UP_LEFT", "SHIFT_DOWN_LEFT", "SHIFT_UP_RIGHT", "SHIFT_DOWN_RIGHT"]:

@@ -81,7 +81,13 @@ const RADIUS := 18.0
 const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
 const PURSUIT_START_M := LAP - STRAIGHT * 0.5
 const UDP_PORT := 51723
-const LANES := [1.18, 2.38, 3.58, 4.78, 5.98, 7.18]
+# Player selection is finer than AI corridors; physical track geometry is unchanged.
+const PLAYER_LANE_STEP_M := 0.60
+const LANES := [1.18, 1.78, 2.38, 2.98, 3.58, 4.18, 4.78, 5.38, 5.98, 6.58, 7.18]
+# Keep the original starting grid: 0.60 m is too narrow for bicycles abreast.
+const START_LANES := [1.18, 2.38, 3.58, 4.78, 5.98, 7.18]
+const TEAM_EXCHANGE_LANE_M := 3.58
+const FINISH_CAMERA_LANE_M := 2.38
 const GRAVITY := 9.81
 # Slipstream is based on physical spacing, not on racer rank.
 const DRAFT_MIN_GAP_M := 1.2
@@ -224,11 +230,11 @@ func _configure_peloton() -> void:
 	lane_offsets.resize(count)
 	ai_lane_targets.resize(count)
 	for i in range(count):
-		var lane: float = LANES[0] if race_mode in [4, 5, 7] else LANES[i % LANES.size()]
+		var lane: float = LANES[0] if race_mode in [4, 5, 7] else START_LANES[i % START_LANES.size()]
 		# Extra scratch riders start on the next row, not inside the first six.
 		# Use the same real position for tactics, physics and rendering.
 		if race_mode in [0, 1, 2]:
-			distances[i] = -2.4 * float(i / LANES.size())
+			distances[i] = -2.4 * float(i / START_LANES.size())
 		if race_mode == 2:
 			# A compact two-abreast grid keeps the standing start on the
 			# lower banking; the highest lane can stall at launch power.
@@ -732,13 +738,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_ESCAPE: get_tree().quit()
 
 func _steer_player(direction: int) -> void:
-	if not running:
+	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
 		return
 	if race_mode == 5:
 		if direction > 0:
 			team_race.request_player_exchange()
 		return
-	_manual_elimination_steering()
 	player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
 func _read_bridge() -> void:
@@ -767,7 +772,6 @@ func _process_steering(value: Variant) -> void:
 	# Consume presses during menus/countdown so holding through GO cannot steer.
 	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
 		return
-	_manual_elimination_steering()
 	if race_mode == 5:
 		if direction > 0:
 			team_race.request_player_exchange()
@@ -1227,12 +1231,6 @@ func _move_lanes(dt: float) -> Array[float]:
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
 		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2] and x_ai.initialized else ai_lane_targets[i])
-		if race_mode == 2 and i == 0 and running and start_state == "RACING":
-			var automatic: float = elimination_assist.lane(clock, distances, speeds, lane_offsets, finish_times, x_ai.lane_targets, LANES, LANE_CHANGE_MPS)
-			if automatic >= 0.0:
-				target = automatic
-				if elimination_assist.target >= 0.0: player_lane = _nearest_player_lane(elimination_assist.target)
-			x_ai.lane_targets[0] = target
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
 	if race_mode == 2:
@@ -1586,8 +1584,8 @@ func _place_results_camera() -> void:
 
 func _place_finish_camera() -> void:
 	# Fixed on the infield, pointing slightly past the finish line along travel direction.
-	var line: Vector3 = _at(_rider_distance(0, _race_length()), LANES[1])
-	var next_point: Vector3 = _at(_rider_distance(0, _race_length()) + 7.0, LANES[1])
+	var line: Vector3 = _at(_rider_distance(0, _race_length()), FINISH_CAMERA_LANE_M)
+	var next_point: Vector3 = _at(_rider_distance(0, _race_length()) + 7.0, FINISH_CAMERA_LANE_M)
 	var direction: Vector3 = Vector3(next_point.x - line.x, 0.0, next_point.z - line.z).normalized()
 	var inner: Vector3 = _at(_rider_distance(0, _race_length()), 0.3)
 	var outward: Vector3 = _at(_rider_distance(0, _race_length()), 7.5)
@@ -2270,9 +2268,7 @@ func _confirm_start() -> void:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
 		else: pursuit_opponent_country = String(selected_ai.get("country", "netherlands"))
-	var use_elimination_assist: bool = choice == 5 and setup_panel.elimination_assist_toggle.button_pressed
 	_clear_elimination_feedback()
-	elimination_assist.enabled = use_elimination_assist
 	selected_startlist.clear()
 	startlist_mode = -1
 	if choice in [0,3,5] and setup_panel.page == 5:
@@ -2558,7 +2554,7 @@ func _update_hud() -> void:
 		stage = "1500 W BOOST! %.1f s" % boost_left
 	elif not trainer_seen and recovery_left > 0.0:
 		stage = "BOOST AFBOUW %.1f s" % recovery_left
-	hud.text = "VELODROME 250  |  %s\n%s    Ronde %d/%d    Tijd: %.1f s\n%.0f W    %.1f km/u    Cadans: %s\nNog: %.0f m    Rijlijn: %d/6\nSlipstream: %d%% minder luchtweerstand" % [status, stage, mini(race_laps, int(distances[0] / LAP) + 1), race_laps, clock, watts, speeds[0] * 3.6, "--" if cadence < 0 else str(roundi(cadence)), _race_length() - distances[0], player_lane + 1, roundi(100.0 * _draft_drag_reduction(0))]
+	hud.text = "VELODROME 250  |  %s\n%s    Ronde %d/%d    Tijd: %.1f s\n%.0f W    %.1f km/u    Cadans: %s\nNog: %.0f m    Rijlijn: %d/%d\nSlipstream: %d%% minder luchtweerstand" % [status, stage, mini(race_laps, int(distances[0] / LAP) + 1), race_laps, clock, watts, speeds[0] * 3.6, "--" if cadence < 0 else str(roundi(cadence)), _race_length() - distances[0], player_lane + 1, LANES.size(), roundi(100.0 * _draft_drag_reduction(0))]
 	if lap_notice != "" and clock < lap_notice_until:
 		hud.text += "\n" + lap_notice
 	var order: Array[int] = []
@@ -3407,20 +3403,6 @@ func _clear_elimination_feedback() -> void:
 		elimination_notice.text = ""
 		elimination_notice.hide()
 	elimination_assist.reset()
-	if setup_panel != null and setup_panel.elimination_assist_toggle != null:
-		setup_panel.elimination_assist_toggle.button_pressed = false
-
-func _nearest_player_lane(offset: float) -> int:
-	var nearest := 0
-	for i in range(LANES.size()):
-		if absf(LANES[i] - offset) < absf(LANES[nearest] - offset): nearest = i
-	return nearest
-
-func _manual_elimination_steering() -> void:
-	if race_mode != 2: return
-	if elimination_assist.target >= 0.0:
-		player_lane = _nearest_player_lane(lane_offsets[0])
-	elimination_assist.manual(clock)
 
 func _hud_elimination_gap() -> String:
 	if finish_times[0] >= 0.0: return "Afgevallen" if elimination_rules.eliminated.has(0) else "Finish"

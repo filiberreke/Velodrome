@@ -53,7 +53,7 @@ func capture(game: Node3D, front: float, offsets: Array[float], lanes: Array[flo
 		_freeze(clone)
 		snapshot.add_child(clone)
 		clone.visible = true # Includes the player hidden by a handlebar camera.
-		var lane: float = lerpf(game.LANES[0], game.LANES[2], lanes[i])
+		var lane: float = lerpf(game.LANES[0], game.TEAM_EXCHANGE_LANE_M, lanes[i])
 		var distance: float = game._rider_distance(i, front + offsets[i])
 		clone.position = game._at(distance - game.FRONT_WHEEL_TIP_M, lane) + Vector3.UP * (0.085 + 0.18 * absf(sin(game.visual_rolls[i])))
 		var tangent: Vector3 = game._direction(distance, lane)

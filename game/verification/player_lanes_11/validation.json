@@ -1,0 +1,93 @@
+{
+  "base_commit": "ab11e2919a83b6bdf43c7b76492c16f0be4e9ace",
+  "branch": "codex/player-lanes-11",
+  "date": "2026-11-02",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "suites_passed": 16,
+  "suites": [
+    {
+      "test": "test_player_lanes",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_analog_steering",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_bridge_steering",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_team_pursuit",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_elimination_corrections",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_elimination_gameplay",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_scratch_large_field",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_points_race",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_pursuit",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_gameplay_headless",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_inside_lane",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_elimination_merging",
+      "exit_code": 0,
+      "ok": true,
+      "rerun_reason": "Updated old 1.20 m merge fixture to request two 0.60 m steps."
+    },
+    {
+      "test": "test_elimination_traffic",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_hud",
+      "exit_code": 0,
+      "ok": true
+    },
+    {
+      "test": "test_team_first_wheel",
+      "exit_code": 0,
+      "ok": true,
+      "rerun_reason": "Updated stale upload spy signature to accept current main description argument."
+    },
+    {
+      "test": "test_solo_time_trial_hud",
+      "exit_code": 0,
+      "ok": true
+    }
+  ],
+  "environment_note": "Restricted Windows host certificate-store error recorded separately; all script, resource and assertion errors treated as failures.",
+  "hardware_tested": false
+}

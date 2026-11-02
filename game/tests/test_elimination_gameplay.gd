@@ -19,7 +19,7 @@ func race(count: int) -> Game:
 	g.running = true; g.start_state = "RACING"; g.watts = 300.0
 	return g
 func run_test() -> void:
-	# Actual physics, collision pass and assist integration, with a faster
+	# Actual physics and collision pass, with a faster
 	# player attempting to ride through a slower wheel on a straight.
 	for enabled in [false,true]:
 		var g := race(4)
@@ -32,7 +32,7 @@ func run_test() -> void:
 		check(g.distances[0] <= g.distances[1] - 2.19, "Player respects following clearance")
 		var start_lane: float = g.lane_offsets[0]
 		for tick in range(25): g.clock += 0.1; g._update_race(0.1)
-		check(g.lane_offsets[0] > start_lane + 0.88 if enabled else is_equal_approx(g.lane_offsets[0],start_lane), "Only enabled assist changes player lane")
+		check(is_equal_approx(g.lane_offsets[0],start_lane), "Elimination never automatically changes player lane")
 		g.free()
 	# Full 4/12/16-rider elimination races, including the final pair.
 	for count in [4,12,16]:
