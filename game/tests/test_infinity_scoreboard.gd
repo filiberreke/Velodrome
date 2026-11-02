@@ -20,6 +20,9 @@ func run() -> void:
 	f.phase = "INTRO"
 	model.update(f, .1)
 	check(model.state == Model.INTRO and model.view().footer.contains("20 RONDEN"), "Intro has actual discipline and distance")
+	f.phase = "NEUTRAL"
+	model.update(f, .1)
+	check(model.view().headline == "NEUTRAAL" and cues.is_empty(), "Neutral opening lap is labelled without race cues")
 	f.phase = "RACING"
 	model.update(f, .1)
 	check(model.state == Model.RACE and model.laps_left() == 16, "Scratch shows leader laps")
