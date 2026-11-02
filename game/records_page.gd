@@ -7,6 +7,7 @@ var time_trials = TimeTrials.new()
 var store = Store.new()
 var mode_choice: OptionButton
 var distance_choice: OptionButton
+var start_choice: OptionButton
 var size_choice: OptionButton
 var size_box: VBoxContainer
 var rows: VBoxContainer
@@ -63,6 +64,12 @@ func _ready() -> void:
 		button.pressed.connect(func() -> void: distance_choice.select(i); refresh())
 		filters.add_child(button)
 		distance_buttons.append(button)
+	start_choice = OptionButton.new()
+	start_choice.add_item("Staande start")
+	start_choice.add_item("Vliegende start")
+	start_choice.custom_minimum_size = Vector2(230, 54)
+	start_choice.tooltip_text = "Startwijze tijdrit"
+	filters.add_child(start_choice)
 	size_box = VBoxContainer.new()
 	filters.add_child(size_box)
 	size_choice = OptionButton.new()
@@ -71,7 +78,7 @@ func _ready() -> void:
 	size_choice.add_item("4 renners", 4)
 	size_choice.tooltip_text = "Ploegomvang"
 	size_box.add_child(size_choice)
-	for choice in [mode_choice, distance_choice, size_choice]:
+	for choice in [mode_choice, distance_choice, size_choice, start_choice]:
 		choice.item_selected.connect(func(_index: int) -> void: refresh())
 	var summary := HBoxContainer.new()
 	add_child(summary)
@@ -127,6 +134,7 @@ func refresh(import_old: bool = false) -> void:
 	var import_error: String = store.last_error
 	size_box.visible = mode_choice.get_selected_id() == 5
 	var future := mode_choice.get_selected_id() == 7
+	start_choice.visible = future
 	if future:
 		if distance_choice.get_selected_id() not in [500, 1000]: distance_choice.select(0)
 	else:
@@ -141,8 +149,10 @@ func refresh(import_old: bool = false) -> void:
 	shown.clear()
 	if future:
 		var meters: int = 500 if distance_choice.selected == 0 else 1000
-		var references := time_trials.references(meters)
-		shown.assign(time_trials.all_rides().filter(func(r): return int(r["distance_m"]) == meters))
+		var start_type := "flying" if start_choice.selected == 1 else "standing"
+		category.text += " · " + start_choice.text
+		var references := time_trials.references(meters, -1.0, start_type)
+		shown.assign(time_trials.all_rides().filter(func(r): return int(r["distance_m"]) == meters and str(r.get("start_type", "standing")) == start_type))
 		shown.sort_custom(func(a, b): return float(a["seconds"]) < float(b["seconds"]))
 		shown = shown.slice(0, 10)
 		message.text = "All-time: %s · Recent (60 dagen): %s · Laatste rit: %s" % [_record_time(references["alltime"]), _record_time(references["recent"]), _record_time(references["last"])]

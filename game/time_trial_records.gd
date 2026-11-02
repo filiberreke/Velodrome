@@ -5,6 +5,7 @@ const PATH := "user://time_trial_history.json"
 const WINDOW_SECONDS := 60 * 24 * 60 * 60
 
 static func valid(ride: Dictionary) -> bool:
+	if str(ride.get("start_type", "standing")) not in ["standing", "flying"]: return false
 	if int(ride.get("distance_m", 0)) not in [500, 1000]: return false
 	if float(ride.get("seconds", 0.0)) <= 0.0: return false
 	if float(ride.get("finished_at", 0.0)) <= 0.0: return false
@@ -29,8 +30,8 @@ func all_rides() -> Array:
 		if ride is Dictionary and valid(ride): result.append(ride)
 	return result
 
-func add(distance_m: int, seconds: float, crossings: Array) -> bool:
-	var record := {"id": Crypto.new().generate_random_bytes(12).hex_encode(), "distance_m": distance_m, "seconds": seconds, "finished_at": Time.get_unix_time_from_system(), "splits": crossings.duplicate()}
+func add(distance_m: int, seconds: float, crossings: Array, start_type: String = "standing") -> bool:
+	var record := {"id": Crypto.new().generate_random_bytes(12).hex_encode(), "distance_m": distance_m, "start_type": start_type, "seconds": seconds, "finished_at": Time.get_unix_time_from_system(), "splits": crossings.duplicate()}
 	if not valid(record): return false
 	var rides := all_rides()
 	rides.append(record)
@@ -45,9 +46,9 @@ func add(distance_m: int, seconds: float, crossings: Array) -> bool:
 	if not ok: return false
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(PATH + ".tmp"), ProjectSettings.globalize_path(PATH)) == OK
 
-func references(distance_m: int, now: float = -1.0) -> Dictionary:
+func references(distance_m: int, now: float = -1.0, start_type: String = "standing") -> Dictionary:
 	if now < 0.0: now = Time.get_unix_time_from_system()
-	var rides: Array = all_rides().filter(func(r): return int(r["distance_m"]) == distance_m and float(r["finished_at"]) <= now)
+	var rides: Array = all_rides().filter(func(r): return int(r["distance_m"]) == distance_m and str(r.get("start_type", "standing")) == start_type and float(r["finished_at"]) <= now)
 	rides.sort_custom(func(a, b): return float(a["finished_at"]) > float(b["finished_at"]))
 	var result := {"last": {}, "alltime": {}, "recent": {}}
 	if rides.is_empty(): return result

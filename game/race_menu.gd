@@ -15,6 +15,7 @@ var team_scroll: ScrollContainer
 var pursuit_options
 var demo_settings: VBoxContainer
 var time_trial_settings: VBoxContainer
+var time_trial_start: OptionButton
 var time_trial_distance: OptionButton
 var time_trial_reference: OptionButton
 var bridge_label: Label
@@ -29,7 +30,7 @@ const MODES := [
 	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
 	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Start met één geneutraliseerde ronde. Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Bouw snelheid op achter de gangmaker en kies je moment zodra de finale begint.", "race_id": 3},
-	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "500 m of 1 km vanuit stilstand, met vergelijking elke 125 meter.", "race_id": 7},
+	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "500 m of 1 km met staande of vliegende start en vergelijking elke 125 meter.", "race_id": 7},
 	{"key": "tempo", "title": "Temporace", "hint": "Houd het tempo hoog.", "detail": "Deze discipline wordt later toegevoegd.", "race_id": -1},
 	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1}
 ]
@@ -280,6 +281,11 @@ func _build_settings(layout: VBoxContainer) -> void:
 	time_trial_settings = VBoxContainer.new()
 	time_trial_settings.add_theme_constant_override("separation", 12)
 	race_settings.get_parent().add_child(time_trial_settings)
+	time_trial_settings.add_child(label("Startwijze", 22))
+	time_trial_start = OptionButton.new()
+	time_trial_start.add_item("Staande start")
+	time_trial_start.add_item("Vliegende start · 1 aanloopronde")
+	time_trial_settings.add_child(time_trial_start)
 	time_trial_settings.add_child(label("Afstand", 22))
 	time_trial_distance = OptionButton.new()
 	time_trial_distance.add_item("500 meter · 2 ronden", 500)

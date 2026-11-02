@@ -132,7 +132,11 @@ func view() -> Dictionary:
 	var rows: Array[String] = []
 	var badge := "RACE CENTRE"
 	var page := 0
-	if frame.get("phase", "") == "NEUTRAL":
+	if frame.get("phase", "") == "RUN_UP":
+		headline = "AANLOOPRONDE"
+		footer = "VLIEGENDE START NA DEZE RONDE"
+		badge = title
+	elif frame.get("phase", "") == "NEUTRAL":
 		headline = "NEUTRAAL"
 		footer = "VLIEGENDE START NA DEZE RONDE"
 		badge = title
