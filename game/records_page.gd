@@ -2,6 +2,8 @@ extends VBoxContainer
 signal back_requested
 const MenuStyle := preload("res://menu_theme.gd")
 const Store := preload("res://performance_records.gd")
+const TimeTrials := preload("res://time_trial_records.gd")
+var time_trials = TimeTrials.new()
 var store = Store.new()
 var mode_choice: OptionButton
 var distance_choice: OptionButton
@@ -125,14 +127,26 @@ func refresh(import_old: bool = false) -> void:
 	var import_error: String = store.last_error
 	size_box.visible = mode_choice.get_selected_id() == 5
 	var future := mode_choice.get_selected_id() == 7
+	if future:
+		if distance_choice.get_selected_id() not in [500, 1000]: distance_choice.select(0)
+	else:
+		if distance_choice.get_selected_id() not in [1000, 4000]: distance_choice.select(0)
 	for i in range(mode_buttons.size()): mode_buttons[i].button_pressed = mode_choice.selected == i
 	for i in range(distance_buttons.size()):
+		distance_buttons[i].text = ("500 m" if i == 0 else "1 km") if future else ("1 km" if i == 0 else "4 km")
 		distance_buttons[i].button_pressed = distance_choice.selected == i
-		distance_buttons[i].visible = not future
-	distance_caption.visible = not future
-	category.text = mode_choice.text if future else "%s · %s%s" % [mode_choice.text, distance_choice.text, " · " + size_choice.text if size_box.visible else ""]
+		distance_buttons[i].visible = true
+	distance_caption.visible = true
+	category.text = "%s · %s" % [mode_choice.text, "500 m" if distance_choice.selected == 0 else "1 km"] if future else "%s · %s%s" % [mode_choice.text, distance_choice.text, " · " + size_choice.text if size_box.visible else ""]
 	shown.clear()
-	if not future: shown = store.top(mode_choice.get_selected_id(), distance_choice.get_selected_id(), size_choice.get_selected_id() if size_box.visible else 0)
+	if future:
+		var meters: int = 500 if distance_choice.selected == 0 else 1000
+		var references := time_trials.references(meters)
+		shown.assign(time_trials.all_rides().filter(func(r): return int(r["distance_m"]) == meters))
+		shown.sort_custom(func(a, b): return float(a["seconds"]) < float(b["seconds"]))
+		shown = shown.slice(0, 10)
+		message.text = "All-time: %s · Recent (60 dagen): %s · Laatste rit: %s" % [_record_time(references["alltime"]), _record_time(references["recent"]), _record_time(references["last"])]
+	else: shown = store.top(mode_choice.get_selected_id(), distance_choice.get_selected_id(), size_choice.get_selected_id() if size_box.visible else 0)
 	for child in rows.get_children():
 		rows.remove_child(child)
 		child.queue_free()
@@ -145,13 +159,16 @@ func refresh(import_old: bool = false) -> void:
 		row.custom_minimum_size.y = 26
 		shell.add_child(row)
 		_cell(row, str(index + 1), 1)
-		_cell(row, str(entry["player_name"]), 5)
-		_cell(row, str(entry["finished_local"]), 5)
+		_cell(row, str(entry.get("player_name", "Jij")), 5)
+		_cell(row, str(entry.get("finished_local", Time.get_datetime_string_from_unix_time(int(entry["finished_at"])))), 5)
 		_cell(row, time_text(float(entry["seconds"])), 2, true)
-	message.text = import_error if not import_error.is_empty() else store.last_error
+	if not future: message.text = import_error if not import_error.is_empty() else store.last_error
 	if message.text.is_empty():
-		message.text = "Tijdrit komt later beschikbaar. Hier verschijnen je tijden zodra deze discipline is geïmplementeerd." if future else "Nog geen prestaties in deze categorie. Voltooi een rit om automatisch je tijd te registreren." if shown.is_empty() else "Snelste 10 voltooide prestaties · automatisch bewaard · beste tijd bovenaan"
+		message.text = "Nog geen voltooide tijdrit op deze afstand." if future else "Nog geen prestaties in deze categorie. Voltooi een rit om automatisch je tijd te registreren." if shown.is_empty() else "Snelste 10 voltooide prestaties · automatisch bewaard · beste tijd bovenaan"
 		for entry in shown:
 			if bool(entry.get("legacy", false)):
 				message.text += "\nOude rit: spelernaam was niet opgeslagen; de datum is het toenmalige opslagmoment (UTC)."
 				break
+
+static func _record_time(ride: Dictionary) -> String:
+	return time_text(float(ride["seconds"])) if not ride.is_empty() else "--"
