@@ -66,7 +66,9 @@ func _block(reason: String, release_owned: bool = false, now: float = 0.0) -> vo
 	if release_owned: release(now)
 
 func release(now: float) -> void:
-	if not owned and pending.get("packet", {}).get("command", "") != "set_grade": return
+	var command: Dictionary = pending.get("packet", {})
+	var acquiring: bool = command.get("command", "") == "set_grade" or (command.get("command", "") == "set_target_power" and int(command.get("watts", 0)) > 0)
+	if not owned and not acquiring: return
 	# 0 W is Reset/release; 0% would keep road resistance active.
 	may_resume = true
 	owned = false
