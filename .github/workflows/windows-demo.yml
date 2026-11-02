@@ -53,6 +53,24 @@ jobs:
           unzip -q /tmp/templates.tpz -d /tmp/export-templates
           cp -a /tmp/export-templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
 
+      - name: Isolate Blender source assets from Godot import
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/velodrome-blend-sources"
+          count=0
+          while IFS= read -r -d '' file; do
+            echo "Temporarily isolating Blender source: $file"
+            cp --parents "$file" "$RUNNER_TEMP/velodrome-blend-sources/"
+            rm "$file"
+            # Godot-generated import metadata may refer to the removed .blend.
+            rm -f "$file.import"
+            count=$((count + 1))
+          done < <(find game -type f -name '*.blend' -print0)
+          echo "Isolated Blender source file count: $count"
+          echo "Exported .glb assets remain in the project."
+          find game -type f -name '*.glb' | head -n 30
+
       - name: Bootstrap fresh Godot import cache
         shell: bash
         run: |
