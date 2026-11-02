@@ -35,6 +35,7 @@ var race_event_sound: AudioStreamPlayer
 const PursuitPacer := preload("res://pursuit_pacer.gd")
 const PursuitRecords := preload("res://pursuit_records.gd")
 var pursuit_library = PursuitRecords.new()
+var pursuit_start = preload("res://pursuit_start.gd").new()
 const TimeTrialRecords := preload("res://time_trial_records.gd")
 var time_trial_records = TimeTrialRecords.new()
 var time_trial_reference: Dictionary = {}
@@ -256,6 +257,7 @@ func _configure_peloton() -> void:
 		var rear_positions: Array[float] = []
 		for distance in distances: rear_positions.append(distance - REAR_TRAILING_EDGE_M)
 		elimination_rules.reset(count, rear_positions)
+	pursuit_start.clear()
 	for node in bikes: node.queue_free()
 	bikes.clear()
 	crowded_labels.clear()
@@ -322,6 +324,7 @@ func apply_player_appearance() -> void:
 		if race_mode == 5:
 			rider_kits[i]["country"] = RaceCountries.from_kit(outfit)
 			for key in PlayerAppearance.KEYS: rider_kits[i][key] = outfit.get(key, "")
+	pursuit_start.refresh_kits(self)
 	infield_riders_changed.emit()
 
 # AI riders: reactive drafting, overtaking and limited high-intensity energy.
@@ -661,6 +664,7 @@ func _begin_riding() -> void:
 		flying_start.begin(self)
 	else:
 		start_state = "RACING"
+		pursuit_start.release(self)
 	_capture_player_demo_fit_sample(true)
 
 func _finish_neutral_start() -> void:
@@ -995,6 +999,7 @@ func _restart_same_race() -> void:
 	start_state = "WAIT_STOP"
 
 func _reset() -> void:
+	pursuit_start.clear()
 	race_paused = false
 	trainer_pause_resume = false
 	if exit_menu != null:
@@ -1756,6 +1761,7 @@ func _update_visuals(dt: float) -> void:
 		var lean_target: float = _visual_lean(i)
 		visual_rolls[i] = lerp_angle(visual_rolls[i], lean_target, clampf(dt * (12.0 if lean_target == 0.0 else 5.0), 0.0, 1.0))
 		bikes[i].rotation.z = visual_rolls[i]
+		pursuit_start.align_rider(self, i, display_distance - FRONT_WHEEL_TIP_M - starting_grid, model_lift)
 		if race_mode == 2 and elimination_exit.has(i) and int(elimination_exit[i]["stage"]) >= 1:
 			var exit_state: Dictionary = elimination_exit[i]
 			bikes[i].position = Vector3(exit_state["position"]) + Vector3.UP * 0.09
@@ -1774,6 +1780,7 @@ func _update_visuals(dt: float) -> void:
 		else:
 			visual.call("set_victory", false)
 			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
+	pursuit_start.update(self, dt)
 	team_race.update_badges(self)
 	_update_bunch_presentation()
 	if broadcast_intro != null and broadcast_intro.apply_camera(): return
