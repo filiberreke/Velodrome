@@ -40,8 +40,11 @@ func corridor_clear(candidate: float, distances: Array[float], speeds: Array[flo
 		var nearest := 0.0 if gap * future <= 0.0 else minf(absf(gap), absf(future))
 		# Allow leaving the wheel that caused the block, provided its gap is
 		# not already overlapping. All other crossed corridors need merge room.
-		var leaving_wheel := absf(lanes[j] - lanes[0]) < width and absf(lanes[j] - candidate) >= width and gap >= FOLLOWING - 0.01
-		if nearest < (FOLLOWING - 0.01 if leaving_wheel else 4.5): return false
+		var leaving_wheel := absf(lanes[j] - lanes[0]) < width and absf(lanes[j] - candidate) >= width and gap > 0.0
+		# Allow escaping a too-close front wheel, while still checking all
+		# other lanes and traffic approaching from behind.
+		if leaving_wheel: continue
+		if nearest < 4.5: return false
 	return true
 
 func lane(clock: float, distances: Array[float], speeds: Array[float], lanes: Array[float], done: Array[float], requests: Array[float], choices: Array, lateral_speed: float) -> float:
