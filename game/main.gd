@@ -16,6 +16,8 @@ const EliminationRules := preload("res://elimination_race_rules.gd")
 const EliminationAI := preload("res://elimination_ai.gd")
 const EliminationTraffic := preload("res://elimination_traffic.gd")
 var elimination_rules = EliminationRules.new()
+var elimination_assist = preload("res://elimination_assist.gd").new()
+var elimination_lane_blocked := false
 var elimination_notice: Label
 var elimination_notice_until := -1.0
 var elimination_exit: Dictionary = {}
@@ -114,6 +116,9 @@ var rider_config_ready := false
 const Catalog := preload("res://rider_catalog.gd")
 const ConfigPaths := preload("res://config_paths.gd")
 var rider_identities: Array[Dictionary] = []
+var selected_startlist: Array[Dictionary] = []
+var startlist_mode := -1
+var results_podium = preload("res://results_podium.gd").new()
 var ai_personal_records = preload("res://rider_records.gd").new()
 var ai_recorded: Array[bool] = []
 var ai_observed_peak: Array[float] = []
@@ -158,6 +163,8 @@ func _configure_peloton() -> void:
 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
 		# 1 = TT, 2 = sprinter, 3 = attacker.
 		var configured: Dictionary = _configured_rider(i, kind) if i > 0 else {"profile": 0, "name": player_display_name}
+		if race_mode in [0,1,2] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
+			configured = selected_startlist[i - 1].duplicate(true)
 		if race_mode == 4 and i > 0:
 			configured = pursuit_opponent_config.duplicate(true) if not pursuit_opponent_config.is_empty() else _configured_rider(1, 1)
 		if race_mode == 5:
@@ -215,6 +222,11 @@ func _configure_peloton() -> void:
 		# Use the same real position for tactics, physics and rendering.
 		if race_mode in [0, 1, 2]:
 			distances[i] = -2.4 * float(i / LANES.size())
+		if race_mode == 2:
+			# A compact two-abreast grid keeps the standing start on the
+			# lower banking; the highest lane can stall at launch power.
+			lane = LANES[0] + float(i % 2)
+			distances[i] = -3.0 * float(i / 2)
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
@@ -253,11 +265,12 @@ func _spawn_peloton() -> void:
 		rider.set_meta("jersey_config", rider_kits[i])
 		rider.set_meta("body_shapes", rider_identities[i].get("morphs", {}))
 		if rider_config_ready and race_mode not in [4, 5]:
-			var kit_section := "player" if i == 0 else "rider_%02d" % i
-			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", "")))
-			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", "")))
-			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", "")))
-			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", "")))
+			var source_slot := int(rider_identities[i].get("slot",i)) if i > 0 else 0
+			var kit_section := "player" if i == 0 else "rider_%02d" % source_slot
+			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", rider_kits[i].get("country_kit",""))))
+			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", rider_kits[i].get("skinsuit_png",""))))
+			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", rider_kits[i].get("helmet_png",""))))
+			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", rider_kits[i].get("visor",""))))
 		if race_mode == 5:
 			PlayerAppearance.prepare_rider(rider, rider_kits[i])
 		if i == 0:
@@ -717,6 +730,7 @@ func _steer_player(direction: int) -> void:
 		if direction > 0:
 			team_race.request_player_exchange()
 		return
+	_manual_elimination_steering()
 	player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
 func _read_bridge() -> void:
@@ -743,6 +757,7 @@ func _process_steering(value: Variant) -> void:
 	# Consume presses during menus/countdown too: holding through GO must not steer.
 	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
 		return
+	_manual_elimination_steering()
 	if race_mode == 5:
 		if direction > 0 and not same_direction:
 			team_race.request_player_exchange()
@@ -833,6 +848,8 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _reset() -> void:
+	results_podium.clear()
+	_clear_elimination_feedback()
 	points_notifications.reset()
 	if race_overlay != null: race_overlay.popup.clear()
 	if broadcast_intro != null: broadcast_intro.cancel()
@@ -1193,14 +1210,34 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode == 4:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
+	var previous_lanes: Array[float] = lane_offsets.duplicate()
+	if race_mode == 2: elimination_assist.lateral_scales = _elimination_lane_scales()
 	if race_mode not in [0, 1, 2]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
 		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2] and x_ai.initialized else ai_lane_targets[i])
+		if race_mode == 2 and i == 0 and running and start_state == "RACING":
+			var automatic: float = elimination_assist.lane(clock, distances, speeds, lane_offsets, finish_times, x_ai.lane_targets, LANES, LANE_CHANGE_MPS)
+			if automatic >= 0.0:
+				target = automatic
+				if elimination_assist.target >= 0.0: player_lane = _nearest_player_lane(elimination_assist.target)
+			x_ai.lane_targets[0] = target
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
+	if race_mode == 2:
+		var requested: Array[float] = lane_offsets.duplicate()
+		lane_offsets = EliminationTraffic.constrain_lanes(distances, speeds, previous_lanes, requested, finish_times, elimination_assist.lateral_scales, dt)
+		elimination_lane_blocked = absf(requested[0] - lane_offsets[0]) > 0.0001
+		for i in range(rider_count):
+			heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lanes[i]).y
 	return heights
+
+func _elimination_lane_scales() -> Array[float]:
+	var scales: Array[float] = []
+	for i in range(rider_count):
+		scales.append(_at(distances[i], lane_offsets[i] + 1.0).distance_to(_at(distances[i], lane_offsets[i])))
+	return scales
 
 func _race_length() -> float:
 	return float(race_laps) * LAP
@@ -1312,6 +1349,7 @@ func _advance_race(dt: float) -> void:
 		if race_mode == 2:
 			x_ai.elimination_line_m = elimination_rules.next_line_m
 			x_ai.final_line_m = _race_length()
+			x_ai.lateral_scales = _elimination_lane_scales()
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
 	var new_finisher := false
@@ -1376,12 +1414,17 @@ func _advance_race(dt: float) -> void:
 			coast_distances[i] = _race_length()
 			coast_speeds[i] = speeds[i]
 	if race_mode == 2:
-		EliminationTraffic.resolve(previous_distances, distances, speeds, lane_offsets, finish_times, dt)
+		var free_player_step: float = distances[0] - previous_distances[0]
+		EliminationTraffic.resolve(previous_distances, distances, speeds, lane_offsets, finish_times, dt, _elimination_lane_scales())
+		if finish_times[0] < 0.0:
+			elimination_assist.observe(clock, free_player_step, distances[0] - previous_distances[0], dt)
+			# Carry collision-limited momentum into the next physical step.
+			baseline_speed = speeds[0]
 		for i in range(rider_count):
 			if finish_times[i] >= 0.0: continue
 			var travelled: float = maxf(0.0, distances[i] - previous_distances[i])
 			_register_lap_crossings(i, previous_distances[i], travelled, dt)
-			if distances[i] >= _race_length():
+			if distances[i] >= _race_length() and elimination_rules.remaining_count() <= 2:
 				var fraction: float = clampf((_race_length() - previous_distances[i]) / maxf(travelled, 0.00001), 0.0, 1.0)
 				finish_times[i] = clock - dt + fraction * dt
 				coast_distances[i] = _race_length()
@@ -1517,6 +1560,17 @@ func _update_coasting(dt: float) -> void:
 		coast_speeds[i] = maxf(0.0, old_speed - COAST_BRAKE_MPS2 * dt)
 		coast_distances[i] += (old_speed + coast_speeds[i]) * 0.5 * dt / _path_metric(_rider_distance(i, coast_distances[i]), lane_offsets[i])
 
+func _place_results_camera() -> void:
+	if camera == null: return
+	var podium := find_child("Podium", true, false) as Node3D
+	if podium == null: return
+	results_podium.update(self,podium)
+	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera.fov = 62.0
+	# Keep the actual podium to the right of the ivory results sheet.
+	camera.global_position = podium.to_global(Vector3(-5.3, 3.5, 7.0))
+	camera.look_at(podium.to_global(Vector3(-5.3, 1.0, 0)))
+
 func _place_finish_camera() -> void:
 	# Fixed on the infield, pointing slightly past the finish line along travel direction.
 	var line: Vector3 = _at(_rider_distance(0, _race_length()), LANES[1])
@@ -1540,6 +1594,9 @@ func _player_won() -> bool:
 	return true
 
 func _update_visuals(dt: float) -> void:
+	if finish_overlay != null and finish_overlay.visible:
+		_place_results_camera()
+		return
 	if setup_panel != null and setup_panel.visible:
 		team_race.hide_badges()
 	if setup_panel != null and setup_panel.visible:
@@ -1928,38 +1985,42 @@ func _build_hud() -> void:
 	finish_overlay = ColorRect.new()
 	finish_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	finish_overlay.theme = MenuSkin.create()
-	finish_overlay.color = Color(0.07, 0.16, 0.27, 0.46)
+	finish_overlay.color = Color(0.07, 0.16, 0.27, 0.08)
 	finish_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	finish_overlay.hide()
 	layer.add_child(finish_overlay)
-	var center := CenterContainer.new()
+	var center := MarginContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["left","right"]: center.add_theme_constant_override("margin_"+side,64)
+	center.add_theme_constant_override("margin_top",22);center.add_theme_constant_override("margin_bottom",30)
 	finish_overlay.add_child(center)
+	var results_stack := VBoxContainer.new();results_stack.add_theme_constant_override("separation",14);center.add_child(results_stack)
+	var results_brand := HBoxContainer.new();results_stack.add_child(results_brand);results_brand.add_child(MenuSkin.logo());results_brand.add_spacer(false)
+	var results_body := HBoxContainer.new();results_body.size_flags_vertical=Control.SIZE_EXPAND_FILL;results_stack.add_child(results_body)
 	var shell := PanelContainer.new()
-	shell.custom_minimum_size = Vector2(1300, 0)     # beta.16.17: room for the finish photo
+	shell.custom_minimum_size = Vector2(1320, 0)
+	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var shell_style := StyleBoxFlat.new()
 	shell_style.bg_color = MenuSkin.IVORY
 	shell_style.border_color = MenuSkin.WOOD
-	shell_style.set_border_width_all(2)
+	shell_style.set_border_width_all(0)
+	shell_style.border_width_top = 5
 	shell_style.set_corner_radius_all(22)
 	shell_style.set_content_margin_all(26)
 	shell.add_theme_stylebox_override("panel", shell_style)
-	center.add_child(shell)
+	results_body.add_child(shell)
+	results_body.add_spacer(false)
 	var sheet := VBoxContainer.new()
 	sheet.add_theme_constant_override("separation", 13)
 	shell.add_child(sheet)
 	var title_row := HBoxContainer.new()
 	title_row.add_theme_constant_override("separation", 14)
 	sheet.add_child(title_row)
-	var orange_bar := ColorRect.new()
-	orange_bar.color = MenuSkin.WOOD
-	orange_bar.custom_minimum_size = Vector2(10, 76)
-	title_row.add_child(orange_bar)
 	var heading_stack := VBoxContainer.new()
 	title_row.add_child(heading_stack)
 	finish_heading = Label.new()
 	finish_heading.add_theme_font_override("font", MenuSkin.heading())
-	finish_heading.add_theme_font_size_override("font_size", 37)
+	finish_heading.add_theme_font_size_override("font_size", 36)
 	finish_heading.add_theme_color_override("font_color", MenuSkin.INK)
 	heading_stack.add_child(finish_heading)
 	var subtitle := Label.new()
@@ -2025,27 +2086,29 @@ func _build_hud() -> void:
 	buttons.add_theme_constant_override("separation", 12)
 	sheet.add_child(buttons)
 	var again := Button.new()
-	again.text = "⟲  OPNIEUW SPELEN"
+	again.text = "Opnieuw spelen"
 	again.custom_minimum_size = Vector2(260, 58)
 	_style_finish_button(again, MenuSkin.BLUE, Color.WHITE)
 	again.pressed.connect(_reset)
 	buttons.add_child(again)
 	var strava_button := Button.new()
-	strava_button.text = "STRAVA  |  EXPORT"
+	strava_button.text = "Export naar Strava"
 	strava_button.icon = load("res://strava_logo.svg")
 	strava_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	strava_button.custom_minimum_size = Vector2(250, 58)
-	_style_finish_button(strava_button, Color("fc4c02"), Color.WHITE)
+	_style_finish_button(strava_button, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
+	for state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color"]:
+		strava_button.add_theme_color_override(state, MenuSkin.BLUE)
 	strava_button.pressed.connect(_export_to_strava)
 	buttons.add_child(strava_button)
 	var fit_button := Button.new()
-	fit_button.text = "↓  EXPORT .FIT"
+	fit_button.text = "Exporteer .FIT"
 	fit_button.custom_minimum_size = Vector2(210, 58)
 	_style_finish_button(fit_button, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	fit_button.pressed.connect(func(): _export_strava_fit(true))
 	buttons.add_child(fit_button)
 	var quit := Button.new()
-	quit.text = "■  STOPPEN"
+	quit.text = "Stoppen"
 	quit.custom_minimum_size = Vector2(185, 58)
 	_style_finish_button(quit, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	quit.pressed.connect(func(): get_tree().quit())
@@ -2053,6 +2116,7 @@ func _build_hud() -> void:
 
 func _build_finish_photo_ui(row: HBoxContainer) -> void:
 	var frame := PanelContainer.new()
+	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.96, 0.96, 0.94)                 # white photo border
 	style.set_content_margin_all(8)
@@ -2137,6 +2201,8 @@ func _set_menu_visible(is_visible: bool) -> void:
 		return
 	setup_panel.visible = is_visible
 	if is_visible:
+		results_podium.clear()
+		_clear_elimination_feedback()
 		setup_panel.call("show_choices")
 	_set_race_hud_visible(not is_visible)
 	if result_panel != null:
@@ -2191,6 +2257,15 @@ func _confirm_start() -> void:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
 		else: pursuit_opponent_country = String(selected_ai.get("country", "netherlands"))
+	var use_elimination_assist: bool = choice == 5 and setup_panel.elimination_assist_toggle.button_pressed
+	_clear_elimination_feedback()
+	elimination_assist.enabled = use_elimination_assist
+	selected_startlist.clear()
+	startlist_mode = -1
+	if choice in [0,3,5] and setup_panel.page == 5:
+		if not setup_panel.startlist_page.can_start(): return
+		selected_startlist.assign(setup_panel.startlist_page.lineup.duplicate(true))
+		startlist_mode = race_mode
 	_configure_peloton()
 	if choice in [1, 2]:
 		_prepare_pursuit(replay, options.configured_cp())
@@ -2584,6 +2659,10 @@ func _update_compact_hud(order: Array[int]) -> void:
 		notice = "Finish · %.2f s" % finish_times[0]
 	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
+	if race_mode == 2 and running and not finished and finish_times[0] < 0.0 and start_state == "RACING":
+		var blocking_notice: String = elimination_assist.notice(clock)
+		if not blocking_notice.is_empty(): notice = blocking_notice
+		if elimination_lane_blocked: notice = "GEEN RUIMTE OM IN TE VOEGEN · HOUD JE RIJLIJN"
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
 	if race_mode == 4:
@@ -2611,7 +2690,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else _hud_leader_gap(order), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -2626,7 +2705,10 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 	label.text = value
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if right else HORIZONTAL_ALIGNMENT_LEFT
-	label.add_theme_font_size_override("font_size", 16 if not header else 14)
+	label.add_theme_font_size_override("font_size", 20 if not header else 16)
+	label.custom_minimum_size.x = width - 14
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.tooltip_text = value
 	label.add_theme_color_override("font_color", tint)
 	panel.add_child(label)
 
@@ -2643,7 +2725,7 @@ func _refresh_fullscreen_results() -> void:
 	for n in range(rider_count): ordered.append(n)
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
-	finish_heading.text = "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else "VELODROME 250  |  UITSLAG"
+	finish_heading.text = "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
 	if finish_subtitle != null:
 		finish_subtitle.text = "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
 	if pursuit_save_box != null:
@@ -3257,3 +3339,52 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 				route["stage"] = 3
 				coast_speeds[rider] = 0.0
 	elimination_exit[rider] = route
+
+func _clear_elimination_feedback() -> void:
+	elimination_lane_blocked = false
+	elimination_notice_until = -1.0
+	if elimination_notice != null:
+		elimination_notice.text = ""
+		elimination_notice.hide()
+	elimination_assist.reset()
+	if setup_panel != null and setup_panel.elimination_assist_toggle != null:
+		setup_panel.elimination_assist_toggle.button_pressed = false
+
+func _nearest_player_lane(offset: float) -> int:
+	var nearest := 0
+	for i in range(LANES.size()):
+		if absf(LANES[i] - offset) < absf(LANES[nearest] - offset): nearest = i
+	return nearest
+
+func _manual_elimination_steering() -> void:
+	if race_mode != 2: return
+	if elimination_assist.target >= 0.0:
+		player_lane = _nearest_player_lane(lane_offsets[0])
+	elimination_assist.manual(clock)
+
+func _hud_elimination_gap() -> String:
+	if finish_times[0] >= 0.0: return "Afgevallen" if elimination_rules.eliminated.has(0) else "Finish"
+	var opponents: Array[int] = []
+	for i in range(1, rider_count):
+		if finish_times[i] < 0.0: opponents.append(i)
+	if opponents.is_empty(): return "—"
+	opponents.sort_custom(func(a: int, b: int) -> bool: return distances[a] < distances[b])
+	# When the player is last, show the negative gap to the next active rider.
+	# Eliminated/coasting riders never become the reference.
+	return "%+.1f m" % (distances[0] - distances[opponents[0]])
+
+func available_startlist_riders() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var seen: Array[String] = []
+	for entry in available_pursuit_riders():
+		if String(entry.id) not in seen:
+			result.append(entry);seen.append(String(entry.id))
+	# Keep reserve choices even for a sixteen-rider race. Personal extra slots are preserved.
+	for slot in range(16, 64):
+		if result.size() >= 24: break
+		var entry := _configured_rider(slot,1+((slot-1)%3))
+		if String(entry.id) not in seen:
+			result.append(entry);seen.append(String(entry.id))
+	for entry in result:
+		if not entry.jersey.has("country_kit"): entry.jersey["country_kit"] = entry.country
+	return result

@@ -31,10 +31,11 @@ net als de bestaande toekomstige disciplines Ploegkoers en Keirin.
 Zowel de knop als de bestaande wedstrijdstartcontrole blokkeren een start.
 Er zijn geen wedstrijdregels voor deze disciplines toegevoegd.
 
-De bestaande navigatie blijft behouden: klik op een discipline voor de
-instellingen, Escape/bridge-B gaat terug, F10 opent de algemene instellingen.
-Achtervolging behoudt de twee stappen voor afstand en tegenstander. Er is
-geen extra bevestigingsstap vóór de bestaande intro/startcontrole toegevoegd.
+Klik op een discipline voor de instellingen, Escape/bridge-B gaat terug en
+F10 opent de algemene instellingen. Achtervolging behoudt de twee stappen
+voor afstand en tegenstander. Scratch, Puntenkoers en Afvalling openen nu
+na de instellingen een bewerkbare startlijst vóór de bestaande intro/startcontrole.
+Zie `README_menu_v2.md` voor de uitgebreidere testversie.
 De visuele volgorde van de tegels staat los van de bestaande configuratie-indexen,
 zodat de racekeuze en opgeslagen instellingen hetzelfde blijven werken.
 

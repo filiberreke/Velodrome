@@ -7,6 +7,7 @@ const Catalog := preload("res://rider_catalog.gd")
 const Appearance := preload("res://player_appearance.gd")
 var entry: Dictionary = {}
 var interactive := true
+var compact := false
 var accent := Color("53d4d1")
 
 class Emblem extends Control:
@@ -82,6 +83,9 @@ func text(value: String, font_size: int, color: Color = MenuStyle.INK) -> Label:
 func _ready() -> void:
 	theme = MenuStyle.create()
 	accent = MenuStyle.BLUE
+	if compact:
+		_build_compact()
+		return
 	custom_minimum_size = Vector2(340, 412 if interactive else 370)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var skin := StyleBoxFlat.new()
@@ -177,6 +181,59 @@ func _meter(parent: Control, kind: String, caption: String, value: float, maximu
 	var back := StyleBoxFlat.new();back.bg_color = MenuStyle.PALE;back.set_corner_radius_all(4)
 	var fill := StyleBoxFlat.new();fill.bg_color = accent;fill.set_corner_radius_all(4)
 	meter.add_theme_stylebox_override("background",back);meter.add_theme_stylebox_override("fill",fill);block.add_child(meter)
+
+func _build_compact() -> void:
+	custom_minimum_size = Vector2(280, 216)
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_theme_stylebox_override("panel", MenuStyle.panel(MenuStyle.PAPER, MenuStyle.LINE, 12, 12))
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 6)
+	add_child(column)
+	column.add_child(text(Catalog.TYPES[int(entry.profile)], 14, MenuStyle.BLUE))
+	var name_label := text(String(entry.name), 20)
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.clip_text = true
+	name_label.tooltip_text = String(entry.name)
+	column.add_child(name_label)
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	column.add_child(body)
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = Vector2(66, 86)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	body.add_child(portrait)
+	var picture := Image.new()
+	if not String(entry.portrait_path).is_empty() and picture.load(entry.portrait_path) == OK:
+		portrait.texture = ImageTexture.create_from_image(picture)
+	if portrait.texture == null:
+		var preview = preload("res://player_appearance_preview.gd").new()
+		portrait.add_child(preview)
+		preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		preview.show_identity(entry)
+		preview.camera.size = 1.55
+		preview.camera.position = Vector3(0, 1.35, 3.5)
+		preview.camera.look_at(Vector3(0, 1.1, 0))
+		preview.viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+		if String(entry.portrait_url).begins_with("https://"): _request_photo(entry.portrait_url, portrait, preview)
+	var stats := VBoxContainer.new()
+	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats.add_theme_constant_override("separation", 4)
+	body.add_child(stats)
+	stats.add_child(text(country_name(entry.country), 14, MenuStyle.MUTED))
+	for item in [["CP", entry.cp_w, "W"], ["Sprint", entry.max_power_w, "W"], ["W′", entry.w_prime_j, "J"]]:
+		var row := HBoxContainer.new()
+		stats.add_child(row)
+		var caption := text(String(item[0]), 14, MenuStyle.MUTED)
+		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(caption)
+		row.add_child(text("%d %s" % [roundi(float(item[1])), item[2]], 16))
+	var change := Button.new()
+	change.text = "Wissel renner"
+	change.custom_minimum_size.y = 36
+	change.add_theme_font_size_override("font_size", 16)
+	change.pressed.connect(func() -> void: selected.emit(entry))
+	column.add_child(change)
 
 func best_1000m() -> float:
 	var best := float(entry.records.get("record_1000m_s",0.0))

@@ -1,4 +1,6 @@
 extends SceneTree
+class Game extends "res://main.gd":
+	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 var failures := 0
 func check(ok: bool, message: String) -> void:
 	if not ok: failures += 1; push_error(message)
@@ -32,7 +34,7 @@ func run() -> void:
 	popup._process(3)
 	check(not popup.visible, "Popup disappears at three seconds")
 	popup.free()
-	var game = preload("res://main.gd").new()
+	var game = Game.new()
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame

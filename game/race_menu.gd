@@ -8,6 +8,7 @@ var library = Records.new()
 var records_store = preload("res://performance_records.gd").new()
 var records_page: VBoxContainer
 var pursuit_flow: VBoxContainer
+var startlist_page: VBoxContainer
 var footer_label: Label
 var team_options
 var team_scroll: ScrollContainer
@@ -52,6 +53,7 @@ var status_label: Label
 var start_button: Button
 var back_button: Button
 var count_input: SpinBox
+var elimination_assist_toggle: CheckButton
 var elimination_count_picker: OptionButton
 var laps_input: SpinBox
 var demo_power_input: SpinBox
@@ -195,6 +197,9 @@ func _ready() -> void:
 	pursuit_flow = preload("res://pursuit_flow.gd").new()
 	pursuit_flow.menu = self
 	layout.add_child(pursuit_flow)
+	startlist_page = preload("res://startlist_page.gd").new()
+	startlist_page.menu = self
+	layout.add_child(startlist_page)
 	records_page = preload("res://records_page.gd").new()
 	records_page.store = records_store
 	layout.add_child(records_page)
@@ -245,6 +250,12 @@ func _build_settings(layout: VBoxContainer) -> void:
 	elimination_count_picker.select(1)
 	race_settings.add_child(elimination_count_picker)
 	elimination_count_picker.visible = false
+	elimination_assist_toggle = CheckButton.new()
+	elimination_assist_toggle.text = "Inhaalhulp · automatisch veilig uitwijken"
+	elimination_assist_toggle.tooltip_text = "Standaard UIT. Bij blokkering verschijnt een waarschuwing. AAN: veilig rijlijn wisselen; zelf sturen heeft voorrang en pauzeert de hulp 2 seconden."
+	elimination_assist_toggle.button_pressed = false
+	elimination_assist_toggle.visible = false
+	race_settings.add_child(elimination_assist_toggle)
 	laps_input = _number(race_settings, "Ronden · 250 meter per ronde", 1, 30, 10)
 	difficulty_label = label("AI-sterkte · 80%", 22)
 	race_settings.add_child(difficulty_label)
@@ -294,12 +305,15 @@ func _build_settings(layout: VBoxContainer) -> void:
 	MenuStyle.primary(start_button)
 	start_button.pressed.connect(func() -> void:
 		if not start_button.disabled and (selected in [0, 3, 5] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
-			start_requested.emit())
+			if selected in [0, 3, 5]: show_startlist()
+			else: start_requested.emit())
 	navigation.add_child(start_button)
 
 func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: int, initial: int) -> SpinBox:
-	parent_node.add_child(label(title, 22))
+	var caption := label(title, 22)
+	parent_node.add_child(caption)
 	var input := SpinBox.new()
+	input.set_meta("caption", caption)
 	input.min_value = minimum
 	input.max_value = maximum
 	input.step = 1
@@ -314,6 +328,7 @@ func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: i
 func show_choices() -> void:
 	footer_label.show()
 	page_title.add_theme_font_size_override("font_size",44)
+	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	if page == 2 and selected in [0, 3, 5]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	page = 1
@@ -334,6 +349,7 @@ func select_mode(index: int) -> void:
 		show_records()
 		return
 	records_page.hide()
+	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	page = 2
 	page_title.text = "Stel je wedstrijd in"
@@ -345,10 +361,11 @@ func select_mode(index: int) -> void:
 	selected_art.texture = previews[selected].get_texture()
 	race_settings.visible = selected in [0, 3, 5]
 	count_input.visible = selected != 5
-	race_settings.get_child(0).visible = selected != 5
+	count_input.get_meta("caption").visible = selected != 5
 	elimination_count_picker.visible = selected == 5
+	elimination_assist_toggle.visible = selected == 5
 	laps_input.visible = selected != 5
-	race_settings.get_child(3).visible = selected != 5
+	laps_input.get_meta("caption").visible = selected != 5
 	if selected in [0, 3]:
 		count_input.max_value = 16 if selected == 3 else 12
 		laps_input.max_value = 120 if selected == 3 else 30
@@ -365,7 +382,7 @@ func select_mode(index: int) -> void:
 	demo_settings.visible = selected in [0, 1, 2, 3, 5] and not bridge_seen and not bridge_unavailable
 	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
 	start_button.disabled = selected not in [0, 1, 2, 3, 5]
-	start_button.text = "Start wedstrijd  →" if selected in [0, 1, 2, 3, 5] else "Binnenkort"
+	start_button.text = "Startlijst →" if selected in [0, 3, 5] else "Start wedstrijd →" if selected in [1, 2] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
@@ -387,6 +404,7 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	if selected in [1, 2]:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 	if pursuit_flow != null and pursuit_flow.visible: pursuit_flow.update_bridge()
+	if startlist_page != null and startlist_page.visible: startlist_page.update_bridge()
 
 func _pursuit_changed() -> void:
 	if selected not in [1, 2] or start_button == null:
@@ -396,13 +414,17 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and page in [2, 3, 4] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
-		if selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
+	if visible and page in [2, 3, 4, 5] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+		if page == 5: startlist_page.back()
+		elif selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
 		else: show_choices()
 		get_viewport().set_input_as_handled()
 
 func bridge_action(button: String) -> void:
 	if not visible:
+		return
+	if page == 5:
+		startlist_page.bridge_action(button)
 		return
 	if pursuit_options != null and is_instance_valid(pursuit_options.active_picker):
 		pursuit_options.active_picker.bridge_action(button)
@@ -428,6 +450,7 @@ func bridge_action(button: String) -> void:
 func show_records() -> void:
 	footer_label.hide()
 	page_title.add_theme_font_size_override("font_size",44)
+	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	page = 3
 	page_title.text = "Records"
@@ -435,3 +458,16 @@ func show_records() -> void:
 	choice_page.hide(); settings_page.hide(); records_page.show()
 	records_page.refresh(true)
 	records_page.back_button.grab_focus.call_deferred()
+
+func show_startlist() -> void:
+	if selected not in [0, 3, 5] or bridge_unavailable: return
+	field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
+	page = 5
+	choice_page.hide()
+	settings_page.hide()
+	pursuit_flow.hide()
+	records_page.hide()
+	footer_label.hide()
+	page_title.text = "Jouw startlijst"
+	breadcrumb.text = "01  Wedstrijdinstellingen     /     02  Startlijst"
+	startlist_page.begin()

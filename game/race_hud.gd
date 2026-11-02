@@ -529,7 +529,7 @@ func update_race(data: Dictionary) -> void:
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]
-	gap_caption.text = "PELOTON" if not str(data.get("peloton_gap", "")).is_empty() else "KOPPOSITIE"
+	gap_caption.text = "TOT LAATSTE" if bool(data.get("elimination", false)) else ("PELOTON" if not str(data.get("peloton_gap", "")).is_empty() else "KOPPOSITIE")
 	status_label.text = data.get("notice", "")
 	status_panel.visible = not status_label.text.is_empty()
 	map.set_progress(data["distances"])

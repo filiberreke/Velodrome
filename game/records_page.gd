@@ -12,6 +12,7 @@ var message: Label
 var back_button: Button
 var category: Label
 var mode_buttons: Array[Button] = []
+var distance_caption: Label
 var distance_buttons: Array[Button] = []
 var shown: Array[Dictionary] = []
 
@@ -33,6 +34,7 @@ func _ready() -> void:
 	mode_choice = OptionButton.new()
 	mode_choice.add_item("Achtervolging", 4)
 	mode_choice.add_item("Ploegenachtervolging", 5)
+	mode_choice.add_item("Tijdrit", 7)
 	add_child(mode_choice)
 	mode_choice.hide()
 	distance_choice = OptionButton.new()
@@ -40,16 +42,17 @@ func _ready() -> void:
 	distance_choice.add_item("4 km", 4000)
 	add_child(distance_choice)
 	distance_choice.hide()
-	for i in range(2):
+	for i in range(mode_choice.item_count):
 		var button := Button.new()
 		button.text = mode_choice.get_item_text(i)
 		button.toggle_mode = true
-		button.custom_minimum_size = Vector2(330, 54)
+		button.custom_minimum_size = Vector2([260,330,150][i], 54)
 		button.pressed.connect(func() -> void: mode_choice.select(i); refresh())
 		filters.add_child(button)
 		mode_buttons.append(button)
 	filters.add_spacer(false)
-	filters.add_child(_label("Afstand", 19, MenuStyle.MUTED))
+	distance_caption = _label("Afstand", 19, MenuStyle.MUTED)
+	filters.add_child(distance_caption)
 	for i in range(2):
 		var button := Button.new()
 		button.text = distance_choice.get_item_text(i)
@@ -121,11 +124,15 @@ func refresh(import_old: bool = false) -> void:
 	if import_old: store.import_saved()
 	var import_error: String = store.last_error
 	size_box.visible = mode_choice.get_selected_id() == 5
-	for i in range(2):
-		mode_buttons[i].button_pressed = mode_choice.selected == i
+	var future := mode_choice.get_selected_id() == 7
+	for i in range(mode_buttons.size()): mode_buttons[i].button_pressed = mode_choice.selected == i
+	for i in range(distance_buttons.size()):
 		distance_buttons[i].button_pressed = distance_choice.selected == i
-	category.text = "%s · %s%s" % [mode_choice.text, distance_choice.text, " · " + size_choice.text if size_box.visible else ""]
-	shown = store.top(mode_choice.get_selected_id(), distance_choice.get_selected_id(), size_choice.get_selected_id() if size_box.visible else 0)
+		distance_buttons[i].visible = not future
+	distance_caption.visible = not future
+	category.text = mode_choice.text if future else "%s · %s%s" % [mode_choice.text, distance_choice.text, " · " + size_choice.text if size_box.visible else ""]
+	shown.clear()
+	if not future: shown = store.top(mode_choice.get_selected_id(), distance_choice.get_selected_id(), size_choice.get_selected_id() if size_box.visible else 0)
 	for child in rows.get_children():
 		rows.remove_child(child)
 		child.queue_free()
@@ -143,7 +150,7 @@ func refresh(import_old: bool = false) -> void:
 		_cell(row, time_text(float(entry["seconds"])), 2, true)
 	message.text = import_error if not import_error.is_empty() else store.last_error
 	if message.text.is_empty():
-		message.text = "Nog geen prestaties in deze categorie. Voltooi een rit om automatisch je tijd te registreren." if shown.is_empty() else "Snelste 10 voltooide prestaties · automatisch bewaard · beste tijd bovenaan"
+		message.text = "Tijdrit komt later beschikbaar. Hier verschijnen je tijden zodra deze discipline is geïmplementeerd." if future else "Nog geen prestaties in deze categorie. Voltooi een rit om automatisch je tijd te registreren." if shown.is_empty() else "Snelste 10 voltooide prestaties · automatisch bewaard · beste tijd bovenaan"
 		for entry in shown:
 			if bool(entry.get("legacy", false)):
 				message.text += "\nOude rit: spelernaam was niet opgeslagen; de datum is het toenmalige opslagmoment (UTC)."

@@ -38,6 +38,8 @@ func run_test()->void:
 		await process_frame;await process_frame
 		check(not menu.start_button.disabled,"Elimination start button enabled")
 		await click_button(menu.start_button)
+		check(menu.page==5 and game.start_state=="SETUP","Elimination first opens its editable start list")
+		await click_button(menu.startlist_page.start_button)
 		check(game.start_state!="SETUP" and not menu.visible,"Actual mouse click starts elimination")
 		check(game.race_mode==2 and game.rider_count==amount,"Elimination keeps requested participant count")
 		game.broadcast_intro.finish()

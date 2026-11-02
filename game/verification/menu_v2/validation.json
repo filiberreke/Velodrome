@@ -1,0 +1,145 @@
+{
+  "base_main": "202433969f7e9d7cb11589e1fec3c49e31828bc0",
+  "previous_menu_commit": "bebc1de4163f5fc2dd029e014fdb6f540243e046",
+  "branch": "feature/ivory-blue-menus",
+  "main_push_authorized": false,
+  "engine": "Godot 4.7.2",
+  "checks": [
+    {
+      "test": "test_startlist_flow",
+      "pass": true,
+      "markers": [
+        "STARTLIST_FLOW failures=0"
+      ]
+    },
+    {
+      "test": "test_results_podium",
+      "pass": true,
+      "markers": [
+        "RESULTS_PODIUM failures=0"
+      ]
+    },
+    {
+      "test": "test_menu",
+      "pass": true,
+      "markers": [
+        "MENU_FLOW_OK"
+      ]
+    },
+    {
+      "test": "test_menu_theme",
+      "pass": true,
+      "markers": [
+        "MENU_THEME failures=0"
+      ]
+    },
+    {
+      "test": "test_pursuit_flow",
+      "pass": true,
+      "markers": [
+        "PURSUIT_FLOW failures=0"
+      ]
+    },
+    {
+      "test": "test_records",
+      "pass": true,
+      "markers": [
+        "PERSONAL_RECORDS_OK"
+      ]
+    },
+    {
+      "test": "test_rider_profiles",
+      "pass": true,
+      "markers": [
+        "RIDER_PROFILES failures=0"
+      ]
+    },
+    {
+      "test": "test_player_appearance",
+      "pass": true,
+      "markers": [
+        "Player appearance settings: PASS"
+      ]
+    },
+    {
+      "test": "test_team_pursuit",
+      "pass": true,
+      "markers": [
+        "TEAM_PURSUIT_OK"
+      ]
+    },
+    {
+      "test": "test_points_race",
+      "pass": true,
+      "markers": [
+        "POINTS_RACE_OK"
+      ]
+    },
+    {
+      "test": "test_broadcast_intro",
+      "pass": true,
+      "markers": [
+        "BROADCAST_INTRO_OK"
+      ]
+    },
+    {
+      "test": "test_elimination_menu_fix",
+      "pass": true,
+      "markers": [
+        "ELIMINATION_MENU_FIX failures=0"
+      ]
+    },
+    {
+      "test": "test_elimination_corrections",
+      "pass": true,
+      "markers": [
+        "ELIMINATION_CORRECTIONS failures=0"
+      ]
+    },
+    {
+      "test": "test_elimination_assist",
+      "pass": true,
+      "markers": [
+        "ELIMINATION_ASSIST failures=0"
+      ]
+    },
+    {
+      "test": "test_elimination_rules",
+      "pass": true,
+      "markers": []
+    },
+    {
+      "test": "test_elimination_traffic",
+      "pass": true,
+      "markers": []
+    },
+    {
+      "test": "test_elimination_gameplay",
+      "pass": true,
+      "markers": [
+        "ELIMINATION_GAMEPLAY failures=0"
+      ]
+    },
+    {
+      "test": "test_gameplay_headless",
+      "pass": true,
+      "markers": [
+        "GAMEPLAY_HEADLESS_OK"
+      ]
+    },
+    {
+      "test": "test_elimination_merging",
+      "pass": true,
+      "markers": [
+        "ELIMINATION_MERGING failures=0"
+      ]
+    }
+  ],
+  "render_capture": "MENU_V2_CAPTURES_OK",
+  "capture_count": 10,
+  "physical_hardware_tested": false,
+  "notes": [
+    "Isolated test configuration; no personal configuration or recordings included.",
+    "Windows certificate-store warning persists; dummy renderer can warn about materials on portrait teardown. GPU capture has no script or material errors."
+  ]
+}

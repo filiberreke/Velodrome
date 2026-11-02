@@ -11,7 +11,13 @@ var current:=0
 var candidates:Array[Dictionary]=[]
 var preferences_path:="user://config/opponent_selection.cfg"
 var preferences:=ConfigFile.new()
-var distance_page:VBoxContainer
+var distance_page:CenterContainer
+var distance_options:VBoxContainer
+var match_art:TextureRect
+var match_title:Label
+var match_description:Label
+var match_navigation:HBoxContainer
+var opponent_navigation:HBoxContainer
 var opponent_page:VBoxContainer
 var distance_buttons:Array[Button]=[]
 var size_buttons:Array[Button]=[]
@@ -56,19 +62,27 @@ func _ready()->void:
 	theme=MenuStyle.create()
 	size_flags_vertical=Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation",10)
-	distance_page=VBoxContainer.new();distance_page.add_theme_constant_override("separation",20);distance_page.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_child(distance_page)
-	distance_page.add_child(text("Welke afstand wil je rijden?",28))
-	var distance_row:=center_row(distance_page)
+	distance_page=CenterContainer.new();distance_page.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_child(distance_page)
+	var shell:=PanelContainer.new();shell.custom_minimum_size=Vector2(1260,0);shell.add_theme_stylebox_override("panel",MenuStyle.panel(MenuStyle.PAPER,MenuStyle.LINE,22));distance_page.add_child(shell)
+	var match_row:=HBoxContainer.new();match_row.add_theme_constant_override("separation",48);shell.add_child(match_row)
+	var information:=VBoxContainer.new();information.custom_minimum_size.x=540;information.add_theme_constant_override("separation",18);match_row.add_child(information)
+	match_art=TextureRect.new();match_art.custom_minimum_size=Vector2(540,260);match_art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;match_art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;information.add_child(match_art)
+	match_title=menu.label("",36);match_title.add_theme_font_override("font",MenuStyle.heading());information.add_child(match_title)
+	match_description=menu.label("",22,MenuStyle.MUTED);match_description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;information.add_child(match_description)
+	distance_options=VBoxContainer.new();distance_options.custom_minimum_size.x=570;distance_options.add_theme_constant_override("separation",14);match_row.add_child(distance_options)
+	distance_options.add_child(menu.label("Jouw wedstrijd",30))
+	distance_options.add_child(menu.label("Afstand",22))
+	var distance_row:=center_row(distance_options)
 	for value in [1000,4000]:
-		var choice:=button("1 km\n4 ronden"if value==1000 else"4 km\n16 ronden",350)
-		choice.custom_minimum_size.y=140;choice.toggle_mode=true;distance_row.add_child(choice);distance_buttons.append(choice)
+		var choice:=button("1 km\n4 ronden"if value==1000 else"4 km\n16 ronden",265)
+		choice.custom_minimum_size.y=72;choice.toggle_mode=true;distance_row.add_child(choice);distance_buttons.append(choice)
 		choice.pressed.connect(func():select_distance(value))
-	var squad_row:=center_row(distance_page);squad_row.name="SquadSize"
+	var squad_row:=center_row(distance_options);squad_row.name="SquadSize"
 	for value in [3,4]:
 		var choice:=button("%d renners"%value,240);choice.toggle_mode=true;squad_row.add_child(choice);size_buttons.append(choice)
 		choice.pressed.connect(func():select_size(value))
-	advanced_toggle=CheckButton.new();advanced_toggle.text="Ploeginstellingen";advanced_toggle.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;distance_page.add_child(advanced_toggle)
-	advanced=VBoxContainer.new();advanced.add_theme_constant_override("separation",8);distance_page.add_child(advanced);advanced.hide()
+	advanced_toggle=CheckButton.new();advanced_toggle.text="Ploeginstellingen";advanced_toggle.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;distance_options.add_child(advanced_toggle)
+	advanced=VBoxContainer.new();advanced.add_theme_constant_override("separation",8);distance_options.add_child(advanced);advanced.hide()
 	advanced_toggle.toggled.connect(func(value):advanced.visible=value and team)
 	var line:=center_row(advanced);line.add_child(text("Weerstand",18));resistance=OptionButton.new();resistance.add_item("Manueel",0);resistance.add_item("ERG",1);line.add_child(resistance)
 	resistance.item_selected.connect(func(index):if options!=null:options.resistance_choice.select(index);options.resistance_choice.item_selected.emit(index))
@@ -90,10 +104,12 @@ func _ready()->void:
 	strength_input=SpinBox.new();strength_input.min_value=30;strength_input.max_value=150;strength_input.step=5;strength_input.suffix="%";strength_input.custom_minimum_size=Vector2(115,40);strength_row.add_child(strength_input)
 	strength_slider.value_changed.connect(_strength_changed);strength_input.value_changed.connect(_strength_changed)
 	strength_hint=text("",16,MenuStyle.MUTED);opponent_page.add_child(strength_hint)
-	demo_row=center_row(distance_page);demo_row.add_child(text("Demo-startvermogen",16));demo_input=SpinBox.new();demo_input.min_value=0;demo_input.max_value=900;demo_input.step=25;demo_input.suffix="W";demo_input.custom_minimum_size=Vector2(130,36);demo_row.add_child(demo_input)
+	demo_row=center_row(distance_options);demo_row.add_child(text("Demo-startvermogen",16));demo_input=SpinBox.new();demo_input.min_value=0;demo_input.max_value=900;demo_input.step=25;demo_input.suffix="W";demo_input.custom_minimum_size=Vector2(130,36);demo_row.add_child(demo_input)
 	demo_input.value_changed.connect(func(value):if menu!=null:menu.demo_power_input.value=value)
 	status=text("",17,MenuStyle.INK);add_child(status)
-	var navigation:=center_row(self);previous_button=button("← Spelvormen",250);proceed_button=button("Kies tegenstander →",350);navigation.add_child(previous_button);navigation.add_child(proceed_button)
+	match_navigation=center_row(distance_options)
+	opponent_navigation=center_row(self)
+	previous_button=button("← Spelvormen",210);proceed_button=button("Kies tegenstander →",310);match_navigation.add_child(previous_button);match_navigation.add_child(proceed_button)
 	proceed_button.add_theme_stylebox_override("normal",menu.panel_style(MenuStyle.BLUE));proceed_button.add_theme_color_override("font_color",Color.WHITE)
 	MenuStyle.primary(proceed_button)
 	previous_button.pressed.connect(back);proceed_button.pressed.connect(next_step)
@@ -106,13 +122,16 @@ func begin(is_team:bool)->void:
 	team=is_team;options=menu.team_options if team else menu.pursuit_options
 	preferences.clear();preferences.load(preferences_path)
 	step=1;kind=0;current=0;advanced_toggle.button_pressed=false
-	distance_page.get_node("SquadSize").visible=team;advanced_toggle.visible=team;advanced.hide()
+	distance_options.get_node("SquadSize").visible=team;advanced_toggle.visible=team;advanced.hide()
 	ai_tab.text="AI-ploegen"if team else"AI-renners"
 	var distance:=int(preferences.get_value("team"if team else"individual","distance",options.distance_m()))
 	if distance not in [1000,4000]:distance=1000
 	select_distance(distance)
 	if team:
 		select_size(clampi(int(preferences.get_value("team","size",options.team_size())),3,4))
+	match_art.texture=menu.previews[2 if team else 1].get_texture()
+	match_title.text=menu.MODES[2 if team else 1].title
+	match_description.text=menu.MODES[2 if team else 1].detail
 	show();_show_step()
 
 func select_distance(distance:int)->void:
@@ -143,9 +162,13 @@ func back()->void:
 
 func _show_step()->void:
 	distance_page.visible=step==1;opponent_page.visible=step==2
+	var navigation:HBoxContainer=match_navigation if step==1 else opponent_navigation
+	if previous_button.get_parent()!=navigation:
+		previous_button.reparent(navigation);proceed_button.reparent(navigation)
+	match_navigation.visible=step==1;opponent_navigation.visible=step==2
 	previous_button.text="← Wedstrijd"if step==2 else"← Spelvormen"
 	proceed_button.text="Start wedstrijd →"if step==2 else"Kies tegenstander →"
-	menu.page_title.text="Kies je tegenstander"if step==2 else"Kies je wedstrijd"
+	menu.page_title.text="Kies je tegenstander"if step==2 else"Stel je wedstrijd in"
 	menu.page_title.add_theme_font_size_override("font_size",36)
 	menu.breadcrumb.text="02  Instellingen     /     Tegenstander"
 	if step==2:summary_label.text="%s  ·  %d km%s"%["Ploegenachtervolging"if team else"Achtervolging",options.distance_m()/1000,"  ·  %d renners"%options.team_size()if team else""]

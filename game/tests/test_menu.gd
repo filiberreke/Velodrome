@@ -57,6 +57,8 @@ func run_test() -> void:
 	await process_frame
 	check(menu.start_button.get_global_rect().end.y <= 1080.1, "Settings navigation fits screen")
 	menu.start_button.pressed.emit()
+	check(menu.page == 5 and game.start_state == "SETUP", "Settings opens the editable start list before starting")
+	menu.startlist_page.start_button.pressed.emit()
 	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Start shows broadcast intro before HUD")
 	game.broadcast_intro.finish()
 	check(not menu.visible and game.start_state == "WAIT_STOP", "Start opens existing trainer/countdown flow")
@@ -79,6 +81,7 @@ func run_test() -> void:
 	menu.back_button.pressed.emit()
 	menu.cards[3].pressed.emit()
 	menu.start_button.pressed.emit()
+	menu.startlist_page.start_button.pressed.emit()
 	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Repeat-intro test setting applies to the second event")
 	game.broadcast_intro.finish()
 	check(game.race_mode == 1 and game.rider_count == 16 and game.race_laps == 40, "Points mode starts with its own settings")
