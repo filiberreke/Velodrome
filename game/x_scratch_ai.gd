@@ -486,19 +486,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			var steady_watts: float = cp[i] * (0.76 if drafts[i] > 0.12 else 0.91)
 			var launch_target: float = lerpf(steady_watts, launch_watts, launch_time_weight * launch_speed_weight)
 			target = maxf(target, launch_target)
-		# Collision anticipation: if the same lateral corridor is occupied,
-		# reduce the requested speed until a legal passing corridor is reached.
-		# No position teleport, and attacks may still pass in another lane.
-		var blocked_speed: float = 1000.0
-		for j in range(count):
-			if j == i or finished[j] >= 0.0:
-				continue
-			var ahead_m: float = distances[j] - distances[i]
-			if ahead_m > -0.4 and ahead_m < 4.2 and absf(lanes[j] - lanes[i]) < 0.88:
-				blocked_speed = minf(blocked_speed, maxf(2.0, speeds[j] + 0.55 * (ahead_m - 2.0)))
-		if blocked_speed < 900.0 and speeds[i] > blocked_speed:
-			var safe_watts: float = road_power(blocked_speed, draft_factor) / DRIVETRAIN
-			target = minf(target, safe_watts)
+		target = _traffic_power(i, target, distances, speeds, lanes, finished, draft_factor)
 		# No incentive to pull: decrease quickly to below 50% CP.
 		if idle and main.has(i) and m in [MODE_DRAFT, MODE_PULL]:
 			if distances[i] >= main_front - 1.5:
@@ -542,84 +530,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 				var budget: float = cp[i] + 0.88 * wprime[i] / maxf(6.0, seconds)
 				target = maxf(target, minf(effort, budget))
 				sprint_started[i] = true
-		# Continue moving toward a useful wheel, but avoid oscillating every frame.
-		if clock < pull_off_until[i]:
-			lane_targets[i] = TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1]
-		elif m == MODE_BREAK_PULL:
-			lane_targets[i] = _takeover_lane(i, escape_group, distances, lanes, finished)
-		elif m == MODE_ATTACK:
-			lane_targets[i] = TRACK_LANE_POSITIONS[0]
-		elif m in [MODE_CHASE, MODE_SOLO, MODE_BREAK_DRAFT] and wheel_i >= 0 and gap < 25.0:
-			# Urgent wheel capture overrides the usual 35 s lane lock.
-			# Otherwise a chaser can spend a whole escape beside the player.
-			var wheel_lane: float = lanes[wheel_i]
-			if gap < 1.5 and absf(wheel_lane - lanes[i]) < 0.4:
-				# Already alongside: move outside to complete a safe pass rather
-				# than steering through the bicycle in front.
-				wheel_lane = clampf(wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20), TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
-			lane_targets[i] = clampf(wheel_lane, TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
-			lane_lock[i] = clock + 8.0
-		elif m in [MODE_SOLO, MODE_CHASE, MODE_BREAK_DRAFT]:
-			# Alone with nobody's wheel ahead: choose the shortest legal line.
-			lane_targets[i] = TRACK_LANE_POSITIONS[0]
-		elif m == MODE_DRAFT and wheel_i < 0 and distances[i] > median_d + 15.0:
-			# An isolated leader may have dropped out of MODE_SOLO before the
-			# clustering logic catches up. Do not leave them marooned mid-track.
-			lane_targets[i] = TRACK_LANE_POSITIONS[0]
-		elif m == MODE_DRAFT and wheel_i >= 0:
-			var wheel_lane: float = lanes[wheel_i]
-			var lateral_gap: float = absf(wheel_lane - lanes[i])
-			var urgent_alignment: bool = gap < 14.0 and lateral_gap > 1.15 and (wheel_i == 0 or gap < 7.0)
-			if clock >= lane_lock[i] or urgent_alignment:
-				var target_lane: float = wheel_lane
-				var rank_gap: float = head_d - distances[i]
-				if final_stage and rank_gap > 6.0:
-					target_lane = wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20)
-				elif gap < 2.0 and lateral_gap < 0.3 and not economical:
-					target_lane = wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20)
-				if absf(target_lane - lane_targets[i]) >= 0.5:
-					lane_targets[i] = clampf(target_lane, TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
-					lane_lock[i] = clock + (8.0 if urgent_alignment else 35.0)
-		# Shelter is the tactical preference. Collision avoidance is a hard
-		# local constraint, not a reward for moving into an empty corridor.
-		# Re-evaluate wheel alignment even when an old tactical lock is active.
-		var shelter_mode: bool = m in [MODE_DRAFT, MODE_BREAK_DRAFT, MODE_CHASE]
-		var min_align_gap: float = 1.55 if economical else 2.1
-		if shelter_mode and wheel_i >= 0 and gap > min_align_gap and gap < 21.0 and clock >= pull_off_until[i]:
-			var desired_wheel_lane: float = clampf(lanes[wheel_i], TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
-			if absf(lane_targets[i] - desired_wheel_lane) > 0.4:
-				lane_targets[i] = desired_wheel_lane
-				lane_lock[i] = clock + 1.0
-		_prefer_inner_line(i, clock, distances, speeds, lanes, finished, m, wheel_i, gap, final_stage)
-		# If already too close to a rider ahead, slow down rather than
-		# automatically leaving their wheel. Move only when passing is viable.
-		var hard_conflict: bool = false
-		for j in range(count):
-			if i == j or finished[j] >= 0.0:
-				continue
-			var signed_gap: float = distances[j] - distances[i]
-			if absf(signed_gap) < 1.45 and absf(lanes[j] - lane_targets[i]) < 0.85:
-				hard_conflict = true
-				break
-		if hard_conflict:
-			var best_lane: float = lane_targets[i]
-			var best_score: float = -100000.0
-			for candidate in TRACK_LANE_POSITIONS:
-				var clearance_penalty: float = 0.0
-				for j in range(count):
-					if i == j or finished[j] >= 0.0:
-						continue
-					var separation: float = absf(distances[j] - distances[i])
-					if separation < 1.45 and absf(lanes[j] - float(candidate)) < 0.85:
-						clearance_penalty += 100.0
-				var shelter_penalty: float = (2.4 * absf(float(candidate) - lanes[wheel_i])) if shelter_mode and wheel_i >= 0 and gap < 21.0 else 0.0
-				var score: float = -clearance_penalty - shelter_penalty - 0.35 * absf(float(candidate) - lanes[i])
-				if score > best_score:
-					best_score = score
-					best_lane = float(candidate)
-			if best_score > -80.0 and absf(best_lane - lane_targets[i]) > 0.25:
-				lane_targets[i] = best_lane
-				lane_lock[i] = clock + 1.0
+		_update_rider_line(i, clock, distances, speeds, lanes, finished, m, wheel_i, gap, final_stage, economical, median_d, head_d, escape_group, final_stage)
 		# An attack is short; solo pace or group work only after establishing a gap.
 		var cap_duration: float = (18.0 if m == MODE_ATTACK else (25.0 if m in [MODE_PULL, MODE_BREAK_PULL, MODE_CHASE] else 12.0))
 		target = minf(target, pcurve(cap_duration, cp[i], wmax[i], pmax[i])) if not sprint_started[i] else target
@@ -675,3 +586,99 @@ func configure_riders(identities: Array[Dictionary], forms: Array[float]) -> voi
 		pmax[i] *= float(identity.max_power_factor)
 		pmax[i] = maxf(cp[i] + 1.0, pmax[i])
 		wprime[i] = wmax[i]
+
+func _traffic_power(i: int, target: float, distances: Array[float], speeds: Array[float], lanes: Array[float], finished: Array[float], draft_factor: float) -> float:
+	# Collision anticipation: if the same lateral corridor is occupied,
+	# reduce the requested speed until a legal passing corridor is reached.
+	# No position teleport, and attacks may still pass in another lane.
+	var blocked_speed: float = 1000.0
+	for j in range(distances.size()):
+		if j == i or finished[j] >= 0.0:
+			continue
+		var ahead_m: float = distances[j] - distances[i]
+		if ahead_m > -0.4 and ahead_m < 4.2 and absf(lanes[j] - lanes[i]) < 0.88:
+			blocked_speed = minf(blocked_speed, maxf(2.0, speeds[j] + 0.55 * (ahead_m - 2.0)))
+	if blocked_speed < 900.0 and speeds[i] > blocked_speed:
+		var safe_watts: float = road_power(blocked_speed, draft_factor) / DRIVETRAIN
+		target = minf(target, safe_watts)
+	return target
+
+func _update_rider_line(i: int, clock: float, distances: Array[float], speeds: Array[float], lanes: Array[float], finished: Array[float], m: int, wheel_i: int, gap: float, final_stage: bool, economical: bool, median_d: float, head_d: float, escape_group: Array, sprint_positioning: bool = false) -> void:
+	# Continue moving toward a useful wheel, but avoid oscillating every frame.
+	if clock < pull_off_until[i]:
+		lane_targets[i] = TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1]
+	elif m == MODE_BREAK_PULL:
+		lane_targets[i] = _takeover_lane(i, escape_group, distances, lanes, finished)
+	elif m == MODE_ATTACK:
+		lane_targets[i] = TRACK_LANE_POSITIONS[0]
+	elif m in [MODE_CHASE, MODE_SOLO, MODE_BREAK_DRAFT] and wheel_i >= 0 and gap < 25.0:
+		# Urgent wheel capture overrides the usual 35 s lane lock.
+		# Otherwise a chaser can spend a whole escape beside the player.
+		var wheel_lane: float = lanes[wheel_i]
+		if gap < 1.5 and absf(wheel_lane - lanes[i]) < 0.4:
+			# Already alongside: move outside to complete a safe pass rather
+			# than steering through the bicycle in front.
+			wheel_lane = clampf(wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20), TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
+		lane_targets[i] = clampf(wheel_lane, TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
+		lane_lock[i] = clock + 8.0
+	elif m in [MODE_SOLO, MODE_CHASE, MODE_BREAK_DRAFT]:
+		# Alone with nobody's wheel ahead: choose the shortest legal line.
+		lane_targets[i] = TRACK_LANE_POSITIONS[0]
+	elif m == MODE_DRAFT and wheel_i < 0 and distances[i] > median_d + 15.0:
+		# An isolated leader may have dropped out of MODE_SOLO before the
+		# clustering logic catches up. Do not leave them marooned mid-track.
+		lane_targets[i] = TRACK_LANE_POSITIONS[0]
+	elif m == MODE_DRAFT and wheel_i >= 0:
+		var wheel_lane: float = lanes[wheel_i]
+		var lateral_gap: float = absf(wheel_lane - lanes[i])
+		var urgent_alignment: bool = gap < 14.0 and lateral_gap > 1.15 and (wheel_i == 0 or gap < 7.0)
+		if clock >= lane_lock[i] or urgent_alignment:
+			var target_lane: float = wheel_lane
+			var rank_gap: float = head_d - distances[i]
+			if final_stage and rank_gap > 6.0:
+				target_lane = wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20)
+			elif gap < 2.0 and lateral_gap < 0.3 and not economical:
+				target_lane = wheel_lane + (1.20 if wheel_lane < 6.0 else -1.20)
+			if absf(target_lane - lane_targets[i]) >= 0.5:
+				lane_targets[i] = clampf(target_lane, TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
+				lane_lock[i] = clock + (8.0 if urgent_alignment else 35.0)
+	# Shelter is the tactical preference. Collision avoidance is a hard
+	# local constraint, not a reward for moving into an empty corridor.
+	# Re-evaluate wheel alignment even when an old tactical lock is active.
+	var shelter_mode: bool = m in [MODE_DRAFT, MODE_BREAK_DRAFT, MODE_CHASE]
+	var min_align_gap: float = 1.55 if economical else 2.1
+	if shelter_mode and wheel_i >= 0 and gap > min_align_gap and gap < 21.0 and clock >= pull_off_until[i]:
+		var desired_wheel_lane: float = clampf(lanes[wheel_i], TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
+		if absf(lane_targets[i] - desired_wheel_lane) > 0.4:
+			lane_targets[i] = desired_wheel_lane
+			lane_lock[i] = clock + 1.0
+	_prefer_inner_line(i, clock, distances, speeds, lanes, finished, m, wheel_i, gap, sprint_positioning)
+	# If already too close to a rider ahead, slow down rather than
+	# automatically leaving their wheel. Move only when passing is viable.
+	var hard_conflict: bool = false
+	for j in range(distances.size()):
+		if i == j or finished[j] >= 0.0:
+			continue
+		var signed_gap: float = distances[j] - distances[i]
+		if absf(signed_gap) < 1.45 and absf(lanes[j] - lane_targets[i]) < 0.85:
+			hard_conflict = true
+			break
+	if hard_conflict:
+		var best_lane: float = lane_targets[i]
+		var best_score: float = -100000.0
+		for candidate in TRACK_LANE_POSITIONS:
+			var clearance_penalty: float = 0.0
+			for j in range(distances.size()):
+				if i == j or finished[j] >= 0.0:
+					continue
+				var separation: float = absf(distances[j] - distances[i])
+				if separation < 1.45 and absf(lanes[j] - float(candidate)) < 0.85:
+					clearance_penalty += 100.0
+			var shelter_penalty: float = (2.4 * absf(float(candidate) - lanes[wheel_i])) if shelter_mode and wheel_i >= 0 and gap < 21.0 else 0.0
+			var score: float = -clearance_penalty - shelter_penalty - 0.35 * absf(float(candidate) - lanes[i])
+			if score > best_score:
+				best_score = score
+				best_lane = float(candidate)
+		if best_score > -80.0 and absf(best_lane - lane_targets[i]) > 0.25:
+			lane_targets[i] = best_lane
+			lane_lock[i] = clock + 1.0

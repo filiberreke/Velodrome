@@ -3,31 +3,6 @@ extends "res://x_scratch_ai.gd"
 ## Only physics and rendering remain owned by main.gd.
 var elimination_line_m := 500.0
 var final_line_m := 7500.0
-var lateral_scales: Array[float] = []
-
-func _inner_corridor_clear(i: int, candidate: float, distances: Array[float], speeds: Array[float], lanes: Array[float], finished: Array[float]) -> bool:
-    # Check the swept corridor, but permit moving AWAY from a close wheel
-    # immediately in front. The inherited scratch test rejects that escape.
-    var width: float = 0.88
-    var low: float = minf(lanes[i], candidate) - width
-    var high: float = maxf(lanes[i], candidate) + width
-    var horizon: float = absf(candidate - lanes[i]) / 1.15 + 0.5
-    for j in range(lanes.size()):
-        if j == i or finished[j] >= 0.0: continue
-        var other_low: float = lanes[j]
-        var other_high: float = lanes[j]
-        if j > 0 and j < i:
-            other_low = minf(other_low, lane_targets[j])
-            other_high = maxf(other_high, lane_targets[j])
-        if other_high <= low or other_low >= high: continue
-        var gap: float = fposmod(distances[j] - distances[i] + 125.0, 250.0) - 125.0
-        var future: float = gap + (speeds[j] - speeds[i]) * horizon
-        var nearest: float = 0.0 if gap * future <= 0.0 else minf(absf(gap), absf(future))
-        var escaping: bool = gap > 0.0 and absf(lanes[j] - lanes[i]) < width and absf(lanes[j] - candidate) >= width and other_high - other_low < 0.15
-        if escaping: continue
-        if nearest < 4.5: return false
-    return true
-
 func step(dt: float, clock: float, distances: Array[float], speeds: Array[float], lanes: Array[float], drafts: Array[float], finished: Array[float], profiles: Array[int], laps: int, difficulty: float, credits: Array[int]) -> Array[float]:
     var count := distances.size()
     var output: Array[float] = []
@@ -105,45 +80,12 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
             var launch_target: float = lerpf(steady_watts, launch_watts, launch_time_weight * launch_speed_weight)
             target = maxf(target, launch_target)
 
-        # Search for a REAL pass, rather than changing lanes just because a wheel is close.
-        var blocked_by := -1
-        var blocking_gap := 100.0
-        for j in active:
-            if j == i:
-                continue
-            var ahead: float = distances[j] - distances[i]
-            var collision_width: float = preload("res://elimination_traffic.gd").lateral_clearance(i, j, lateral_scales)
-            if ahead > 0.1 and ahead < 7.0 and absf(lanes[j] - lanes[i]) < collision_width and ahead < blocking_gap:
-                blocked_by = j
-                blocking_gap = ahead
-        var candidate: float = lanes[i]
-        if blocked_by >= 0 and (imminent > 0.10 or speeds[i] >= speeds[blocked_by] - 0.4 or speeds[blocked_by] < 4.0):
-            var options: Array[float] = []
-            for direction in [-1.0, 1.0]:
-                var lane: float = clampf(lanes[i] + direction * 1.20, TRACK_LANE_POSITIONS[0], TRACK_LANE_POSITIONS[TRACK_LANE_POSITIONS.size() - 1])
-                if absf(lane - lanes[i]) > 0.35 and _inner_corridor_clear(i, lane, distances, speeds, lanes, finished):
-                    options.append(lane)
-            if not options.is_empty():
-                # Inside is shorter, but an open outside corridor is safer than being boxed in.
-                candidate = options[0]
-                if options.size() == 2:
-                    candidate = options[0] if options[0] < options[1] else options[1]
-            else:
-                # The following rider alone must lower speed, not mutually block both.
-                var allowed_v: float = maxf(2.0, speeds[blocked_by] + maxf(0.0, blocking_gap - 2.0) * 0.55)
-                if speeds[i] > allowed_v:
-                    var drag_factor: float = maxf(0.31, 1.0 - 0.69 * drafts[i])
-                    target = minf(target, road_power(allowed_v, drag_factor) / 0.975)
-        elif remaining > 200.0:
-            # Acquire the nearest wheel without cutting across occupied lanes.
-            var wheel_lane: float = lanes[wheel] if wheel >= 0 and wheel_gap > 6.0 else lanes[i]
-            candidate = wheel_lane if _inner_corridor_clear(i, wheel_lane, distances, speeds, lanes, finished) else lanes[i]
-        # Avoid burning the launch in repeated uphill/downhill lane changes.
-        # Keep a stable launch only when unimpeded. A slow or stationary rider
-        # ahead MUST be passable from the first second of the race.
-        if clock < 14.0 and blocked_by < 0:
-            candidate = lanes[i]
-        lane_targets[i] = candidate
+        # Use the inherited scratch/points traffic policy; elimination only
+        # supplies its next-jury-line positioning and keeps its own pace demand.
+        var positioning: bool = remaining < 200.0
+        var traffic_mode: int = MODE_DRAFT if wheel >= 0 else MODE_SOLO
+        target = _traffic_power(i, target, distances, speeds, lanes, finished, maxf(0.31, 1.0 - 0.69 * drafts[i]))
+        _update_rider_line(i, clock, distances, speeds, lanes, finished, traffic_mode, wheel, wheel_gap, positioning, economical_sprinter_wheels and profiles[i] == 2, distances[bunch_middle], distances[active[0]], [], positioning)
         output[i] = _phys_power(i, target * (difficulty / 80.0), dt)
         power_w[i] = output[i]
     return output

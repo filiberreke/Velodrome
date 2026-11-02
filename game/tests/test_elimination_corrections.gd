@@ -15,7 +15,7 @@ func run_test() -> void:
 	check(menu.get("elimination_assist_toggle") == null, "Elimination offers manual steering only")
 	menu.elimination_count_picker.select(0)
 	game._confirm_start()
-	check(game.race_mode == 2 and not game.elimination_assist.enabled, "Elimination starts with manual steering")
+	check(game.race_mode == 2, "Elimination starts with manual steering")
 	game.broadcast_intro.finish()
 	game.start_state = "RACING"; game.running = true; game.clock = 30.0
 	game.player_lane = 10; game._update_hud()
@@ -30,10 +30,9 @@ func run_test() -> void:
 	var order: Array[int] = [1,2,0,3]
 	game._update_compact_hud(order)
 	check(game.race_overlay.gap_caption.text == "TOT LAATSTE", "Elimination HUD caption is explicit")
-	game.elimination_assist.target = game.LANES[1]
 	game.lane_offsets[0] = game.LANES[0]
 	game._steer_player(1)
-	check(game.player_lane == 1, "Keyboard selects the next lane regardless of stale assist target")
+	check(game.player_lane == 1, "Keyboard selects the next manual lane")
 	game._process_steering(-40.0)
 	check(game.player_lane == 0, "Ride steering selects the previous lane")
 	game.clock = 31.0; game._process_steering(-40.0)
@@ -44,12 +43,10 @@ func run_test() -> void:
 	game.elimination_notice.text = "AFGEVALLEN · OUD"; game.elimination_notice.show(); game.elimination_notice_until = 100.0
 	game._reset()
 	check(game.elimination_notice.text.is_empty() and not game.elimination_notice.visible and game.elimination_notice_until < 0.0, "Restart clears old elimination banner")
-	check(not game.elimination_assist.enabled, "Restart defaults assist off again")
 	game.elimination_notice.text = "AFGEVALLEN · OUD"; game.elimination_notice.show()
 	game._set_menu_visible(true)
 	check(game.elimination_notice.text.is_empty() and not game.elimination_notice.visible, "Menu entry clears old elimination banner")
 	menu.cards[5].pressed.emit(); game._confirm_start()
-	check(not game.elimination_assist.enabled, "Next race starts with assistance off")
 	game._reset(); menu.cards[0].pressed.emit()
 	check(menu.get("elimination_assist_toggle") == null, "Scratch setup hides elimination-only option")
 	game.free()

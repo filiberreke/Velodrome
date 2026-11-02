@@ -4,7 +4,7 @@ De speler kiest met A/D, pijltjes of de stuurpaddles uit elf posities: 1,18; 1,7
 
 Het bereik blijft 6,00 m. Baanoppervlak en geometrie blijven gelijk, net als de vloeiende rijlijnanimatie, fysieke slipstreamberekening en vrije continue AI-positionering. De zes oorspronkelijke startcorridors blijven behouden om overlappende fietsen te vermijden.
 
-Scratch, puntenkoers, afvalling, individuele achtervolging en individuele tijdrit gebruiken dezelfde handmatige rijlijnselectie. Afvalling heeft geen automatische spelerspositionering of inhaalhulpoptie. Bestaande botsingsbeveiliging en blokkeringsmeldingen blijven behouden.
+Scratch, puntenkoers, afvalling, individuele achtervolging en individuele tijdrit gebruiken dezelfde handmatige rijlijnselectie. Afvalling heeft geen automatische spelerspositionering of inhaalhulpoptie. Afvalling hergebruikt de rijlijn- en verkeersafhandeling van scratch en puntenkoers; de extra afvallingsbegrenzers en blokkeringsmeldingen zijn verwijderd.
 
 Ploegenachtervolging houdt automatische formatie: alleen een nieuwe druk op rechts vraagt een kopwissel aan. Links verandert geen rijlijn. De uitstuurafstand en finishfoto blijven op dezelfde fysieke lijn (3,58 m).
 

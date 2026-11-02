@@ -1,0 +1,240 @@
+{
+  "base_commit": "8d894fb28e9c5a90396048e153c2c500479b30fe",
+  "date": "2026-11-02",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "headless": true,
+  "tests": [
+    {
+      "script": "test_x_scratch_ai.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "X_SCRATCH_AI_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "test_x_wheel_follow.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "X_WHEEL_FOLLOW_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_shared_race_traffic.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "SHARED_RACE_TRAFFIC failures=0"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_elimination_gameplay.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "ELIMINATION_RACE count=4 seconds=141.3 cruise_ai_span_m=18.4",
+        "ELIMINATION_RACE count=12 seconds=504.5 cruise_ai_span_m=72.3",
+        "ELIMINATION_RACE count=16 seconds=698.4 cruise_ai_span_m=95.4",
+        "ELIMINATION_GAMEPLAY failures=0"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_elimination_rules.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "Elimination rules basic tests passed"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_elimination_corrections.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "ELIMINATION_CORRECTIONS failures=0"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_elimination_menu_fix.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "ELIMINATION_MENU_FIX failures=0"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_player_lanes.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "PLAYER_LANES_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_analog_steering.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "ANALOG_STEERING_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_points_race.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "POINTS_RACE_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_points_notifications.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "POINTS_NOTIFICATIONS_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_scratch_large_field.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "SCRATCH_LARGE_FIELD_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_gameplay_headless.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "GAMEPLAY_HEADLESS_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_inside_lane.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "INSIDE_LANE_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_hud.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "RACE_HUD_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_pursuit.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "PURSUIT_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_team_pursuit.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "TEAM_PURSUIT_OK"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_broadcast_intro.gd",
+      "assertions_passed": true,
+      "errors": [],
+      "markers": [
+        "BROADCAST_INTRO_OK"
+      ],
+      "render_cleanup_messages": 7
+    },
+    {
+      "script": "tests/test_inside_lane_races.gd",
+      "assertions_passed": false,
+      "errors": [
+        "ERROR: Inside preference should increase actual inner-lane use in scratch"
+      ],
+      "markers": [
+        "INSIDE_LANE_RACES_FAILED: 1"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_menu.gd",
+      "assertions_passed": false,
+      "errors": [
+        "ERROR: Unimplemented mode cannot start",
+        "ERROR: Unsupported mode does not start a scratch by mistake",
+        "ERROR: Unsupported mode does not start a scratch by mistake",
+        "ERROR: Settings opens the editable start list before starting",
+        "ERROR: Start shows broadcast intro before HUD",
+        "ERROR: Selected race values passed through",
+        "ERROR: Demo power preset remains configurable"
+      ],
+      "markers": [
+        "MENU_FLOW_FAILED: 7",
+        "ERROR: Selected race values passed through"
+      ],
+      "render_cleanup_messages": 0
+    },
+    {
+      "script": "tests/test_startlist_flow.gd",
+      "assertions_passed": false,
+      "errors": [
+        "ERROR: Time trial has an explicit future record category",
+        "ERROR: Future category does not promise unsupported distances or squad sizes"
+      ],
+      "markers": [
+        "STARTLIST_FLOW failures=2"
+      ],
+      "render_cleanup_messages": 10
+    }
+  ],
+  "assertion_passes": 18,
+  "baseline_comparisons": {
+    "scratch_points_eight_full_race_reports_exactly_equal": true,
+    "inside_lane": [
+      {
+        "after_inside_pct": 25.6531163250245,
+        "before_inside_pct": 26.7446379194028,
+        "mode": "scratch"
+      },
+      {
+        "after_inside_pct": 35.5027890848275,
+        "before_inside_pct": 27.9477674298116,
+        "mode": "points"
+      }
+    ],
+    "menu_same_seven_assertions_fail": true,
+    "startlist_same_two_time_trial_assertions_fail": true,
+    "elimination_traffic_free_power_and_energy_exactly_equal_samples": 480
+  },
+  "limitations": [
+    "Reused imported assets; Blender path unavailable; fresh .blend import not validated.",
+    "Certificate-store errors and asset-UID fallback warnings.",
+    "Null-material cleanup messages in broadcast intro and startlist suites.",
+    "No manual visual gameplay, finish-photo pixel inspection, or physical trainer/Ride test."
+  ],
+  "test_contract_change": "Removed elimination-only 65m compactness calibration; measured spread retained. Pace demands unchanged in 480 traffic-free baseline comparisons."
+}

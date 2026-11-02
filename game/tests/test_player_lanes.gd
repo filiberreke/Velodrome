@@ -59,8 +59,6 @@ func run_test() -> void:
 		game.distances.assign([50.0, 53.0, 90.0, 110.0]); game.speeds.fill(12.0)
 		game.lane_offsets.assign([1.78, 1.95, 5.98, 7.18]); game.x_ai.lane_targets = game.lane_offsets.duplicate()
 		game.x_ai.lane_targets[1] = 2.05; game.player_lane = 1
-		# Even stale externally enabled assist state cannot position the player.
-		game.elimination_assist.enabled = true; game.elimination_assist.target = 5.98
 		game._move_lanes(0.1)
 		check(game.player_lane == 1 and is_equal_approx(game.lane_offsets[0], 1.78), "Only manual input sets the player's lane")
 		check(is_equal_approx(game.lane_offsets[1], 2.05), "AI retains continuous intermediate lane target")
