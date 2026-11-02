@@ -81,7 +81,7 @@ func run_test() -> void:
 		check(ui.solo_bottom.visible and ui.solo_elapsed_label.text == "00:20.0", "Bottom shows elapsed time")
 		check(ui.solo_estimate_label.text == ("00:45" if distance == 500 else "01:35"), "Estimate uses actual race progress rather than shifted track position")
 		check(not ui.slipstream_heading.visible and not ui.slipstream_bar.visible, "Solo has no drafting HUD")
-		check(ui.solo_rows[0].elapsed.text == "00:11.000" and ui.solo_rows[1].elapsed.text == "00:09.000", "Each row shows its individual 125 m duration")
+		check(ui.solo_rows[0].elapsed.text == "11.000" and ui.solo_rows[1].elapsed.text == "9.000", "Each row shows its individual 125 m duration in seconds with three decimals")
 		check(ui.solo_rows[distance / 125 - 1].row.visible, "Final checkpoint visible")
 		if distance == 500: check(not ui.solo_rows[4].row.visible, "500 m has four checkpoints")
 		for row in ui.solo_rows: check(row.delta.text.is_empty(), "No comparison omits deltas")

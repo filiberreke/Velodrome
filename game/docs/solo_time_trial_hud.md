@@ -2,7 +2,8 @@
 
 Only race mode 7 uses this layout. The left panel shows individual segment
 times at each 125 m checkpoint: four rows for 500 m, eight for 1000 m.
-Pending checkpoints show a dash. Completed checkpoints show milliseconds.
+Pending checkpoints show a dash. Completed checkpoints show seconds with three decimal places (e.g. 12.345),
+without a minutes prefix.
 
 The selected last ride, recent PR (inclusive 60-day window), or all-time PR
 supplies the comparison splits, filtered by distance. Delta is own 125 m segment time

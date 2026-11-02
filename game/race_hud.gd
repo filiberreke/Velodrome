@@ -426,7 +426,7 @@ func _update_solo(data: Dictionary) -> void:
 		var row: Dictionary = solo_rows[i]
 		row.row.visible = i < count
 		var segment: float = float(crossings[i]) - (float(crossings[i - 1]) if i > 0 else 0.0) if i < crossings.size() else 0.0
-		row.elapsed.text = solo_clock(segment) if i < crossings.size() else "—"
+		row.elapsed.text = "%.3f" % segment if i < crossings.size() else "—"
 		row.delta.text = ""
 		if i >= crossings.size() or i >= reference_splits.size(): continue
 		var reference_segment := float(reference_splits[i]) - (float(reference_splits[i - 1]) if i > 0 else 0.0)
