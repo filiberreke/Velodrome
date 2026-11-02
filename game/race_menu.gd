@@ -14,6 +14,9 @@ var team_options
 var team_scroll: ScrollContainer
 var pursuit_options
 var demo_settings: VBoxContainer
+var time_trial_settings: VBoxContainer
+var time_trial_distance: OptionButton
+var time_trial_reference: OptionButton
 var bridge_label: Label
 var bridge_seen := false
 var bridge_live := false
@@ -26,7 +29,7 @@ const MODES := [
 	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
 	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Bouw snelheid op achter de gangmaker en kies je moment zodra de finale begint.", "race_id": 3},
-	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "Deze discipline wordt later toegevoegd.", "race_id": -1},
+	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "500 m of 1 km vanuit stilstand, met vergelijking elke 125 meter.", "race_id": 7},
 	{"key": "tempo", "title": "Temporace", "hint": "Houd het tempo hoog.", "detail": "Deze discipline wordt later toegevoegd.", "race_id": -1},
 	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1}
 ]
@@ -34,7 +37,7 @@ const INK := MenuStyle.INK
 const MUTED := MenuStyle.MUTED
 const ACCENT := MenuStyle.BLUE
 const RECORDS_INDEX := 9
-const PLAYABLE := [0, 1, 2, 3, 5]
+const PLAYABLE := [0, 1, 2, 3, 5, 7]
 const DISPLAY_ORDER := [0, 1, 2, 3, 5, 4, 6, 7, 8, 9]
 var gallery_grid: GridContainer
 var page := 1
@@ -281,6 +284,20 @@ func _build_settings(layout: VBoxContainer) -> void:
 	team_options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	team_scroll.add_child(team_options)
 	team_options.changed.connect(_pursuit_changed)
+	time_trial_settings = VBoxContainer.new()
+	time_trial_settings.add_theme_constant_override("separation", 12)
+	race_settings.get_parent().add_child(time_trial_settings)
+	time_trial_settings.add_child(label("Afstand", 22))
+	time_trial_distance = OptionButton.new()
+	time_trial_distance.add_item("500 meter · 2 ronden", 500)
+	time_trial_distance.add_item("1 kilometer · 4 ronden", 1000)
+	time_trial_distance.select(1)
+	time_trial_settings.add_child(time_trial_distance)
+	time_trial_settings.add_child(label("Vergelijken met", 22))
+	time_trial_reference = OptionButton.new()
+	for item in ["Laatste rit", "Recent PR · 60 dagen", "All-time PR", "Geen vergelijking"]:
+		time_trial_reference.add_item(item)
+	time_trial_settings.add_child(time_trial_reference)
 	demo_settings = VBoxContainer.new()
 	demo_settings.add_theme_constant_override("separation", 8)
 	options.add_child(demo_settings)
@@ -304,7 +321,7 @@ func _build_settings(layout: VBoxContainer) -> void:
 	start_button.add_theme_stylebox_override("hover", panel_style(MenuStyle.BLUE.lightened(.10)))
 	MenuStyle.primary(start_button)
 	start_button.pressed.connect(func() -> void:
-		if not start_button.disabled and (selected in [0, 3, 5] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
+		if not start_button.disabled and (selected in [0, 3, 5, 7] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
 			if selected in [0, 3, 5]: show_startlist()
 			else: start_requested.emit())
 	navigation.add_child(start_button)
@@ -360,6 +377,7 @@ func select_mode(index: int) -> void:
 	selected_description.text = MODES[selected]["detail"]
 	selected_art.texture = previews[selected].get_texture()
 	race_settings.visible = selected in [0, 3, 5]
+	time_trial_settings.visible = selected == 7
 	count_input.visible = selected != 5
 	count_input.get_meta("caption").visible = selected != 5
 	elimination_count_picker.visible = selected == 5
@@ -379,10 +397,10 @@ func select_mode(index: int) -> void:
 	pursuit_options.visible = selected == 1
 	team_options.visible = selected == 2
 	team_scroll.visible = selected == 2
-	demo_settings.visible = selected in [0, 1, 2, 3, 5] and not bridge_seen and not bridge_unavailable
-	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
-	start_button.disabled = selected not in [0, 1, 2, 3, 5]
-	start_button.text = "Startlijst →" if selected in [0, 3, 5] else "Start wedstrijd →" if selected in [1, 2] else "Binnenkort"
+	demo_settings.visible = selected in [0, 1, 2, 3, 5, 7] and not bridge_seen and not bridge_unavailable
+	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5, 7] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+	start_button.disabled = selected not in [0, 1, 2, 3, 5, 7]
+	start_button.text = "Startlijst →" if selected in [0, 3, 5] else "Start wedstrijd →" if selected in [1, 2, 7] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
@@ -399,8 +417,8 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_label.text = "●  Trainer verbonden" if live else ("Trainer gevonden · wacht op gegevens" if seen else "Demo beschikbaar · geen trainer")
 	if unavailable:
 		bridge_label.text = "Verbinding bezet · sluit de andere spelinstantie"
-	demo_settings.visible = selected in [0, 1, 2, 3, 5] and not seen and not unavailable
-	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5]
+	demo_settings.visible = selected in [0, 1, 2, 3, 5, 7] and not seen and not unavailable
+	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5, 7]
 	if selected in [1, 2]:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 	if pursuit_flow != null and pursuit_flow.visible: pursuit_flow.update_bridge()
