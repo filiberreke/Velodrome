@@ -10,11 +10,27 @@ permissions:
   contents: read
 
 jobs:
-  windows-demo:
+  export:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Validate source PNGs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          for name in ("velodrome_wood_pine.png", "velodrome_cote_azur.png"):
+              path = Path("game/assets/textures") / name
+              data = path.read_bytes()
+              assert data[:8] == b"\x89PNG\r\n\x1a\n", f"Invalid PNG signature: {path}"
+              assert data[12:16] == b"IHDR", f"Invalid PNG header: {path}"
+              width, height = struct.unpack(">II", data[16:24])
+              assert width > 0 and height > 0 and len(data) > 100, f"Invalid dimensions or size: {path}"
+              print(f"OK: {path} ({width}x{height}; {len(data)} bytes)")
+          PY
 
       - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y unzip zip
@@ -35,32 +51,124 @@ jobs:
           unzip -q /tmp/templates.tpz -d /tmp/export-templates
           cp -a /tmp/export-templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
 
-      - name: Import project assets
-        run: Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import
+      - name: Clean and re-import all project assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf game/.godot
+          Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import 2>&1 | tee /tmp/godot-import.log
+          if grep -Ei 'Bad header|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource' /tmp/godot-import.log; then
+            echo "::error::Godot asset import reported errors"
+            exit 1
+          fi
+
+      - name: Check imported texture files
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ("velodrome_wood_pine", "velodrome_cote_azur"):
+              matches = list(Path("game/.godot/imported").glob(name + ".png-*.ctex"))
+              assert len(matches) == 1, f"Expected one imported texture for {name}: {matches}"
+              path = matches[0]
+              assert path.stat().st_size > 64, f"Imported texture is too small: {path}"
+              print(f"Imported: {path} ({path.stat().st_size} bytes)")
+          PY
 
       - name: Export Windows x64
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p build
-          Godot_v4.7.2-stable_linux.x86_64 --headless --path game --export-release "Windows Desktop" "$GITHUB_WORKSPACE/build/Velodrome.exe"
+          Godot_v4.7.2-stable_linux.x86_64 --headless --path game --export-release "Windows Desktop" "$GITHUB_WORKSPACE/build/Velodrome.exe" 2>&1 | tee /tmp/godot-export.log
           test -s build/Velodrome.exe
           test -s build/Velodrome.pck
+          if grep -Ei 'Bad header|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource' /tmp/godot-export.log; then
+            echo "::error::Godot export reported errors"
+            exit 1
+          fi
 
-      - name: Make demo ZIP
+      - name: Prepare build files
         shell: bash
         run: |
           cat > build/README.txt <<'EOF'
           Velodrome - Windows demo
-
-          Pak het volledige ZIP-bestand uit en start Velodrome.exe.
+          Pak de ZIP volledig uit en start Velodrome.exe.
           Houd Velodrome.exe en Velodrome.pck in dezelfde map.
-
-          Deze build bevat geen Zwift Ride bridge.
-          Controleer voor publicatie of het spel zonder externe hardware speelbaar is.
+          De Zwift Ride bridge wordt niet meegeleverd.
           EOF
+
+      - name: Upload internal candidate for Windows smoke test
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-demo-candidate
+          path: build/
+          if-no-files-found: error
+          retention-days: 3
+
+  windows-smoke-test:
+    needs: export
+    runs-on: windows-2022
+    steps:
+      - name: Download candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-demo-candidate
+          path: build
+
+      - name: Run exported executable headlessly and verify startup logs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path 'build/Velodrome.exe').Path
+          $stdout = Join-Path $PWD 'godot-stdout.log'
+          $stderr = Join-Path $PWD 'godot-stderr.log'
+          $process = Start-Process -FilePath $exe -ArgumentList @('--headless', '--verbose') -WorkingDirectory (Split-Path $exe) -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            if (-not $process.WaitForExit(30000)) {
+              Write-Host 'Headless game still running after 30 seconds; stopping for log inspection.'
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+          } finally {
+            $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + "`n" + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+            Write-Host $log
+            if ($log -match 'Bad header|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script') {
+              throw 'Exported Windows game reported a fatal resource or script error.'
+            }
+            if ($log -notmatch 'Loading resource: res://main.gdc|Loading resource: res://main.gd') {
+              throw 'Exported game did not reach loading of the main script.'
+            }
+          }
+
+      - name: Publish startup logs for diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-startup-logs
+          path: |
+            godot-stdout.log
+            godot-stderr.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  package:
+    needs: windows-smoke-test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download validated candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-demo-candidate
+          path: build
+
+      - name: Package verified Windows demo
+        shell: bash
+        run: |
+          set -euo pipefail
           cd build
           zip -9 ../Velodrome-Demo-Windows-x64.zip Velodrome.exe Velodrome.pck README.txt
 
-      - name: Upload downloadable build artifact
+      - name: Upload downloadable demo
         uses: actions/upload-artifact@v4
         with:
           name: Velodrome-Demo-Windows-x64
