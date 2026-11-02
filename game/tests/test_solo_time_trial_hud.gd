@@ -78,10 +78,10 @@ func run_test() -> void:
 		game._update_hud()
 		check(ui.solo_panel.visible and not ui.nearby_panel.visible, "Checkpoints replace surrounding riders")
 		check(not ui.lap_label.get_parent().visible and not ui.position_label.get_parent().visible and not ui.scratch_center.visible and not ui.pursuit_center.visible, "Bottom hides lap, position and race leadership")
-		check(ui.solo_bottom.visible and ui.solo_elapsed_label.text == "00:20.000", "Bottom shows elapsed time")
-		check(ui.solo_estimate_label.text == ("00:45.000" if distance == 500 else "01:35.000"), "Estimate uses actual race progress rather than shifted track position")
+		check(ui.solo_bottom.visible and ui.solo_elapsed_label.text == "00:20.0", "Bottom shows elapsed time")
+		check(ui.solo_estimate_label.text == ("00:45" if distance == 500 else "01:35"), "Estimate uses actual race progress rather than shifted track position")
 		check(not ui.slipstream_heading.visible and not ui.slipstream_bar.visible, "Solo has no drafting HUD")
-		check(ui.solo_rows[1].elapsed.text == "00:20.000", "Checkpoint times are cumulative")
+		check(ui.solo_rows[0].elapsed.text == "00:11.000" and ui.solo_rows[1].elapsed.text == "00:09.000", "Each row shows its individual 125 m duration")
 		check(ui.solo_rows[distance / 125 - 1].row.visible, "Final checkpoint visible")
 		if distance == 500: check(not ui.solo_rows[4].row.visible, "500 m has four checkpoints")
 		for row in ui.solo_rows: check(row.delta.text.is_empty(), "No comparison omits deltas")
@@ -90,7 +90,7 @@ func run_test() -> void:
 			game.time_trial_reference = {"splits": [12.2, 19.6]}
 			game._update_hud()
 			check(ui.solo_rows[0].delta.text == "-1.200 s" and ui.solo_rows[0].delta.get_theme_color("font_color") == Color("68e09b"), "Faster is negative and green for " + kind)
-			check(ui.solo_rows[1].delta.text == "+0.400 s" and ui.solo_rows[1].delta.get_theme_color("font_color") == Color("ff7b86"), "Slower is positive and red for " + kind)
+			check(ui.solo_rows[1].delta.text == "+1.600 s" and ui.solo_rows[1].delta.get_theme_color("font_color") == Color("ff7b86"), "Slower is positive and red for " + kind)
 		game.time_trial_reference = {}
 		game.speeds[0] = 0.0
 		game._update_hud()
@@ -99,7 +99,7 @@ func run_test() -> void:
 		game.distances[0] = distance + 1.0
 		game.clock = 60.0
 		game._update_hud()
-		check(ui.solo_elapsed_label.text == "00:45.123" and ui.solo_estimate_label.text == "00:45.123", "Finish freezes both times at exact crossing")
+		check(ui.solo_elapsed_label.text == "00:45.1" and ui.solo_estimate_label.text == "00:45", "Finish uses tenths for elapsed and whole seconds for estimate")
 	game._reset()
 	game.setup_panel.select_mode(0)
 	game._confirm_start()

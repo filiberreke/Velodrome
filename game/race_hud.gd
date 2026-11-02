@@ -386,7 +386,7 @@ func _build_solo_checkpoints() -> void:
 		delta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(delta)
 		solo_rows.append({"row": row, "elapsed": elapsed, "delta": delta})
-	solo_panel.tooltip_text = "Cumulatieve tijd sinds de start · negatief/groen = sneller, positief/rood = langzamer dan de referentie."
+	solo_panel.tooltip_text = "Tijd per afzonderlijke 125 meter · negatief/groen = sneller, positief/rood = langzamer dan de referentie."
 	solo_panel.hide()
 
 static func solo_clock(seconds: float) -> String:
@@ -412,23 +412,25 @@ func _update_solo(data: Dictionary) -> void:
 	scratch_center.hide()
 	pursuit_center.hide()
 	var elapsed := float(data["seconds"])
-	solo_elapsed_label.text = solo_clock(elapsed)
+	solo_elapsed_label.text = clock_text(elapsed)
 	var estimate: Variant = estimated_finish(elapsed, float(data.get("solo_remaining_m", 0.0)), float(data.get("speed_kmh", 0.0)))
-	solo_estimate_label.text = "—" if estimate == null else solo_clock(float(estimate))
+	solo_estimate_label.text = "—" if estimate == null else solo_clock(float(estimate)).get_slice(".", 0)
 	var reference: Dictionary = data.get("solo_reference", {})
 	var kind := str(data.get("solo_reference_kind", "none"))
 	var reference_splits: Array = reference.get("splits", []) if kind != "none" else []
 	var titles := {"last": "Laatste rit", "recent": "Recent PR · 60 dagen", "alltime": "All-time PR"}
-	solo_reference_label.text = "Cumulatieve tijd" if reference_splits.is_empty() else str(titles.get(kind, "Referentie"))
+	solo_reference_label.text = "Tijd per 125 m" if reference_splits.is_empty() else str(titles.get(kind, "Referentie"))
 	var crossings: Array = data.get("solo_crossings", [])
 	var count := int(data.get("solo_distance_m", 500)) / 125
 	for i in range(solo_rows.size()):
 		var row: Dictionary = solo_rows[i]
 		row.row.visible = i < count
-		row.elapsed.text = solo_clock(float(crossings[i])) if i < crossings.size() else "—"
+		var segment: float = float(crossings[i]) - (float(crossings[i - 1]) if i > 0 else 0.0) if i < crossings.size() else 0.0
+		row.elapsed.text = solo_clock(segment) if i < crossings.size() else "—"
 		row.delta.text = ""
 		if i >= crossings.size() or i >= reference_splits.size(): continue
-		var delta := snappedf(float(crossings[i]) - float(reference_splits[i]), 0.001)
+		var reference_segment := float(reference_splits[i]) - (float(reference_splits[i - 1]) if i > 0 else 0.0)
+		var delta := snappedf(segment - reference_segment, 0.001)
 		row.delta.text = "%+.3f s" % delta if delta != 0.0 else "0.000 s"
 		row.delta.add_theme_color_override("font_color", Color("68e09b") if delta < 0.0 else (Color("ff7b86") if delta > 0.0 else MUTED))
 
