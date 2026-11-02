@@ -32,6 +32,9 @@ iedere frame de meshes te herbouwen.
 
 - Andere wedstrijden: de zes meest vertegenwoordigde landen krijgen een
   open box. Het spelersland vervangt indien nodig het zesde land.
+- Tijdrit, met staande of vliegende start: alleen de box van het spelersland
+  opent. Alle overige gordijnen blijven dicht, zonder staf of los materiaal.
+  De box gebruikt de tijdritfiets.
 - Achtervolging en ploegenachtervolging: alleen de deelnemende landen openen.
   Alle ploegmaats delen de box van hun ploeg. Andere gordijnen blijven dicht.
 - De selectie leest expliciet `country` in `riders_config.cfg` (land-ID of IOC-code)

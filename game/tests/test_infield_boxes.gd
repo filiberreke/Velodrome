@@ -56,6 +56,20 @@ func run_test() -> void:
 		check(is_equal_approx(row.boxes[i].curtain_open,1.0 if should_open else 0.0),"Pursuit closes every non-racing country immediately")
 		if should_open:opened+=1
 	check(opened==2,"Exactly two countries open in pursuit")
+	for start_type in ["standing", "flying"]:
+		game.race_mode = 7
+		game.time_trial_start_type = start_type
+		game._configure_peloton()
+		await process_frame
+		var solo_roster := Countries.roster(game)
+		check(solo_roster.mode == "time_trial" and solo_roster.racing == ["new_zealand"], "Solo roster includes only the player's country")
+		var solo_open := 0
+		for i in range(6):
+			var own_box: bool = row.assigned_countries[i] == "new_zealand"
+			check(is_equal_approx(row.boxes[i].curtain_open, 1.0 if own_box else 0.0), "Only player's cabin opens in a " + start_type + " time trial")
+			check(row.boxes[i].bike_variant == "pursuit", "Solo cabins use time-trial bicycles")
+			if row.boxes[i].is_active(): solo_open += 1
+		check(solo_open == 1, "Exactly one cabin active for each solo start type")
 	game.race_mode = 5
 	game.team_size = 3
 	game.fixture.set_value("rider_03","country_kit","portugal")

@@ -74,6 +74,7 @@ func run_test() -> void:
 		box.free()
 	var game := ExistingTest.Screen.new()
 	game.fixture.set_value("player","country_kit","belgium")
+	game.fixture.set_value("rider_01","country_kit","france")
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
@@ -116,6 +117,19 @@ func run_test() -> void:
 	game.apply_player_appearance()
 	await process_frame
 	for i in range(6):check_crew(row,i,row.boxes[i].is_active())
+	for start_type in ["standing", "flying"]:
+		game.race_mode = 7
+		game.time_trial_start_type = start_type
+		game._configure_peloton()
+		await process_frame
+		var solo_active := 0
+		for i in range(6):
+			var own_box: bool = row.assigned_countries[i] == "netherlands"
+			check_crew(row, i, own_box)
+			check(row.boxes[i].is_active() == own_box, "Solo time trial closes all other countries' equipment and crews")
+			check(row.boxes[i].bike_variant == "pursuit", "Solo cabin equipment matches the time-trial bicycle")
+			if own_box: solo_active += 1
+		check(solo_active == 1, "Only player's cabin remains active in " + start_type + " time trial")
 	game.race_mode = 0
 	game.rider_count = 8
 	game._configure_peloton()

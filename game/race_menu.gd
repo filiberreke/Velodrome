@@ -472,7 +472,7 @@ func show_records() -> void:
 	page_title.text = "Records"
 	breadcrumb.text = "Jouw snelste tijden op de piste"
 	choice_page.hide(); settings_page.hide(); records_page.show()
-	records_page.refresh(true)
+	records_page.open_records()
 	records_page.back_button.grab_focus.call_deferred()
 
 func show_startlist() -> void:

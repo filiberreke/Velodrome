@@ -26,7 +26,10 @@ Laatste rit, recent PR (60 dagen) en all-time PR worden afzonderlijk per afstand
 vergeleken. Het recordscherm heeft hiervoor dezelfde keuze tussen staande en
 vliegende start. Oude opgeslagen ritten zonder startwijze blijven als staande
 start beschikbaar. De volledige historie blijft bewaard; alleen de weergegeven
-ranglijst is beperkt tot tien ritten.
+ranglijst is beperkt tot tien ritten. Bij het openen van Records wordt een nieuwe
+uitslag automatisch bij de juiste afstand en startwijze getoond. Zonder nieuwe
+uitslag blijven handmatig gekozen filters behouden. De afstandsknoppen wisselen
+correct tussen 500 m / 1 km voor tijdrit en 1 km / 4 km voor achtervolging.
 
 De uitslag vermeldt de startwijze. Bij een vliegende start vermeldt ook de
 Strava-beschrijving de aanloopronde. De speler blijft de enige renner; er is geen
@@ -42,3 +45,8 @@ herstart. `tests/capture_flying_time_trial.gd` maakt beelden van het instelmenu,
 de vier afstandsmeldingen, GO en het recordscherm.
 
 Geen fysieke trainerhardwaretest uitgevoerd.
+
+Bij een tijdrit is alleen de rennersbox van de speler open. Op de uitslag kiest
+**Wedstrijd opnieuw rijden** dezelfde wedstrijd met dezelfde tegenstanders,
+vormwaarden en referentie; de startprocedure opent meteen zonder intro of menu.
+**Terug naar hoofdmenu** opent de spelvormkeuze en sluit de toepassing niet af.

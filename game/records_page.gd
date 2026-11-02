@@ -18,6 +18,7 @@ var mode_buttons: Array[Button] = []
 var distance_caption: Label
 var distance_buttons: Array[Button] = []
 var shown: Array[Dictionary] = []
+var _last_opened_time_trial_id := ""
 
 func _label(value: String, font: int, tint: Color = MenuStyle.INK) -> Label:
 	var node := Label.new()
@@ -129,16 +130,34 @@ static func time_text(seconds: float) -> String:
 	var centiseconds: int = roundi(seconds * 100.0)
 	return "%02d:%02d.%02d" % [centiseconds / 6000, (centiseconds / 100) % 60, centiseconds % 100]
 
+func open_records() -> void:
+	# A newly completed time trial should be visible without guessing its filters.
+	# Keep deliberate filter changes when reopening without a newer result.
+	var latest: Dictionary = {}
+	for ride in time_trials.all_rides():
+		if latest.is_empty() or float(ride["finished_at"]) > float(latest["finished_at"]):
+			latest = ride
+	if not latest.is_empty():
+		var result_id: String = str(latest.get("id", "%s:%s" % [latest["finished_at"], latest["distance_m"]]))
+		if result_id != _last_opened_time_trial_id:
+			mode_choice.select(2)
+			distance_choice.select(0 if int(latest["distance_m"]) == 500 else 1)
+			start_choice.select(1 if latest.get("start_type", "standing") == "flying" else 0)
+			_last_opened_time_trial_id = result_id
+	refresh(true)
+
 func refresh(import_old: bool = false) -> void:
 	if import_old: store.import_saved()
 	var import_error: String = store.last_error
 	size_box.visible = mode_choice.get_selected_id() == 5
 	var future := mode_choice.get_selected_id() == 7
 	start_choice.visible = future
-	if future:
-		if distance_choice.get_selected_id() not in [500, 1000]: distance_choice.select(0)
-	else:
-		if distance_choice.get_selected_id() not in [1000, 4000]: distance_choice.select(0)
+	# The hidden selector shares index 0/1 across disciplines, but its IDs must
+	# match the visible distances. A stale 4000 ID used to reset solo 1 km to 500 m.
+	distance_choice.set_item_id(0, 500 if future else 1000)
+	distance_choice.set_item_id(1, 1000 if future else 4000)
+	distance_choice.set_item_text(0, "500 m" if future else "1 km")
+	distance_choice.set_item_text(1, "1 km" if future else "4 km")
 	for i in range(mode_buttons.size()): mode_buttons[i].button_pressed = mode_choice.selected == i
 	for i in range(distance_buttons.size()):
 		distance_buttons[i].text = ("500 m" if i == 0 else "1 km") if future else ("1 km" if i == 0 else "4 km")

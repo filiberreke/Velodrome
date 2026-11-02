@@ -21,7 +21,7 @@ func _ready() -> void:
 func configure(start_list: Array[String], player_country: String, mode: String = "mass", racing_countries: Array[String] = []) -> bool:
 	# Validate before mutating any displayed assignment.
 	if player_country not in Box.COUNTRIES or boxes.size()!=6: return false
-	if mode not in ["mass","pursuit","team_pursuit"]: return false
+	if mode not in ["mass","pursuit","team_pursuit","time_trial"]: return false
 	for id in start_list+racing_countries:
 		if id not in Box.COUNTRIES: return false
 	var counts: Dictionary = {}

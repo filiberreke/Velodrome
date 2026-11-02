@@ -67,7 +67,7 @@ static func roster(game: Node) -> Dictionary:
 			if id.is_empty():id = Box.COUNTRIES[i % Box.COUNTRIES.size()]
 			countries.append(id)
 	var riding: Array[String] = []
-	if mode in [4,5]:
+	if mode in [4,5,7]:
 		for id in countries:
 			if id not in riding:riding.append(id)
-	return {"start_list":countries,"player":player,"mode":"team_pursuit" if mode==5 else ("pursuit" if mode==4 else "mass"),"racing":riding}
+	return {"start_list":countries,"player":player,"mode":"team_pursuit" if mode==5 else ("pursuit" if mode==4 else ("time_trial" if mode==7 else "mass")),"racing":riding}

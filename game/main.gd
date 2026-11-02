@@ -186,10 +186,12 @@ func _configure_peloton() -> void:
 			outfit["country"] = RaceCountries.from_kit(outfit) if ours else pursuit_opponent_country
 			if String(outfit.country).is_empty(): outfit["country"] = "belgium"
 			configured = {"profile": 0 if ours else 1, "name": player_display_name if i == 0 else ("Ploegmaat %d" % i if ours else "%s %d" % [pursuit_opponent_country, i - team_size + 1]), "jersey": outfit}
+		if _restarting_event:
+			configured = replay_setup.riders[i].duplicate(true)
 		rider_identities.append(configured.duplicate(true))
 		rider_profiles.append(int(configured["profile"]))
 		rider_names.append(String(configured["name"]))
-		rider_forms.append(1.0 if i == 0 or race_mode in [4, 5, 7] else form_rng.randf_range(0.975, 1.025))
+		rider_forms.append(float(replay_setup.forms[i]) if _restarting_event else (1.0 if i == 0 or race_mode in [4, 5, 7] else form_rng.randf_range(0.975, 1.025)))
 		var kit: Dictionary = configured.get("jersey", {})
 		kit = kit.duplicate()
 		kit["number"] = clampi(int(kit.get("number", i + 1)), 1, 99)
@@ -477,6 +479,8 @@ var name_view_notice_until := 0.0
 var race_paused := false
 var trainer_pause_resume := false
 var exit_menu
+var replay_setup: Dictionary = {}
+var _restarting_event := false
 var running := false
 var finished := false
 var finish_times: Array[float] = [-1.0, -1.0, -1.0, -1.0]
@@ -813,7 +817,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				race_overlay.toggle_developer()
 		KEY_V:
 			if not key_event.echo: _cycle_rider_names()
-		KEY_R: _reset()
+		KEY_R:
+			if finished: _restart_same_race()
+			else: _reset()
 		KEY_C:
 			camera_mode = (camera_mode + 1) % 4
 			# Never display own model in first-person view.
@@ -970,6 +976,23 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		trainer_heart_rate_bpm = null
 		trainer_gear = "—"
 		last_bridge_telemetry = -1.0
+
+func _restart_same_race() -> void:
+	if replay_setup.is_empty(): return
+	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+		set(key, replay_setup[key])
+	_restarting_event = true
+	_reset()
+	_restarting_event = false
+	if race_mode in [4, 5, 7]:
+		_prepare_pursuit(replay_setup.replay, float(replay_setup.cp))
+		if race_mode == 5:
+			team_race.prepare(self, replay_setup.replay, float(replay_setup.cp))
+			team_race.ours.configure_factors(replay_setup.team_factors)
+	trainer_control.arm()
+	zero_stable = 0.0
+	_set_menu_visible(false)
+	start_state = "WAIT_STOP"
 
 func _reset() -> void:
 	race_paused = false
@@ -2198,10 +2221,11 @@ func _build_hud() -> void:
 	buttons.add_theme_constant_override("separation", 12)
 	sheet.add_child(buttons)
 	var again := Button.new()
-	again.text = "Opnieuw spelen"
-	again.custom_minimum_size = Vector2(260, 58)
+	again.name = "ReplayRaceButton"
+	again.text = "Wedstrijd opnieuw rijden"
+	again.custom_minimum_size = Vector2(340, 58)
 	_style_finish_button(again, MenuSkin.BLUE, Color.WHITE)
-	again.pressed.connect(_reset)
+	again.pressed.connect(_restart_same_race)
 	buttons.add_child(again)
 	var strava_button := Button.new()
 	strava_button.text = "Export naar Strava"
@@ -2220,10 +2244,11 @@ func _build_hud() -> void:
 	fit_button.pressed.connect(func(): _export_strava_fit(true))
 	buttons.add_child(fit_button)
 	var quit := Button.new()
-	quit.text = "Stoppen"
-	quit.custom_minimum_size = Vector2(185, 58)
+	quit.name = "MainMenuButton"
+	quit.text = "Terug naar hoofdmenu"
+	quit.custom_minimum_size = Vector2(300, 58)
 	_style_finish_button(quit, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
-	quit.pressed.connect(_quit_application)
+	quit.pressed.connect(_reset)
 	buttons.add_child(quit)
 
 func _build_finish_photo_ui(row: HBoxContainer) -> void:
@@ -2389,6 +2414,9 @@ func _confirm_start() -> void:
 			team_race.ours.configure_factors(options.configured_factors())
 	else:
 		_tt_prepare_event()
+	replay_setup = {"riders": rider_identities.duplicate(true), "forms": rider_forms.duplicate(), "replay": replay.duplicate(true), "cp": options.configured_cp() if options != null else 0.0, "team_factors": team_race.ours.position_factors.duplicate()}
+	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+		replay_setup[key] = get(key)
 	trainer_control.arm()
 	zero_stable = 0.0
 	_set_menu_visible(false)
