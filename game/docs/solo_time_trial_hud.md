@@ -19,8 +19,8 @@ both clocks use the exact recorded finish time, displayed with one decimal
 for elapsed time and whole minutes/seconds for the estimate. Race position, lap count,
 leader gap and surrounding riders are hidden in this mode, as is drafting.
 During a flying-start run-up, elapsed time remains zero, all checkpoints remain pending,
-and the estimate is a dash. Large distance markers count down each 50 m, followed by GO
-at the start of the timed distance. Other modes keep their existing layout; switching back restores it.
+and the estimate is a dash. Only the dark status panel counts down the distance
+each 50 m; the large overlay stays hidden until GO at the start of the timed distance. Other modes keep their existing layout; switching back restores it.
 
 ## Validation — 2 November 2026
 

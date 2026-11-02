@@ -8,10 +8,10 @@ vliegende start vertrek je na diezelfde aftelling voor één aanloopronde van 25
 meter. Je kunt voluit versnellen; er geldt geen oprijsnelheidslimiet. De bestaande
 solofysica en stuurbediening blijven actief.
 
-Tijdens de aanloop verschijnt groot in beeld **NOG 250 M**, daarna **NOG 200 M**,
-**NOG 150 M**, **NOG 100 M** en **NOG 50 M**. Een tweede melding verduidelijkt dat dit
-de afstand tot de start is. Bij de volgende passage over de eigen startlijn
-verschijnt groot en groen **GO!**. De opgebouwde snelheid blijft behouden.
+Tijdens de aanloop toont alleen het donkere meldingsvak de afstand tot de start:
+250, 200, 150, 100 en 50 meter. Er verschijnen geen grote afstandsletters over de
+baan. Bij de volgende passage over de eigen startlijn verschijnt groot en groen
+**GO!**. De opgebouwde snelheid blijft behouden.
 
 De klok, rondetijden, 125 m-tussentijden en wedstrijdstatistieken beginnen pas bij
 GO. Na de aanloop wordt de volledige gekozen 500 of 1000 meter gereden. De

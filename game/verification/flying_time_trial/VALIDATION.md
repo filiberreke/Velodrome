@@ -25,7 +25,9 @@ en hervatten, menukeuze, reset en gescheiden referenties/records per startwijze.
 Oude records zonder startwijze worden als staande start behandeld.
 
 De echte renderer heeft zeven beelden gemaakt: instellingen, 200/150/100/50 meter,
-GO en het recordscherm. Instellingen, aftelmeters, GO en recordfilters zijn visueel
+GO en het recordscherm. Tijdens de aanloop staan de aftelmeters uitsluitend in
+het donkere meldingsvak; de grote letters verschijnen pas bij GO.
+Instellingen, aftelmeters, GO en recordfilters zijn visueel
 gecontroleerd op 1920 × 1080. `capture_flying_time_trial.gd` reproduceert de beelden.
 
 Bestaande geïmporteerde assetcaches gebruikt. De omgeving meldt de bekende

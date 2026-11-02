@@ -694,9 +694,7 @@ func _update_countdown_display() -> void:
 	if countdown_label == null or camera == null:
 		return
 	var text := ""
-	if not finished and start_state == "RUN_UP":
-		text = "NOG %d M" % flying_start.remaining_marker(self)
-	elif not finished and start_state == "COUNTDOWN":
+	if not finished and start_state == "COUNTDOWN":
 		text = str(maxi(1, ceili(countdown)))
 	elif not finished and start_state == "RACING" and clock < 1.1:
 		text = "START!" if race_mode in [0, 1, 2] else "GO!"
@@ -707,11 +705,11 @@ func _update_countdown_display() -> void:
 	countdown_shown = text
 	var start_signal: bool = text in ["START!", "GO!"]
 	# Time since this number appeared, in game time (each number lasts one second).
-	var age: float = 0.4 if start_state == "RUN_UP" else clampf(clock if start_signal else 1.0 - fposmod(countdown, 1.0), 0.0, 1.0)
-	if not start_signal and start_state != "RUN_UP" and countdown <= 0.0:
+	var age: float = clampf(clock if start_signal else 1.0 - fposmod(countdown, 1.0), 0.0, 1.0)
+	if not start_signal and countdown <= 0.0:
 		age = 0.0
 	var colours := {"3": Color("ff5a4e"), "2": Color("ffa53a"), "1": Color("ffe14d"), "GO!": Color("5df08a"), "START!": Color("5df08a")}
-	var tint: Color = Color("ffe14d") if start_state == "RUN_UP" else colours.get(text, Color.WHITE)
+	var tint: Color = colours.get(text, Color.WHITE)
 	tint.a = clampf((1.0 - age) / 0.25, 0.0, 1.0) if age > 0.75 else 1.0
 	countdown_label.text = text
 	countdown_label.modulate = tint
@@ -727,7 +725,7 @@ func _update_countdown_display() -> void:
 	var dist: float = camera.global_position.distance_to(anchor)
 	var view_h: float = 2.0 * dist * tan(deg_to_rad(camera.fov) * 0.5)
 	var pop: float = 1.0 + 0.45 * pow(1.0 - minf(age / 0.35, 1.0), 3.0)
-	var target_h: float = view_h * (0.075 if start_state == "RUN_UP" else (0.14 if text == "START!" else (0.30 if start_signal else 0.42))) * pop
+	var target_h: float = view_h * (0.14 if text == "START!" else (0.30 if start_signal else 0.42)) * pop
 	countdown_label.pixel_size = target_h / (float(countdown_label.font_size) * 0.72)
 	countdown_label.global_position = anchor
 	countdown_label.visible = true

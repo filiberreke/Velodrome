@@ -88,7 +88,7 @@ func run_test() -> void:
 		g.distances[0] = 250.0 - marker + 0.01
 		g._update_countdown_display()
 		g._update_hud()
-		check(g.countdown_label.text == "NOG %d M" % marker and g.countdown_label.visible, "Large on-screen countdown at %d m" % marker)
+		check(not g.countdown_label.visible and g.race_overlay.status_label.text == "Aanloopronde — nog %d m tot start" % marker, "Run-up distance appears only in the dark status panel at %d m" % marker)
 		check(g.race_overlay.solo_elapsed_label.text == "00:00.0" and g.race_overlay.solo_estimate_label.text == "—", "HUD clock and estimate wait for GO")
 	g._finish_flying_start()
 	g._update_countdown_display()
