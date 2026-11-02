@@ -172,7 +172,7 @@ func _apply_formation(game: Node3D) -> void:
 			if game.finish_times[id] >= 0.0: continue
 			game.distances[id] = front[team] + train.offsets[local]
 			game.speeds[id] = velocity[team]
-			game.lane_offsets[id] = lerpf(game.LANES[0], game.LANES[2], train.lanes[local])
+			game.lane_offsets[id] = lerpf(game.LANES[0], game.TEAM_EXCHANGE_LANE_M, train.lanes[local])
 			game.ai_lane_targets[id] = game.lane_offsets[id]
 			game.draft_strengths[id] = 0.0
 			game.draft_leaders[id] = -1

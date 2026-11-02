@@ -59,6 +59,8 @@ func run_test() -> void:
 	g.distances.assign([50.5,50.0,20.0,10.0]); g.speeds.fill(12.0)
 	g.lane_offsets.assign([1.18,2.38,5.98,7.18]); g.x_ai.lane_targets=g.lane_offsets.duplicate()
 	g._steer_player(1)
+	check(is_equal_approx(g.LANES[g.player_lane],1.78),"First click selects the new intermediate lane")
+	g._steer_player(1) # Two 0.60 m clicks request the original 2.38 m merge.
 	for tick in range(25): g._move_lanes(0.1)
 	check(g.elimination_lane_blocked,"Main prevents unsafe manual cut-in")
 	check(g.lane_offsets[1]-g.lane_offsets[0] >= Traffic.lateral_clearance(0,1,g._elimination_lane_scales()),"Main leaves an actual side-by-side corridor")

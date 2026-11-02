@@ -1,21 +1,11 @@
-# Velodrome 250 X - zes rijlijnen op dezelfde baan
+# Velodrome 250 – elf selecteerbare spelersrijlijnen
 
-Deze aanvulling bouwt verder op de snelheidsafhankelijke drafting-, peloton- en demarragepatch.
+De speler kiest met A/D, pijltjes of de stuurpaddles uit elf posities: 1,18; 1,78; 2,38; 2,98; 3,58; 4,18; 4,78; 5,38; 5,98; 6,58; 7,18 meter. Eén nieuwe druk verplaatst de doelpositie 0,60 m. Ingedrukt houden herhaalt niet; laat de paddle terugkeren naar neutraal voor de volgende druk.
 
-## Wijzigingen
-- De speler kan zes rijlijnen kiezen (A/D of pijltjes), HUD toont 1/6 t/m 6/6.
-- Centra op 1.18, 2.38, 3.58, 4.78, 5.98 en 7.18 meter ten opzichte van het bestaande referentiepad.
-- Het houten baanoppervlak loopt van offset 0.78 tot 9.03 m en is niet vergroot.
-- AI in scratch doorzoekt zes uitwijkcorridors; andere modi gebruiken dezelfde zes lijndoelposities.
-- AI kan nog altijd vloeiend zijdelings schuiven en buitenrenners leggen in bochten een langere weg af.
+Het bereik blijft 6,00 m. Baanoppervlak en geometrie blijven gelijk, net als de vloeiende rijlijnanimatie, fysieke slipstreamberekening en vrije continue AI-positionering. De zes oorspronkelijke startcorridors blijven behouden om overlappende fietsen te vermijden.
 
-## Installatie
-Vervang in het bestaande volledige Godot-project `main.gd` en `x_scratch_ai.gd`. Deze ZIP is een scriptpatch, geen volledig project.
+Scratch, puntenkoers, afvalling, individuele achtervolging en individuele tijdrit gebruiken dezelfde handmatige rijlijnselectie. Afvalling heeft geen automatische spelerspositionering of inhaalhulpoptie. Bestaande botsingsbeveiliging en blokkeringsmeldingen blijven behouden.
 
-## Testpunten
-1. Speler A/D van lijn 1 tot 6 en terug, inclusief HUD.
-2. Midden in groep: AI moet meerdere lijnen gebruiken en niet langdurig overlappen.
-3. Uitwijken bij een demarrage, ook aan de buitenrand.
-4. Controleer modelbreedte/visuele afstand op de hellende bochten; corridors liggen 1.20 m uiteen.
+Ploegenachtervolging houdt automatische formatie: alleen een nieuwe druk op rechts vraagt een kopwissel aan. Links verandert geen rijlijn. De uitstuurafstand en finishfoto blijven op dezelfde fysieke lijn (3,58 m).
 
-Godot-runtime is hier niet beschikbaar: statische broncodecontrole, geen speltest.
+De HUD gebruikt het werkelijke aantal selecteerbare rijlijnen. Zie tests/test_player_lanes.gd voor bereik, drukherhaling, disciplines, animatie, AI-tussenposities en slipstream.

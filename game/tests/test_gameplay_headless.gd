@@ -43,7 +43,7 @@ func run_races() -> void:
 		game.watts = 300.0
 		game.running = true
 		game.start_state = "RACING"
-		check(game.LANES.size() == 6, "Six riding lines retained")
+		check(game.LANES.size() == 11, "Eleven player riding lines available")
 		var key := InputEventKey.new()
 		key.keycode = KEY_B
 		key.pressed = true

@@ -11,7 +11,7 @@ Vanaf de map met de Git-clone:
 
 ```bash
 git fetch origin
-git switch main
+git switch codex/player-lanes-11
 godot --headless --path game --script res://tests/test_elimination_menu_fix.gd
 godot --headless --path game --script res://tests/test_elimination_rules.gd
 godot --headless --path game --script res://tests/test_elimination_traffic.gd
@@ -63,19 +63,16 @@ Bij een desktopinstallatie van Godot kan de laatste stap ook door `game/project.
 - `race_menu.gd`: wedstrijdselectie en deelnemeraantal.
 
 
-## Speelbaarheidscorrecties (1 november 2026)
+## Speelbaarheidscorrecties (bijgewerkt 2 november 2026)
 
 De bestaande feature/elimination-race is al opgenomen in main op 7d195ea.
 De vervolgcorrecties zijn boven op die integratie gebouwd.
 
-- Inhaalhulp staat per nieuwe wedstrijd/herstart UIT. Alleen de afvalling toont
-  de optie. UIT waarschuwt wanneer de fysieke botsingscontrole daadwerkelijk
-  de voortgang beperkt; gewoon slipstreamen geeft geen waarschuwing.
-- AAN kiest alleen een vrije aangrenzende lijn en controleert het hele pad,
-  naderend achteropkomend verkeer en geplande AI-lijnwissels. Nieuwe gevaren
-  onderbreken de beweging. De hulp verandert geen watts of snelheid.
-- Eigen stuurinput neemt direct over vanaf de werkelijke rijlijn. De hulp blijft
-  daarna twee seconden uit; aangehouden Ride-druk vernieuwt die pauze.
+- De speler stuurt handmatig zoals in puntenkoers: elf rijlijnen met 0,60 m
+  per nieuwe druk, met hetzelfde totale bereik van 1,18 tot 7,18 m.
+  Automatische inhaalhulp en de bijbehorende menu-optie zijn verwijderd.
+- Blokkeringsmeldingen blijven beschikbaar wanneer de fysieke botsingscontrole
+  daadwerkelijk de voortgang beperkt; gewoon slipstreamen geeft geen waarschuwing.
 - TOT LAATSTE toont de afstand tot de laatste actieve tegenstander. Wanneer
   de speler zelf laatste ligt, is dit de negatieve afstand tot de volgende
   actieve renner. Afvallers tellen niet mee; de positienoemer toont actieve renners.
@@ -86,13 +83,13 @@ De vervolgcorrecties zijn boven op die integratie gebouwd.
 - Botsingsafhandeling bewaart fysieke baansnelheid in buitenbanen. Jurytijden
   voor toekomstige lijnen blijven bewaard wanneer de vorige beslissing op
   een ver achterliggende renner wacht. Normaal finishen kan pas met twee finalisten.
-- AFGEVALLEN-tekst, zichtbaarheid, timers, blokkadestatus en inhaalhulp worden
+- AFGEVALLEN-tekst, zichtbaarheid, timers en blokkadestatus worden
   gewist bij herstart, menuterugkeer en nieuwe wedstrijd.
 
 Nieuwe gerichte tests:
 
 ```bash
-godot --headless --path game --script res://tests/test_elimination_assist.gd
+godot --headless --path game --script res://tests/test_player_lanes.gd
 godot --headless --path game --script res://tests/test_elimination_corrections.gd
 godot --headless --path game --script res://tests/test_elimination_gameplay.gd
 godot --headless --path game --script res://tests/test_elimination_rules.gd
@@ -119,7 +116,7 @@ hier niet gecontroleerd.
 ## Invoegen en naast elkaar rijden (1 november 2026)
 
 Onveilig invoegen wordt nu vóór de lengtebotsingscontrole tegengehouden,
-zowel bij handmatig sturen als bij inhaalhulp en AI. De invoegende renner
+zowel bij handmatig sturen als bij AI. De invoegende renner
 wacht naast de bestaande rijlijn; de aanwezige renner wordt niet abrupt
 afgeremd om de invoeger ruimte te geven. Zodra het gat veilig is, wordt
 de aangevraagde rijlijnwissel alsnog voltooid. De HUD toont tijdens het wachten
@@ -129,7 +126,7 @@ De zijafstand gebruikt 0,65 m fysieke afstand tussen de fietscentra en rekent
 de banking om naar horizontale rijlijnoffsets. De oude brede strook van 0,88 m
 is vervallen voor botsingen. Daarmee kunnen renners zichtbaar naast elkaar
 rijden zonder onterecht op de snelheid van de andere rijlijn begrensd te worden.
-De botsingscontrole, AI-blokkadeherkenning en inhaalhulp gebruiken dezelfde maat.
+De botsingscontrole en AI-blokkadeherkenning gebruiken dezelfde maat.
 
 ```bash
 godot --headless --path game --script res://tests/test_elimination_merging.gd
