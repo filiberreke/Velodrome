@@ -51,18 +51,22 @@ jobs:
           unzip -q /tmp/templates.tpz -d /tmp/export-templates
           cp -a /tmp/export-templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
 
-      - name: Clean and re-import all project assets
+      - name: Bootstrap fresh Godot import cache
         shell: bash
         run: |
           set -euo pipefail
           rm -rf game/.godot
-          Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import 2>&1 | tee /tmp/godot-import.log
-          if grep -Ei 'Bad header|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource' /tmp/godot-import.log; then
-            echo "::error::Godot asset import reported errors"
+          # On a cold import the scene parser may attempt preloads before the
+          # generated .ctex files exist. Keep the first-pass log for diagnostics.
+          Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import > /tmp/godot-import-first.log 2>&1 || {
+            cat /tmp/godot-import-first.log
+            echo "::error::Initial Godot import did not complete"
             exit 1
-          fi
+          }
+          echo "First-pass import summary:"
+          grep -Ei 'ERROR:|SCRIPT ERROR:|import' /tmp/godot-import-first.log | tail -n 40 || true
 
-      - name: Check imported texture files
+      - name: Check generated texture data
         shell: bash
         run: |
           python3 - <<'PY'
@@ -71,9 +75,23 @@ jobs:
               matches = list(Path("game/.godot/imported").glob(name + ".png-*.ctex"))
               assert len(matches) == 1, f"Expected one imported texture for {name}: {matches}"
               path = matches[0]
-              assert path.stat().st_size > 64, f"Imported texture is too small: {path}"
+              assert path.stat().st_size > 64, f"Imported texture is missing or too small: {path}"
               print(f"Imported: {path} ({path.stat().st_size} bytes)")
           PY
+
+      - name: Validate project after completed import
+        shell: bash
+        run: |
+          set -euo pipefail
+          Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import > /tmp/godot-import-validation.log 2>&1 || {
+            cat /tmp/godot-import-validation.log
+            exit 1
+          }
+          cat /tmp/godot-import-validation.log
+          if grep -Ei 'Bad header|Unable to open file: res://.godot/imported/|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script' /tmp/godot-import-validation.log; then
+            echo "::error::Godot still reports missing or invalid resources after import"
+            exit 1
+          fi
 
       - name: Export Windows x64
         shell: bash
