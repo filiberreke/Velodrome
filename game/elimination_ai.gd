@@ -6,18 +6,27 @@ var final_line_m := 7500.0
 var lateral_scales: Array[float] = []
 
 func _inner_corridor_clear(i: int, candidate: float, distances: Array[float], speeds: Array[float], lanes: Array[float], finished: Array[float]) -> bool:
-    if not super._inner_corridor_clear(i, candidate, distances, speeds, lanes, finished): return false
-    if i <= 0 or finished[0] >= 0.0: return true
-    # Respect the player's reserved manoeuvre too. The inherited scratch
-    # planner only reserves earlier AI riders, not human steering requests.
-    var low: float = minf(lanes[i], candidate) - 0.88
-    var high: float = maxf(lanes[i], candidate) + 0.88
-    if maxf(lanes[0], lane_targets[0]) <= low or minf(lanes[0], lane_targets[0]) >= high: return true
-    var horizon: float = absf(lanes[i] - candidate) / 1.15 + 0.5
-    var gap: float = fposmod(distances[0] - distances[i] + 125.0, 250.0) - 125.0
-    var future: float = gap + (speeds[0] - speeds[i]) * horizon
-    var nearest: float = 0.0 if gap * future <= 0.0 else minf(absf(gap), absf(future))
-    return nearest >= 4.5
+    # Check the swept corridor, but permit moving AWAY from a close wheel
+    # immediately in front. The inherited scratch test rejects that escape.
+    var width: float = 0.88
+    var low: float = minf(lanes[i], candidate) - width
+    var high: float = maxf(lanes[i], candidate) + width
+    var horizon: float = absf(candidate - lanes[i]) / 1.15 + 0.5
+    for j in range(lanes.size()):
+        if j == i or finished[j] >= 0.0: continue
+        var other_low: float = lanes[j]
+        var other_high: float = lanes[j]
+        if j > 0 and j < i:
+            other_low = minf(other_low, lane_targets[j])
+            other_high = maxf(other_high, lane_targets[j])
+        if other_high <= low or other_low >= high: continue
+        var gap: float = fposmod(distances[j] - distances[i] + 125.0, 250.0) - 125.0
+        var future: float = gap + (speeds[j] - speeds[i]) * horizon
+        var nearest: float = 0.0 if gap * future <= 0.0 else minf(absf(gap), absf(future))
+        var escaping: bool = gap > 0.0 and absf(lanes[j] - lanes[i]) < width and absf(lanes[j] - candidate) >= width and other_high - other_low < 0.15
+        if escaping: continue
+        if nearest < 4.5: return false
+    return true
 
 func step(dt: float, clock: float, distances: Array[float], speeds: Array[float], lanes: Array[float], drafts: Array[float], finished: Array[float], profiles: Array[int], laps: int, difficulty: float, credits: Array[int]) -> Array[float]:
     var count := distances.size()
