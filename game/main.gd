@@ -2837,7 +2837,7 @@ func _prepare_pursuit(replay: Dictionary, cp: float) -> void:
 		pursuit_pacer.difficulty_percent = pursuit_opponent_percent
 		pursuit_pacer.prepare(self, _race_length(), cp, _rider_distance(1, 0.0), LANES[0])
 		rider_names[1] = String(pursuit_opponent_config.get("name", "AI-tegenstander"))
-	else:
+	elif not pursuit_replay.is_empty():
 		rider_names[1] = "Rit: " + String(pursuit_replay["name"]).left(24)
 	if bikes.size() > 1 and bikes[1].get_child_count() > 1:
 		bikes[1].get_child(1).text = _rider_name(1)
