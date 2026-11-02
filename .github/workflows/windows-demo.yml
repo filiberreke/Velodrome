@@ -1,0 +1,69 @@
+name: Windows demo build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-demo:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y unzip zip
+
+      - name: Install Godot and matching export templates
+        shell: bash
+        env:
+          GODOT_VERSION: "4.7.2"
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          curl -fL --retry 3 -o /tmp/godot.zip "${base}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fL --retry 3 -o /tmp/templates.tpz "${base}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          chmod +x "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          echo "/tmp/godot" >> "$GITHUB_PATH"
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          unzip -q /tmp/templates.tpz -d /tmp/export-templates
+          cp -a /tmp/export-templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+
+      - name: Import project assets
+        run: Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import
+
+      - name: Export Windows x64
+        run: |
+          mkdir -p build
+          Godot_v4.7.2-stable_linux.x86_64 --headless --path game --export-release "Windows Desktop" "$GITHUB_WORKSPACE/build/Velodrome.exe"
+          test -s build/Velodrome.exe
+          test -s build/Velodrome.pck
+
+      - name: Make demo ZIP
+        shell: bash
+        run: |
+          cat > build/README.txt <<'EOF'
+          Velodrome - Windows demo
+
+          Pak het volledige ZIP-bestand uit en start Velodrome.exe.
+          Houd Velodrome.exe en Velodrome.pck in dezelfde map.
+
+          Deze build bevat geen Zwift Ride bridge.
+          Controleer voor publicatie of het spel zonder externe hardware speelbaar is.
+          EOF
+          cd build
+          zip -9 ../Velodrome-Demo-Windows-x64.zip Velodrome.exe Velodrome.pck README.txt
+
+      - name: Upload downloadable build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Velodrome-Demo-Windows-x64
+          path: Velodrome-Demo-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
