@@ -20,13 +20,13 @@ func run_test() -> void:
 	var menu = game.setup_panel
 	game.get_node("GameSettings").always_show_intro = true
 	check(menu.visible and menu.page == 1, "Opening screen is mode gallery")
-	check(menu.cards.size() == 8 and menu.previews.size() == 8, "Seven mode cards plus Records tile")
+	check(menu.cards.size() == 10 and menu.previews.size() == 10, "Nine disciplines plus Records tile")
 	var expected := ["Scratch", "Achtervolging", "Ploegenachtervolging", "Puntenkoers", "Ploegkoers", "Afvalling", "Keirin"]
 	for i in range(7):
 		check(menu.MODES[i]["title"] == expected[i], "Requested card order")
 		check(menu.previews[i].own_world_3d, "Preview isolated from stadium and racing world")
 		var bounds: Rect2 = menu.cards[i].get_global_rect()
-		check(bounds.size.x > 300 and bounds.size.y >= 300, "Card has room for illustration and text")
+		check(bounds.size.x > 270 and bounds.size.y >= 282, "Card has room for illustration and text")
 		check(bounds.end.x <= 1920.1 and bounds.end.y <= 1080.1, "Card fits reference screen")
 	for item in game.race_hud_items:
 		check(not item.visible, "Race HUD hidden in gallery")
@@ -36,7 +36,7 @@ func run_test() -> void:
 	check(people.size() > 0, "Stadium crowd is available for race restoration")
 	for person in people:
 		check(not person.visible, "Stadium empty in menus")
-	for index in [4, 6]:
+	for index in [4, 6, 7, 8]:
 		menu.cards[index].pressed.emit()
 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")
@@ -57,6 +57,8 @@ func run_test() -> void:
 	await process_frame
 	check(menu.start_button.get_global_rect().end.y <= 1080.1, "Settings navigation fits screen")
 	menu.start_button.pressed.emit()
+	check(menu.page == 5 and game.start_state == "SETUP", "Settings opens the editable start list before starting")
+	menu.startlist_page.start_button.pressed.emit()
 	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Start shows broadcast intro before HUD")
 	game.broadcast_intro.finish()
 	check(not menu.visible and game.start_state == "WAIT_STOP", "Start opens existing trainer/countdown flow")
@@ -79,6 +81,7 @@ func run_test() -> void:
 	menu.back_button.pressed.emit()
 	menu.cards[3].pressed.emit()
 	menu.start_button.pressed.emit()
+	menu.startlist_page.start_button.pressed.emit()
 	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Repeat-intro test setting applies to the second event")
 	game.broadcast_intro.finish()
 	check(game.race_mode == 1 and game.rider_count == 16 and game.race_laps == 40, "Points mode starts with its own settings")

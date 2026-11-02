@@ -35,7 +35,10 @@ func run_test() -> void:
 	game._process_steering(-40.0)
 	check(game.player_lane == 0, "Ride steering overrides assist")
 	game.clock = 31.0; game._process_steering(-40.0)
-	check(game.elimination_assist.manual_until == 33.0, "Held Ride pressure keeps automatic steering paused")
+	check(game.elimination_assist.manual_until == 32.0 and game.player_lane == 0, "Held Ride pressure does not count as a new paddle press")
+	game._process_steering(0.0)
+	game._process_steering(40.0)
+	check(game.elimination_assist.manual_until == 33.0 and game.player_lane == 1, "A new paddle press after release overrides assist again")
 	game.elimination_notice.text = "AFGEVALLEN · OUD"; game.elimination_notice.show(); game.elimination_notice_until = 100.0
 	game._reset()
 	check(game.elimination_notice.text.is_empty() and not game.elimination_notice.visible and game.elimination_notice_until < 0.0, "Restart clears old elimination banner")

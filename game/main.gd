@@ -1,4 +1,5 @@
 extends Node3D
+const MenuSkin := preload("res://menu_theme.gd")
 signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
 const TrainerControl := preload("res://trainer_control.gd")
@@ -116,6 +117,9 @@ var rider_config_ready := false
 const Catalog := preload("res://rider_catalog.gd")
 const ConfigPaths := preload("res://config_paths.gd")
 var rider_identities: Array[Dictionary] = []
+var selected_startlist: Array[Dictionary] = []
+var startlist_mode := -1
+var results_podium = preload("res://results_podium.gd").new()
 var ai_personal_records = preload("res://rider_records.gd").new()
 var ai_recorded: Array[bool] = []
 var ai_observed_peak: Array[float] = []
@@ -160,6 +164,8 @@ func _configure_peloton() -> void:
 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
 		# 1 = TT, 2 = sprinter, 3 = attacker.
 		var configured: Dictionary = _configured_rider(i, kind) if i > 0 else {"profile": 0, "name": player_display_name}
+		if race_mode in [0,1,2] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
+			configured = selected_startlist[i - 1].duplicate(true)
 		if race_mode == 4 and i > 0:
 			configured = pursuit_opponent_config.duplicate(true) if not pursuit_opponent_config.is_empty() else _configured_rider(1, 1)
 		if race_mode == 5:
@@ -260,11 +266,12 @@ func _spawn_peloton() -> void:
 		rider.set_meta("jersey_config", rider_kits[i])
 		rider.set_meta("body_shapes", rider_identities[i].get("morphs", {}))
 		if rider_config_ready and race_mode not in [4, 5]:
-			var kit_section := "player" if i == 0 else "rider_%02d" % i
-			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", "")))
-			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", "")))
-			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", "")))
-			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", "")))
+			var source_slot := int(rider_identities[i].get("slot",i)) if i > 0 else 0
+			var kit_section := "player" if i == 0 else "rider_%02d" % source_slot
+			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", rider_kits[i].get("country_kit",""))))
+			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", rider_kits[i].get("skinsuit_png",""))))
+			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", rider_kits[i].get("helmet_png",""))))
+			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", rider_kits[i].get("visor",""))))
 		if race_mode == 5:
 			PlayerAppearance.prepare_rider(rider, rider_kits[i])
 		if i == 0:
@@ -844,6 +851,7 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _reset() -> void:
+	results_podium.clear()
 	_clear_elimination_feedback()
 	points_notifications.reset()
 	if race_overlay != null: race_overlay.popup.clear()
@@ -1558,6 +1566,17 @@ func _update_coasting(dt: float) -> void:
 		coast_speeds[i] = maxf(0.0, old_speed - COAST_BRAKE_MPS2 * dt)
 		coast_distances[i] += (old_speed + coast_speeds[i]) * 0.5 * dt / _path_metric(_rider_distance(i, coast_distances[i]), lane_offsets[i])
 
+func _place_results_camera() -> void:
+	if camera == null: return
+	var podium := find_child("Podium", true, false) as Node3D
+	if podium == null: return
+	results_podium.update(self,podium)
+	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera.fov = 62.0
+	# Keep the actual podium to the right of the ivory results sheet.
+	camera.global_position = podium.to_global(Vector3(-5.3, 3.5, 7.0))
+	camera.look_at(podium.to_global(Vector3(-5.3, 1.0, 0)))
+
 func _place_finish_camera() -> void:
 	# Fixed on the infield, pointing slightly past the finish line along travel direction.
 	var line: Vector3 = _at(_rider_distance(0, _race_length()), LANES[1])
@@ -1581,6 +1600,9 @@ func _player_won() -> bool:
 	return true
 
 func _update_visuals(dt: float) -> void:
+	if finish_overlay != null and finish_overlay.visible:
+		_place_results_camera()
+		return
 	if setup_panel != null and setup_panel.visible:
 		team_race.hide_badges()
 	if setup_panel != null and setup_panel.visible:
@@ -1968,57 +1990,63 @@ func _build_hud() -> void:
 	# Finishing overlay: semi-transparent backdrop and a proper results table.
 	finish_overlay = ColorRect.new()
 	finish_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	finish_overlay.color = Color(0.025, 0.055, 0.095, 0.89)
+	finish_overlay.theme = MenuSkin.create()
+	finish_overlay.color = Color(0.07, 0.16, 0.27, 0.08)
 	finish_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	finish_overlay.hide()
 	layer.add_child(finish_overlay)
-	var center := CenterContainer.new()
+	var center := MarginContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["left","right"]: center.add_theme_constant_override("margin_"+side,64)
+	center.add_theme_constant_override("margin_top",22);center.add_theme_constant_override("margin_bottom",30)
 	finish_overlay.add_child(center)
+	var results_stack := VBoxContainer.new();results_stack.add_theme_constant_override("separation",14);center.add_child(results_stack)
+	var results_brand := HBoxContainer.new();results_stack.add_child(results_brand);results_brand.add_child(MenuSkin.logo());results_brand.add_spacer(false)
+	var results_body := HBoxContainer.new();results_body.size_flags_vertical=Control.SIZE_EXPAND_FILL;results_stack.add_child(results_body)
 	var shell := PanelContainer.new()
-	shell.custom_minimum_size = Vector2(1300, 0)     # beta.16.17: room for the finish photo
+	shell.custom_minimum_size = Vector2(1320, 0)
+	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var shell_style := StyleBoxFlat.new()
-	shell_style.bg_color = Color(0.03, 0.09, 0.17, 0.91)
-	shell_style.border_color = Color("30d7f5")
-	shell_style.set_border_width_all(2)
+	shell_style.bg_color = MenuSkin.IVORY
+	shell_style.border_color = MenuSkin.WOOD
+	shell_style.set_border_width_all(0)
+	shell_style.border_width_top = 5
 	shell_style.set_corner_radius_all(22)
 	shell_style.set_content_margin_all(26)
 	shell.add_theme_stylebox_override("panel", shell_style)
-	center.add_child(shell)
+	results_body.add_child(shell)
+	results_body.add_spacer(false)
 	var sheet := VBoxContainer.new()
 	sheet.add_theme_constant_override("separation", 13)
 	shell.add_child(sheet)
 	var title_row := HBoxContainer.new()
 	title_row.add_theme_constant_override("separation", 14)
 	sheet.add_child(title_row)
-	var orange_bar := ColorRect.new()
-	orange_bar.color = Color("ff9938")
-	orange_bar.custom_minimum_size = Vector2(10, 76)
-	title_row.add_child(orange_bar)
 	var heading_stack := VBoxContainer.new()
 	title_row.add_child(heading_stack)
 	finish_heading = Label.new()
-	finish_heading.add_theme_font_size_override("font_size", 37)
-	finish_heading.add_theme_color_override("font_color", Color("fff6e8"))
+	finish_heading.add_theme_font_override("font", MenuSkin.heading())
+	finish_heading.add_theme_font_size_override("font_size", 36)
+	finish_heading.add_theme_color_override("font_color", MenuSkin.INK)
 	heading_stack.add_child(finish_heading)
 	var subtitle := Label.new()
 	finish_subtitle = subtitle
 	subtitle.text = "S P R I N T   2 5 0 M     |     OFFICIELE WEDSTRIJDRESULTATEN"
 	subtitle.add_theme_font_size_override("font_size", 14)
-	subtitle.add_theme_color_override("font_color", Color("42daed"))
+	subtitle.add_theme_color_override("font_color", MenuSkin.MUTED)
 	heading_stack.add_child(subtitle)
 	title_row.add_spacer(false)
 	finish_badge = Label.new()
 	finish_badge.add_theme_font_size_override("font_size", 26)
-	finish_badge.add_theme_color_override("font_color", Color("ffb23f"))
+	finish_badge.add_theme_color_override("font_color", MenuSkin.INK)
 	title_row.add_child(finish_badge)
 	var accent := ColorRect.new()
-	accent.color = Color("ff9938")
+	accent.color = MenuSkin.WOOD
 	accent.custom_minimum_size = Vector2(0, 3)
 	sheet.add_child(accent)
 	finish_results = Label.new()
 	finish_results.add_theme_font_size_override("font_size", 16)
-	finish_results.add_theme_color_override("font_color", Color("d9e8f5"))
+	finish_results.add_theme_color_override("font_color", MenuSkin.INK)
 	sheet.add_child(finish_results)
 	var table_row := HBoxContainer.new()
 	table_row.add_theme_constant_override("separation", 16)
@@ -2051,12 +2079,12 @@ func _build_hud() -> void:
 	pursuit_save_button = Button.new()
 	pursuit_save_button.text = "Rit opslaan"
 	pursuit_save_button.custom_minimum_size = Vector2(220, 52)
-	_style_finish_button(pursuit_save_button, Color("51d7df"), Color("092a39"))
+	_style_finish_button(pursuit_save_button, MenuSkin.BLUE, Color.WHITE)
 	pursuit_save_button.pressed.connect(_save_pursuit_ride)
 	save_row.add_child(pursuit_save_button)
 	pursuit_save_status = Label.new()
 	pursuit_save_status.add_theme_font_size_override("font_size", 18)
-	pursuit_save_status.add_theme_color_override("font_color", Color("a8bdce"))
+	pursuit_save_status.add_theme_color_override("font_color", MenuSkin.MUTED)
 	pursuit_save_box.add_child(pursuit_save_status)
 	pursuit_save_box.hide()
 	var buttons := HBoxContainer.new()
@@ -2064,34 +2092,37 @@ func _build_hud() -> void:
 	buttons.add_theme_constant_override("separation", 12)
 	sheet.add_child(buttons)
 	var again := Button.new()
-	again.text = "⟲  OPNIEUW SPELEN"
+	again.text = "Opnieuw spelen"
 	again.custom_minimum_size = Vector2(260, 58)
-	_style_finish_button(again, Color("ffbb45"), Color("111e32"))
+	_style_finish_button(again, MenuSkin.BLUE, Color.WHITE)
 	again.pressed.connect(_reset)
 	buttons.add_child(again)
 	var strava_button := Button.new()
-	strava_button.text = "STRAVA  |  EXPORT"
+	strava_button.text = "Export naar Strava"
 	strava_button.icon = load("res://strava_logo.svg")
 	strava_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	strava_button.custom_minimum_size = Vector2(250, 58)
-	_style_finish_button(strava_button, Color("fc4c02"), Color.WHITE)
+	_style_finish_button(strava_button, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
+	for state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color"]:
+		strava_button.add_theme_color_override(state, MenuSkin.BLUE)
 	strava_button.pressed.connect(_export_to_strava)
 	buttons.add_child(strava_button)
 	var fit_button := Button.new()
-	fit_button.text = "↓  EXPORT .FIT"
+	fit_button.text = "Exporteer .FIT"
 	fit_button.custom_minimum_size = Vector2(210, 58)
-	_style_finish_button(fit_button, Color("113554"), Color("ffffff"), Color("32d9f0"))
+	_style_finish_button(fit_button, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	fit_button.pressed.connect(func(): _export_strava_fit(true))
 	buttons.add_child(fit_button)
 	var quit := Button.new()
-	quit.text = "■  STOPPEN"
+	quit.text = "Stoppen"
 	quit.custom_minimum_size = Vector2(185, 58)
-	_style_finish_button(quit, Color("152b42"), Color.WHITE, Color("6da0bc"))
+	_style_finish_button(quit, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	quit.pressed.connect(func(): get_tree().quit())
 	buttons.add_child(quit)
 
 func _build_finish_photo_ui(row: HBoxContainer) -> void:
 	var frame := PanelContainer.new()
+	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.96, 0.96, 0.94)                 # white photo border
 	style.set_content_margin_all(8)
@@ -2176,6 +2207,7 @@ func _set_menu_visible(is_visible: bool) -> void:
 		return
 	setup_panel.visible = is_visible
 	if is_visible:
+		results_podium.clear()
 		_clear_elimination_feedback()
 		setup_panel.call("show_choices")
 	_set_race_hud_visible(not is_visible)
@@ -2234,6 +2266,12 @@ func _confirm_start() -> void:
 	var use_elimination_assist: bool = choice == 5 and setup_panel.elimination_assist_toggle.button_pressed
 	_clear_elimination_feedback()
 	elimination_assist.enabled = use_elimination_assist
+	selected_startlist.clear()
+	startlist_mode = -1
+	if choice in [0,3,5] and setup_panel.page == 5:
+		if not setup_panel.startlist_page.can_start(): return
+		selected_startlist.assign(setup_panel.startlist_page.lineup.duplicate(true))
+		startlist_mode = race_mode
 	_configure_peloton()
 	if choice in [1, 2]:
 		_prepare_pursuit(replay, options.configured_cp())
@@ -2673,7 +2711,10 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 	label.text = value
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if right else HORIZONTAL_ALIGNMENT_LEFT
-	label.add_theme_font_size_override("font_size", 16 if not header else 14)
+	label.add_theme_font_size_override("font_size", 20 if not header else 16)
+	label.custom_minimum_size.x = width - 14
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.tooltip_text = value
 	label.add_theme_color_override("font_color", tint)
 	panel.add_child(label)
 
@@ -2690,7 +2731,7 @@ func _refresh_fullscreen_results() -> void:
 	for n in range(rider_count): ordered.append(n)
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
-	finish_heading.text = "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else "VELODROME 250  |  UITSLAG"
+	finish_heading.text = "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
 	if finish_subtitle != null:
 		finish_subtitle.text = "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
 	if pursuit_save_box != null:
@@ -2717,9 +2758,9 @@ func _refresh_fullscreen_results() -> void:
 	for child in finish_table.get_children():
 		finish_table.remove_child(child)
 		child.queue_free()
-	var white := Color("f3f7fc")
-	var gold := Color("f4d46a")
-	var header_bg := Color(0.08, 0.28, 0.42, 0.97)
+	var white := MenuSkin.INK
+	var gold := MenuSkin.INK
+	var header_bg := MenuSkin.PALE
 	_result_cell("PL.", gold, header_bg, 54, false, true)
 	_result_cell("RENNER", gold, header_bg, 205, false, true)
 	_result_cell("EINDTIJD", gold, header_bg, 120, true, true)
@@ -2730,10 +2771,10 @@ func _refresh_fullscreen_results() -> void:
 		if finish_times[index] >= 0.0:
 			leader_time = finish_times[index]
 			break
-	var rider_colors: Array[Color] = [Color("f4d46a"), Color("46d49a"), Color("55aafa"), Color("fc817c")]
+	var rider_colors: Array[Color] = [MenuSkin.INK, MenuSkin.INK, MenuSkin.INK, MenuSkin.INK]
 	for rank in range(ordered.size()):
 		var rider: int = ordered[rank]
-		var row_bg: Color = Color(0.30, 0.27, 0.13, 0.94) if rank == 0 else (Color(0.10, 0.20, 0.32, 0.92) if rank % 2 == 0 else Color(0.065, 0.15, 0.26, 0.92))
+		var row_bg: Color = MenuSkin.GOLD if rank == 0 else (MenuSkin.PAPER if rank % 2 == 0 else MenuSkin.IVORY)
 		var display_time: String = "%.2f s" % finish_times[rider] if finish_times[rider] >= 0.0 else "Onderweg"
 		if race_mode == 0 and scratch_rules.credits[rider] != 0:
 			display_time += "  (%+d ronde)" % scratch_rules.credits[rider]
@@ -3337,3 +3378,19 @@ func _hud_elimination_gap() -> String:
 	# When the player is last, show the negative gap to the next active rider.
 	# Eliminated/coasting riders never become the reference.
 	return "%+.1f m" % (distances[0] - distances[opponents[0]])
+
+func available_startlist_riders() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var seen: Array[String] = []
+	for entry in available_pursuit_riders():
+		if String(entry.id) not in seen:
+			result.append(entry);seen.append(String(entry.id))
+	# Keep reserve choices even for a sixteen-rider race. Personal extra slots are preserved.
+	for slot in range(16, 64):
+		if result.size() >= 24: break
+		var entry := _configured_rider(slot,1+((slot-1)%3))
+		if String(entry.id) not in seen:
+			result.append(entry);seen.append(String(entry.id))
+	for entry in result:
+		if not entry.jersey.has("country_kit"): entry.jersey["country_kit"] = entry.country
+	return result

@@ -1,4 +1,5 @@
 extends VBoxContainer
+const MenuStyle := preload("res://menu_theme.gd")
 signal changed
 const Records := preload("res://pursuit_records.gd")
 var library = Records.new()
@@ -19,7 +20,7 @@ func _label(value: String) -> Label:
 	var node := Label.new()
 	node.text = value
 	node.add_theme_font_size_override("font_size", 22)
-	node.add_theme_color_override("font_color", Color("f3f5fa"))
+	node.add_theme_color_override("font_color", MenuStyle.INK)
 	return node
 
 func _choice() -> OptionButton:

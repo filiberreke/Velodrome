@@ -1,4 +1,5 @@
 extends PanelContainer
+const MenuStyle := preload("res://menu_theme.gd")
 signal selected(entry: Dictionary)
 const Catalog := preload("res://rider_catalog.gd")
 const Appearance := preload("res://player_appearance.gd")
@@ -15,13 +16,14 @@ func label(text: String, size: int = 18) -> Label:
 	var node := Label.new()
 	node.text = text
 	node.add_theme_font_size_override("font_size", size)
-	node.add_theme_color_override("font_color", Color("ecf3fa"))
+	node.add_theme_color_override("font_color", MenuStyle.INK)
 	return node
 
 func _ready() -> void:
+	theme = MenuStyle.create()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var background := StyleBoxFlat.new()
-	background.bg_color = Color("0b1727")
+	background.bg_color = MenuStyle.IVORY
 	for side in [SIDE_LEFT,SIDE_RIGHT,SIDE_TOP,SIDE_BOTTOM]: background.set_content_margin(side, 28)
 	add_theme_stylebox_override("panel", background)
 	var column := VBoxContainer.new()

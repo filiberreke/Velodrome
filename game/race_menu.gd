@@ -1,12 +1,14 @@
 extends Control
 signal start_requested
 signal difficulty_changed(value: float)
+const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
 const Records := preload("res://pursuit_records.gd")
 var library = Records.new()
 var records_store = preload("res://performance_records.gd").new()
 var records_page: VBoxContainer
 var pursuit_flow: VBoxContainer
+var startlist_page: VBoxContainer
 var footer_label: Label
 var team_options
 var team_scroll: ScrollContainer
@@ -24,11 +26,17 @@ const MODES := [
 	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
 	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Bouw snelheid op achter de gangmaker en kies je moment zodra de finale begint.", "race_id": 3},
+	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "Deze discipline wordt later toegevoegd.", "race_id": -1},
+	{"key": "tempo", "title": "Temporace", "hint": "Houd het tempo hoog.", "detail": "Deze discipline wordt later toegevoegd.", "race_id": -1},
 	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1}
 ]
-const INK := Color("f3f5fa")
-const MUTED := Color("a8bdce")
-const ACCENT := Color("51d7df")
+const INK := MenuStyle.INK
+const MUTED := MenuStyle.MUTED
+const ACCENT := MenuStyle.BLUE
+const RECORDS_INDEX := 9
+const PLAYABLE := [0, 1, 2, 3, 5]
+const DISPLAY_ORDER := [0, 1, 2, 3, 5, 4, 6, 7, 8, 9]
+var gallery_grid: GridContainer
 var page := 1
 var selected := 0
 var field_settings := {0: [8, 10], 3: [16, 40], 5: [12, 22]}
@@ -71,68 +79,95 @@ func label(text: String, font_size: int, colour: Color = INK) -> Label:
 	return node
 
 func _ready() -> void:
+	theme = MenuStyle.create()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var tint := ColorRect.new()
 	tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	tint.color = Color(0.02, 0.05, 0.09, 0.58)
+	tint.color = Color(0.07, 0.16, 0.27, 0.12)
 	tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tint)
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right"]:
-		margin.add_theme_constant_override("margin_" + side, 96)
-	for side in ["top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 52)
+	for side in ["left", "right"]: margin.add_theme_constant_override("margin_" + side, 64)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_bottom", 30)
 	add_child(margin)
-	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 22)
-	margin.add_child(layout)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 14)
+	margin.add_child(outer)
 	var brand_row := HBoxContainer.new()
-	layout.add_child(brand_row)
-	var brand := label("VELODROME 250", 19, ACCENT)
-	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	brand_row.add_child(brand)
-	bridge_label = label("DEMO · nog geen bridge-telemetrie ontvangen", 18, MUTED)
-	bridge_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	bridge_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_row.add_theme_constant_override("separation", 22)
+	outer.add_child(brand_row)
+	brand_row.add_child(MenuStyle.logo())
+	brand_row.add_spacer(false)
+	bridge_label = label("Demo beschikbaar", 18, MUTED)
+	bridge_label.custom_minimum_size.x = 360
+	bridge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bridge_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bridge_label.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 12, 10))
+	bridge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	brand_row.add_child(bridge_label)
-	page_title = label("Kies jouw wedstrijd", 48)
-	layout.add_child(page_title)
-	breadcrumb = label("01  SPELVORM     /     02  WEDSTRIJDINSTELLINGEN", 18, MUTED)
-	layout.add_child(breadcrumb)
+	var settings_space := Control.new()
+	settings_space.custom_minimum_size.x = 275
+	brand_row.add_child(settings_space)
+	var shell := PanelContainer.new()
+	shell.name = "IvoryMenuSheet"
+	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var paper := MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 26, 20)
+	paper.border_color = MenuStyle.WOOD
+	paper.border_width_top = 5
+	shell.add_theme_stylebox_override("panel", paper)
+	outer.add_child(shell)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 16)
+	shell.add_child(layout)
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 20)
+	layout.add_child(title_row)
+	page_title = label("Kies jouw wedstrijd", 44)
+	page_title.add_theme_font_override("font", MenuStyle.heading())
+	page_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(page_title)
+	breadcrumb = label("01  Spelvorm     /     02  Instellingen", 18, MUTED)
+	breadcrumb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_row.add_child(breadcrumb)
 	choice_page = VBoxContainer.new()
 	choice_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(choice_page)
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 22)
-	grid.add_theme_constant_override("v_separation", 22)
-	choice_page.add_child(grid)
-	for i in range(MODES.size()):
-		previews.append(Preview.make(self, MODES[i]["key"]) if MODES[i]["key"] != "records" else null)
+	gallery_grid = GridContainer.new()
+	gallery_grid.columns = 5
+	gallery_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	gallery_grid.add_theme_constant_override("h_separation", 18)
+	gallery_grid.add_theme_constant_override("v_separation", 18)
+	choice_page.add_child(gallery_grid)
+	cards.resize(MODES.size())
+	previews.resize(MODES.size())
+	for i in DISPLAY_ORDER:
+		if i != RECORDS_INDEX: previews[i] = Preview.make(self, MODES[i]["key"])
 		var card := Button.new()
 		card.name = MODES[i]["key"]
-		card.custom_minimum_size = Vector2(0, 314)
+		card.custom_minimum_size = Vector2(0, 282)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		card.add_theme_stylebox_override("normal", panel_style(Color(0.035, 0.085, 0.14, 0.96), Color("2b475b")))
-		card.add_theme_stylebox_override("hover", panel_style(Color("153b50"), ACCENT))
-		card.add_theme_stylebox_override("pressed", panel_style(Color("1b4b60"), ACCENT))
-		card.add_theme_stylebox_override("focus", panel_style(Color.TRANSPARENT, ACCENT))
-		grid.add_child(card)
-		cards.append(card)
+		card.tooltip_text = MODES[i]["hint"]
+		card.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.PAPER, MenuStyle.LINE, 0, 12))
+		card.add_theme_stylebox_override("hover", MenuStyle.panel(MenuStyle.PALE, MenuStyle.BLUE, 0, 12))
+		card.add_theme_stylebox_override("pressed", MenuStyle.panel(MenuStyle.PALE, MenuStyle.BLUE, 0, 12))
+		gallery_grid.add_child(card)
+		cards[i] = card
 		var content := VBoxContainer.new()
 		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		content.offset_left = 18
-		content.offset_right = -18
-		content.offset_top = 14
-		content.offset_bottom = -16
-		content.add_theme_constant_override("separation", 8)
+		content.offset_left = 12
+		content.offset_right = -12
+		content.offset_top = 12
+		content.offset_bottom = -12
+		content.add_theme_constant_override("separation", 10)
 		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(content)
 		var art: Control
-		if MODES[i]["key"] == "records":
+		if i == RECORDS_INDEX:
 			art = preload("res://records_tile_art.gd").new()
 		else:
 			var image := TextureRect.new()
@@ -140,26 +175,31 @@ func _ready() -> void:
 			image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			art = image
-		art.custom_minimum_size = Vector2(0, 172)
+		art.custom_minimum_size = Vector2(0, 164)
+		art.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(art)
-		var heading := HBoxContainer.new()
-		heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		content.add_child(heading)
-		var mode_title := label(MODES[i]["title"], 25)
-		mode_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		heading.add_child(mode_title)
-		var status := label("TOP 10" if i == 7 else ("SPEEL" if i in [0, 1, 2, 3, 5] else "BINNENKORT"), 13, ACCENT if i in [0, 1, 2, 3, 5, 7] else MUTED)
+		var mode_title := label("Ploegen\nachtervolging" if i == 2 else MODES[i]["title"], 26)
+		mode_title.add_theme_font_override("font", MenuStyle.heading())
+		mode_title.custom_minimum_size.y = 62
+		mode_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		mode_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(mode_title)
+		var status := label("TOP 10" if i == RECORDS_INDEX else ("SPEEL" if i in PLAYABLE else "BINNENKORT"), 13, MUTED)
 		status.name = "Status"
-		heading.add_child(status)
-		var hint := label(MODES[i]["hint"], 19, MUTED)
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		content.add_child(hint)
+		status.position = Vector2(20, 18)
+		# Available modes need no extra badge; keep status available to accessibility/tests.
+		status.visible = i not in PLAYABLE
+		status.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 5, 6))
+		card.add_child(status)
 		card.pressed.connect(select_mode.bind(i))
 	_build_settings(layout)
 	pursuit_flow = preload("res://pursuit_flow.gd").new()
 	pursuit_flow.menu = self
 	layout.add_child(pursuit_flow)
+	startlist_page = preload("res://startlist_page.gd").new()
+	startlist_page.menu = self
+	layout.add_child(startlist_page)
 	records_page = preload("res://records_page.gd").new()
 	records_page.store = records_store
 	layout.add_child(records_page)
@@ -174,7 +214,7 @@ func _build_settings(layout: VBoxContainer) -> void:
 	layout.add_child(settings_page)
 	var shell := PanelContainer.new()
 	shell.custom_minimum_size = Vector2(1260, 0)
-	shell.add_theme_stylebox_override("panel", panel_style(Color(0.035, 0.085, 0.14, 0.97), Color("2b475b")))
+	shell.add_theme_stylebox_override("panel", MenuStyle.panel(MenuStyle.PAPER, MenuStyle.LINE, 22))
 	settings_page.add_child(shell)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 48)
@@ -258,18 +298,22 @@ func _build_settings(layout: VBoxContainer) -> void:
 	start_button = Button.new()
 	start_button.custom_minimum_size = Vector2(310, 60)
 	start_button.add_theme_font_size_override("font_size", 22)
-	start_button.add_theme_color_override("font_color", Color("092a39"))
-	start_button.add_theme_color_override("font_hover_color", Color("092a39"))
+	start_button.add_theme_color_override("font_color", Color.WHITE)
+	start_button.add_theme_color_override("font_hover_color", Color.WHITE)
 	start_button.add_theme_stylebox_override("normal", panel_style(ACCENT))
-	start_button.add_theme_stylebox_override("hover", panel_style(Color("89eef0")))
+	start_button.add_theme_stylebox_override("hover", panel_style(MenuStyle.BLUE.lightened(.10)))
+	MenuStyle.primary(start_button)
 	start_button.pressed.connect(func() -> void:
 		if not start_button.disabled and (selected in [0, 3, 5] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
-			start_requested.emit())
+			if selected in [0, 3, 5]: show_startlist()
+			else: start_requested.emit())
 	navigation.add_child(start_button)
 
 func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: int, initial: int) -> SpinBox:
-	parent_node.add_child(label(title, 22))
+	var caption := label(title, 22)
+	parent_node.add_child(caption)
 	var input := SpinBox.new()
+	input.set_meta("caption", caption)
 	input.min_value = minimum
 	input.max_value = maximum
 	input.step = 1
@@ -283,7 +327,8 @@ func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: i
 
 func show_choices() -> void:
 	footer_label.show()
-	page_title.add_theme_font_size_override("font_size",48)
+	page_title.add_theme_font_size_override("font_size",44)
+	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	if page == 2 and selected in [0, 3, 5]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	page = 1
@@ -291,33 +336,36 @@ func show_choices() -> void:
 	choice_page.show()
 	settings_page.hide()
 	records_page.hide()
-	breadcrumb.text = "01  SPELVORM     /     02  WEDSTRIJDINSTELLINGEN"
+	breadcrumb.text = "01  Spelvorm     /     02  Instellingen"
 	if not cards.is_empty():
 		cards[selected].grab_focus.call_deferred()
 
 func select_mode(index: int) -> void:
 	if page == 2 and selected in [0, 3, 5]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	footer_label.show()
-	page_title.add_theme_font_size_override("font_size",48)
+	page_title.add_theme_font_size_override("font_size",44)
 	selected = clampi(index, 0, MODES.size() - 1)
-	if selected == 7:
+	if selected == RECORDS_INDEX:
 		show_records()
 		return
 	records_page.hide()
+	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	page = 2
 	page_title.text = "Stel je wedstrijd in"
 	choice_page.hide()
 	settings_page.show()
-	breadcrumb.text = "01  SPELVORM     /     02  WEDSTRIJDINSTELLINGEN"
+	breadcrumb.text = "01  Spelvorm     /     02  Instellingen"
 	selected_title.text = MODES[selected]["title"]
 	selected_description.text = MODES[selected]["detail"]
 	selected_art.texture = previews[selected].get_texture()
 	race_settings.visible = selected in [0, 3, 5]
 	count_input.visible = selected != 5
+	count_input.get_meta("caption").visible = selected != 5
 	elimination_count_picker.visible = selected == 5
 	elimination_assist_toggle.visible = selected == 5
 	laps_input.visible = selected != 5
+	laps_input.get_meta("caption").visible = selected != 5
 	if selected in [0, 3]:
 		count_input.max_value = 16 if selected == 3 else 12
 		laps_input.max_value = 120 if selected == 3 else 30
@@ -334,7 +382,7 @@ func select_mode(index: int) -> void:
 	demo_settings.visible = selected in [0, 1, 2, 3, 5] and not bridge_seen and not bridge_unavailable
 	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
 	start_button.disabled = selected not in [0, 1, 2, 3, 5]
-	start_button.text = "Start wedstrijd  →" if selected in [0, 1, 2, 3, 5] else "Binnenkort"
+	start_button.text = "Startlijst →" if selected in [0, 3, 5] else "Start wedstrijd →" if selected in [1, 2] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
@@ -348,14 +396,15 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_seen = seen
 	bridge_live = live
 	bridge_unavailable = unavailable
-	bridge_label.text = "Bridge LIVE · trainertelemetrie ontvangen" if live else ("Bridge ontvangen · wacht op geldige trainerdata" if seen else "DEMO · nog geen bridge-telemetrie ontvangen")
+	bridge_label.text = "●  Trainer verbonden" if live else ("Trainer gevonden · wacht op gegevens" if seen else "Demo beschikbaar · geen trainer")
 	if unavailable:
-		bridge_label.text = "Bridge niet beschikbaar: UDP 51723 bezet. Sluit andere spelinstanties en herstart Godot."
+		bridge_label.text = "Verbinding bezet · sluit de andere spelinstantie"
 	demo_settings.visible = selected in [0, 1, 2, 3, 5] and not seen and not unavailable
 	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5]
 	if selected in [1, 2]:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 	if pursuit_flow != null and pursuit_flow.visible: pursuit_flow.update_bridge()
+	if startlist_page != null and startlist_page.visible: startlist_page.update_bridge()
 
 func _pursuit_changed() -> void:
 	if selected not in [1, 2] or start_button == null:
@@ -365,13 +414,17 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and page in [2, 3, 4] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
-		if selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
+	if visible and page in [2, 3, 4, 5] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+		if page == 5: startlist_page.back()
+		elif selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
 		else: show_choices()
 		get_viewport().set_input_as_handled()
 
 func bridge_action(button: String) -> void:
 	if not visible:
+		return
+	if page == 5:
+		startlist_page.bridge_action(button)
 		return
 	if pursuit_options != null and is_instance_valid(pursuit_options.active_picker):
 		pursuit_options.active_picker.bridge_action(button)
@@ -395,12 +448,26 @@ func bridge_action(button: String) -> void:
 		get_viewport().push_input(event)
 
 func show_records() -> void:
-	footer_label.show()
-	page_title.add_theme_font_size_override("font_size",48)
+	footer_label.hide()
+	page_title.add_theme_font_size_override("font_size",44)
+	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	page = 3
 	page_title.text = "Records"
-	breadcrumb.text = "ALL-TIME TOP 10 · ACHTERVOLGING & PLOEGENACHTERVOLGING"
+	breadcrumb.text = "Jouw snelste tijden op de piste"
 	choice_page.hide(); settings_page.hide(); records_page.show()
 	records_page.refresh(true)
 	records_page.back_button.grab_focus.call_deferred()
+
+func show_startlist() -> void:
+	if selected not in [0, 3, 5] or bridge_unavailable: return
+	field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
+	page = 5
+	choice_page.hide()
+	settings_page.hide()
+	pursuit_flow.hide()
+	records_page.hide()
+	footer_label.hide()
+	page_title.text = "Jouw startlijst"
+	breadcrumb.text = "01  Wedstrijdinstellingen     /     02  Startlijst"
+	startlist_page.begin()
