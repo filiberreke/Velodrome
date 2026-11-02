@@ -5,6 +5,7 @@ const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
+var trainer_control_was_active := false
 const LAP := 250.0
 const ScratchRules := preload("res://scratch_lap_rules.gd")
 var scratch_rules = ScratchRules.new()
@@ -735,6 +736,7 @@ func _process_steering(value: Variant) -> void:
 	if not (value is int or value is float) or not is_finite(float(value)) or absf(float(value)) > 100.0:
 		return
 	var pressure: float = absf(float(value))
+	# Must return to neutral before another click is recognized.
 	if pressure <= 15.0:
 		steering_direction = 0
 		steering_steps = 0
@@ -742,20 +744,21 @@ func _process_steering(value: Variant) -> void:
 	if pressure < 25.0:
 		return
 	var direction: int = 1 if float(value) > 0.0 else -1
-	var steps: int = mini(5, 1 + int((pressure - 25.0) / 15.0))
-	var same_direction: bool = direction == steering_direction
-	var extra: int = maxi(0, steps - steering_steps) if same_direction else steps
-	steering_steps = maxi(steering_steps, steps) if same_direction else steps
+	# One press = one lane, irrespective of how far the analog paddle moves.
+	# Rising pressure and reversing without release never count as another click.
+	if steering_direction != 0:
+		return
 	steering_direction = direction
-	# Consume presses during menus/countdown too: holding through GO must not steer.
+	steering_steps = 1
+	# Consume presses during menus/countdown so holding through GO cannot steer.
 	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
 		return
 	_manual_elimination_steering()
 	if race_mode == 5:
-		if direction > 0 and not same_direction:
+		if direction > 0:
 			team_race.request_player_exchange()
-	elif extra > 0:
-		player_lane = clampi(player_lane + direction * extra, 0, LANES.size() - 1)
+	else:
+		player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
 func _process_bridge_json(raw: String) -> void:
 	var parser := JSON.new()
@@ -1292,7 +1295,10 @@ func _winner_index() -> int:
 func _update_trainer_control() -> void:
 	var racing: bool = trainer_seen and running and not finished and start_state == "RACING"
 	var live: bool = connected and trainer_ready
-	var active: bool = racing and live
+	# Ignore very brief invalid samples only for an already active, owned session.
+	# The bridge retains its independent three-second safety watchdog.
+	var transient_gap: bool = racing and not live and trainer_control.owned and trainer_control.armed and last_telemetry >= 0.0 and _now_s() - last_telemetry <= 0.5
+	var active: bool = racing and (live or transient_gap)
 	# Loss of the whole UDP stream releases our load. Remember only that
 	# release, so fresh telemetry can resume this race through the normal probe.
 	# Invalid trainer samples, command errors and another controller never re-arm.
