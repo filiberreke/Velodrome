@@ -1,0 +1,176 @@
+{
+  "races": 100,
+  "laps": 40,
+  "field": 16,
+  "sprint_laps": [
+    10,
+    20,
+    30,
+    40
+  ],
+  "winner_types": {
+    "tt": 60,
+    "attacker": 38,
+    "sprinter": 2
+  },
+  "by_type": {
+    "tt": {
+      "rider_observations": 600,
+      "base_cp_w": 270.86,
+      "gains": 44,
+      "losses": 124,
+      "attacks": 201,
+      "mean_sprint_effort_s": 56.083333333333336,
+      "mean_chase_s": 0.7566666666666667,
+      "mean_w35_j": 3224.851364304113,
+      "mean_w35_pct": 13.37258278182563,
+      "min_w35_pct": 0.0,
+      "max_w35_pct": 26.867815913596772
+    },
+    "sprinter": {
+      "rider_observations": 500,
+      "base_cp_w": 235.0,
+      "gains": 5,
+      "losses": 736,
+      "attacks": 46,
+      "mean_sprint_effort_s": 24.3,
+      "mean_chase_s": 0.612,
+      "mean_w35_j": 1484.765213298018,
+      "mean_w35_pct": 4.797092854591778,
+      "min_w35_pct": 0.0,
+      "max_w35_pct": 30.098728787644728
+    },
+    "attacker": {
+      "rider_observations": 500,
+      "base_cp_w": 250.0,
+      "gains": 22,
+      "losses": 158,
+      "attacks": 435,
+      "mean_sprint_effort_s": 44.804,
+      "mean_chase_s": 0.856,
+      "mean_w35_j": 4041.288387209181,
+      "mean_w35_pct": 12.34474059342821,
+      "min_w35_pct": 0.0,
+      "max_w35_pct": 24.987938081760113
+    }
+  },
+  "sprint_winner_types": {
+    "10": {
+      "sprinter": 62,
+      "attacker": 38
+    },
+    "20": {
+      "attacker": 55,
+      "tt": 32,
+      "sprinter": 13
+    },
+    "30": {
+      "tt": 56,
+      "attacker": 41,
+      "sprinter": 3
+    },
+    "40": {
+      "attacker": 33,
+      "tt": 66,
+      "sprinter": 1
+    }
+  },
+  "rider_laps": [
+    {
+      "id": 1,
+      "role": "tt",
+      "gains": 6,
+      "losses": 18
+    },
+    {
+      "id": 2,
+      "role": "sprinter",
+      "gains": 1,
+      "losses": 138
+    },
+    {
+      "id": 3,
+      "role": "attacker",
+      "gains": 5,
+      "losses": 29
+    },
+    {
+      "id": 4,
+      "role": "tt",
+      "gains": 9,
+      "losses": 15
+    },
+    {
+      "id": 5,
+      "role": "sprinter",
+      "gains": 1,
+      "losses": 140
+    },
+    {
+      "id": 6,
+      "role": "attacker",
+      "gains": 4,
+      "losses": 26
+    },
+    {
+      "id": 7,
+      "role": "tt",
+      "gains": 9,
+      "losses": 28
+    },
+    {
+      "id": 8,
+      "role": "sprinter",
+      "gains": 2,
+      "losses": 143
+    },
+    {
+      "id": 9,
+      "role": "attacker",
+      "gains": 2,
+      "losses": 35
+    },
+    {
+      "id": 10,
+      "role": "tt",
+      "gains": 2,
+      "losses": 19
+    },
+    {
+      "id": 11,
+      "role": "sprinter",
+      "gains": 1,
+      "losses": 158
+    },
+    {
+      "id": 12,
+      "role": "attacker",
+      "gains": 6,
+      "losses": 31
+    },
+    {
+      "id": 13,
+      "role": "tt",
+      "gains": 8,
+      "losses": 19
+    },
+    {
+      "id": 14,
+      "role": "sprinter",
+      "gains": 0,
+      "losses": 157
+    },
+    {
+      "id": 15,
+      "role": "attacker",
+      "gains": 5,
+      "losses": 37
+    },
+    {
+      "id": 16,
+      "role": "tt",
+      "gains": 10,
+      "losses": 25
+    }
+  ]
+}
