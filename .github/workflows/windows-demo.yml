@@ -56,6 +56,11 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf game/.godot
+          # These checked-in .import metadata files point at a generated cache.
+          # Delete only the generated metadata in this CI checkout so Godot
+          # must re-import the source PNGs and recreate valid cache paths.
+          rm -f game/assets/textures/velodrome_wood_pine.png.import
+          rm -f game/assets/textures/velodrome_cote_azur.png.import
           # On a cold import the scene parser may attempt preloads before the
           # generated .ctex files exist. Keep the first-pass log for diagnostics.
           Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import > /tmp/godot-import-first.log 2>&1 || {
@@ -78,6 +83,8 @@ jobs:
               assert path.stat().st_size > 64, f"Imported texture is missing or too small: {path}"
               print(f"Imported: {path} ({path.stat().st_size} bytes)")
           PY
+          echo "Generated import metadata:"
+          grep -E '^path=|^dest_files=' game/assets/textures/velodrome_wood_pine.png.import game/assets/textures/velodrome_cote_azur.png.import
 
       - name: Validate project after completed import
         shell: bash
