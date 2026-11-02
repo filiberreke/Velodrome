@@ -151,15 +151,14 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare build files
+      - name: Prepare build files and safe configuration templates
         shell: bash
         run: |
-          cat > build/README.txt <<'EOF'
-          Velodrome - Windows demo
-          Pak de ZIP volledig uit en start Velodrome.exe.
-          Houd Velodrome.exe en Velodrome.pck in dezelfde map.
-          De Zwift Ride bridge wordt niet meegeleverd.
-          EOF
+          set -euo pipefail
+          mkdir -p build/defaults
+          # Copy only reviewed demo assets; never copy personal game/config/*.cfg.
+          cp packaging/windows-demo/README.txt packaging/windows-demo/Start-Velodrome.cmd packaging/windows-demo/Initialize-Config.ps1 build/
+          cp packaging/windows-demo/defaults/riders_config.cfg packaging/windows-demo/defaults/strava_config.cfg build/defaults/
 
       - name: Upload internal candidate for Windows smoke test
         uses: actions/upload-artifact@v4
@@ -178,6 +177,18 @@ jobs:
         with:
           name: windows-demo-candidate
           path: build
+
+      - name: Check out packaging tests
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: packaging/windows-demo
+          path: source
+
+      - name: Verify configuration preservation and initialize smoke-test configs
+        shell: pwsh
+        run: |
+          & ./source/packaging/windows-demo/tests/test-config.ps1
+          & ./build/Initialize-Config.ps1
 
       - name: Run exported executable headlessly and verify startup logs
         shell: pwsh
@@ -224,17 +235,11 @@ jobs:
           name: windows-demo-candidate
           path: build
 
-      - name: Package verified Windows demo
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd build
-          zip -9 ../Velodrome-Demo-Windows-x64.zip Velodrome.exe Velodrome.pck README.txt
-
       - name: Upload downloadable demo
         uses: actions/upload-artifact@v4
         with:
           name: Velodrome-Demo-Windows-x64
-          path: Velodrome-Demo-Windows-x64.zip
+          # upload-artifact provides the ZIP; do not nest another ZIP inside it.
+          path: build/
           if-no-files-found: error
           retention-days: 14
