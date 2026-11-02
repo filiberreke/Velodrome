@@ -22,12 +22,12 @@ var bridge_seen := false
 var bridge_live := false
 var bridge_unavailable := false
 const MODES := [
-	{"key": "scratch", "title": "Scratch", "hint": "Eén peloton. Eén finish.", "detail": "Blijf uit de wind, kies je moment en sprint als eerste over de meet.", "race_id": 0},
+	{"key": "scratch", "title": "Scratch", "hint": "Eén peloton. Eén finish.", "detail": "Start met één geneutraliseerde ronde. Blijf uit de wind, kies je moment en sprint als eerste over de meet.", "race_id": 0},
 	{"key": "pursuit", "title": "Achtervolging", "hint": "Jij, je tegenstander en de klok.", "detail": "Twee renners starten tegenover elkaar. Jaag op de beste tijd of haal je tegenstander in.", "race_id": 4},
 	{"key": "team_pursuit", "title": "Ploegenachtervolging", "hint": "Samen op jacht naar de snelste tijd.", "detail": "Jij bepaalt het tempo. Stuur op kop naar rechts voor een automatische wissel; volg daarna het wattagedoel.", "race_id": 5},
-	{"key": "points", "title": "Puntenkoers", "hint": "Elke sprint een nieuwe kans.", "detail": "Elke 10 ronden: 5–3–2–1 punten. Dubbele punten aan de finish. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 1},
+	{"key": "points", "title": "Puntenkoers", "hint": "Elke sprint een nieuwe kans.", "detail": "Start met één geneutraliseerde ronde. Elke 10 ronden: 5–3–2–1 punten. Dubbele punten aan de finish. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 1},
 	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
-	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
+	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Start met één geneutraliseerde ronde. Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Bouw snelheid op achter de gangmaker en kies je moment zodra de finale begint.", "race_id": 3},
 	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "500 m of 1 km vanuit stilstand, met vergelijking elke 125 meter.", "race_id": 7},
 	{"key": "tempo", "title": "Temporace", "hint": "Houd het tempo hoog.", "detail": "Deze discipline wordt later toegevoegd.", "race_id": -1},
