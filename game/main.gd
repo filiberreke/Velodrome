@@ -469,6 +469,9 @@ var broadcast_intro: RefCounted
 var rider_name_mode := 0 # V: 0 Auto, 1 all, 2 off; persists across race resets.
 var crowded_labels: Dictionary = {}
 var name_view_notice_until := 0.0
+var race_paused := false
+var trainer_pause_resume := false
+var exit_menu
 var running := false
 var finished := false
 var finish_times: Array[float] = [-1.0, -1.0, -1.0, -1.0]
@@ -538,6 +541,9 @@ func _ready() -> void:
 	add_child(preferences)
 	broadcast_intro = preload("res://broadcast_intro.gd").new()
 	broadcast_intro.setup(self)
+	exit_menu = preload("res://exit_menu.gd").new()
+	add_child(exit_menu)
+	exit_menu.setup(self)
 	_reset()
 
 func _bind_bridge(port: int = UDP_PORT) -> Error:
@@ -572,6 +578,11 @@ func _physics_process(delta: float) -> void:
 		else:
 			watts = 0.0
 			trainer_speed_kmh = -1.0
+	if exit_menu != null:
+		exit_menu.set_exit_visible(start_state in ["SETUP", "INTRO"] or finished)
+	if race_paused:
+		trainer_control.tick(false, 0.0, 1.0, _now_s())
+		return
 	if start_state == "INTRO": broadcast_intro.advance(delta)
 	if not finished:
 		if start_state == "WAIT_STOP":
@@ -676,7 +687,40 @@ func _final_start_speed_ok() -> bool:
 		return trainer_speed_kmh >= 0.0 and trainer_speed_kmh <= START_FINAL_SECOND_SPEED_KMH
 	return true
 
+func _input(event: InputEvent) -> void:
+	# Escape must also work when a race HUD button has keyboard focus.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		if race_paused:
+			exit_menu.cancel_or_resume()
+		elif start_state not in ["SETUP", "INTRO"] and not finished:
+			_pause_race()
+		else:
+			return
+		get_viewport().set_input_as_handled()
+
+func _pause_race() -> void:
+	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
+	race_paused = true
+	look_back_held = false
+	trainer_telemetry_resume = false
+	trainer_pause_resume = false
+	trainer_control.tick(false, 0.0, 1.0, _now_s())
+	exit_menu.show_pause()
+
+func _resume_race() -> void:
+	if not race_paused: return
+	race_paused = false
+	# Finish servicing any pending release before re-probing our own session.
+	trainer_pause_resume = trainer_control.error.is_empty()
+	exit_menu.hide_pause()
+
+func _quit_application() -> void:
+	trainer_control.close()
+	_save_recording("exit")
+	get_tree().quit()
+
 func _unhandled_key_input(event: InputEvent) -> void:
+	if race_paused: return
 	var key_event := event as InputEventKey
 	if key_event == null or key_event.echo:
 		return
@@ -732,10 +776,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				baseline_speed = speeds[0]
 				recovery_left = 0.0
 				boost_used = true
-		KEY_ESCAPE: get_tree().quit()
+		KEY_ESCAPE:
+			if finished: _reset()
+			else: _pause_race()
 
 func _steer_player(direction: int) -> void:
-	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
+	if race_paused or not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
 		return
 	if race_mode == 5:
 		if direction > 0:
@@ -767,7 +813,7 @@ func _process_steering(value: Variant) -> void:
 	steering_direction = direction
 	steering_steps = 1
 	# Consume presses during menus/countdown so holding through GO cannot steer.
-	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
+	if race_paused or not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
 		return
 	if race_mode == 5:
 		if direction > 0:
@@ -805,7 +851,7 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 			# even when no sequence number is provided.
 			var tick: int = Time.get_ticks_msec()
 			var accept: bool = sample_id > last_sample_id if sample_id >= 0 else tick - last_record_tick >= FALLBACK_SAMPLE_INTERVAL_MS
-			if recording_active and not recording_saved and accept:
+			if not race_paused and recording_active and not recording_saved and accept:
 				if sample_id >= 0:
 					last_sample_id = sample_id
 				last_record_tick = tick
@@ -826,7 +872,7 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 			return
 		if setup_panel != null and setup_panel.visible:
 			setup_panel.bridge_action(key)
-		elif key == "A":
+		elif key == "A" and not race_paused:
 			_reset()
 
 static func _bridge_number(value: Variant, fallback: float) -> float:
@@ -859,6 +905,11 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _reset() -> void:
+	race_paused = false
+	trainer_pause_resume = false
+	if exit_menu != null:
+		exit_menu.hide_pause()
+		exit_menu.set_exit_visible(true)
 	results_podium.clear()
 	_clear_elimination_feedback()
 	points_notifications.reset()
@@ -1289,6 +1340,11 @@ func _winner_index() -> int:
 	return best
 
 func _update_trainer_control() -> void:
+	if trainer_pause_resume:
+		trainer_control.tick(false, 0.0, 1.0, _now_s())
+		if trainer_control.phase == "RELEASING": return
+		if trainer_control.error.is_empty(): trainer_control.arm(false)
+		trainer_pause_resume = false
 	var racing: bool = trainer_seen and running and not finished and start_state == "RACING"
 	var live: bool = connected and trainer_ready
 	# Ignore very brief invalid samples only for an already active, owned session.
@@ -2098,7 +2154,7 @@ func _build_hud() -> void:
 	quit.text = "Stoppen"
 	quit.custom_minimum_size = Vector2(185, 58)
 	_style_finish_button(quit, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
-	quit.pressed.connect(func(): get_tree().quit())
+	quit.pressed.connect(_quit_application)
 	buttons.add_child(quit)
 
 func _build_finish_photo_ui(row: HBoxContainer) -> void:
