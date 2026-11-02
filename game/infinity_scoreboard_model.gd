@@ -132,7 +132,11 @@ func view() -> Dictionary:
 	var rows: Array[String] = []
 	var badge := "RACE CENTRE"
 	var page := 0
-	if state == INTRO:
+	if frame.get("phase", "") == "NEUTRAL":
+		headline = "NEUTRAAL"
+		footer = "VLIEGENDE START NA DEZE RONDE"
+		badge = title
+	elif state == INTRO:
 		headline = title
 		footer = "%s KM   •   %d RONDEN" % ["%.2f" % (float(frame.get("length", 0)) / 1000.0), int(frame.get("laps", 0))]
 		badge = "WELCOME TO VELODROME"

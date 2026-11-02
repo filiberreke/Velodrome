@@ -1,6 +1,6 @@
 extends RefCounted
 ## Read-only adapter. Classification, scoring and timing remain in race rules.
-const DISCIPLINES := {0: "SCRATCH", 1: "PUNTENKOERS", 4: "ACHTERVOLGING", 5: "PLOEGENACHTERVOLGING"}
+const DISCIPLINES := {0: "SCRATCH", 1: "PUNTENKOERS", 2: "AFVALLING", 4: "ACHTERVOLGING", 5: "PLOEGENACHTERVOLGING"}
 
 func sample(game: Node3D) -> Dictionary:
 	var mode: int = game.race_mode

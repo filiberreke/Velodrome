@@ -153,6 +153,7 @@ func _form(i: int) -> float:
 	return rider_forms[i] if i < rider_forms.size() else 1.0
 
 func _configure_peloton() -> void:
+	neutral_start.reset()
 	if race_mode == 5:
 		rider_count = team_size * 2
 	elif race_mode == 4:
@@ -463,6 +464,7 @@ var dropout_since := -1.0
 var countdown_label: Label3D
 var countdown_shown := ""
 var clock := 0.0
+var neutral_start = preload("res://neutral_start.gd").new()
 var countdown := 3.0
 var start_state := "WAIT_STOP"
 var broadcast_intro: RefCounted
@@ -552,7 +554,7 @@ func _power_hold_active() -> bool:
 
 func _begin_dropout(since: float) -> void:
 	# Only bridge a dropout while actually racing on a real trainer.
-	if dropout_since < 0.0 and trainer_seen and start_state == "RACING" and not finished:
+	if dropout_since < 0.0 and trainer_seen and _riding() and not finished:
 		dropout_since = since
 
 func _physics_process(delta: float) -> void:
@@ -587,13 +589,14 @@ func _physics_process(delta: float) -> void:
 			elif countdown > 0.0:
 				countdown = maxf(0.0, countdown - delta)
 			else:
-				start_state = "RACING"
-				running = true
-				if not trainer_seen:
-					watts = demo_launch_watts
-				else:
-					recording_active = true
-					ride_start_unix = int(Time.get_unix_time_from_system())
+				_begin_riding()
+		elif start_state == "NEUTRAL":
+			if not trainer_seen or (connected and trainer_ready) or _power_hold_active():
+				var previous: Vector3 = _at(distances[0], lane_offsets[0])
+				neutral_start.step(self, delta)
+				var current: Vector3 = _at(distances[0], lane_offsets[0])
+				var grade: float = TrainerControl.route_grade(previous, current)
+				trainer_road_grade = lerpf(trainer_road_grade, grade, 1.0 - exp(-8.0 * delta))
 		elif start_state == "RACING":
 			# Once a real trainer was used, a lost signal must not become demo mode.
 			if not trainer_seen or (connected and trainer_ready) or _power_hold_active():
@@ -623,25 +626,70 @@ func _physics_process(delta: float) -> void:
 	if elimination_notice != null:
 		elimination_notice.visible = race_mode == 2 and clock < elimination_notice_until and start_state == "RACING"
 
+func _riding() -> bool:
+	return start_state in ["NEUTRAL", "RACING"]
+
+func _begin_riding() -> void:
+	running = true
+	if not trainer_seen:
+		watts = demo_launch_watts
+	else:
+		recording_active = true
+		ride_start_unix = int(Time.get_unix_time_from_system())
+	if race_mode in [0, 1, 2]:
+		neutral_start.begin(self)
+	else:
+		start_state = "RACING"
+	_capture_player_demo_fit_sample(true)
+
+func _finish_neutral_start() -> void:
+	# Rebasing by one whole lap preserves every bike's physical position.
+	clock = 0.0
+	baseline_speed = speeds[0]
+	boost_left = 0.0
+	boosted_speed = speeds[0]
+	recovery_left = 0.0
+	last_lap_crossing.fill(0.0)
+	for laps in lap_times: laps.clear()
+	scratch_rules.reset(rider_count)
+	if race_mode == 1: points_rules.reset(rider_count, race_laps)
+	if race_mode == 2:
+		var rear: Array[float] = []
+		for distance in distances: rear.append(distance - REAR_TRAILING_EDGE_M)
+		elimination_rules.reset(rider_count, rear)
+	points_notifications.reset()
+	peloton_state.reset()
+	peloton_info.clear()
+	x_ai.reset(rider_profiles, rider_forms, lane_offsets)
+	x_ai.configure_riders(rider_identities, rider_forms)
+	start_state = "RACING"
+
+func _training_seconds() -> float:
+	return neutral_start.elapsed + clock
+
+func _training_distance() -> float:
+	return neutral_start.distance_offset + distances[0]
+
 func _update_countdown_display() -> void:
-	# Huge floating numbers above the start line: 3 - 2 - 1 - GO!, always filling the view.
+	# Huge floating numbers above the start line: 3 - 2 - 1, followed by the race start signal.
 	if countdown_label == null or camera == null:
 		return
 	var text := ""
 	if not finished and start_state == "COUNTDOWN":
 		text = str(maxi(1, ceili(countdown)))
 	elif not finished and start_state == "RACING" and clock < 1.1:
-		text = "GO!"
+		text = "START!" if race_mode in [0, 1, 2] else "GO!"
 	if text == "":
 		countdown_label.visible = false
 		countdown_shown = ""
 		return
 	countdown_shown = text
+	var start_signal: bool = text in ["START!", "GO!"]
 	# Time since this number appeared, in game time (each number lasts one second).
-	var age: float = clampf(clock if text == "GO!" else 1.0 - fposmod(countdown, 1.0), 0.0, 1.0)
-	if text != "GO!" and countdown <= 0.0:
+	var age: float = clampf(clock if start_signal else 1.0 - fposmod(countdown, 1.0), 0.0, 1.0)
+	if not start_signal and countdown <= 0.0:
 		age = 0.0
-	var colours := {"3": Color("ff5a4e"), "2": Color("ffa53a"), "1": Color("ffe14d"), "GO!": Color("5df08a")}
+	var colours := {"3": Color("ff5a4e"), "2": Color("ffa53a"), "1": Color("ffe14d"), "GO!": Color("5df08a"), "START!": Color("5df08a")}
 	var tint: Color = colours.get(text, Color.WHITE)
 	tint.a = clampf((1.0 - age) / 0.25, 0.0, 1.0) if age > 0.75 else 1.0
 	countdown_label.text = text
@@ -658,7 +706,7 @@ func _update_countdown_display() -> void:
 	var dist: float = camera.global_position.distance_to(anchor)
 	var view_h: float = 2.0 * dist * tan(deg_to_rad(camera.fov) * 0.5)
 	var pop: float = 1.0 + 0.45 * pow(1.0 - minf(age / 0.35, 1.0), 3.0)
-	var target_h: float = view_h * (0.42 if text != "GO!" else 0.30) * pop
+	var target_h: float = view_h * (0.14 if text == "START!" else (0.30 if start_signal else 0.42)) * pop
 	countdown_label.pixel_size = target_h / (float(countdown_label.font_size) * 0.72)
 	countdown_label.global_position = anchor
 	countdown_label.visible = true
@@ -715,18 +763,18 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_steer_player(1)
 		KEY_UP, KEY_EQUAL:
 			if not trainer_seen:
-				if start_state == "RACING":
+				if _riding():
 					watts = minf(900.0, watts + 25.0)
 				else:
 					demo_launch_watts = minf(900.0, demo_launch_watts + 25.0)
 		KEY_DOWN, KEY_MINUS:
 			if not trainer_seen:
-				if start_state == "RACING":
+				if _riding():
 					watts = maxf(0.0, watts - 25.0)
 				else:
 					demo_launch_watts = maxf(0.0, demo_launch_watts - 25.0)
 		KEY_SPACE:
-			if not trainer_seen and running and not finished and not boost_used and race_mode not in [1, 4, 5]:
+			if not trainer_seen and start_state == "RACING" and running and not finished and not boost_used and race_mode not in [1, 4, 5]:
 				boost_left = BOOST_DURATION
 				boosted_speed = speeds[0]
 				baseline_speed = speeds[0]
@@ -735,7 +783,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_ESCAPE: get_tree().quit()
 
 func _steer_player(direction: int) -> void:
-	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
+	if not running or finished or not _riding() or (setup_panel != null and setup_panel.visible):
 		return
 	if race_mode == 5:
 		if direction > 0:
@@ -767,7 +815,7 @@ func _process_steering(value: Variant) -> void:
 	steering_direction = direction
 	steering_steps = 1
 	# Consume presses during menus/countdown so holding through GO cannot steer.
-	if not running or finished or start_state != "RACING" or (setup_panel != null and setup_panel.visible):
+	if not running or finished or not _riding() or (setup_panel != null and setup_panel.visible):
 		return
 	if race_mode == 5:
 		if direction > 0:
@@ -809,7 +857,7 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 				if sample_id >= 0:
 					last_sample_id = sample_id
 				last_record_tick = tick
-				ride_records.append({"time_s": clock, "distance_m": distances[0], "power_w": watts, "trainer_speed_kmh": trainer_speed_kmh, "game_speed_kmh": speeds[0] * 3.6, "cadence_rpm": cadence, "heart_rate_bpm": trainer_heart_rate_bpm, "lane": player_lane + 1, "draft_pct": _draft_drag_reduction(0) * 100.0})
+				ride_records.append({"time_s": _training_seconds(), "distance_m": _training_distance(), "power_w": watts, "trainer_speed_kmh": trainer_speed_kmh, "game_speed_kmh": speeds[0] * 3.6, "cadence_rpm": cadence, "heart_rate_bpm": trainer_heart_rate_bpm, "lane": player_lane + 1, "draft_pct": _draft_drag_reduction(0) * 100.0})
 		else:
 			# Invalid sample (e.g. trainer briefly lost its sensor): bridge it like a dropout.
 			_begin_dropout(_now_s())
@@ -882,6 +930,7 @@ func _reset() -> void:
 	lap_notice_until = 0.0
 	lap_notice = ""
 	clock = 0.0
+	neutral_start.reset()
 	countdown = 3.0
 	dropout_since = -1.0
 	countdown_shown = ""
@@ -1289,7 +1338,7 @@ func _winner_index() -> int:
 	return best
 
 func _update_trainer_control() -> void:
-	var racing: bool = trainer_seen and running and not finished and start_state == "RACING"
+	var racing: bool = trainer_seen and running and not finished and _riding()
 	var live: bool = connected and trainer_ready
 	# Ignore very brief invalid samples only for an already active, owned session.
 	# The bridge retains its independent three-second safety watchdog.
@@ -1634,7 +1683,7 @@ func _update_visuals(dt: float) -> void:
 		return
 	var offset: float = lane_offsets[0]
 	var t: Vector3 = _direction(_rider_distance(0, distances[0]), offset)
-	var start_view: bool = start_state != "RACING" and not finished
+	var start_view: bool = not _riding() and not finished
 	var follow_position: Vector3 = bikes[0].position
 	var desired: Vector3
 	var target: Vector3
@@ -2380,13 +2429,13 @@ func _capture_demo_fit_sample() -> void:
 	_capture_player_demo_fit_sample(false)
 
 func _capture_player_demo_fit_sample(force: bool = false) -> void:
-	if trainer_seen or start_state != "RACING" or finish_times[0] >= 0.0:
+	if trainer_seen or not _riding() or finish_times[0] >= 0.0:
 		return
-	if not force and not demo_fit_records.is_empty() and clock - float(demo_fit_records[-1]["time_s"]) < DEMO_FIT_SAMPLE_INTERVAL and distances[0] < _race_length():
+	if not force and not demo_fit_records.is_empty() and _training_seconds() - float(demo_fit_records[-1]["time_s"]) < DEMO_FIT_SAMPLE_INTERVAL and distances[0] < _race_length():
 		return
 	# Estimate cadence for UI/export testing only, based on simulated speed.
 	var simulated_cadence: float = clampf(speeds[0] * 6.0, 0.0, 130.0)
-	demo_fit_records.append({"time_s": clock, "distance_m": distances[0], "power_w": watts, "game_speed_kmh": speeds[0] * 3.6, "cadence_rpm": simulated_cadence})
+	demo_fit_records.append({"time_s": _training_seconds(), "distance_m": _training_distance(), "power_w": watts, "game_speed_kmh": speeds[0] * 3.6, "cadence_rpm": simulated_cadence})
 
 func _confirm_demo_fit_export(with_gps: bool) -> void:
 	var dialog := ConfirmationDialog.new()
@@ -2586,6 +2635,9 @@ func _update_hud() -> void:
 	else:
 		note.text = "KICKR-opname: %d metingen | P = bewaren" % ride_records.size() if recording_active else (recording_message if recording_message != "" else ("SPATIE: eenmalige arcade-boost!" if not boost_used and not trainer_seen else "Kies tactisch je rijlijn. Sprint naar de finish! (P = KICKR-opname bewaren)"))
 
+	if start_state == "NEUTRAL":
+		hud.text = "GENEUTRALISEERDE RONDE | %.0f W | %.1f km/u\n%s" % [watts, speeds[0] * 3.6, neutral_start.notice(self)]
+		note.text = "De wedstrijdtijd en rondentelling beginnen bij de vliegende start."
 	_update_compact_hud(order)
 
 static func _gear_from_packet(packet: Dictionary) -> String:
@@ -2648,6 +2700,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 		notice = "Finish · %.2f s" % finish_times[0]
 	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
+	if start_state == "NEUTRAL" and (not trainer_seen or connected or _power_hold_active()): notice = neutral_start.notice(self)
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
 	if race_mode == 4:
@@ -2675,7 +2728,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
