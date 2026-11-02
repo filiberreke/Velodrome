@@ -399,7 +399,8 @@ var finish_table: GridContainer
 var finish_heading: Label
 var strava_client: Node
 var strava_activity_url := ""
-var strava_desired_title := "Velodrome - scratch"
+var strava_desired_title := "Velodrome"
+var strava_desired_description := ""
 var strava_save_screenshot := false
 var strava_screenshot_path := ""
 var finish_badge: Label
@@ -3034,12 +3035,43 @@ func _on_strava_activity_created(activity_id: String) -> void:
 	done.canceled.connect(done.queue_free)
 	done.popup_centered(Vector2i(650, 290))
 
+func _strava_activity_title() -> String:
+	for mode in preload("res://race_menu.gd").MODES:
+		if int(mode["race_id"]) == race_mode:
+			return "Velodrome - " + String(mode["title"])
+	return "Velodrome"
+
+func _strava_activity_description() -> String:
+	if race_mode == 7:
+		var lines: PackedStringArray = []
+		lines.append("Tijd: %.3f s" % finish_times[0] if finish_times[0] >= 0.0 else "Tijdrit nog niet voltooid.")
+		if not lap_times[0].is_empty():
+			lines.append("Rondetijden (250 m):")
+			for lap in range(lap_times[0].size()):
+				lines.append("Ronde %d: %.3f s" % [lap + 1, float(lap_times[0][lap])])
+		return "\n".join(lines)
+	if race_mode == 5:
+		if team_race.times[0] < 0.0 or team_race.times[1] < 0.0:
+			return "Uitslag nog niet definitief."
+		return "Uitslag: %d/2" % (2 if team_race.better(1, 0) else 1)
+	if not _all_riders_finished():
+		return "Uitslag nog niet definitief."
+	var order: Array[int] = []
+	for rider in range(rider_count): order.append(rider)
+	order.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
+	var description := "Uitslag: %d/%d" % [order.find(0) + 1, rider_count]
+	if race_mode == 1:
+		description += ", %d punten" % points_rules.points[0]
+	return description
+
 func _export_to_strava() -> void:
+	strava_desired_title = _strava_activity_title()
+	strava_desired_description = _strava_activity_description()
 	# Use a plain Window rather than ConfirmationDialog internals: Godot 4 has no get_vbox().
 	var dialog := Window.new()
 	dialog.title = "Export naar Strava"
-	dialog.size = Vector2i(730, 340)
-	dialog.min_size = Vector2i(660, 320)
+	dialog.size = Vector2i(730, 510)
+	dialog.min_size = Vector2i(660, 450)
 	dialog.transient = true
 	dialog.exclusive = true
 	add_child(dialog)
@@ -3063,6 +3095,14 @@ func _export_to_strava() -> void:
 	var title_input := LineEdit.new()
 	title_input.text = strava_desired_title
 	content.add_child(title_input)
+	var description_label := Label.new()
+	description_label.text = "Beschrijving"
+	content.add_child(description_label)
+	var description_preview := RichTextLabel.new()
+	description_preview.text = strava_desired_description
+	description_preview.custom_minimum_size.y = 115
+	description_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(description_preview)
 	var picture_check := CheckBox.new()
 	picture_check.text = "Sla uitslagenscherm op als PNG in Downloads"
 	picture_check.button_pressed = strava_save_screenshot
@@ -3093,7 +3133,7 @@ func _export_to_strava() -> void:
 	upload_button.pressed.connect(func():
 		strava_desired_title = title_input.text.strip_edges()
 		if strava_desired_title.is_empty():
-			strava_desired_title = "Velodrome - scratch"
+			strava_desired_title = _strava_activity_title()
 		strava_save_screenshot = picture_check.button_pressed
 		dialog.hide()
 		_start_strava_upload_with_capture()
@@ -3142,7 +3182,7 @@ func _start_strava_upload() -> void:
 		return
 	file.store_buffer(payload)
 	file.close()
-	strava_client.call("begin_export", ProjectSettings.globalize_path(temp_path), strava_desired_title)
+	strava_client.call("begin_export", ProjectSettings.globalize_path(temp_path), strava_desired_title, strava_desired_description)
 
 func _register_performance() -> void:
 	if race_mode not in [4, 5] or performance_recorded or finish_times[0] < 0.0:
