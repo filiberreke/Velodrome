@@ -570,7 +570,7 @@ func _official_recolor_skin(root: Node) -> void:
 			for surface in range(mesh_node.mesh.get_surface_count()):
 				var material: Material = mesh_node.mesh.surface_get_material(surface)
 				if material != null and material.resource_name.to_lower() == "skin" and material is BaseMaterial3D:
-					var replacement: BaseMaterial3D = (material as BaseMaterial3D).duplicate()
+					var replacement: BaseMaterial3D = (material as BaseMaterial3D).duplicate() as BaseMaterial3D
 					replacement.albedo_color = OFFICIAL_SKIN_TINT
 					mesh_node.set_surface_override_material(surface, replacement)
 					official_skin_adjusted = true
