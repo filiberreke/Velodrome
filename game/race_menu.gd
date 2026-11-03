@@ -207,7 +207,7 @@ func _ready() -> void:
 	records_page.store = records_store
 	layout.add_child(records_page)
 	records_page.back_requested.connect(show_choices)
-	footer_label = label("Kies een spelvorm om verder te gaan.    •    F10  Instellingen", 17, MUTED)
+	footer_label = label("Pijltjes: kiezen  •  A: bevestigen  •  B: terug  •  Z / F10: instellingen", 17, MUTED)
 	layout.add_child(footer_label)
 	show_choices()
 

@@ -17,8 +17,9 @@ DEFAULT_MAPPING = {
     "A": "A",
     "B": "B",
     "Y": "Y",
+    "Z": "Z",
 }
-ALLOWED_ACTIONS = {"LEFT", "RIGHT", "UP", "DOWN", "A", "B", "Y", ""}
+ALLOWED_ACTIONS = {"LEFT", "RIGHT", "UP", "DOWN", "A", "B", "Y", "Z", ""}
 
 
 class ButtonMapper:

@@ -87,7 +87,7 @@ class VirtualBridge:
             ("A", "A"), ("B", "B"), ("Y", "Y"), ("Z", "Z"),
             ("Shift L+", "SHIFT_UP_LEFT"), ("Shift L-", "SHIFT_DOWN_LEFT"),
             ("Shift R+", "SHIFT_UP_RIGHT"), ("Shift R-", "SHIFT_DOWN_RIGHT"),
-            ("Power L", "POWER_LEFT"), ("Power R", "POWER_RIGHT"),
+            ("DROP L (arcade)", "POWER_LEFT"), ("DROP R (arcade)", "POWER_RIGHT"),
             ("Aan/uit L", "ONOFF_LEFT"), ("Aan/uit R", "ONOFF_RIGHT"),
         ]
         for index, (caption, key) in enumerate(ride_buttons):
@@ -143,6 +143,11 @@ class VirtualBridge:
         if not self.ride_connected.get() or button in self.held_buttons:
             return
         self.held_buttons.add(button)
+        # Match VirtualShifter: either left key shifts down, either right key up.
+        direction = -1 if button in ('SHIFT_UP_LEFT', 'SHIFT_DOWN_LEFT') else (1 if button in ('SHIFT_UP_RIGHT', 'SHIFT_DOWN_RIGHT') else 0)
+        if direction:
+            self.gear = min(12, max(1, self.gear + direction))
+            self.gear_text.set(f"Versnelling {self.gear}/12")
         mapped = self.mapping.get(button, "")
         self.transmit({"type": "controller_button", "source_button": button,
                        "mapped_action": mapped, "pressed": True})
@@ -164,8 +169,6 @@ class VirtualBridge:
         self.release_button(button)
 
     def shift(self, delta):
-        self.gear = min(12, max(1, self.gear + delta))
-        self.gear_text.set(f"Versnelling {self.gear}/12")
         self.button("SHIFT_UP_RIGHT" if delta > 0 else "SHIFT_DOWN_LEFT")
 
     def snapshot(self):
@@ -277,6 +280,8 @@ class VirtualBridge:
                     self.release_button(button)
             self.transmit({"type": "controller_connection", "connected": ride_ready})
             self.last_ride_connection = ride_ready
+        self.transmit({"type": "controller_connection", "connected": ride_ready,
+                       "buttons": sorted(self.held_buttons)})
         self.steering.set(max(0, round(self.right_paddle.get())) - max(0, -round(self.left_paddle.get())))
         self.transmit({'type': 'steering', 'value': round(self.steering.get())})
         if not self.packet_drop.get():

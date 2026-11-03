@@ -110,9 +110,30 @@ class VirtualBridgeTests(unittest.TestCase):
         self.assertFalse(self.bridge.held_buttons)
         self.bridge.press_button('Y')
         self.assertEqual(self.receive('controller_button'),
-                         dict(type='controller_button', source_button='Y', mapped_action='', pressed=True))
+                         dict(type='controller_button', source_button='Y', mapped_action='Y', pressed=True))
+        self.assertEqual(self.receive(), dict(type='button', button='Y', source_button='Y'))
         self.bridge.release_button('Y')
         self.assertEqual(self.receive('controller_button')['pressed'], False)
+
+    def test_all_shift_keys_use_side_for_gear_direction(self):
+        self.receive()
+        for key, expected in [('SHIFT_UP_LEFT', 3), ('SHIFT_DOWN_LEFT', 2),
+                              ('SHIFT_UP_RIGHT', 3), ('SHIFT_DOWN_RIGHT', 4)]:
+            self.bridge.press_button(key)
+            self.bridge.press_button(key)
+            self.assertEqual(self.bridge.gear, expected, 'Held key only shifts once')
+            self.bridge.release_button(key)
+        self.bridge.shift(-1)
+        self.assertEqual(self.bridge.gear, 3, 'Helper must shift once')
+
+    def test_pause_and_held_button_heartbeat(self):
+        self.receive()
+        self.bridge.press_button('Z')
+        self.assertEqual(self.receive('controller_button')['mapped_action'], 'Z')
+        self.assertEqual(self.receive()['button'], 'Z')
+        self.bridge.loop()
+        heartbeat = self.receive('controller_connection')
+        self.assertEqual(heartbeat['buttons'], ['Z'])
 
     def test_ride_disconnection_releases_held_buttons(self):
         self.receive()
@@ -141,6 +162,10 @@ class VirtualBridgeTests(unittest.TestCase):
         self.assertEqual(self.receive()['sample_id'], 5)
 
     @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_phase2_controller_flow(self):
+        self.run_integration('test_ride_phase2_udp.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
     def test_godot_detection_countdown_and_three_races(self):
         self.run_integration('test_virtual_bridge.gd')
 
@@ -159,7 +184,7 @@ class VirtualBridgeTests(unittest.TestCase):
         self.receiver.close()
         repo = SOURCE.parents[2]
         command_port = self.bridge.rx.getsockname()[1]
-        command = [os.environ['GODOT_BIN'], '--headless', '--path', str(repo/'game'),
+        command = [os.environ['GODOT_BIN'], '--headless', '--path', os.environ.get('GODOT_PROJECT', str(repo/'game')),
                    '--script', 'res://tests/'+script, '--',
                    str(port), str(command_port)]
         with tempfile.TemporaryDirectory() as folder:
@@ -172,9 +197,19 @@ class VirtualBridgeTests(unittest.TestCase):
             deadline = time.monotonic() + 45
             shifted = False
             steered = False
+            flow_steps = set()
             try:
                 while proc.poll() is None and time.monotonic() < deadline:
                     progress = log_path.read_text(errors='replace')
+                    for step, button in [('SETTINGS', 'Z'), ('CLOSE', 'B'), ('SELECT', 'A'),
+                                         ('CONFIG', 'A'), ('START', 'A'), ('SKIP', 'A'),
+                                         ('LOOK_DOWN', 'B'), ('LOOK_UP', 'B'), ('PAUSE', 'Z'),
+                                         ('RESUME', 'A'), ('RESULTS', 'B')]:
+                        if 'RIDE_FLOW_'+step in progress and step not in flow_steps:
+                            if step == 'LOOK_DOWN': self.bridge.press_button(button)
+                            elif step == 'LOOK_UP': self.bridge.release_button(button)
+                            else: self.bridge.button(button)
+                            flow_steps.add(step)
                     self.bridge.packet_drop.set('VIRTUAL_BRIDGE_DROP' in progress and 'VIRTUAL_BRIDGE_RESTORE' not in progress)
                     if 'TEAM_BRIDGE_POWER' in progress:
                         self.bridge.power.set(300)

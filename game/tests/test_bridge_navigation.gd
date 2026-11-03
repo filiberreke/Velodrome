@@ -35,6 +35,9 @@ func run_test() -> void:
 	await press(game, "A")
 	menu.start_button.grab_focus()
 	await press(game, "A")
+	check(menu.page == 5, "Bridge A opens configured start list")
+	menu.startlist_page.start_button.grab_focus()
+	await press(game, "A")
 	check(game.start_state == "INTRO", "Bridge A can start configured race")
 	game.queue_free()
 	await process_frame

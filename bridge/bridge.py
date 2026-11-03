@@ -286,6 +286,9 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                 last_report = time.monotonic()
                 while client.is_connected:
                     await asyncio.sleep(0.5)
+                    # A lost release/disconnect UDP packet must not leave look-back held.
+                    sender.send({'type': 'controller_connection', 'connected': True,
+                                 'buttons': sorted(previous)})
                     if time.monotonic() - last_report > 8.0:
                         print(f"Ride BLE diagnose: {diagnostics['received']} meldingen, {diagnostics['decoded']} knopstatussen; per kanaal={counts}")
                         last_report = time.monotonic()

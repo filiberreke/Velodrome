@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-04",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "main_merged": "364ea52fa788492e27f663f07e72bab0959c5249",
+  "merge_commit": "aa7eed7c6d3194ad4af0e8a737bcc665a545a338",
+  "godot_suites": {
+    "passed": 9,
+    "failed": 0,
+    "scripts": [
+      "test_ride_phase2",
+      "test_controller_settings",
+      "test_exit_pause",
+      "test_result_navigation",
+      "test_bridge_navigation",
+      "test_analog_steering",
+      "test_ai_energy_display",
+      "test_rider_name_visibility",
+      "test_bridge_protocol"
+    ]
+  },
+  "bridge_tests": {
+    "passed": 78,
+    "failed": 0,
+    "skipped": 0,
+    "udp_integration_tests": 3
+  },
+  "visual_checks": [
+    "settings window rendered and inspected",
+    "pause overlay rendered and inspected"
+  ],
+  "environment_notes": [
+    "Separate APPDATA/LOCALAPPDATA test profile; ephemeral UDP ports.",
+    "Test copy uses existing imported graphical assets. Fresh asset import/export was not validated.",
+    "Windows root certificate store warning and asset UID fallback warnings did not prevent tests."
+  ],
+  "limitations": [
+    "Physical Ride/KICKR hardware not tested.",
+    "External Strava sign-in remains a browser interaction.",
+    "Independent bridge SHIFT handling remains active in Controller diagnostics, as in phase 1.",
+    "UDP may lose a button press; repeat the press if needed. Controller heartbeats repair a lost rear-view release."
+  ]
+}

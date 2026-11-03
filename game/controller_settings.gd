@@ -4,12 +4,12 @@ const MenuStyle := preload("res://menu_theme.gd")
 const BUTTONS := [
     ["UP", "Menu omhoog / vorige camera"], ["DOWN", "Menu omlaag / volgende camera"],
     ["LEFT", "Menu links"], ["RIGHT", "Menu rechts"],
-    ["A", "Bevestigen"], ["B", "Terug / achteruitkijken (later)"],
-    ["Y", "Rennersnamen tonen (V-toets)"], ["Z", "Pauze (gepland)"],
-    ["SHIFT_UP_LEFT", "Schakelen links omhoog"],
-    ["SHIFT_DOWN_LEFT", "Schakelen links omlaag"],
-    ["SHIFT_UP_RIGHT", "Schakelen rechts omhoog"],
-    ["SHIFT_DOWN_RIGHT", "Schakelen rechts omlaag"],
+    ["A", "Bevestigen"], ["B", "Terug / vasthouden: achteruitkijken"],
+    ["Y", "Naam / wattage / energie (V)"], ["Z", "Pauze / instellingen / test verlaten"],
+    ["SHIFT_UP_LEFT", "Afschakelen (lichter)"],
+    ["SHIFT_DOWN_LEFT", "Afschakelen (lichter)"],
+    ["SHIFT_UP_RIGHT", "Opschakelen (zwaarder)"],
+    ["SHIFT_DOWN_RIGHT", "Opschakelen (zwaarder)"],
     ["POWER_LEFT", "Gereserveerd voor arcade"], ["POWER_RIGHT", "Gereserveerd voor arcade"],
     ["ONOFF_LEFT", "Nog geen spelactie"], ["ONOFF_RIGHT", "Nog geen spelactie"],
 ]
@@ -29,7 +29,7 @@ func _ready() -> void:
     title.add_theme_color_override("font_color", MenuStyle.BLUE)
     add_child(title)
     var help := Label.new()
-    help.text = "Druk een knop in: de regel licht op tot je loslaat. De toewijzing is nog niet aanpasbaar."
+    help.text = "Knoppen en paddles testen zonder spelacties. Z verlaat de test. SHIFT blijft schakelen in de bridge."
     help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     add_child(help)
     status_label = Label.new()

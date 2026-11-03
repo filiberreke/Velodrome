@@ -8,7 +8,9 @@ var heading: Label
 var detail: Label
 var resume_button: Button
 var leave_button: Button
+var settings_button: Button
 var confirming_leave := false
+var quitting_application := false
 
 func setup(owner_game: Node) -> void:
 	game = owner_game
@@ -53,6 +55,11 @@ func setup(owner_game: Node) -> void:
 	resume_button.custom_minimum_size.y = 60
 	resume_button.pressed.connect(cancel_or_resume)
 	box.add_child(resume_button)
+	settings_button = Button.new()
+	settings_button.text = "Instellingen"
+	settings_button.custom_minimum_size.y = 60
+	settings_button.pressed.connect(func(): game.get_node("GameSettings").toggle_menu())
+	box.add_child(settings_button)
 	leave_button = Button.new()
 	leave_button.custom_minimum_size.y = 60
 	leave_button.pressed.connect(_leave_pressed)
@@ -63,30 +70,52 @@ func set_exit_visible(value: bool) -> void:
 	exit_button.visible = value and not backdrop.visible
 
 func show_pause() -> void:
+	quitting_application = false
 	confirming_leave = false
 	heading.text = "Wedstrijd gepauzeerd"
 	detail.text = "Wat wil je doen?"
 	resume_button.text = "Wedstrijd hervatten"
 	leave_button.text = "Wedstrijd verlaten"
+	settings_button.show()
 	backdrop.show()
 	exit_button.hide()
 	resume_button.grab_focus()
 
 func hide_pause() -> void:
+	quitting_application = false
 	backdrop.hide()
 	confirming_leave = false
 	resume_button.release_focus()
 	leave_button.release_focus()
 
 func cancel_or_resume() -> void:
-	if confirming_leave: show_pause()
+	if quitting_application:
+		hide_pause()
+		set_exit_visible(true)
+	elif confirming_leave: show_pause()
 	else: game._resume_race()
 
+func show_quit() -> void:
+	quitting_application = true
+	confirming_leave = false
+	heading.text = "Spel afsluiten?"
+	detail.text = "Wil je Velodrome afsluiten?"
+	resume_button.text = "Terug"
+	leave_button.text = "Spel afsluiten"
+	settings_button.hide()
+	backdrop.show()
+	exit_button.hide()
+	resume_button.grab_focus()
+
 func _leave_pressed() -> void:
+	if quitting_application:
+		game._quit_application()
+		return
 	if confirming_leave:
 		game._reset()
 		return
 	confirming_leave = true
+	settings_button.hide()
 	heading.text = "Wedstrijd verlaten?"
 	detail.text = "Je kunt deze wedstrijd daarna niet hervatten."
 	resume_button.text = "Terug"

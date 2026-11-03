@@ -508,6 +508,12 @@ var minimap: Control
 var camera: Camera3D
 var camera_mode := 1 # 0 Close, 1 Wide, 2 POV, 3 Side
 var look_back_held := false # Hold B to look behind; release to restore selected camera.
+var keyboard_look_back := false
+var ride_look_back := false
+var ride_look_source := "B"
+var ride_buttons: Dictionary = {}
+var last_controller_signal := -1.0
+var ride_navigation: CanvasLayer
 # Visual-only lean; race physics remains untouched.
 var visual_rolls: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var camera_roll := 0.0
@@ -550,6 +556,8 @@ func _ready() -> void:
 	_build_hud()
 	var preferences := preload("res://display_settings.gd").new()
 	preferences.name = "GameSettings"
+	ride_navigation = preload("res://ride_navigation.gd").new()
+	add_child(ride_navigation)
 	add_child(preferences)
 	broadcast_intro = preload("res://broadcast_intro.gd").new()
 	broadcast_intro.setup(self)
@@ -635,6 +643,7 @@ func _physics_process(delta: float) -> void:
 		_update_coasting(delta)
 		_record_ai_performances()
 	if finished:
+		_clear_look_back()
 		finish_elapsed += delta
 		if (finish_elapsed >= FINISH_PRESENTATION_SECONDS or _all_riders_finished()) and finish_overlay != null:
 			finish_overlay.show()
@@ -763,9 +772,19 @@ func _final_start_speed_ok() -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.keycode == KEY_B and not event.pressed:
+		keyboard_look_back = false
+		_refresh_look_back()
 	# Escape must also work when a race HUD button has keyboard focus.
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
-		if race_paused:
+		var preferences := get_node_or_null("GameSettings")
+		if ride_navigation != null and ride_navigation.keyboard_action("B"):
+			pass
+		elif preferences != null and preferences.panel_root.visible:
+			preferences._close_settings()
+		elif exit_menu != null and exit_menu.quitting_application:
+			exit_menu.cancel_or_resume()
+		elif race_paused:
 			exit_menu.cancel_or_resume()
 		elif start_state not in ["SETUP", "INTRO"] and not finished:
 			_pause_race()
@@ -776,7 +795,7 @@ func _input(event: InputEvent) -> void:
 func _pause_race() -> void:
 	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
 	race_paused = true
-	look_back_held = false
+	_clear_look_back()
 	trainer_telemetry_resume = false
 	trainer_pause_resume = false
 	trainer_control.tick(false, 0.0, 1.0, _now_s())
@@ -799,6 +818,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if key_event == null or key_event.echo:
 		return
+	if key_event.keycode == KEY_B and not key_event.pressed:
+		keyboard_look_back = false
+		_refresh_look_back()
+		return
+	var preferences := get_node_or_null("GameSettings")
+	if preferences != null and preferences.panel_root.visible: return
 	if setup_panel != null and setup_panel.visible:
 		# The menu owns navigation; race shortcuts must not reset/quit it.
 		return
@@ -809,9 +834,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	# Handle both key-down and key-up, without modifying the selected camera mode.
 	if key_event.keycode == KEY_B:
-		look_back_held = key_event.pressed
-		if not bikes.is_empty():
-			bikes[0].visible = look_back_held or camera_mode != 2
+		keyboard_look_back = key_event.pressed and not finished
+		_refresh_look_back()
 		return
 	if not key_event.pressed:
 		return
@@ -862,8 +886,64 @@ func _cycle_camera(direction: int) -> void:
 	if not bikes.is_empty():
 		bikes[0].visible = look_back_held or camera_mode != 2
 
+func _refresh_look_back() -> void:
+	look_back_held = keyboard_look_back or ride_look_back
+	if not bikes.is_empty(): bikes[0].visible = look_back_held or camera_mode != 2
+
+func _clear_look_back() -> void:
+	keyboard_look_back = false
+	ride_look_back = false
+	_refresh_look_back()
+
+func _ride_context() -> String:
+	var preferences := get_node_or_null("GameSettings")
+	if preferences != null and preferences.panel_root.visible: return "settings"
+	if race_paused or (exit_menu != null and exit_menu.quitting_application): return "pause"
+	if setup_panel != null and setup_panel.visible: return "setup"
+	if broadcast_intro != null and broadcast_intro.active: return "intro"
+	if finished: return "results"
+	return "race"
+
+func _ride_action(key: String, source: String = "B") -> void:
+	var preferences := get_node_or_null("GameSettings")
+	# The diagnostic page consumes every gameplay action. Z explicitly exits it.
+	if preferences != null and preferences.controller_test_active():
+		if key == "Z": preferences.bridge_action(key)
+		return
+	if ride_navigation != null and ride_navigation.keyboard_action(key): return
+	match _ride_context():
+		"settings": preferences.bridge_action(key)
+		"pause":
+			if key in ["B", "Z"]: exit_menu.cancel_or_resume()
+			else: ride_navigation.navigate(exit_menu.backdrop, key, exit_menu.resume_button, true)
+		"setup":
+			if key == "Z": preferences.toggle_menu()
+			elif key == "B" and setup_panel.page == 1: exit_menu.show_quit()
+			elif not ride_navigation.edit_control(key): setup_panel.bridge_action(key)
+		"intro":
+			if key == "A": broadcast_intro.finish()
+			elif key == "B": _reset()
+		"results":
+			_clear_look_back()
+			if key == "B": _reset()
+			elif key == "Z": preferences.toggle_menu()
+			elif finish_overlay.visible:
+				var fallback: Button = finish_overlay.find_child("MainMenuButton", true, false)
+				ride_navigation.navigate(finish_overlay, key, fallback)
+		"race":
+			match key:
+				"Z": _pause_race()
+				"B":
+					ride_look_source = source
+					ride_look_back = _riding()
+					_refresh_look_back()
+				"Y":
+					if _riding(): _cycle_rider_names()
+				"UP": _cycle_camera(-1)
+				"DOWN": _cycle_camera(1)
+
 func _steer_player(direction: int) -> void:
-	if race_paused or not running or finished or not _riding() or (setup_panel != null and setup_panel.visible):
+	if _ride_context() != "race" or not running or finished or not _riding():
 		return
 	if race_mode == 5:
 		if direction > 0:
@@ -895,7 +975,7 @@ func _process_steering(value: Variant) -> void:
 	steering_direction = direction
 	steering_steps = 1
 	# Consume presses during menus/countdown so holding through GO cannot steer.
-	if race_paused or not running or finished or not _riding() or (setup_panel != null and setup_panel.visible):
+	if _ride_context() != "race" or not running or finished or not _riding():
 		return
 	if race_mode == 5:
 		if direction > 0:
@@ -915,15 +995,30 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	if packet.get("type", "") in ["controller_button", "controller_connection"]:
 		if preferences != null:
 			preferences.call("receive_controller_packet", packet)
+		last_controller_signal = _now_s()
+		if packet.get("type") == "controller_connection":
+			if not bool(packet.get("connected", false)):
+				ride_buttons.clear()
+				ride_look_back = false
+			elif packet.get("buttons") is Array:
+				for held in ride_buttons.keys():
+					if held not in packet.buttons: ride_buttons.erase(held)
+				if ride_look_source not in packet.buttons: ride_look_back = false
+		else:
+			var source := str(packet.get("source_button", ""))
+			if bool(packet.get("pressed", false)):
+				if not ride_buttons.has(source): ride_buttons[source] = {"context":_ride_context(), "pending":true}
+			else:
+				ride_buttons.erase(source)
+				if source == ride_look_source: ride_look_back = false
+		_refresh_look_back()
 		return
 	if packet.get("type", "") == "steering":
 		if preferences != null:
 			preferences.call("receive_controller_packet", packet)
-		if testing:
-			return
 		_process_steering(packet.get("value"))
 	elif packet.get("type", "") == "telemetry":
-		if not trainer_seen and _riding():
+		if not trainer_seen and _riding() and not testing and _ride_context() == "race":
 			_reset() # Avoid attaching a live trainer mid-demo with a flying start.
 		_apply_bridge_optional_fields(packet)
 		trainer_seen = true
@@ -958,22 +1053,16 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 				trainer_speed_kmh = -1.0
 				watts = 0.0
 	elif packet.get("type", "") == "button":
-		if testing:
-			return
 		var key := str(packet.get("button", ""))
 		var source := str(packet.get("source_button", key))
-		if source.begins_with("SHIFT_") or key.begins_with("SHIFT_"):
+		if source.begins_with("SHIFT_") or key.begins_with("SHIFT_") or source in ["POWER_LEFT", "POWER_RIGHT", "DROP_LEFT", "DROP_RIGHT", "ONOFF_LEFT", "ONOFF_RIGHT"]:
 			return
-		if setup_panel != null and setup_panel.visible:
-			setup_panel.bridge_action(key)
-		elif not race_paused and not finished and not (broadcast_intro != null and broadcast_intro.active) and _riding():
-			match key:
-				"Y":
-					_cycle_rider_names()
-				"UP":
-					_cycle_camera(-1)
-				"DOWN":
-					_cycle_camera(1)
+		if packet.get("pressed", true) != true: return
+		if ride_buttons.has(source):
+			var edge: Dictionary = ride_buttons[source]
+			if not edge.pending or edge.context != _ride_context(): return
+			edge.pending = false
+		_ride_action(key, source)
 
 static func _bridge_number(value: Variant, fallback: float) -> float:
 	if (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_finite(float(value)):
@@ -996,6 +1085,11 @@ func _apply_bridge_optional_fields(packet: Dictionary) -> void:
 	last_bridge_telemetry = _now_s()
 
 func _expire_bridge_optional_fields(now: float) -> void:
+	if last_controller_signal >= 0.0 and now - last_controller_signal > 2.0:
+		ride_look_back = false
+		ride_buttons.clear()
+		last_controller_signal = -1.0
+		_refresh_look_back()
 	# The bridge itself owns the ANT+ five-second freshness check. This watchdog
 	# only clears optional data if the entire telemetry stream has stopped.
 	if last_bridge_telemetry >= 0.0 and now - last_bridge_telemetry > BRIDGE_OPTIONAL_TIMEOUT_SECONDS:
@@ -1022,6 +1116,7 @@ func _restart_same_race() -> void:
 	start_state = "WAIT_STOP"
 
 func _reset() -> void:
+	_clear_look_back()
 	pursuit_start.clear()
 	race_paused = false
 	trainer_pause_resume = false
@@ -2637,6 +2732,8 @@ func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
 	_refresh_fullscreen_results()
 
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_clear_look_back()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
 		trainer_control.close()
 		_save_recording("exit")

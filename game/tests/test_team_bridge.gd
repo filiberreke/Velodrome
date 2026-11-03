@@ -30,6 +30,9 @@ func run_test() -> void:
 		if game.connected: break
 		await create_timer(0.02).timeout
 	game.setup_panel.select_mode(2)
+	game.setup_panel.pursuit_flow.select_distance(1000)
+	game.setup_panel.pursuit_flow.select_size(4)
+	game.setup_panel.pursuit_flow.next_step()
 	game.setup_panel.team_options.resistance_choice.select(0)
 	game._confirm_start()
 	game.broadcast_intro.finish()

@@ -22,6 +22,8 @@ const Appearance = preload("res://player_appearance.gd")
 var appearance
 var controller_test: Control
 var appearance_tabs: TabContainer
+var ride_tabs: Button
+var return_focus: Control
 var suit_choice: OptionButton
 var helmet_choice: OptionButton
 var visor_choice: OptionButton
@@ -146,6 +148,11 @@ func _build_menu() -> void:
 	appearance_tabs.custom_minimum_size = Vector2(0, 620)
 	appearance_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_child(appearance_tabs)
+	ride_tabs = Button.new()
+	ride_tabs.text = "Tab kiezen: links / rechts  ·  omlaag: opties  ·  B/Z: sluiten"
+	outer.move_child(appearance_tabs, outer.get_child_count() - 1)
+	outer.add_child(ride_tabs)
+	outer.move_child(ride_tabs, appearance_tabs.get_index())
 	var player_tab := HBoxContainer.new()
 	player_tab.name = "Speler"
 	player_tab.add_theme_constant_override("separation", 28)
@@ -371,6 +378,8 @@ func _close_settings() -> void:
 	appearance_preview.set_active(false)
 	if controller_test != null:
 		controller_test.call("set_testing", false)
+	if is_instance_valid(return_focus) and return_focus.is_visible_in_tree(): return_focus.grab_focus()
+	get_parent().call("_clear_look_back")
 
 func _on_apply() -> void:
 	var error: Error = appearance.save_choices(_choice_id(suit_choice), _choice_id(helmet_choice), _choice_id(visor_choice))
@@ -393,10 +402,33 @@ func toggle_menu() -> void:
 	if panel_root.visible:
 		_close_settings()
 	else:
+		return_focus = get_viewport().gui_get_focus_owner()
+		get_parent().call("_clear_look_back")
+		if get_parent().get("start_state") not in ["SETUP", "INTRO"] and not get_parent().get("finished"):
+			get_parent().call("_pause_race")
 		_sync_appearance_controls()
 		intro_check.button_pressed = always_show_intro
 		panel_root.show()
 		_on_settings_tab_changed(appearance_tabs.current_tab)
+		ride_tabs.grab_focus()
+
+func bridge_action(button: String) -> void:
+	if controller_test_active():
+		if button == "Z":
+			appearance_tabs.current_tab = 0
+			ride_tabs.grab_focus()
+		return
+	if button in ["B", "Z"]:
+		_close_settings()
+		return
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused == ride_tabs or focused is TabBar:
+		if button in ["LEFT", "RIGHT"]:
+			appearance_tabs.current_tab = posmod(appearance_tabs.current_tab + (-1 if button == "LEFT" else 1), appearance_tabs.get_tab_count())
+			ride_tabs.grab_focus()
+			return
+	# A controller test can only be left through Z, so no gameplay input escapes.
+	get_parent().ride_navigation.navigate(panel_root, button, ride_tabs, true)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:

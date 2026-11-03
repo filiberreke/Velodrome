@@ -3,12 +3,21 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from button_mapping import ButtonMapper
+from virtual_shift import VirtualShifter
 
 
 class ButtonPacketTests(unittest.TestCase):
+    def test_both_left_keys_shift_down_and_both_right_keys_shift_up(self):
+        shifter = VirtualShifter()
+        with patch('virtual_shift.time.monotonic', side_effect=[10, 11, 12, 13]):
+            for key, gear in [('SHIFT_UP_LEFT', 3), ('SHIFT_DOWN_LEFT', 2),
+                              ('SHIFT_UP_RIGHT', 3), ('SHIFT_DOWN_RIGHT', 4)]:
+                self.assertTrue(shifter.on_button(key, announce=False))
+                self.assertEqual(shifter.gear, gear)
     def test_paddles_retain_source_after_direction_mapping(self):
         mapper = ButtonMapper.load()
         for button in ('SHIFT_UP_LEFT', 'SHIFT_DOWN_LEFT', 'SHIFT_UP_RIGHT', 'SHIFT_DOWN_RIGHT'):
@@ -20,7 +29,7 @@ class ButtonPacketTests(unittest.TestCase):
 
     def test_direction_and_reset_buttons_retain_source(self):
         mapper = ButtonMapper.load()
-        for button in ('LEFT', 'RIGHT', 'UP', 'DOWN', 'A', 'B', 'Y'):
+        for button in ('LEFT', 'RIGHT', 'UP', 'DOWN', 'A', 'B', 'Y', 'Z'):
             self.assertEqual(mapper.packet(button), dict(type='button', button=button, source_button=button))
 
     def test_unmapped_and_disabled_buttons_emit_no_packet(self):

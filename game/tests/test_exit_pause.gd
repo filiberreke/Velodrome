@@ -50,7 +50,7 @@ func run_test() -> void:
 		game._physics_process(0.5)
 		game._steer_player(1)
 		game._process_steering(100)
-		game._process_bridge_packet({"type":"button", "button":"A"})
+		game._process_bridge_packet({"type":"button", "button":"LEFT", "source_button":"SHIFT_UP_LEFT"})
 		check(game.start_state == state and game.race_paused, "Controller cannot reset paused event")
 		check(game.clock == 12.0 and game.countdown == 2.0 and game.distances[0] == distance, "Race and countdown frozen")
 		check(game.neutral_start.elapsed == neutral_time and game.flying_start.elapsed == run_up_time, "Opening-lap clocks remain frozen while paused")
