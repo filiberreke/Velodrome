@@ -12,6 +12,12 @@ const OFFICIAL_SCENE_PATH := "res://assets/crowd/velodrome_official.glb"
 const FLAG_SCENE: PackedScene = preload("res://assets/crowd/flag_official.glb")
 const SPONSOR: Texture2D = preload("res://wielerpraat.jpg")
 const LAP := 250.0
+# Distances are measured along the 250 m centreline.
+const OFFICIAL_START_READY_M := 60.0
+const OFFICIAL_START_SHOT_M := 5.0
+const OFFICIAL_BELL_EARLY_M := 50.0
+const OFFICIAL_FINISH_EARLY_M := 100.0
+const OFFICIAL_SKIN_TINT := Color("#d9a28f")
 const Layout := preload("res://infield_layout.gd")
 const GLASS_OFFSET := Layout.FENCE_OFFSET
 var supporter_count := 0
@@ -38,10 +44,13 @@ var finished_seen := 0
 var official_new_model := false
 var official_clips: Dictionary = {}
 var official_previous_racing := false
-var official_bell_rung := false
+var official_start_ready := false
+var official_start_fired := false
+var official_bell_active := false
+var official_finish_active := false
 var official_finished_seen := 0
-var official_action_timer := 0.0
-var official_pending_finish := false
+var official_action := ""
+var official_skin_adjusted := false
 var stone: StandardMaterial3D
 var steel: StandardMaterial3D
 var dark: StandardMaterial3D
@@ -499,16 +508,16 @@ func _emit_bulbs() -> void:
 func _build_flag_official() -> void:
 	var scene: PackedScene = FLAG_SCENE
 	if ResourceLoader.exists(OFFICIAL_SCENE_PATH):
-		var loaded := load(OFFICIAL_SCENE_PATH)
+		var loaded: Resource = load(OFFICIAL_SCENE_PATH)
 		if loaded is PackedScene:
-			scene = loaded
+			scene = loaded as PackedScene
 			official_new_model = true
 	flag_node = scene.instantiate()
 	flag_node.name = "Wedstrijdcommissaris" if official_new_model else "Vlagdame"
 	flag_node.add_to_group("stadium_people")
 	var line: Vector3 = _at(0.0, -1.05)
-	var outward := (_at(0.0, 0.0) - _at(0.0, -1.0)).normalized()
-	var oncoming := -(_at(1.0, -1.0) - _at(-1.0, -1.0)).normalized()
+	var outward: Vector3 = (_at(0.0, 0.0) - _at(0.0, -1.0)).normalized()
+	var oncoming: Vector3 = -(_at(1.0, -1.0) - _at(-1.0, -1.0)).normalized()
 	flag_node.position = line
 	flag_node.rotation.y = _yaw_to(outward + oncoming * 0.45)
 	add_child(flag_node)
@@ -517,14 +526,14 @@ func _build_flag_official() -> void:
 		push_warning("Wedstrijdcommissaris: AnimationPlayer ontbreekt")
 		return
 	for name in flag_anim.get_animation_list():
-		var label := String(name)
-		var clip := flag_anim.get_animation(name)
+		var label: String = String(name)
+		var clip: Animation = flag_anim.get_animation(name)
 		if official_new_model:
 			for action in ["VO_StartPistol", "VO_LastLapBell", "VO_FinishFlag"]:
 				if label.contains(action):
 					official_clips[action] = name
 					if clip != null:
-						clip.loop_mode = Animation.LOOP_NONE
+						clip.loop_mode = Animation.LOOP_NONE if action == "VO_StartPistol" else Animation.LOOP_LINEAR
 		else:
 			if clip != null:
 				clip.loop_mode = Animation.LOOP_LINEAR
@@ -533,19 +542,39 @@ func _build_flag_official() -> void:
 			elif label.contains("flag_wave"):
 				flag_wave = name
 	if official_new_model:
+		_official_recolor_skin(flag_node)
 		_official_props("")
 		flag_node.visible = true
+		for action in ["VO_StartPistol", "VO_LastLapBell", "VO_FinishFlag"]:
+			if not official_clips.has(action):
+				push_warning("Wedstrijdcommissaris: animatie ontbreekt: " + action)
 	else:
 		flag_node.visible = false
 
 func _find_player(root: Node) -> AnimationPlayer:
 	if root is AnimationPlayer:
-		return root
+		return root as AnimationPlayer
 	for child in root.get_children():
-		var player := _find_player(child)
+		var player: AnimationPlayer = _find_player(child)
 		if player != null:
 			return player
 	return null
+
+# GLB Skin has its own material; overriding only that surface keeps every
+# uniform/animation unchanged and avoids changes to the Blender source.
+func _official_recolor_skin(root: Node) -> void:
+	if root is MeshInstance3D:
+		var mesh_node: MeshInstance3D = root as MeshInstance3D
+		if mesh_node.mesh != null:
+			for surface in range(mesh_node.mesh.get_surface_count()):
+				var material: Material = mesh_node.mesh.surface_get_material(surface)
+				if material != null and material.resource_name.to_lower() == "skin" and material is BaseMaterial3D:
+					var replacement: BaseMaterial3D = (material as BaseMaterial3D).duplicate()
+					replacement.albedo_color = OFFICIAL_SKIN_TINT
+					mesh_node.set_surface_override_material(surface, replacement)
+					official_skin_adjusted = true
+	for child in root.get_children():
+		_official_recolor_skin(child)
 
 func _official_toggle(root: Node, stem: String, enabled: bool) -> void:
 	for child in root.get_children():
@@ -557,31 +586,61 @@ func _official_toggle(root: Node, stem: String, enabled: bool) -> void:
 func _official_props(action: String) -> void:
 	if flag_node == null:
 		return
-	for stem in ["PROP_StartPistol", "FX_MuzzleFlash", "FX_Smoke"]:
-		_official_toggle(flag_node, stem, action == "VO_StartPistol")
-	for stem in ["PROP_LastLapBell", "FX_BellRing"]:
-		_official_toggle(flag_node, stem, action == "VO_LastLapBell")
-	for stem in ["PROP_CheckeredFlag", "PROP_FlagCloth", "FX_FlagSwoosh"]:
-		_official_toggle(flag_node, stem, action == "VO_FinishFlag")
+	_official_toggle(flag_node, "PROP_StartPistol", action in ["ready", "VO_StartPistol"])
+	_official_toggle(flag_node, "FX_MuzzleFlash", action == "VO_StartPistol")
+	_official_toggle(flag_node, "FX_Smoke", action == "VO_StartPistol")
+	_official_toggle(flag_node, "PROP_LastLapBell", action == "VO_LastLapBell")
+	_official_toggle(flag_node, "FX_BellRing", action == "VO_LastLapBell")
+	_official_toggle(flag_node, "PROP_CheckeredFlag", action == "VO_FinishFlag")
+	_official_toggle(flag_node, "PROP_FlagCloth", action == "VO_FinishFlag")
+	_official_toggle(flag_node, "FX_FlagSwoosh", action == "VO_FinishFlag")
 
 func _official_play(action: String) -> void:
-	if not official_new_model or flag_anim == null or not official_clips.has(action):
+	if flag_anim == null or not official_clips.has(action):
 		return
+	if official_action == action and flag_anim.is_playing():
+		return
+	official_action = action
 	var clip_name: StringName = official_clips[action]
-	flag_anim.play(clip_name, 0.15)
+	flag_anim.play(clip_name, 0.12)
 	_official_props(action)
-	var clip := flag_anim.get_animation(clip_name)
-	official_action_timer = clip.length if clip != null else 1.0
 
-func _official_reset() -> void:
-	official_previous_racing = false
-	official_bell_rung = false
-	official_finished_seen = 0
-	official_action_timer = 0.0
-	official_pending_finish = false
+func _official_ready() -> void:
+	if official_start_ready or flag_anim == null or not official_clips.has("VO_StartPistol"):
+		return
+	official_start_ready = true
+	official_action = "ready"
+	var clip_name: StringName = official_clips["VO_StartPistol"]
+	flag_anim.play(clip_name)
+	# Hold the pistol-up pose while the riders approach. The gunshot is a
+	# separate state triggered by distance, not the natural end of this clip.
+	flag_anim.seek(0.34, true)
+	flag_anim.pause()
+	_official_props("ready")
+
+func _official_fire() -> void:
+	if official_start_fired:
+		return
+	official_start_fired = true
+	official_action = ""
+	_official_play("VO_StartPistol")
+
+func _official_idle() -> void:
+	if official_action == "":
+		return
+	official_action = ""
 	if flag_anim != null:
 		flag_anim.stop()
 	_official_props("")
+
+func _official_reset() -> void:
+	official_previous_racing = false
+	official_start_ready = false
+	official_start_fired = false
+	official_bell_active = false
+	official_finish_active = false
+	official_finished_seen = 0
+	_official_idle()
 
 func _set_flag_state(state: String) -> void:
 	if state == flag_state:
@@ -600,15 +659,18 @@ func _set_flag_state(state: String) -> void:
 func _process(delta: float) -> void:
 	if game == null or flag_node == null:
 		return
-	var state := String(game.get("start_state"))
-	var racing := state == "RACING"
-	var finished := bool(game.get("finished"))
+	var state: String = String(game.get("start_state"))
+	var racing: bool = state == "RACING"
+	var finished: bool = bool(game.get("finished"))
 	var dists: Array = game.get("distances")
 	var times: Array = game.get("finish_times")
-	var lead := 0.0
-	var done := 0
+	var lead: float = 0.0
+	var tail: float = INF
+	var done: int = 0
 	for i in range(dists.size()):
-		lead = maxf(lead, float(dists[i]))
+		var distance: float = float(dists[i])
+		lead = maxf(lead, distance)
+		tail = minf(tail, distance)
 		if i < times.size() and float(times[i]) >= 0.0:
 			done += 1
 	var length: float = float(int(game.get("race_laps"))) * LAP
@@ -617,7 +679,7 @@ func _process(delta: float) -> void:
 			wave_timer = 7.0 if finished_seen == 0 else maxf(wave_timer, 2.5)
 		finished_seen = done
 		wave_timer = maxf(0.0, wave_timer - delta)
-		var last_lap := (racing or finished) and lead >= length - LAP
+		var last_lap: bool = (racing or finished) and lead >= length - LAP
 		if not last_lap:
 			finished_seen = 0
 			_set_flag_state("hidden")
@@ -626,25 +688,56 @@ func _process(delta: float) -> void:
 		else:
 			_set_flag_state("ready")
 		return
+
 	if state in ["SETUP", "WAIT_STOP", "INTRO"]:
-		if official_previous_racing or official_bell_rung or official_finished_seen > 0:
+		if official_previous_racing or official_start_ready or official_start_fired or official_bell_active or official_finish_active:
 			_official_reset()
 		return
-	if official_action_timer > 0.0:
-		official_action_timer = maxf(0.0, official_action_timer - delta)
-		if official_action_timer <= 0.0:
-			_official_props("")
-			if flag_anim != null:
-				flag_anim.stop()
-	if racing and not official_previous_racing:
-		_official_play("VO_StartPistol")
-	elif done > official_finished_seen:
-		official_pending_finish = true
-	elif (racing or finished) and not official_bell_rung and length > LAP and lead >= length - LAP:
-		official_bell_rung = true
-		_official_play("VO_LastLapBell")
-	if official_pending_finish and official_action_timer <= 0.0:
+
+	# Start: during a neutral/flying lap the distance is measured to the
+	# actual line. Standing starts cannot fire 5 m before the stationary grid;
+	# those use the countdown and RACING transition instead.
+	if not official_start_fired:
+		if state in ["NEUTRAL", "RUN_UP"]:
+			if lead >= LAP - OFFICIAL_START_READY_M:
+				_official_ready()
+			if lead >= LAP - OFFICIAL_START_SHOT_M:
+				_official_fire()
+		elif state == "COUNTDOWN":
+			if float(game.get("countdown")) <= 1.0:
+				_official_ready()
+		elif racing:
+			_official_fire()
+
+	# Final approach always takes precedence over last-lap bell.
+	# Race distance is measured from the start line after the neutral lap.
+	var finish_approach: bool = (racing or finished) and length > 0.0 and lead >= length - OFFICIAL_FINISH_EARLY_M
+	if finish_approach and not official_finish_active:
+		official_finish_active = true
+		official_bell_active = false
 		_official_play("VO_FinishFlag")
-		official_pending_finish = false
+	if official_finish_active:
+		if done >= dists.size() and not dists.is_empty():
+			official_finish_active = false
+			_official_idle()
+		elif official_action != "VO_FinishFlag":
+			_official_play("VO_FinishFlag")
+		official_finished_seen = done
+		official_previous_racing = racing
+		return
+
+	var bell_line: float = length - LAP
+	var bell_approach: bool = (racing or finished) and length > LAP and lead >= bell_line - OFFICIAL_BELL_EARLY_M and tail < bell_line
+	if bell_approach and not official_bell_active:
+		official_bell_active = true
+		_official_play("VO_LastLapBell")
+	elif official_bell_active and not bell_approach:
+		official_bell_active = false
+		_official_idle()
+
+	# Keep pistol ready during an approach; after firing return to idle once
+	# the short non-looping start animation has completed.
+	if not official_bell_active and not official_finish_active and official_action == "VO_StartPistol" and flag_anim != null and not flag_anim.is_playing():
+		_official_idle()
 	official_previous_racing = racing
 	official_finished_seen = done
