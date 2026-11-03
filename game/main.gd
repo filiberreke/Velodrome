@@ -262,7 +262,7 @@ func _configure_peloton() -> void:
 	bikes.clear()
 	crowded_labels.clear()
 	_spawn_peloton()
-	if race_mode in [0, 1]:
+	if race_mode in [0, 1, 2]:
 		for i in range(bikes.size()):
 			var badge = preload("res://rider_energy_badge.gd").new()
 			add_child(badge)
@@ -3378,7 +3378,9 @@ func _points_order() -> Array[int]:
 	return order
 
 func _update_bunch_presentation() -> void:
-	var active: bool = race_mode in [0,1] and start_state == "RACING"
+	# Scratch/points/elimination start with a neutral lap. Show the full rider
+	# card there too, instead of falling back to a name-only Label3D.
+	var active: bool = race_mode in [0, 1, 2] and start_state in ["NEUTRAL", "RACING"]
 	if active: peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	if peloton_markers != null: peloton_markers.update_bunch(self, peloton_info, active)
 	for i in range(bikes.size()):
@@ -3387,7 +3389,7 @@ func _update_bunch_presentation() -> void:
 	for i in range(rider_energy_badges.size()):
 		var reserve: float = x_ai.wprime[i]/maxf(1.,x_ai.wmax[i]) if i > 0 and x_ai.initialized else -1.0
 		var power: float = watts if i == 0 else ai_power_w[i]
-		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0 and _rider_label_visible(i), points_rules.points[i] if race_mode == 1 else 0, race_mode == 1, _rider_name(i))
+		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0 and _rider_label_visible(i), points_rules.points[i] if race_mode == 1 else 0, race_mode == 1, _compact_rider_name(_rider_name(i)))
 
 func _announce_race_event(message: String, player_event: bool = true) -> void:
 	if not player_event and clock < race_event_until: return
@@ -3409,6 +3411,16 @@ func _announce_race_event(message: String, player_event: bool = true) -> void:
 		race_event_sound.stream = stream
 	race_event_sound.play()
 
+
+static func _compact_rider_name(full_name: String) -> String:
+	var name := full_name.strip_edges()
+	var split_at := name.find(" ")
+	if split_at <= 0:
+		return name
+	var surname := name.substr(split_at + 1).strip_edges()
+	if surname.is_empty():
+		return name
+	return "%s. %s" % [name.substr(0, 1).to_upper(), surname]
 
 func _cycle_rider_names() -> void:
 	rider_name_mode = (rider_name_mode + 1) % 3
