@@ -17,7 +17,6 @@ const OFFICIAL_START_READY_M := 60.0
 const OFFICIAL_START_SHOT_M := 5.0
 const OFFICIAL_BELL_EARLY_M := 50.0
 const OFFICIAL_FINISH_EARLY_M := 100.0
-const OFFICIAL_SKIN_TINT := Color("#d9a28f")
 const Layout := preload("res://infield_layout.gd")
 const GLASS_OFFSET := Layout.FENCE_OFFSET
 var supporter_count := 0
@@ -51,7 +50,6 @@ var official_finish_active := false
 var official_finish_completed := false
 var official_finished_seen := 0
 var official_action := ""
-var official_skin_adjusted := false
 var stone: StandardMaterial3D
 var steel: StandardMaterial3D
 var dark: StandardMaterial3D
@@ -530,11 +528,11 @@ func _build_flag_official() -> void:
 		var label: String = String(name)
 		var clip: Animation = flag_anim.get_animation(name)
 		if official_new_model:
-			for action in ["VO_StartPistol", "VO_LastLapBell", "VO_FinishFlag"]:
-				if label.contains(action):
+			for action in ["VO_StartReady", "VO_StartFire", "VO_LastLapBell", "VO_FinishFlag"]:
+				if label == action or label.ends_with("/" + action):
 					official_clips[action] = name
 					if clip != null:
-						clip.loop_mode = Animation.LOOP_NONE if action == "VO_StartPistol" else Animation.LOOP_LINEAR
+						clip.loop_mode = Animation.LOOP_NONE if action == "VO_StartFire" else Animation.LOOP_LINEAR
 		else:
 			if clip != null:
 				clip.loop_mode = Animation.LOOP_LINEAR
@@ -543,10 +541,9 @@ func _build_flag_official() -> void:
 			elif label.contains("flag_wave"):
 				flag_wave = name
 	if official_new_model:
-		_official_recolor_skin(flag_node)
 		_official_props("")
 		flag_node.visible = true
-		for action in ["VO_StartPistol", "VO_LastLapBell", "VO_FinishFlag"]:
+		for action in ["VO_StartReady", "VO_StartFire", "VO_LastLapBell", "VO_FinishFlag"]:
 			if not official_clips.has(action):
 				push_warning("Wedstrijdcommissaris: animatie ontbreekt: " + action)
 	else:
@@ -561,22 +558,6 @@ func _find_player(root: Node) -> AnimationPlayer:
 			return player
 	return null
 
-# GLB Skin has its own material; overriding only that surface keeps every
-# uniform/animation unchanged and avoids changes to the Blender source.
-func _official_recolor_skin(root: Node) -> void:
-	if root is MeshInstance3D:
-		var mesh_node: MeshInstance3D = root as MeshInstance3D
-		if mesh_node.mesh != null:
-			for surface in range(mesh_node.mesh.get_surface_count()):
-				var material: Material = mesh_node.mesh.surface_get_material(surface)
-				if material != null and material.resource_name.to_lower() == "skin" and material is BaseMaterial3D:
-					var replacement: BaseMaterial3D = (material as BaseMaterial3D).duplicate() as BaseMaterial3D
-					replacement.albedo_color = OFFICIAL_SKIN_TINT
-					mesh_node.set_surface_override_material(surface, replacement)
-					official_skin_adjusted = true
-	for child in root.get_children():
-		_official_recolor_skin(child)
-
 func _official_toggle(root: Node, stem: String, enabled: bool) -> void:
 	for child in root.get_children():
 		if String(child.name).begins_with(stem) and child is Node3D:
@@ -587,9 +568,9 @@ func _official_toggle(root: Node, stem: String, enabled: bool) -> void:
 func _official_props(action: String) -> void:
 	if flag_node == null:
 		return
-	_official_toggle(flag_node, "PROP_StartPistol", action in ["ready", "VO_StartPistol"])
-	_official_toggle(flag_node, "FX_MuzzleFlash", action == "VO_StartPistol")
-	_official_toggle(flag_node, "FX_Smoke", action == "VO_StartPistol")
+	_official_toggle(flag_node, "PROP_StartPistol", action in ["VO_StartReady", "VO_StartFire"])
+	_official_toggle(flag_node, "FX_MuzzleFlash", action == "VO_StartFire")
+	_official_toggle(flag_node, "FX_Smoke", action == "VO_StartFire")
 	_official_toggle(flag_node, "PROP_LastLapBell", action == "VO_LastLapBell")
 	_official_toggle(flag_node, "FX_BellRing", action == "VO_LastLapBell")
 	_official_toggle(flag_node, "PROP_CheckeredFlag", action == "VO_FinishFlag")
@@ -607,24 +588,18 @@ func _official_play(action: String) -> void:
 	_official_props(action)
 
 func _official_ready() -> void:
-	if official_start_ready or flag_anim == null or not official_clips.has("VO_StartPistol"):
+	if official_start_ready or flag_anim == null or not official_clips.has("VO_StartReady"):
 		return
 	official_start_ready = true
-	official_action = "ready"
-	var clip_name: StringName = official_clips["VO_StartPistol"]
-	flag_anim.play(clip_name)
-	# Hold the pistol-up pose while the riders approach. The gunshot is a
-	# separate state triggered by distance, not the natural end of this clip.
-	flag_anim.seek(0.34, true)
-	flag_anim.pause()
-	_official_props("ready")
+	_official_play("VO_StartReady")
+	# Keep the raised breathing pose playing until the distance triggers firing.
 
 func _official_fire() -> void:
 	if official_start_fired:
 		return
 	official_start_fired = true
 	official_action = ""
-	_official_play("VO_StartPistol")
+	_official_play("VO_StartFire")
 
 func _official_idle() -> void:
 	if official_action == "":
@@ -740,7 +715,7 @@ func _process(delta: float) -> void:
 
 	# Keep pistol ready during an approach; after firing return to idle once
 	# the short non-looping start animation has completed.
-	if not official_bell_active and not official_finish_active and official_action == "VO_StartPistol" and flag_anim != null and not flag_anim.is_playing():
+	if not official_bell_active and not official_finish_active and official_action == "VO_StartFire" and flag_anim != null and not flag_anim.is_playing():
 		_official_idle()
 	official_previous_racing = racing
 	official_finished_seen = done
