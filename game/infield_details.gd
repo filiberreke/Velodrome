@@ -48,6 +48,7 @@ var official_start_ready := false
 var official_start_fired := false
 var official_bell_active := false
 var official_finish_active := false
+var official_finish_completed := false
 var official_finished_seen := 0
 var official_action := ""
 var official_skin_adjusted := false
@@ -639,6 +640,7 @@ func _official_reset() -> void:
 	official_start_fired = false
 	official_bell_active = false
 	official_finish_active = false
+	official_finish_completed = false
 	official_finished_seen = 0
 	_official_idle()
 
@@ -690,7 +692,7 @@ func _process(delta: float) -> void:
 		return
 
 	if state in ["SETUP", "WAIT_STOP", "INTRO"]:
-		if official_previous_racing or official_start_ready or official_start_fired or official_bell_active or official_finish_active:
+		if official_previous_racing or official_start_ready or official_start_fired or official_bell_active or official_finish_active or official_finish_completed:
 			_official_reset()
 		return
 
@@ -712,13 +714,14 @@ func _process(delta: float) -> void:
 	# Final approach always takes precedence over last-lap bell.
 	# Race distance is measured from the start line after the neutral lap.
 	var finish_approach: bool = (racing or finished) and length > 0.0 and lead >= length - OFFICIAL_FINISH_EARLY_M
-	if finish_approach and not official_finish_active:
+	if finish_approach and not official_finish_active and not official_finish_completed:
 		official_finish_active = true
 		official_bell_active = false
 		_official_play("VO_FinishFlag")
 	if official_finish_active:
 		if done >= dists.size() and not dists.is_empty():
 			official_finish_active = false
+			official_finish_completed = true
 			_official_idle()
 		elif official_action != "VO_FinishFlag":
 			_official_play("VO_FinishFlag")
@@ -727,7 +730,7 @@ func _process(delta: float) -> void:
 		return
 
 	var bell_line: float = length - LAP
-	var bell_approach: bool = (racing or finished) and length > LAP and lead >= bell_line - OFFICIAL_BELL_EARLY_M and tail < bell_line
+	var bell_approach: bool = (racing or finished) and length > LAP and lead >= bell_line - OFFICIAL_BELL_EARLY_M and tail < bell_line and not official_finish_completed
 	if bell_approach and not official_bell_active:
 		official_bell_active = true
 		_official_play("VO_LastLapBell")
