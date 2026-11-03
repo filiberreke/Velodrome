@@ -4,10 +4,11 @@ extends Node3D
 #  - fan zone with food truck, stalls, bar, coffee bike, tables, benches, parasols, string lights
 #  - six national six-day sleeping boxes with fenced equipment zones
 #  - finish zone with officials, photographers, TV camera and the flag official
-#  - the flag official (female) only appears in the LAST LAP and waves when riders reach the line
+#  - animated race official with start pistol, last-lap bell, and finish flag (legacy fallback)
 # Coordinates: right straight x = +18 (finish at z = -34.2, riders travel towards -Z), left x = -18.
 
 const CrowdKit := preload("res://crowd_kit.gd")
+const OFFICIAL_SCENE_PATH := "res://assets/crowd/velodrome_official.glb"
 const FLAG_SCENE: PackedScene = preload("res://assets/crowd/flag_official.glb")
 const SPONSOR: Texture2D = preload("res://wielerpraat.jpg")
 const LAP := 250.0
@@ -486,38 +487,93 @@ func _emit_bulbs() -> void:
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(node)
 
-# ------------------------------------------------------------------ flag official
+# ------------------------------------------------------------------ race official
 func _build_flag_official() -> void:
-	flag_node = FLAG_SCENE.instantiate()
-	flag_node.name = "Vlagdame"
+	var scene: PackedScene = FLAG_SCENE
+	if ResourceLoader.exists(OFFICIAL_SCENE_PATH):
+		var loaded := load(OFFICIAL_SCENE_PATH)
+		if loaded is PackedScene:
+			scene = loaded
+			official_new_model = true
+	flag_node = scene.instantiate()
+	flag_node.name = "Wedstrijdcommissaris" if official_new_model else "Vlagdame"
 	flag_node.add_to_group("stadium_people")
 	var line: Vector3 = _at(0.0, -1.05)
 	var outward := (_at(0.0, 0.0) - _at(0.0, -1.0)).normalized()
-	var oncoming := -(_at(1.0, -1.0) - _at(-1.0, -1.0)).normalized()   # riders come from here
+	var oncoming := -(_at(1.0, -1.0) - _at(-1.0, -1.0)).normalized()
 	flag_node.position = line
 	flag_node.rotation.y = _yaw_to(outward + oncoming * 0.45)
 	add_child(flag_node)
 	flag_anim = _find_player(flag_node)
-	if flag_anim != null:
-		for a in flag_anim.get_animation_list():
-			var clip: Animation = flag_anim.get_animation(a)
+	if flag_anim == null:
+		push_warning("Wedstrijdcommissaris: AnimationPlayer ontbreekt")
+		return
+	for name in flag_anim.get_animation_list():
+		var label := String(name)
+		var clip := flag_anim.get_animation(name)
+		if official_new_model:
+			for action in ["VO_StartPistol", "VO_LastLapBell", "VO_FinishFlag"]:
+				if label.contains(action):
+					official_clips[action] = name
+					if clip != null:
+						clip.loop_mode = Animation.LOOP_NONE
+		else:
 			if clip != null:
 				clip.loop_mode = Animation.LOOP_LINEAR
-			# Godot strips the "_loop" suffix on import ("flag_ready"), so match on the stem.
-			if String(a).contains("flag_ready"):
-				flag_ready = a
-			elif String(a).contains("flag_wave"):
-				flag_wave = a
-	flag_node.visible = false
+			if label.contains("flag_ready"):
+				flag_ready = name
+			elif label.contains("flag_wave"):
+				flag_wave = name
+	if official_new_model:
+		_official_props("")
+		flag_node.visible = true
+	else:
+		flag_node.visible = false
 
 func _find_player(root: Node) -> AnimationPlayer:
 	if root is AnimationPlayer:
 		return root
-	for c in root.get_children():
-		var f := _find_player(c)
-		if f != null:
-			return f
+	for child in root.get_children():
+		var player := _find_player(child)
+		if player != null:
+			return player
 	return null
+
+func _official_toggle(root: Node, stem: String, enabled: bool) -> void:
+	for child in root.get_children():
+		if String(child.name).begins_with(stem) and child is Node3D:
+			(child as Node3D).visible = enabled
+		else:
+			_official_toggle(child, stem, enabled)
+
+func _official_props(action: String) -> void:
+	if flag_node == null:
+		return
+	for stem in ["PROP_StartPistol", "FX_MuzzleFlash", "FX_Smoke"]:
+		_official_toggle(flag_node, stem, action == "VO_StartPistol")
+	for stem in ["PROP_LastLapBell", "FX_BellRing"]:
+		_official_toggle(flag_node, stem, action == "VO_LastLapBell")
+	for stem in ["PROP_CheckeredFlag", "PROP_FlagCloth", "FX_FlagSwoosh"]:
+		_official_toggle(flag_node, stem, action == "VO_FinishFlag")
+
+func _official_play(action: String) -> void:
+	if not official_new_model or flag_anim == null or not official_clips.has(action):
+		return
+	var clip_name: StringName = official_clips[action]
+	flag_anim.play(clip_name, 0.15)
+	_official_props(action)
+	var clip := flag_anim.get_animation(clip_name)
+	official_action_timer = clip.length if clip != null else 1.0
+
+func _official_reset() -> void:
+	official_previous_racing = false
+	official_bell_rung = false
+	official_finished_seen = 0
+	official_action_timer = 0.0
+	official_pending_finish = false
+	if flag_anim != null:
+		flag_anim.stop()
+	_official_props("")
 
 func _set_flag_state(state: String) -> void:
 	if state == flag_state:
@@ -536,28 +592,51 @@ func _set_flag_state(state: String) -> void:
 func _process(delta: float) -> void:
 	if game == null or flag_node == null:
 		return
-	var length: float = float(int(game.get("race_laps"))) * LAP
-	var racing: bool = String(game.get("start_state")) == "RACING"
-	var finished: bool = bool(game.get("finished"))
+	var state := String(game.get("start_state"))
+	var racing := state == "RACING"
+	var finished := bool(game.get("finished"))
 	var dists: Array = game.get("distances")
 	var times: Array = game.get("finish_times")
 	var lead := 0.0
 	var done := 0
 	for i in range(dists.size()):
 		lead = maxf(lead, float(dists[i]))
-		if float(times[i]) >= 0.0:
+		if i < times.size() and float(times[i]) >= 0.0:
 			done += 1
-	if done > finished_seen:
-		# The winner crossing the line: wave hard. Later finishers get a shorter wave.
-		wave_timer = 7.0 if finished_seen == 0 else maxf(wave_timer, 2.5)
-	finished_seen = done
-	wave_timer = maxf(0.0, wave_timer - delta)
-	# Only in the last lap: from the moment the leader starts it until the race is reset.
-	var last_lap := (racing or finished) and lead >= length - LAP
-	if not last_lap:
-		finished_seen = 0
-		_set_flag_state("hidden")
-	elif wave_timer > 0.0:
-		_set_flag_state("wave")
-	else:
-		_set_flag_state("ready")
+	var length: float = float(int(game.get("race_laps"))) * LAP
+	if not official_new_model:
+		if done > finished_seen:
+			wave_timer = 7.0 if finished_seen == 0 else maxf(wave_timer, 2.5)
+		finished_seen = done
+		wave_timer = maxf(0.0, wave_timer - delta)
+		var last_lap := (racing or finished) and lead >= length - LAP
+		if not last_lap:
+			finished_seen = 0
+			_set_flag_state("hidden")
+		elif wave_timer > 0.0:
+			_set_flag_state("wave")
+		else:
+			_set_flag_state("ready")
+		return
+	if state in ["SETUP", "WAIT_STOP", "INTRO"]:
+		if official_previous_racing or official_bell_rung or official_finished_seen > 0:
+			_official_reset()
+		return
+	if official_action_timer > 0.0:
+		official_action_timer = maxf(0.0, official_action_timer - delta)
+		if official_action_timer <= 0.0:
+			_official_props("")
+			if flag_anim != null:
+				flag_anim.stop()
+	if racing and not official_previous_racing:
+		_official_play("VO_StartPistol")
+	elif done > official_finished_seen:
+		official_pending_finish = true
+	elif (racing or finished) and not official_bell_rung and length > LAP and lead >= length - LAP:
+		official_bell_rung = true
+		_official_play("VO_LastLapBell")
+	if official_pending_finish and official_action_timer <= 0.0:
+		_official_play("VO_FinishFlag")
+		official_pending_finish = false
+	official_previous_racing = racing
+	official_finished_seen = done
