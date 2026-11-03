@@ -15,7 +15,8 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
     for i in range(count):
         if finished[i] < 0.0:
             active.append(i)
-    if active.size() <= 1:
+    # A finalist must keep pedalling after the other finalist has finished.
+    if active.is_empty():
         return output
     active.sort_custom(func(a: int, b: int) -> bool: return distances[a] > distances[b])
     var final_pair := active.size() <= 2
@@ -31,8 +32,13 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
         var rank := active.find(i) + 1
         var n := active.size()
         var remaining: float = maxf(0.0, deadline - distances[i])
-        var imminent := clampf((200.0 - remaining) / 160.0, 0.0, 1.0)
-        var risk: float = clampf(float(rank - maxi(1, n - 5)) / 4.0, 0.0, 1.0)
+        # Only the rear of the field needs to gain places. Use the leader's
+        # distance to the jury line: a dropped rider has less time, not more.
+        var jury_remaining: float = maxf(0.0, deadline - distances[active[0]])
+        var danger_count: int = mini(3, maxi(1, n / 4))
+        var risk: float = clampf(float(rank - (n - danger_count)) / float(danger_count), 0.0, 1.0)
+        var positioning: bool = (final_pair and remaining < 200.0) or (not final_pair and remaining > 0.0 and risk > 0.0 and jury_remaining < 110.0)
+        var imminent: float = clampf((110.0 - jury_remaining) / 85.0, 0.0, 1.0) * risk
         var reserve := wprime[i] / maxf(wmax[i], 1.0)
         var sheltered := drafts[i] > 0.12
         # Cruise on a real wheel: match its speed rather than independently
@@ -51,22 +57,29 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
                 wheel_gap = gap
                 wheel_cost = cost
         var target: float = cp[i] * (0.76 if sheltered else 0.92)
-        if wheel >= 0 and remaining > 200.0:
-            var wanted_speed: float = maxf(0.0, speeds[wheel] + clampf((wheel_gap - 3.2) * 0.28, -1.0, 2.0))
+        if wheel >= 0:
+            var wanted_speed: float = maxf(0.0, speeds[wheel] + clampf((wheel_gap - 3.2) * 0.28, -1.0, 1.2))
             var aero: float = maxf(0.31, 1.0 - 0.69 * drafts[i])
             target = clampf(road_power(wanted_speed, aero) / 0.975, 0.0, cp[i] + minf(130.0, wprime[i] / 22.0))
-        if not final_pair and remaining > 200.0 and clock >= 14.0 and distances[i] - distances[bunch_middle] > 10.0:
+        if not final_pair and not positioning and clock >= 14.0 and distances[i] - distances[bunch_middle] > 8.0:
             # The front eases to keep the cruising bunch together. Chasers
             # still have to close the gap using their own CP/W' and physics.
             var bunch_speed: float = maxf(5.0, speeds[bunch_middle] - 1.0)
             var aero: float = maxf(0.31, 1.0 - 0.69 * drafts[i])
             target = minf(target, road_power(bunch_speed, aero) / 0.975)
-        if remaining < 200.0:
+        if positioning:
             var kick: float = pcurve(maxf(6.0, remaining / maxf(speeds[i], 7.0)), cp[i], wprime[i], pmax[i])
-            var strength: float = (0.62 + 0.33 * risk) if not final_pair else 0.99
-            target = maxf(target, lerpf(cp[i], kick * strength, imminent))
-        if rank == n and remaining < 130.0:
-            target = maxf(target, minf(pmax[i], cp[i] + 0.90 * wprime[i] / maxf(5.0, remaining / maxf(speeds[i], 7.0))))
+            var urgency: float = clampf((200.0 - remaining) / 160.0, 0.0, 1.0) if final_pair else imminent
+            target = maxf(target, lerpf(target, kick * 0.99, urgency))
+            if not final_pair:
+                # This is a fight for a safe place, never a breakaway. Once
+                # moving faster than the first safe rider, stop accelerating.
+                # Account for both drag and acceleration with the real mass.
+                var safe_rider: int = active[n - danger_count - 1]
+                var survival_speed: float = speeds[safe_rider] + 0.8
+                var aero: float = maxf(0.31, 1.0 - 0.69 * drafts[i])
+                var survival_power: float = (road_power(survival_speed, aero) + MASS * maxf(speeds[i], 1.0) * (survival_speed - speeds[i]) * 0.6) / DRIVETRAIN
+                target = minf(target, maxf(0.0, survival_power))
         if not final_pair and reserve < 0.14 and rank <= maxi(2, n - 3):
             target = minf(target, cp[i] * 1.04)
 
@@ -82,10 +95,12 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 
         # Use the inherited scratch/points traffic policy; elimination only
         # supplies its next-jury-line positioning and keeps its own pace demand.
-        var positioning: bool = remaining < 200.0
         var traffic_mode: int = MODE_DRAFT if wheel >= 0 else MODE_SOLO
+        # Elimination has no attack, chase, breakaway or pull-off tactics.
+        # A temporarily exposed rider only returns to a wheel in the bunch.
+        modes[i] = MODE_DRAFT
         target = _traffic_power(i, target, distances, speeds, lanes, finished, maxf(0.31, 1.0 - 0.69 * drafts[i]))
-        _update_rider_line(i, clock, distances, speeds, lanes, finished, traffic_mode, wheel, wheel_gap, positioning, economical_sprinter_wheels and profiles[i] == 2, distances[bunch_middle], distances[active[0]], [], positioning)
+        _update_rider_line(i, clock, distances, speeds, lanes, finished, traffic_mode, wheel, wheel_gap, positioning, not positioning, distances[bunch_middle], distances[active[0]], [], positioning)
         output[i] = _phys_power(i, target * (difficulty / 80.0), dt)
         power_w[i] = output[i]
     return output

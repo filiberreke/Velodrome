@@ -1,0 +1,491 @@
+{
+  "failures": 0,
+  "races": [
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0261669024045262,
+      "mean_ai_span_m": 8.4134916697013,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 4,
+      "seconds": 189.0,
+      "seed": 17,
+      "sheltered_fraction": 0.417609618104668,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.180803571428571,
+      "mean_ai_span_m": 37.1386431849701,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 4,
+      "seconds": 157.1,
+      "seed": 43,
+      "sheltered_fraction": 0.405505952380952,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0978422619047619,
+      "mean_ai_span_m": 98.3063721674535,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 4,
+      "seconds": 145.1,
+      "seed": 91,
+      "sheltered_fraction": 0.356026785714286,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0542409901710957,
+      "mean_ai_span_m": 13.4968431681328,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 4,
+      "seconds": 183.8,
+      "seed": 17,
+      "sheltered_fraction": 0.266108481980342,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.272594040058622,
+      "mean_ai_span_m": 8.09530829549585,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 4,
+      "seconds": 150.6,
+      "seed": 43,
+      "sheltered_fraction": 0.712750366389839,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.253300330033003,
+      "mean_ai_span_m": 27.7148222201848,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 4,
+      "seconds": 144.5,
+      "seed": 91,
+      "sheltered_fraction": 0.389026402640264,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0944319036869827,
+      "mean_ai_span_m": 7.53725283760131,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 4,
+      "seconds": 178.9,
+      "seed": 17,
+      "sheltered_fraction": 0.319036869826938,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.627714581178904,
+      "mean_ai_span_m": 8.06998538526028,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 4,
+      "seconds": 140.0,
+      "seed": 43,
+      "sheltered_fraction": 0.46277145811789,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 2,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.565582959641256,
+      "mean_ai_span_m": 7.03784328003142,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 4,
+      "seconds": 136.0,
+      "seed": 91,
+      "sheltered_fraction": 0.647421524663677,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0514559152922012,
+      "mean_ai_span_m": 46.2748963633553,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 12,
+      "seconds": 760.0,
+      "seed": 17,
+      "sheltered_fraction": 0.420830788026878,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.120014026474972,
+      "mean_ai_span_m": 20.108654184946,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 12,
+      "seconds": 570.7,
+      "seed": 43,
+      "sheltered_fraction": 0.649542678472283,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.453458799593082,
+      "mean_ai_span_m": 69.5215352243498,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 12,
+      "seconds": 495.7,
+      "seed": 91,
+      "sheltered_fraction": 0.499777466937945,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0605578225191695,
+      "mean_ai_span_m": 28.1065620695124,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 12,
+      "seconds": 719.1,
+      "seed": 17,
+      "sheltered_fraction": 0.544213263979194,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.170754003278275,
+      "mean_ai_span_m": 13.9067398282975,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 12,
+      "seconds": 550.0,
+      "seed": 43,
+      "sheltered_fraction": 0.609885260370697,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.450788542001931,
+      "mean_ai_span_m": 34.016581217349,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 12,
+      "seconds": 502.7,
+      "seed": 91,
+      "sheltered_fraction": 0.586675249436756,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0567037146026213,
+      "mean_ai_span_m": 32.4163230928763,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 12,
+      "seconds": 708.0,
+      "seed": 17,
+      "sheltered_fraction": 0.548565995880209,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.196518845587765,
+      "mean_ai_span_m": 11.3058937903237,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 12,
+      "seconds": 542.8,
+      "seed": 43,
+      "sheltered_fraction": 0.643661611313752,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 10,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.536797020484171,
+      "mean_ai_span_m": 32.3849760907575,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 12,
+      "seconds": 494.3,
+      "seed": 91,
+      "sheltered_fraction": 0.59683426443203,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0461079310304627,
+      "mean_ai_span_m": 43.7698723269023,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 16,
+      "seconds": 1002.4,
+      "seed": 17,
+      "sheltered_fraction": 0.543735500192359,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.173995571021829,
+      "mean_ai_span_m": 23.2318224087591,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 16,
+      "seconds": 761.4,
+      "seed": 43,
+      "sheltered_fraction": 0.687915216703575,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.408708379070618,
+      "mean_ai_span_m": 93.5044404157923,
+      "no_attacks": true,
+      "player_watts": 230.0,
+      "riders": 16,
+      "seconds": 680.7,
+      "seed": 91,
+      "sheltered_fraction": 0.561357656857108,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0469534808611108,
+      "mean_ai_span_m": 47.4966343782611,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 16,
+      "seconds": 1047.6,
+      "seed": 17,
+      "sheltered_fraction": 0.51593144079028,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.202690239615779,
+      "mean_ai_span_m": 19.0957189051864,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 16,
+      "seconds": 731.8,
+      "seed": 43,
+      "sheltered_fraction": 0.725251013625211,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.392858391914105,
+      "mean_ai_span_m": 76.6385121547196,
+      "no_attacks": true,
+      "player_watts": 300.0,
+      "riders": 16,
+      "seconds": 681.0,
+      "seed": 91,
+      "sheltered_fraction": 0.571748330010842,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 60.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.0535554575050383,
+      "mean_ai_span_m": 44.7769047769672,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 16,
+      "seconds": 982.6,
+      "seed": 17,
+      "sheltered_fraction": 0.554276923810773,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 80.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.211829032703188,
+      "mean_ai_span_m": 15.2291363647329,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 16,
+      "seconds": 740.4,
+      "seed": 43,
+      "sheltered_fraction": 0.700117289913067,
+      "valid_physics": true
+    },
+    {
+      "ai_difficulty": 100.0,
+      "eliminated": 14,
+      "finished": true,
+      "form_range": [
+        0.94,
+        1.06
+      ],
+      "hard_fraction": 0.434292104850102,
+      "mean_ai_span_m": 68.7127987063158,
+      "no_attacks": true,
+      "player_watts": 400.0,
+      "riders": 16,
+      "seconds": 678.3,
+      "seed": 91,
+      "sheltered_fraction": 0.563333856537435,
+      "valid_physics": true
+    }
+  ]
+}
