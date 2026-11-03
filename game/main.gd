@@ -857,6 +857,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if finished: _reset()
 			else: _pause_race()
 
+func _cycle_camera(direction: int) -> void:
+	camera_mode = posmod(camera_mode + direction, CAMERA_NAMES.size())
+	if not bikes.is_empty():
+		bikes[0].visible = look_back_held or camera_mode != 2
+
 func _steer_player(direction: int) -> void:
 	if race_paused or not running or finished or not _riding() or (setup_panel != null and setup_panel.visible):
 		return
@@ -961,8 +966,14 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 			return
 		if setup_panel != null and setup_panel.visible:
 			setup_panel.bridge_action(key)
-		elif key == "A" and not race_paused:
-			_reset()
+		elif not race_paused and not finished and not (broadcast_intro != null and broadcast_intro.active) and _riding():
+			match key:
+				"Y":
+					_cycle_rider_names()
+				"UP":
+					_cycle_camera(-1)
+				"DOWN":
+					_cycle_camera(1)
 
 static func _bridge_number(value: Variant, fallback: float) -> float:
 	if (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_finite(float(value)):
