@@ -34,6 +34,14 @@ var flag_wave := &""
 var flag_state := ""
 var wave_timer := 0.0
 var finished_seen := 0
+# State shared by the animated official builder and race event handlers.
+var official_new_model := false
+var official_clips: Dictionary = {}
+var official_previous_racing := false
+var official_bell_rung := false
+var official_finished_seen := 0
+var official_action_timer := 0.0
+var official_pending_finish := false
 var stone: StandardMaterial3D
 var steel: StandardMaterial3D
 var dark: StandardMaterial3D
