@@ -10,7 +10,7 @@ const BUTTONS := [
     ["SHIFT_DOWN_LEFT", "Schakelen links omlaag"],
     ["SHIFT_UP_RIGHT", "Schakelen rechts omhoog"],
     ["SHIFT_DOWN_RIGHT", "Schakelen rechts omlaag"],
-    ["POWER_LEFT", "Nog geen spelactie"], ["POWER_RIGHT", "Nog geen spelactie"],
+    ["POWER_LEFT", "DROP_LEFT — gereserveerd voor arcade"], ["POWER_RIGHT", "DROP_RIGHT — gereserveerd voor arcade"],
     ["ONOFF_LEFT", "Nog geen spelactie"], ["ONOFF_RIGHT", "Nog geen spelactie"],
 ]
 var active := false
