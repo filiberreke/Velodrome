@@ -20,6 +20,7 @@ var rider_name_input: LineEdit
 var rider_weight_input: SpinBox
 const Appearance = preload("res://player_appearance.gd")
 var appearance
+var controller_test: Control
 var appearance_tabs: TabContainer
 var suit_choice: OptionButton
 var helmet_choice: OptionButton
@@ -254,6 +255,9 @@ func _build_menu() -> void:
 	reconnect_button.text = "STRAVA OPNIEUW KOPPELEN"
 	reconnect_button.pressed.connect(func(): get_parent().get("strava_client").call("reconnect"))
 	box.add_child(reconnect_button)
+	controller_test = preload("res://controller_settings.gd").new()
+	controller_test.name = "Controller"
+	appearance_tabs.add_child(controller_test)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)
 	outer.add_child(actions)
@@ -352,10 +356,21 @@ func _on_appearance_draft(_index: int) -> void:
 
 func _on_settings_tab_changed(index: int) -> void:
 	appearance_preview.set_active(panel_root.visible and index == 0)
+	if controller_test != null:
+		controller_test.call("set_testing", controller_test_active())
+
+func controller_test_active() -> bool:
+	return panel_root != null and panel_root.visible and controller_test != null and appearance_tabs.current_tab == controller_test.get_index()
+
+func receive_controller_packet(packet: Dictionary) -> void:
+	if controller_test != null:
+		controller_test.call("receive_packet", packet)
 
 func _close_settings() -> void:
 	panel_root.hide()
 	appearance_preview.set_active(false)
+	if controller_test != null:
+		controller_test.call("set_testing", false)
 
 func _on_apply() -> void:
 	var error: Error = appearance.save_choices(_choice_id(suit_choice), _choice_id(helmet_choice), _choice_id(visor_choice))
