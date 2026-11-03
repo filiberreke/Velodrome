@@ -10,7 +10,7 @@ const BUTTONS := [
     ["SHIFT_DOWN_LEFT", "Schakelen links omlaag"],
     ["SHIFT_UP_RIGHT", "Schakelen rechts omhoog"],
     ["SHIFT_DOWN_RIGHT", "Schakelen rechts omlaag"],
-    ["POWER_LEFT", "DROP_LEFT — gereserveerd voor arcade"], ["POWER_RIGHT", "DROP_RIGHT — gereserveerd voor arcade"],
+    ["POWER_LEFT", "Gereserveerd voor arcade"], ["POWER_RIGHT", "Gereserveerd voor arcade"],
     ["ONOFF_LEFT", "Nog geen spelactie"], ["ONOFF_RIGHT", "Nog geen spelactie"],
 ]
 var active := false
@@ -58,7 +58,7 @@ func _ready() -> void:
         var row := HBoxContainer.new()
         panel.add_child(row)
         var key := Label.new()
-        key.text = str(entry[0])
+        key.text = str(entry[0]).replace("POWER_LEFT", "DROP_LEFT").replace("POWER_RIGHT", "DROP_RIGHT")
         key.custom_minimum_size.x = 180
         row.add_child(key)
         var action := Label.new()
