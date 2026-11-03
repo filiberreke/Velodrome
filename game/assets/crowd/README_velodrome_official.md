@@ -6,7 +6,6 @@ Het spel gebruikt het door de gebruiker bijgewerkte `velodrome_official.glb` met
 
 - Spelmodel: `game/assets/crowd/velodrome_official.glb`.
 - Blenderbron: `game/assets/source_blender/official/velodrome_official.blend`.
-- Aangeleverde bouwscripts: `game/assets/source_blender/official/velodrome_official_scripts.zip`.
 - De bronmap is uitgesloten van automatische Godot-import.
 
 Het haar heeft een expliciete donkerbruine basiskleur. De warme gezichtshuid en donkerbruine irissen gebruiken ingesloten texturen; de huid van armen en hals heeft een expliciete warme basiskleur. Godot extraheert de vier texturen naast het model. De oude huidskleuroverschrijving is verwijderd, zodat het spel de aangeleverde materialen gebruikt.
