@@ -2690,6 +2690,20 @@ func _lean_debug_text() -> String:
 	var on_bend: bool = _curve_factor(distances[0]) > 0.001
 	return "BANK DEBUG: %s | offset %.1f m | lean %.1f deg" % ["BOCHT" if on_bend else "RECHT", _track_s(distances[0]), rad_to_deg(visual_rolls[0])]
 
+func _ai_diagnostics_text() -> String:
+	var uses_wprime: bool = race_mode in [0, 1, 2]
+	var text: String = "\nAI: %d%% | CP / W-prime model X\n" % int(ai_difficulty) if uses_wprime else "\nAI: %d%% (80%% = beta.10)\nAI resterende inspanning (TT) / anaeroob\n" % int(ai_difficulty)
+	for j in range(1, rider_count):
+		# The reserve and its maximum must come from the same model, including
+		# the rider's form and configured W-prime factor. Legacy capacities are
+		# smaller and can otherwise turn a valid reserve into more than 100%.
+		var reserve: float = x_ai.wprime[j] / maxf(1.0, x_ai.wmax[j]) if uses_wprime else (tt_effort_remaining if _profile(j) == 1 else ai_energy_j[j] / maxf(1.0, AI_CAPACITY_J[_profile(j)] * _form(j)))
+		var energy_pct: int = roundi(100.0 * clampf(reserve, 0.0, 1.0))
+		# Shared-model watts already include difficulty; display them once.
+		var displayed_power: float = ai_power_w[j] if uses_wprime or _profile(j) == 1 else ai_power_w[j] * ai_difficulty / 80.0
+		text += "%s: %d%%  %.0f W\n" % [_rider_name(j), energy_pct, displayed_power]
+	return text
+
 func _update_hud() -> void:
 	if setup_panel != null and setup_panel.visible:
 		setup_panel.update_bridge_status(trainer_seen, connected and trainer_ready, bridge_bind_error != OK)
@@ -2733,11 +2747,7 @@ func _update_hud() -> void:
 	for j in range(rider_count):
 		var n: int = lap_times[j].size()
 		rows += "%s: %s\n" % [_rider_name(j), ("%d: %.2f s" % [n, float(lap_times[j][n - 1])]) if n > 0 else "--"]
-	rows += "\nAI: %d%% | CP / W-prime model X\n" % int(ai_difficulty) if race_mode == 0 else "\nAI: %d%% (80%% = beta.10)\nAI resterende inspanning (TT) / anaeroob\n" % int(ai_difficulty)
-	for j in range(1, rider_count):
-		var energy_pct: int = roundi(100.0 * x_ai.wprime[j] / maxf(1.0, x_ai.wmax[j])) if race_mode == 0 else (roundi(100.0 * tt_effort_remaining) if _profile(j) == 1 else roundi(100.0 * ai_energy_j[j] / maxf(1.0, AI_CAPACITY_J[_profile(j)] * _form(j))))
-		var displayed_power: float = ai_power_w[j] if race_mode == 0 or _profile(j) == 1 else ai_power_w[j] * ai_difficulty / 80.0
-		rows += "%s: %d%%  %.0f W\n" % [_rider_name(j), energy_pct, displayed_power]
+	rows += _ai_diagnostics_text()
 	rankings.text = rows
 	minimap.set_progress(distances)
 	# camera changes do not alter race state
