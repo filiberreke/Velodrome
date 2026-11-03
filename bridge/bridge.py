@@ -256,6 +256,8 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                     if diagnostics["decoded"] <= 12:
                         print("Ride knopstatus:", sorted(pressed))
                     for button in sorted(pressed - previous):
+                        sender.send({'type': 'controller_button', 'source_button': button,
+                                     'mapped_action': mapper.map_button(button), 'pressed': True})
                         if combined is not None:
                             combined.on_button(button)
                         elif shifter is not None:
@@ -266,6 +268,9 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                             print(f"Ride knop: {button} -> {packet['button']}")
                         else:
                             print(f"Ride knop: {button} -> (geen actie)")
+                    for button in sorted(previous - pressed):
+                        sender.send({'type': 'controller_button', 'source_button': button,
+                                     'mapped_action': mapper.map_button(button), 'pressed': False})
                     previous = pressed
                 # Reuse the exact known-working subscription sequence from the
                 # read-only bridge. Do not subscribe to characteristic 00000006.
@@ -276,6 +281,7 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                     print("Ride handshakekanaal actief:", indicate_char.uuid)
                 await client.write_gatt_char(write_char, b"RideOn", response=("write" in write_char.properties))
                 print("Ride handshake verstuurd")
+                sender.send({'type': 'controller_connection', 'connected': True})
                 print("Zwift Ride verbonden; probeer de schakelhendels.")
                 last_report = time.monotonic()
                 while client.is_connected:
@@ -285,7 +291,11 @@ async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_
                         last_report = time.monotonic()
         except Exception as exc:
             print("Zwift Ride verbindingsfout:", type(exc).__name__, str(exc))
+        for button in sorted(previous):
+            sender.send({'type': 'controller_button', 'source_button': button,
+                         'mapped_action': mapper.map_button(button), 'pressed': False})
         sender.send({'type': 'steering', 'value': 0})
+        sender.send({'type': 'controller_connection', 'connected': False})
         previous = set()
         await asyncio.sleep(RETRY_SECONDS)
 
