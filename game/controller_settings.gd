@@ -2,10 +2,10 @@ extends VBoxContainer
 ## Live, read-only diagnostics for Zwift Ride. No remapping in this first phase.
 const MenuStyle := preload("res://menu_theme.gd")
 const BUTTONS := [
-    ["UP", "Menu omhoog"], ["DOWN", "Menu omlaag"],
+    ["UP", "Menu omhoog / vorige camera"], ["DOWN", "Menu omlaag / volgende camera"],
     ["LEFT", "Menu links"], ["RIGHT", "Menu rechts"],
     ["A", "Bevestigen"], ["B", "Terug / achteruitkijken (later)"],
-    ["Y", "Camera wisselen (gepland)"], ["Z", "Pauze (gepland)"],
+    ["Y", "Rennersnamen tonen (V-toets)"], ["Z", "Pauze (gepland)"],
     ["SHIFT_UP_LEFT", "Schakelen links omhoog"],
     ["SHIFT_DOWN_LEFT", "Schakelen links omlaag"],
     ["SHIFT_UP_RIGHT", "Schakelen rechts omhoog"],
