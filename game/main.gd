@@ -905,7 +905,17 @@ func _process_bridge_json(raw: String) -> void:
 	_process_bridge_packet(parser.data)
 
 func _process_bridge_packet(packet: Dictionary) -> void:
+	var preferences: Node = get_node_or_null("GameSettings")
+	var testing: bool = preferences != null and preferences.call("controller_test_active")
+	if packet.get("type", "") in ["controller_button", "controller_connection"]:
+		if preferences != null:
+			preferences.call("receive_controller_packet", packet)
+		return
 	if packet.get("type", "") == "steering":
+		if preferences != null:
+			preferences.call("receive_controller_packet", packet)
+		if testing:
+			return
 		_process_steering(packet.get("value"))
 	elif packet.get("type", "") == "telemetry":
 		if not trainer_seen and _riding():
@@ -943,6 +953,8 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 				trainer_speed_kmh = -1.0
 				watts = 0.0
 	elif packet.get("type", "") == "button":
+		if testing:
+			return
 		var key := str(packet.get("button", ""))
 		var source := str(packet.get("source_button", key))
 		if source.begins_with("SHIFT_") or key.begins_with("SHIFT_"):
