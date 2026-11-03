@@ -3,6 +3,7 @@
 Run ONLY when the real bridge is stopped. No Bluetooth or trainer commands.
 """
 import json
+from pathlib import Path
 import socket
 import time
 import tkinter as tk
@@ -26,6 +27,11 @@ class VirtualBridge:
             messagebox.showerror("Poort bezet", f"Kan UDP {COMMAND_PORT} niet openen. Sluit eerst de echte bridge.\n{exc}")
             raise
         self.rx.setblocking(False)
+        mapping_path = Path(__file__).resolve().parents[1] / "button_mapping.json"
+        self.mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+        self.held_buttons = set()
+        self.ride_connected = tk.BooleanVar(value=True)
+        self.last_ride_connection = None
         self.gear = 4
         self.sample = 0
         self.power = tk.DoubleVar(value=0)
@@ -73,17 +79,30 @@ class VirtualBridge:
         ttk.Button(paddles, text="Beide loslaten", command=self.release_paddles).pack(side="left", padx=3)
         ttk.Label(paddles, text="Stuurwaarde:").pack(side="left", padx=3)
         ttk.Label(paddles, textvariable=self.steering).pack(side="left")
-        bar = ttk.Frame(frm)
-        bar.pack(fill="x", pady=8)
-        for caption, button in (("Menu links", "LEFT"), ("Menu rechts", "RIGHT"),
-                                ("Menu omhoog", "UP"), ("Menu omlaag", "DOWN"),
-                                ("A / kiezen / reset", "A"), ("B / terug", "B")):
-            ttk.Button(bar, text=caption, command=lambda b=button: self.button(b)).pack(side="left", padx=3)
+        ttk.Label(frm, text="Ride-knoppen: houd de muis ingedrukt en laat los").pack(anchor="w")
+        button_grid = ttk.Frame(frm)
+        button_grid.pack(fill="x", pady=6)
+        ride_buttons = [
+            ("Links", "LEFT"), ("Rechts", "RIGHT"), ("Omhoog", "UP"), ("Omlaag", "DOWN"),
+            ("A", "A"), ("B", "B"), ("Y", "Y"), ("Z", "Z"),
+            ("Shift L+", "SHIFT_UP_LEFT"), ("Shift L-", "SHIFT_DOWN_LEFT"),
+            ("Shift R+", "SHIFT_UP_RIGHT"), ("Shift R-", "SHIFT_DOWN_RIGHT"),
+            ("Power L", "POWER_LEFT"), ("Power R", "POWER_RIGHT"),
+            ("Aan/uit L", "ONOFF_LEFT"), ("Aan/uit R", "ONOFF_RIGHT"),
+        ]
+        for index, (caption, key) in enumerate(ride_buttons):
+            button_widget = ttk.Button(button_grid, text=caption)
+            button_widget.grid(row=index // 4, column=index % 4, sticky="ew", padx=3, pady=3)
+            button_widget.bind("<ButtonPress-1>", lambda _event, b=key: self.press_button(b))
+            button_widget.bind("<ButtonRelease-1>", lambda _event, b=key: self.release_button(b))
+        for column in range(4):
+            button_grid.columnconfigure(column, weight=1)
         shift = ttk.Frame(frm)
         shift.pack(fill="x", pady=4)
         ttk.Button(shift, text="Schakel lichter", command=lambda: self.shift(-1)).pack(side="left")
         ttk.Label(shift, textvariable=self.gear_text, width=20, anchor="center").pack(side="left")
         ttk.Button(shift, text="Schakel zwaarder", command=lambda: self.shift(1)).pack(side="left")
+        ttk.Checkbutton(frm, text="Zwift Ride verbonden", variable=self.ride_connected).pack(anchor="w")
         ttk.Checkbutton(frm, text="KICKR telemetrie geldig", variable=self.connected).pack(anchor="w")
         ttk.Checkbutton(frm, text="Versnelling opnemen in telemetrie", variable=self.send_gear).pack(anchor="w")
         ttk.Checkbutton(frm, text="Simuleer verlies van bridge -> Godot UDP-telemetrie", variable=self.packet_drop).pack(anchor="w")
@@ -120,9 +139,29 @@ class VirtualBridge:
             # A Godot socket can close between receive and reply. Keep polling.
             pass
 
+    def press_button(self, button):
+        if not self.ride_connected.get() or button in self.held_buttons:
+            return
+        self.held_buttons.add(button)
+        mapped = self.mapping.get(button, "")
+        self.transmit({"type": "controller_button", "source_button": button,
+                       "mapped_action": mapped, "pressed": True})
+        if mapped:
+            self.transmit({"type": "button", "button": mapped, "source_button": button})
+        self.write("Ride ingedrukt: " + button + (" -> " + mapped if mapped else ""))
+
+    def release_button(self, button):
+        if button not in self.held_buttons:
+            return
+        self.held_buttons.remove(button)
+        self.transmit({"type": "controller_button", "source_button": button,
+                       "mapped_action": self.mapping.get(button, ""), "pressed": False})
+        self.write("Ride losgelaten: " + button)
+
     def button(self, button):
-        self.transmit({"type": "button", "button": button})
-        self.write("Ride -> Godot: " + button)
+        """Complete press/release for automated tests."""
+        self.press_button(button)
+        self.release_button(button)
 
     def shift(self, delta):
         self.gear = min(12, max(1, self.gear + delta))
@@ -231,6 +270,13 @@ class VirtualBridge:
         if not self.running:
             return
         self.sample += 1
+        ride_ready = bool(self.ride_connected.get())
+        if ride_ready != self.last_ride_connection:
+            if not ride_ready:
+                for button in sorted(self.held_buttons):
+                    self.release_button(button)
+            self.transmit({"type": "controller_connection", "connected": ride_ready})
+            self.last_ride_connection = ride_ready
         self.steering.set(max(0, round(self.right_paddle.get())) - max(0, -round(self.left_paddle.get())))
         self.transmit({'type': 'steering', 'value': round(self.steering.get())})
         if not self.packet_drop.get():
@@ -252,6 +298,9 @@ class VirtualBridge:
         self.root.after(100, self.loop)
 
     def close(self):
+        for button in sorted(self.held_buttons):
+            self.release_button(button)
+        self.transmit({"type": "controller_connection", "connected": False})
         self.running = False
         self.rx.close()
         self.tx.close()
