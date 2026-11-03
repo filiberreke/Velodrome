@@ -37,6 +37,9 @@ class ButtonMapper:
         unknown = set(data.values()) - ALLOWED_ACTIONS
         if unknown:
             raise ValueError(f"Onbekende Godot-acties: {sorted(unknown)}")
+        # Phase 1 shipped without Z. Upgrade an omitted pause binding in memory;
+        # an explicit empty/custom binding remains the user's choice.
+        data.setdefault("Z", DEFAULT_MAPPING["Z"])
         return cls(data)
 
     def map_button(self, button):

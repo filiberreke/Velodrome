@@ -162,6 +162,17 @@ class VirtualBridgeTests(unittest.TestCase):
         self.assertEqual(self.receive()['sample_id'], 5)
 
     @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_phase2_with_phase1_mapping(self):
+        mapping = dict(self.bridge.mapping)
+        mapping.pop('Z')
+        self.bridge.close()
+        # Exercise the simulator's actual startup loader with the old file.
+        with patch.object(ui.Path, 'read_text', return_value=json.dumps(mapping)):
+            self.bridge = ui.VirtualBridge(MagicMock())
+        self.assertEqual(self.bridge.mapping['Z'], 'Z')
+        self.run_integration('test_ride_phase2_udp.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
     def test_godot_phase2_controller_flow(self):
         self.run_integration('test_ride_phase2_udp.gd')
 

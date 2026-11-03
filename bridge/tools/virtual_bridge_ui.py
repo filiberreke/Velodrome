@@ -5,9 +5,14 @@ Run ONLY when the real bridge is stopped. No Bluetooth or trainer commands.
 import json
 from pathlib import Path
 import socket
+import sys
 import time
 import tkinter as tk
 from tkinter import ttk, messagebox
+
+# Use the same validation and phase-1 mapping migration as the real bridge.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from button_mapping import ButtonMapper
 
 HOST = "127.0.0.1"
 TELEMETRY_PORT = 51723
@@ -28,7 +33,7 @@ class VirtualBridge:
             raise
         self.rx.setblocking(False)
         mapping_path = Path(__file__).resolve().parents[1] / "button_mapping.json"
-        self.mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+        self.mapping = ButtonMapper.load(mapping_path).mapping
         self.held_buttons = set()
         self.ride_connected = tk.BooleanVar(value=True)
         self.last_ride_connection = None

@@ -38,5 +38,24 @@
     "External Strava sign-in remains a browser interaction.",
     "Independent bridge SHIFT handling remains active in Controller diagnostics, as in phase 1.",
     "UDP may lose a button press; repeat the press if needed. Controller heartbeats repair a lost rear-view release."
-  ]
+  ],
+  "follow_up_z_mapping": {
+    "date": "2026-11-04",
+    "reproduced": "Phase-1 mapping missing Z emits controller diagnostics but no game action.",
+    "fix": "Default omitted Z binding in shared loader; preserve explicit empty/custom bindings; simulator uses same loader.",
+    "bridge_suite": {
+      "total": 81,
+      "passed": 77,
+      "skipped_optional_godot": 4,
+      "failed": 0
+    },
+    "targeted_real_udp": {
+      "passed": 2,
+      "failed": 0,
+      "scenarios": [
+        "current mapping controller flow",
+        "phase-1 mapping startup then controller flow including pause/resume"
+      ]
+    }
+  }
 }

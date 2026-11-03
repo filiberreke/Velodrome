@@ -1,7 +1,9 @@
 # Zwift Ride — fase 2
 
-Werk bridge en game samen bij. De standaard `button_mapping.json` bevat nu ook
-`"Z": "Z"`; voeg dit ook toe aan een eigen mapping als Z daar nog ontbreekt.
+Werk bridge en game samen bij en herstart daarna ook de echte/virtuele bridge.
+De standaard `button_mapping.json` bevat nu ook `"Z": "Z"`. De bijgewerkte bridge
+voegt deze standaard tijdens het laden automatisch toe als Z in een ouder bestand
+ontbreekt. Een expliciete lege of eigen toewijzing voor Z blijft behouden.
 
 | Context | Bediening |
 | --- | --- |
