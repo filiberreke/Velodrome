@@ -44,7 +44,10 @@ class VirtualBridgeTests(unittest.TestCase):
     def receive(self, kind=None):
         while True:
             packet = json.loads(self.receiver.recv(4096))
-            if kind == 'steering' or packet['type'] != 'steering':
+            if kind is not None:
+                if packet['type'] == kind:
+                    return packet
+            elif packet['type'] not in ('steering', 'controller_button', 'controller_connection'):
                 return packet
 
     def test_analog_slider_transmits_pressure_and_release_independently(self):
@@ -93,7 +96,35 @@ class VirtualBridgeTests(unittest.TestCase):
         self.bridge.loop()
         self.assertTrue(self.receive()['valid'])
         self.bridge.button('RIGHT')
-        self.assertEqual(self.receive(), dict(type='button', button='RIGHT'))
+        self.assertEqual(self.receive(), dict(type='button', button='RIGHT', source_button='RIGHT'))
+
+    def test_button_press_release_and_unmapped_keys(self):
+        self.receive()
+        self.bridge.press_button('B')
+        self.assertEqual(self.receive('controller_button'),
+                         dict(type='controller_button', source_button='B', mapped_action='B', pressed=True))
+        self.assertEqual(self.receive(), dict(type='button', button='B', source_button='B'))
+        self.bridge.press_button('B')
+        self.bridge.release_button('B')
+        self.assertEqual(self.receive('controller_button')['pressed'], False)
+        self.assertFalse(self.bridge.held_buttons)
+        self.bridge.press_button('Y')
+        self.assertEqual(self.receive('controller_button'),
+                         dict(type='controller_button', source_button='Y', mapped_action='', pressed=True))
+        self.bridge.release_button('Y')
+        self.assertEqual(self.receive('controller_button')['pressed'], False)
+
+    def test_ride_disconnection_releases_held_buttons(self):
+        self.receive()
+        self.bridge.press_button('B')
+        self.receive('controller_button')
+        self.receive()
+        self.bridge.ride_connected.set(False)
+        self.bridge.loop()
+        released = self.receive('controller_button')
+        self.assertEqual((released['source_button'], released['pressed']), ('B', False))
+        self.assertEqual(self.receive('controller_connection')['connected'], False)
+        self.assertFalse(self.bridge.held_buttons)
 
     def test_closed_godot_socket_does_not_stop_scheduled_loop(self):
         self.receive()
