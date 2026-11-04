@@ -286,6 +286,7 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_udp_timeout_releases_and_new_race_recovers(self):
         c = self.setup_mode()
+        c.simulation_supported = True
         owner = ('127.0.0.1', 1000)
         c.accept('set_mode', {'mode': 'ERG'}, owner)
         c.accept('set_target_power', {'watts': 265}, owner)
