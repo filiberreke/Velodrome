@@ -66,3 +66,10 @@ opnieuw geactiveerd worden. Na een time-out zijn verse data en een
 bevestigde FTMS Reset vereist voordat een nieuwe wedstrijd de sturing
 kan activeren. Een FTMS-protocolfout vereist bovendien een nieuwe BLE-
 controller; de oorspronkelijke transactiestatus wordt niet hergebruikt.
+
+Als een nieuwe wedstrijd begint terwijl de vorige lease nog actief is, leest
+Godot via status of dezelfde UDP-bronpoort eigenaar is
+(`udp_owned_by_requester=true`). Alleen dan vraagt het spel eerst
+`set_target_power 0` aan. Na bevestigde Reset gaat de nieuwe wedstrijd
+naar PROBE en kan ze verder starten. Een lease van een andere bron wordt
+niet aangeraakt.
