@@ -26,3 +26,25 @@ jobs:
         run: |
           python -m unittest discover -s bridge/tests -p 'test_bridge.py' -v
           python -m unittest discover -s bridge/tests -p 'test_reconnect.py' -v
+
+  godot-trainer-regression:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Godot 4.7.2
+        shell: bash
+        run: |
+          curl -fL --retry 3 -o /tmp/godot.zip https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          chmod +x /tmp/godot/Godot_v4.7.2-stable_linux.x86_64
+      - name: Import project assets without Blender sources
+        shell: bash
+        run: |
+          find game -type f -name '*.blend' -delete
+          find game -type f -name '*.blend.import' -delete
+          rm -rf game/.godot
+          /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import
+      - name: Test Godot trainer session recovery
+        shell: bash
+        run: |
+          /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path game --script res://tests/test_trainer_control.gd
