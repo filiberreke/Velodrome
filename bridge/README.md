@@ -13,9 +13,9 @@ van -100 tot +100; naar binnen duwen is de remrichting en wordt niet als
 stuurinput doorgegeven. De remrichting verandert de remkracht in het spel niet.
 Een aparte Bluetooth-verbinding of nieuw abonnement is hiervoor niet nodig.
 
-Godot gebruikt drukniveaus 25/40/55/70/85 voor één tot vijf banen per beweging.
-De verplaatsing blijft vloeiend. Vasthouden herhaalt de beweging niet; druk
-verhogen voegt alleen extra bereik toe. Terugkeren tot maximaal 15 maakt de
+Godot gebruikt vanaf drukniveau 25 één baan per beweging.
+De verplaatsing blijft vloeiend. Vasthouden of verder indrukken herhaalt de beweging
+niet en voegt geen extra banen toe. Terugkeren tot maximaal 15 maakt de
 volgende beweging mogelijk. Bij ploegenachtervolging vraagt een nieuwe
 rechter stuurbeweging de automatische kopwissel aan; de formatie blijft leidend.
 De digitale richtingstoetsen bedienen de menu's, A kiest en B gaat terug.
@@ -26,9 +26,11 @@ loslaatknoppen en een knop om beide los te laten. Werk bridge en Godot samen bij
 
 Protocolbronnen: [Ride-protocol en oudere captures](https://www.makinolo.com/blog/2024/07/26/zwift-ride-protocol/)
 en [actuele BikeControl Ride-implementatie](https://github.com/OpenBikeControl/bikecontrol/blob/main/lib/bluetooth/devices/zwift/zwift_ride.dart).
-De bestaande digitale knopbitmap is niet gewijzigd; de analoge decoder is
-getest met protocolfixtures en een nagebootst BLE-abonnement. Controle van de
-werkelijke uitslag en het nulpunt op de fysieke Ride blijft nodig.
+De digitale knoptabel is gecorrigeerd op basis van de actuele BikeControl-
+implementatie: de oudere tabel in het artikel wijkt vanaf Z af. Zie de
+[knoptabel en regressietests](docs/README_ride_button_bits.md).
+De decoder is getest met vaste berichtbytes en een nagebootst BLE-abonnement.
+Controle op de fysieke Ride blijft nodig; werk de bridge bij en herstart deze.
 
 ## Blijft wachten en opnieuw verbinden
 

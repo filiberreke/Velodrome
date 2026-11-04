@@ -1,11 +1,13 @@
 """Zwift Ride digital/analog decoder for legacy and current 0x23 layouts."""
+# Current RideButtonMask; the older Makinolo article differs from Z onwards.
+# https://github.com/OpenBikeControl/bikecontrol/blob/1458e974574fe2dc99546c3bda3cf2f99736e0b0/lib/bluetooth/devices/zwift/zwift_ride.dart
 BUTTON_BITS = {
     'LEFT': 0x1, 'UP': 0x2, 'RIGHT': 0x4, 'DOWN': 0x8,
-    'A': 0x10, 'B': 0x20, 'Y': 0x40, 'Z': 0x100,
-    'SHIFT_UP_LEFT': 0x200, 'SHIFT_DOWN_LEFT': 0x400,
-    'POWER_LEFT': 0x800, 'ONOFF_LEFT': 0x1000,
-    'SHIFT_UP_RIGHT': 0x2000, 'SHIFT_DOWN_RIGHT': 0x4000,
-    'POWER_RIGHT': 0x10000, 'ONOFF_RIGHT': 0x20000,
+    'A': 0x10, 'B': 0x20, 'Y': 0x40, 'Z': 0x80,
+    'SHIFT_UP_LEFT': 0x100, 'SHIFT_DOWN_LEFT': 0x200,
+    'POWER_LEFT': 0x400, 'ONOFF_LEFT': 0x800,
+    'SHIFT_UP_RIGHT': 0x1000, 'SHIFT_DOWN_RIGHT': 0x2000,
+    'POWER_RIGHT': 0x4000, 'ONOFF_RIGHT': 0x8000,
 }
 
 def read_varint(buf, pos):

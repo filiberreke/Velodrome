@@ -162,6 +162,22 @@ class VirtualBridgeTests(unittest.TestCase):
         self.assertEqual(self.receive()['sample_id'], 5)
 
     @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_phase2_from_physical_button_bytes(self):
+        from ride_protocol import decode_packet
+        wire = {'A': '2308efffffff0f', 'B': '2308dfffffff0f', 'Z': '2308fffeffff0f'}
+        original_press = self.bridge.press_button
+        original_release = self.bridge.release_button
+
+        def physical_name(name):
+            decoded = decode_packet(bytes.fromhex(wire[name]))
+            self.assertEqual(decoded, {name})
+            return next(iter(decoded))
+
+        with patch.object(self.bridge, 'press_button', side_effect=lambda name: original_press(physical_name(name))), \
+             patch.object(self.bridge, 'release_button', side_effect=lambda name: original_release(physical_name(name))):
+            self.run_integration('test_ride_phase2_udp.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
     def test_godot_phase2_with_phase1_mapping(self):
         mapping = dict(self.bridge.mapping)
         mapping.pop('Z')

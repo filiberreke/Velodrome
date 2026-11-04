@@ -1,5 +1,9 @@
 # Zwift Ride — fase 2
 
+Bij fysieke knoppen die onder een andere naam verschijnen: de digitale
+Bluetooth-knoptabel is gecorrigeerd. Werk de bridge bij en herstart deze;
+zie de [fysieke knoptabel](../../bridge/docs/README_ride_button_bits.md).
+
 Werk bridge en game samen bij en herstart daarna ook de echte/virtuele bridge.
 De standaard `button_mapping.json` bevat nu ook `"Z": "Z"`. De bijgewerkte bridge
 voegt deze standaard tijdens het laden automatisch toe als Z in een ouder bestand

@@ -57,5 +57,35 @@
         "phase-1 mapping startup then controller flow including pause/resume"
       ]
     }
+  },
+  "follow_up_physical_button_names": {
+    "date": "2026-11-04",
+    "user_confirmation": "Physical left SHIFT + appears as Z in the old decoder.",
+    "source": "https://github.com/OpenBikeControl/bikecontrol/blob/1458e974574fe2dc99546c3bda3cf2f99736e0b0/lib/bluetooth/devices/zwift/zwift_ride.dart#L326",
+    "fix": "Correct nine digital bitmasks from Z onward; preserve symbolic UDP names and independent analog decoding.",
+    "independent_fixtures": {
+      "digital_buttons": 16,
+      "results": "passed",
+      "old_decoder": "nine button-name failures plus an unused-high-bit regression"
+    },
+    "bridge_suite_without_optional_godot": {
+      "total": 85,
+      "passed": 80,
+      "skipped": 5,
+      "failed": 0
+    },
+    "full_suite": {
+      "total": 85,
+      "passed": 84,
+      "failed": 1,
+      "passed_godot_integrations": [
+        "phase2_controller_flow",
+        "phase2_from_physical_button_bytes",
+        "phase2_with_phase1_mapping",
+        "manual_team_gears_and_erg_return"
+      ],
+      "failed_godot_integration": "detection_countdown_and_three_races exceeded its time budget; an isolated retry with a larger budget also timed out"
+    },
+    "hardware_retest": "Pending after updating/restarting the bridge; reported left SHIFT + to Z mismatch matches the corrected bitmask exactly."
   }
 }
