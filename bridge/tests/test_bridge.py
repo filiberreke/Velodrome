@@ -284,6 +284,40 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(c.mode, 'SIM')
         self.assertFalse(c.disabled)
 
+    async def test_repeated_team_swaps_never_reuse_old_erg_target(self):
+        c = self.setup_mode()
+        c.simulation_supported = True
+        owner = ('127.0.0.1', 1000)
+        for watts in (199, 232, 265):
+            c.accept('set_mode', {'mode': 'ERG'}, owner)
+            self.assertEqual(c.target_w, 0)
+            self.assertIsNone(c.owner)
+            await self.drive()
+            self.assertFalse(any(op[0] == 5 for op in self.controller.calls[-1:]))
+            c.accept('set_target_power', {'watts': watts}, owner)
+            for _ in range(12):
+                await self.drive()
+                c.accept('heartbeat', source=owner)
+            self.assertEqual(c.target_w, watts)
+            c.accept('set_mode', {'mode': 'SIM'}, owner)
+            c.accept('set_grade', {'grade_pct': 0}, owner)
+            await self.drive()
+            self.assertEqual(c.mode, 'SIM')
+        sent_before = len([x for x in self.controller.calls if x[0] == 5])
+        c.accept('set_mode', {'mode': 'ERG'}, owner)
+        self.assertEqual(c.target_w, 0)
+        self.assertIsNone(c.owner)
+        await self.drive()
+        self.assertEqual(c.mode, 'RELEASED')
+        self.assertEqual(len([x for x in self.controller.calls if x[0] == 5]), sent_before)
+        await self.drive(6)
+        self.assertFalse(c.disabled)
+        self.assertFalse(c.reconnect_ready)
+        c.accept('set_target_power', {'watts': 240}, owner)
+        await self.drive()
+        self.assertEqual(c.target_w, 240)
+        self.assertEqual(c.mode, 'ERG')
+
     async def test_data_timeout(self):
         c = self.setup_mode(); c.accept('set_mode', {'mode': 'ERG'})
         c.accept('set_target_power', {'watts': 265})
