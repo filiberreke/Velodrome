@@ -152,6 +152,22 @@ func run_test() -> void:
 	busy.handle_response({"type": "ack", "ok": true, "v": 1, "id": busy_id, "state": released_state.duplicate()}, 700.1)
 	check(busy.phase == "BLOCKED" and busy.pending.is_empty(), "Explicit start cannot claim another controller's session")
 	busy.close()
+	# A new race can be armed while the previous race's release ACK is pending.
+	# On receipt of the reset ACK it must enter PROBE, not stay BLOCKED.
+	var quick := Client.new(); quick.port = 9
+	check(quick._open(), "Quick recovery mock UDP socket opened")
+	quick.owned = true
+	quick.enabled_before = true
+	quick.phase = "ACTIVE"
+	quick.release(800.0)
+	var release_id: String = str(quick.pending.packet.id)
+	quick.arm()
+	quick.tick(true, 0, 1, 800.1)
+	quick.handle_response({"type": "ack", "v": 1, "ok": true, "id": release_id, "state": released_state.duplicate()}, 800.2)
+	check(quick.phase == "PROBE" and quick.armed, "Pending release ACK starts a newly armed game's probe")
+	quick.tick(true, 0, 1, 800.3)
+	check(quick.requests.values().any(func(r): return r.packet.command == "status"), "New race checks bridge status after late reset")
+	quick.close()
 	print("TRAINER_CONTROL_OK" if failures == 0 else "TRAINER_CONTROL_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
 
