@@ -22,6 +22,25 @@ ontbreekt. Een expliciete lege of eigen toewijzing voor Z blijft behouden.
 | Controller-test | Alle spelacties zijn geblokkeerd. Z verlaat expliciet de test en keert terug naar de Speler-tab. SHIFT blijft de bestaande onafhankelijke bridge-schakeling gebruiken. |
 | Hoofdmenu | B opent een bevestiging om Velodrome af te sluiten; A op Terug of B annuleert. |
 
+### Achtervolging en ploegenachtervolging
+
+De twee configuratiestappen gebruiken dezelfde bediening: omhoog/omlaag kiest
+een zichtbare rij; links/rechts kiest een knop binnen die rij of wijzigt de waarde.
+A activeert de knop met focus. B gaat één stap terug. De aanwijzing staat bovenaan
+het scherm.
+
+- Wedstrijdinstellingen: afstand, ploegomvang, Ploeginstellingen, weerstand,
+  vermogen per positie, demo-startvermogen en de knoppen om terug/verder te gaan.
+- Tegenstanderselectie: AI/eigen prestaties, tegenstanderkeuze, sterktepercentage
+  en de knoppen om terug te gaan of te starten. Links/rechts wisselt de tegenstander
+  alleen wanneer de tegenstanderkeuze focus heeft; op het percentage wijzigt het
+  de sterkte. Omhoog/omlaag blijft beschikbaar om dat veld te verlaten.
+- Kies op de onderste rij Start wedstrijd en druk A om te starten. A op een andere
+  knop voert de getoonde actie uit.
+- Verborgen ploegopties, demo-instellingen bij een verbonden trainer en niet
+  beschikbare knoppen worden overgeslagen. Ook zonder opgeslagen eigen prestaties
+  kun je terug naar AI-tegenstanders navigeren.
+
 Beide linker SHIFT-knoppen (`SHIFT_UP_LEFT`, `SHIFT_DOWN_LEFT`) schakelen lichter.
 Beide rechter SHIFT-knoppen (`SHIFT_UP_RIGHT`, `SHIFT_DOWN_RIGHT`) schakelen zwaarder.
 Deze knoppen navigeren nooit door menu's en sturen niet. De virtuele bridge gebruikt
@@ -54,6 +73,7 @@ Godot 4.7.2:
 
 ```
 Godot.exe --headless --path game --script res://tests/test_ride_phase2.gd
+Godot.exe --headless --path game --script res://tests/test_ride_pursuit_navigation.gd
 Godot.exe --headless --path game --script res://tests/test_controller_settings.gd
 Godot.exe --headless --path game --script res://tests/test_exit_pause.gd
 Godot.exe --headless --path game --script res://tests/test_result_navigation.gd

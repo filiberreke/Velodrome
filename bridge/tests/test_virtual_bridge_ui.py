@@ -162,6 +162,10 @@ class VirtualBridgeTests(unittest.TestCase):
         self.assertEqual(self.receive()['sample_id'], 5)
 
     @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_pursuit_settings_and_start_navigation(self):
+        self.run_integration('test_ride_pursuit_udp.gd', require_commands=False)
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
     def test_godot_phase2_from_physical_button_bytes(self):
         from ride_protocol import decode_packet
         wire = {'A': '2308efffffff0f', 'B': '2308dfffffff0f', 'Z': '2308fffeffff0f'}
@@ -205,7 +209,7 @@ class VirtualBridgeTests(unittest.TestCase):
         self.bridge.released = True
         self.run_integration('test_team_bridge.gd')
 
-    def run_integration(self, script):
+    def run_integration(self, script, require_commands=True):
         # Bind the game on the receiver's ephemeral port, avoiding any running game.
         port = self.receiver.getsockname()[1]
         self.receiver.close()
@@ -217,9 +221,9 @@ class VirtualBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             log_path = Path(folder) / 'godot.log'
             with log_path.open('w+b') as log:
-                self.run_godot(command, log, log_path)
+                self.run_godot(command, log, log_path, require_commands=require_commands)
 
-    def run_godot(self, command, log, log_path):
+    def run_godot(self, command, log, log_path, require_commands=True):
         with subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT) as proc:
             deadline = time.monotonic() + 45
             shifted = False
@@ -228,6 +232,13 @@ class VirtualBridgeTests(unittest.TestCase):
             try:
                 while proc.poll() is None and time.monotonic() < deadline:
                     progress = log_path.read_text(errors='replace')
+                    for step in ['MODE_RIGHT', 'MODE_A', 'OPPONENT_A', 'STRENGTH_UP',
+                                 'CAROUSEL_UP', 'OPPONENT_RIGHT', 'PERCENT_DOWN',
+                                 'PERCENT_RIGHT', 'START_DOWN', 'START_A']:
+                        marker = 'PURSUIT_FLOW_'+step
+                        if marker in progress and marker not in flow_steps:
+                            self.bridge.button(step.rsplit('_', 1)[1])
+                            flow_steps.add(marker)
                     for step, button in [('SETTINGS', 'Z'), ('CLOSE', 'B'), ('SELECT', 'A'),
                                          ('CONFIG', 'A'), ('START', 'A'), ('SKIP', 'A'),
                                          ('LOOK_DOWN', 'B'), ('LOOK_UP', 'B'), ('PAUSE', 'Z'),
@@ -260,7 +271,8 @@ class VirtualBridgeTests(unittest.TestCase):
                 self.assertEqual(proc.returncode, 0, output)
                 self.assertNotIn('SCRIPT ERROR', output)
                 self.assertIn('VIRTUAL_BRIDGE_OK', output)
-                self.assertGreater(self.bridge.counter, 0, 'Godot must send actual trainer commands')
+                if require_commands:
+                    self.assertGreater(self.bridge.counter, 0, 'Godot must send actual trainer commands')
             finally:
                 if proc.poll() is None: proc.kill(); proc.wait()
 

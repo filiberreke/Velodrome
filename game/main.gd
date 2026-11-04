@@ -919,6 +919,10 @@ func _ride_action(key: String, source: String = "B") -> void:
 		"setup":
 			if key == "Z": preferences.toggle_menu()
 			elif key == "B" and setup_panel.page == 1: exit_menu.show_quit()
+			elif setup_panel.selected in [1, 2] and setup_panel.pursuit_flow.visible:
+				# The pursuit flow owns its rows; generic range editing must not
+				# consume arrows or A before that screen can navigate/confirm.
+				setup_panel.bridge_action(key)
 			elif not ride_navigation.edit_control(key): setup_panel.bridge_action(key)
 		"intro":
 			if key == "A": broadcast_intro.finish()
