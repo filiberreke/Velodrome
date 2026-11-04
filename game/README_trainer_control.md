@@ -62,3 +62,16 @@ rijgevoel zijn nog niet op hardware getest. Trainerfirmware en bridgeparameters
 bepalen de absolute belasting; het bestaande virtuele versnellingsmodel is een
 benadering en gebruikt geen native Wahoo/Zwift-versnellingsprotocol.
 
+
+## Correctie ERG-wissels en herstel (2026-11-04)
+
+Na een SIM -> ERG wissel is een expliciet nieuw wattagedoel verplicht; de
+bridge mag nooit het vorige ploegdoel (bijvoorbeeld 265 W) hergebruiken.
+Verlopen UDP-leases wissen de belasting en kunnen na verse powerfeedback en
+bevestigde Reset bij een nieuwe wedstrijd opnieuw geclaimd worden.
+FTMS-transactiefouten veroorzaken een nieuwe trainerverbinding in plaats
+van een permanente blokkering. Een expliciete STOP of een andere actieve
+UDP-eigenaar mag niet stilzwijgend worden overgenomen.
+
+Een nieuwe wedstrijd die al gestart is terwijl de 0-W-release van de vorige
+wedstrijd nog op ACK wacht, gaat na die ACK alsnog naar PROBE.
