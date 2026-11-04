@@ -152,6 +152,21 @@ func run_test() -> void:
 	busy.handle_response({"type": "ack", "ok": true, "v": 1, "id": busy_id, "state": released_state.duplicate()}, 700.1)
 	check(busy.phase == "BLOCKED" and busy.pending.is_empty(), "Explicit start cannot claim another controller's session")
 	busy.close()
+	# A fresh race may reset a stale active lease belonging to this same UDP client.
+	var owned_next := Client.new(); owned_next.port = 9; owned_next.arm()
+	owned_next.tick(true, 0, 1, 750)
+	var own_probe: String = str(owned_next.requests.keys()[0])
+	var own_state := released_state.duplicate()
+	own_state.mode = "ERG"
+	own_state.release_confirmed = false
+	own_state.udp_owned = true
+	own_state.udp_owned_by_requester = true
+	owned_next.handle_response({"type": "ack", "v": 1, "ok": true, "id": own_probe, "state": own_state}, 750.1)
+	check(owned_next.pending.get("packet", {}).get("command") == "set_target_power" and owned_next.pending.packet.watts == 0, "Fresh race resets its own stale lease")
+	var own_release: String = str(owned_next.pending.packet.id)
+	owned_next.handle_response({"type": "ack", "v": 1, "ok": true, "id": own_release, "state": released_state.duplicate()}, 750.2)
+	check(owned_next.phase == "PROBE", "After own-lease reset, fresh race re-probes")
+	owned_next.close()
 	# A new race can be armed while the previous race's release ACK is pending.
 	# On receipt of the reset ACK it must enter PROBE, not stay BLOCKED.
 	var quick := Client.new(); quick.port = 9
