@@ -112,7 +112,14 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		return
 	if command == "set_target_power" and int(request.packet.get("watts", 0)) == 0:
 		# Reset is a release, not a positive ERG target.
-		phase = "BLOCKED" if enabled_before else "IDLE"
+		# A new race may already have armed while the previous release was pending.
+		# Continue probing instead of stranding the new race in BLOCKED.
+		if enabled_before and armed and allow_released_session:
+			phase = "PROBE"
+			last_status = -100.0
+			state = {}
+		else:
+			phase = "BLOCKED" if enabled_before else "IDLE"
 		return
 	if command == "set_target_power":
 		owned = true
