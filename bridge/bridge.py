@@ -131,18 +131,19 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
                                 try:
                                     await combined.tick(controller, sender)
                                 except Exception as exc:
-                                    if client.is_connected:
-                                        combined.request_stop('ftms_error: ' + str(exc))
-                                    else:
-                                        combined.suspend('trainer_disconnected')
-                                    print('SIM/ERG UIT na FTMS-fout:', type(exc).__name__, str(exc))
+                                    # A failed FTMS transaction faults this controller. Reconnect
+                                    # instead of leaving the control loop permanently disabled.
+                                    combined.suspend('ftms_error: ' + str(exc))
+                                    print('SIM/ERG tijdelijk onderbroken na FTMS-fout:', type(exc).__name__, str(exc))
                                     try:
                                         await controller.release()
                                         combined.release_confirmed = True
                                         combined.mode, combined.sent_w = 'RELEASED', None
                                     except Exception as reset_exc:
+                                        combined.release_confirmed = False
                                         print('FTMS reset niet bevestigd:', reset_exc)
                                     controller = None
+                                    raise ConnectionError('FTMS-control opnieuw verbinden') from exc
                                 await asyncio.sleep(0.1)
                                 continue
                             if shifter is not None:
