@@ -177,6 +177,7 @@ toestand vervangen. Lees met telkens een nieuw status-id:
 | `range_state` | unknown vóór uitlezen; known; unavailable bij ontbrekende 0x2AD8; invalid bij onleesbaar/ongeldig. |
 | `last_error` | Stopreden/fout, anders null. |
 | `udp_owned`, `lease_remaining_s` | Aanwezige ERG-lease en resterende seconden; geen authenticatie. |
+| `udp_owned_by_requester` | Alleen bij status vanaf een UDP-client: deze bronpoort bezit de bestaande lease. Een nieuw spel mag uitsluitend zijn eigen lease met 0 W vrijgeven. |
 | `ramp_w_per_s` | Huidige geconfigureerde overgangssnelheid. |
 
 Controleer voor bevestiging óók doel, modus en disabled=false. Een nieuwere revision
