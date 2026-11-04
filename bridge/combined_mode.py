@@ -127,7 +127,7 @@ class CombinedMode:
         log.warning('Tijdelijke onderbreking: %s; doelen gewist, wachten op verse data', reason)
 
     def connection_lost(self):
-        if self.started or self.waiting_for_feedback:
+        if not self.reconnect_ready and (self.started or self.waiting_for_feedback):
             self.suspend('trainer_disconnected')
         self.started = False
         self.release_confirmed = False
@@ -187,7 +187,6 @@ class CombinedMode:
                 # Never reactivate an old target after a SIM/ERG exchange.
                 # The owner must send a fresh positive set_target_power.
                 self.target_w = 0
-                self.sent_w = None if self.mode == 'RELEASED' else self.sent_w
             self.desired_mode = mode
             self.reconnect_ready = False
             self.desired_sim_backend = 'resistance'
@@ -223,6 +222,8 @@ class CombinedMode:
                           or (self.desired_mode == 'SIM' and self.desired_sim_backend == 'simulation'))
         self.owner = source if remote_control else None
         self.lease_until = self.clock() + LEASE_SECONDS if self.owner else 0.0
+        if command in ('set_mode', 'set_grade') or (command == 'set_target_power' and self.target_w > 0):
+            self.last_error = None
         self.revision += 1
         log.info('ACCEPT source=%s command=%s params=%s revision=%s', source or 'console', command, params, self.revision)
         return self.status()
@@ -270,7 +271,7 @@ class CombinedMode:
         if (self.waiting_for_feedback and sender.connected
                 and now - sender.last_received <= 3.0 and now - sender.last_power <= 3.0):
             self.waiting_for_feedback = False
-            self.last_error = None
+            # Preserve the incident for diagnostics until an explicit new command.
         feedback_required = ((self.desired_mode == 'ERG' and self.target_w > 0)
                              or (self.desired_mode == 'SIM' and self.desired_sim_backend == 'simulation'))
         if feedback_required and (
