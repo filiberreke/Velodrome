@@ -136,7 +136,7 @@ class CombinedMode:
         self.power_supported = self.simulation_supported = False
         self.power_range, self.range_state = None, 'unknown'
 
-    def status(self):
+    def status(self, source=None):
         limits = None
         if self.power_range is not None:
             limits = dict(zip(('min_w', 'max_w', 'increment_w'), self.power_range))
@@ -156,13 +156,14 @@ class CombinedMode:
                 'effective_grade_pct': round(self.road.target(self.grade_pct, self.shifter.gear)[0], 2),
                 'confirmed_simulation': self.road.confirmed() if self.mode == 'SIM' and self.sim_backend == 'simulation' else None,
                 'udp_owned': self.owner is not None,
+                'udp_owned_by_requester': self.owner is not None and source is not None and self.owner == source,
                 'lease_remaining_s': round(max(0.0, self.lease_until - self.clock()), 2) if self.owner else 0.0}
 
     def accept(self, command, params=None, source=None):
         """Synchronous on the asyncio thread; accepted != physically applied."""
         params = params or {}
         if command == 'status':
-            return self.status()
+            return self.status(source)
         if command == 'stop':
             self.request_stop('udp_stop' if source else 'console_stop')
             return self.status()
@@ -171,7 +172,8 @@ class CombinedMode:
             raise CommandError('not_active', 'FTMS-control niet actief; wacht op verbinding of herstart na STOP/fout')
         if self.owner is not None and self.clock() >= self.lease_until:
             self.suspend('udp_timeout')
-            raise CommandError('not_active', 'UDP-lease verlopen; belasting vrijgegeven, nieuwe sessie mogelijk na reset')
+            if not release:
+                raise CommandError('not_active', 'UDP-lease verlopen; belasting vrijgegeven, nieuwe sessie mogelijk na reset')
         if source is not None and self.owner not in (None, source):
             raise CommandError('control_busy', 'Een andere UDP-client bestuurt de trainer; stop/status blijven beschikbaar')
         if command == 'heartbeat':
