@@ -13,6 +13,9 @@ var left_stack: VBoxContainer
 var map_panel: Control
 var heart_label: Label
 var gear_label: Label
+var energy_panel: VBoxContainer
+var energy_bar: ProgressBar
+var energy_label: Label
 var lap_label: Label
 var time_label: Label
 var gap_label: Label
@@ -163,6 +166,7 @@ func _build_power() -> void:
 	gear_label.clip_text = true
 	gear_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	gear_label.tooltip_text = "Gekozen versnelling uit de trainerbridge, wanneer beschikbaar"
+	_build_energy(column)
 	slipstream_heading = HBoxContainer.new()
 	column.add_child(slipstream_heading)
 	var slipstream_caption := text("SLIPSTREAM", 16, MUTED)
@@ -184,6 +188,46 @@ func _build_power() -> void:
 	slipstream_bar.add_theme_stylebox_override("background", track)
 	slipstream_bar.add_theme_stylebox_override("fill", fill)
 	column.add_child(slipstream_bar)
+
+func _build_energy(column: VBoxContainer) -> void:
+	energy_panel = VBoxContainer.new()
+	energy_panel.add_theme_constant_override("separation", 2)
+	column.add_child(energy_panel)
+	var heading := HBoxContainer.new()
+	energy_panel.add_child(heading)
+	var caption := text("W′-ENERGIE", 16, MUTED)
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(caption)
+	energy_label = text("—", 18, ACCENT)
+	heading.add_child(energy_label)
+	energy_bar = ProgressBar.new()
+	energy_bar.custom_minimum_size.y = 8
+	energy_bar.max_value = 100.0
+	energy_bar.step = 0.01
+	energy_bar.show_percentage = false
+	var track := style(Color(0.04, 0.06, 0.08, 0.50), Color.TRANSPARENT)
+	track.set_content_margin_all(0)
+	track.set_corner_radius_all(4)
+	var fill := style(ACCENT, Color.TRANSPARENT)
+	fill.set_content_margin_all(0)
+	fill.set_corner_radius_all(4)
+	energy_bar.add_theme_stylebox_override("background", track)
+	energy_bar.add_theme_stylebox_override("fill", fill)
+	energy_panel.add_child(energy_bar)
+	energy_panel.tooltip_text = "Beschikbare W′-reserve · herstelt bij rustig rijden"
+	energy_panel.hide()
+
+func _update_energy(data: Dictionary) -> void:
+	var pc_control := bool(data.get("pc_control", false))
+	gear_label.get_parent().visible = not pc_control
+	energy_panel.visible = pc_control
+	if not pc_control:
+		return
+	var reserve: Variant = data.get("pc_energy_fraction", null)
+	var available: bool = (reserve is int or reserve is float) and is_finite(float(reserve))
+	var percent: float = clampf(float(reserve), 0.0, 1.0) * 100.0 if available else 0.0
+	energy_bar.value = percent
+	energy_label.text = "%d%%" % roundi(percent) if available else "—"
 
 func _metric(parent_node: VBoxContainer, title: String, value: String) -> Label:
 	var row := HBoxContainer.new()
@@ -585,6 +629,7 @@ static func nearby_ids(order: Array[int], player: int = 0) -> Array[int]:
 	return result
 
 func update_race(data: Dictionary) -> void:
+	_update_energy(data)
 	_update_pursuit_bar(data)
 	_update_team_laps(data)
 	_update_solo(data)
