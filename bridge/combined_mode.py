@@ -25,7 +25,7 @@ class CombinedMode:
         self.shifter = VirtualShifter()
         self.mode = 'SIM'
         self.desired_mode = 'SIM'
-        self.target_w = 100
+        self.target_w = 0
         self.sent_w = None
         self.disabled = False
         self.started = False
@@ -170,8 +170,8 @@ class CombinedMode:
         if self.disabled or (not release and (not self.started or self.waiting_for_feedback)):
             raise CommandError('not_active', 'FTMS-control niet actief; wacht op verbinding of herstart na STOP/fout')
         if self.owner is not None and self.clock() >= self.lease_until:
-            self.request_stop('udp_timeout')
-            raise CommandError('not_active', 'UDP-lease verlopen; herstart nodig')
+            self.suspend('udp_timeout')
+            raise CommandError('not_active', 'UDP-lease verlopen; belasting vrijgegeven, nieuwe sessie mogelijk na reset')
         if source is not None and self.owner not in (None, source):
             raise CommandError('control_busy', 'Een andere UDP-client bestuurt de trainer; stop/status blijven beschikbaar')
         if command == 'heartbeat':
@@ -184,7 +184,10 @@ class CombinedMode:
             if mode not in ('SIM', 'ERG'):
                 raise CommandError('invalid_mode', 'mode moet SIM of ERG zijn')
             if mode == 'ERG':
-                self.validate_target(self.target_w)
+                # Never reactivate an old target after a SIM/ERG exchange.
+                # The owner must send a fresh positive set_target_power.
+                self.target_w = 0
+                self.sent_w = None if self.mode == 'RELEASED' else self.sent_w
             self.desired_mode = mode
             self.reconnect_ready = False
             self.desired_sim_backend = 'resistance'
@@ -255,7 +258,7 @@ class CombinedMode:
     async def tick(self, controller, sender):
         now = self.clock()
         if self.owner is not None and now >= self.lease_until:
-            self.request_stop('udp_timeout')
+            self.suspend('udp_timeout')
         if self.disabled:
             if controller.active:
                 await controller.release()
