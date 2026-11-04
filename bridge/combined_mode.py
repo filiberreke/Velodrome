@@ -25,7 +25,7 @@ class CombinedMode:
         self.shifter = VirtualShifter()
         self.mode = 'SIM'
         self.desired_mode = 'SIM'
-        self.target_w = 100
+        self.target_w = 0
         self.sent_w = None
         self.disabled = False
         self.started = False
@@ -127,7 +127,7 @@ class CombinedMode:
         log.warning('Tijdelijke onderbreking: %s; doelen gewist, wachten op verse data', reason)
 
     def connection_lost(self):
-        if self.started or self.waiting_for_feedback:
+        if not self.reconnect_ready and (self.started or self.waiting_for_feedback):
             self.suspend('trainer_disconnected')
         self.started = False
         self.release_confirmed = False
@@ -136,7 +136,7 @@ class CombinedMode:
         self.power_supported = self.simulation_supported = False
         self.power_range, self.range_state = None, 'unknown'
 
-    def status(self):
+    def status(self, source=None):
         limits = None
         if self.power_range is not None:
             limits = dict(zip(('min_w', 'max_w', 'increment_w'), self.power_range))
@@ -156,13 +156,14 @@ class CombinedMode:
                 'effective_grade_pct': round(self.road.target(self.grade_pct, self.shifter.gear)[0], 2),
                 'confirmed_simulation': self.road.confirmed() if self.mode == 'SIM' and self.sim_backend == 'simulation' else None,
                 'udp_owned': self.owner is not None,
+                'udp_owned_by_requester': self.owner is not None and source is not None and self.owner == source,
                 'lease_remaining_s': round(max(0.0, self.lease_until - self.clock()), 2) if self.owner else 0.0}
 
     def accept(self, command, params=None, source=None):
         """Synchronous on the asyncio thread; accepted != physically applied."""
         params = params or {}
         if command == 'status':
-            return self.status()
+            return self.status(source)
         if command == 'stop':
             self.request_stop('udp_stop' if source else 'console_stop')
             return self.status()
@@ -170,8 +171,9 @@ class CombinedMode:
         if self.disabled or (not release and (not self.started or self.waiting_for_feedback)):
             raise CommandError('not_active', 'FTMS-control niet actief; wacht op verbinding of herstart na STOP/fout')
         if self.owner is not None and self.clock() >= self.lease_until:
-            self.request_stop('udp_timeout')
-            raise CommandError('not_active', 'UDP-lease verlopen; herstart nodig')
+            self.suspend('udp_timeout')
+            if not release:
+                raise CommandError('not_active', 'UDP-lease verlopen; belasting vrijgegeven, nieuwe sessie mogelijk na reset')
         if source is not None and self.owner not in (None, source):
             raise CommandError('control_busy', 'Een andere UDP-client bestuurt de trainer; stop/status blijven beschikbaar')
         if command == 'heartbeat':
@@ -184,7 +186,9 @@ class CombinedMode:
             if mode not in ('SIM', 'ERG'):
                 raise CommandError('invalid_mode', 'mode moet SIM of ERG zijn')
             if mode == 'ERG':
-                self.validate_target(self.target_w)
+                # Never reactivate an old target after a SIM/ERG exchange.
+                # The owner must send a fresh positive set_target_power.
+                self.target_w = 0
             self.desired_mode = mode
             self.reconnect_ready = False
             self.desired_sim_backend = 'resistance'
@@ -220,6 +224,8 @@ class CombinedMode:
                           or (self.desired_mode == 'SIM' and self.desired_sim_backend == 'simulation'))
         self.owner = source if remote_control else None
         self.lease_until = self.clock() + LEASE_SECONDS if self.owner else 0.0
+        if command in ('set_mode', 'set_grade') or (command == 'set_target_power' and self.target_w > 0):
+            self.last_error = None
         self.revision += 1
         log.info('ACCEPT source=%s command=%s params=%s revision=%s', source or 'console', command, params, self.revision)
         return self.status()
@@ -255,7 +261,7 @@ class CombinedMode:
     async def tick(self, controller, sender):
         now = self.clock()
         if self.owner is not None and now >= self.lease_until:
-            self.request_stop('udp_timeout')
+            self.suspend('udp_timeout')
         if self.disabled:
             if controller.active:
                 await controller.release()
@@ -267,7 +273,7 @@ class CombinedMode:
         if (self.waiting_for_feedback and sender.connected
                 and now - sender.last_received <= 3.0 and now - sender.last_power <= 3.0):
             self.waiting_for_feedback = False
-            self.last_error = None
+            # Preserve the incident for diagnostics until an explicit new command.
         feedback_required = ((self.desired_mode == 'ERG' and self.target_w > 0)
                              or (self.desired_mode == 'SIM' and self.desired_sim_backend == 'simulation'))
         if feedback_required and (
