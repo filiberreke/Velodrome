@@ -153,6 +153,25 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(c.target_w, 0)
         self.assertTrue(c.reconnect_ready)
 
+    def test_fresh_race_may_reset_only_its_own_lease(self):
+        clock = Clock(); c = ready(clock)
+        owner = ('127.0.0.1', 1000)
+        other = ('127.0.0.1', 1001)
+        c.accept('set_mode', {'mode': 'ERG'}, owner)
+        c.accept('set_target_power', {'watts': 265}, owner)
+        self.assertTrue(c.accept('status', source=owner)['udp_owned_by_requester'])
+        self.assertFalse(c.accept('status', source=other)['udp_owned_by_requester'])
+        with self.assertRaises(CommandError) as error:
+            c.accept('set_target_power', {'watts': 0}, other)
+        self.assertEqual(error.exception.code, 'control_busy')
+        clock.advance(6)
+        # Even after expiry the previous owner may release, but cannot renew load.
+        c.accept('set_target_power', {'watts': 0}, owner)
+        self.assertFalse(c.disabled)
+        self.assertIsNone(c.owner)
+        self.assertEqual(c.target_w, 0)
+        self.assertTrue(c.reconnect_ready)
+
     def test_udp_cache_errors_conflicts_and_no_lease_renewal(self):
         clock = Clock(); c = ready(clock)
         protocol = CommandProtocol(c, clock); transport = Transport(); protocol.connection_made(transport)
