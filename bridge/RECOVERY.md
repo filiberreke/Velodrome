@@ -29,8 +29,8 @@ In status:
 - `reconnect_ready=true`: doelen zijn gewist na uitval. Na verse data en bevestigde
   vrijgave (`mode=RELEASED`, `release_confirmed=true`) mag een nieuwe wedstrijd
   expliciet `set_mode SIM` en vervolgens `set_grade` sturen.
-- `disabled=true`: expliciete STOP, verlopen UDP-lease of FTMS-protocolfout;
-  sturing blijft geblokkeerd, maar de verbindings-/meetlus blijft werken.
+- `disabled=true`: expliciete STOP; sturing blijft geblokkeerd. Een gewone
+  heartbeat-timeout of FTMS-transactiefout schakelt niet meer permanent uit.
 
 Het bijgewerkte spel gebruikt de herstelstatus bij een nieuwe start. Voor
 herstel van metingen hoeft niets opnieuw gestart te worden. Voor nieuwe
@@ -39,10 +39,13 @@ of een nieuw consolecommando zodra de verbinding klaar is. Als de huidige
 wedstrijd met de bestaande korte telemetrie-overbrugging doorloopt, blijft
 weerstandssturing tot die nieuwe start vrijgegeven.
 
-Een UDP-heartbeattimeout blijft een blokkering van sturing, evenals een expliciet
-STOP-commando of echte FTMS-weigering/protocolfout. Bluetooth wordt ook dan opnieuw
-verbonden voor metingen; deze wijziging maakt die blokkeringen niet automatisch
-ongedaan. Bezette UDP-poorten, ontbrekende Python-dependencies of ongeldige
+Een UDP-heartbeattimeout wist meteen het ERG-doel, de helling en de lease. De
+trainer-loop voert vervolgens Reset uit. Na bevestigde vrijgave en verse data
+kan de volgende expliciet gestarte wedstrijd opnieuw SIM/ERG aanvragen zonder de
+bridge te herstarten. Een FTMS-transactiefout veroorzaakt eerst een best-effort
+Reset en vervolgens een volledige trainerherverbinding; pas daarna mag een nieuwe
+wedstrijd sturen. Een expliciete STOP blijft terminaal en wordt nooit via een
+nieuwe wedstrijd omzeild. Bezette UDP-poorten, ontbrekende Python-dependencies of ongeldige
 configuratie blijven zichtbare opstartfouten en worden niet als een zoekprobleem
 behandeld. Ctrl+C/sluiten beëindigt de bridge.
 
@@ -52,3 +55,14 @@ van de werkelijke trainer-loop met gesimuleerde BLE-client, stilgevallen link,
 vrijgave zonder oude targets en behoud van expliciete STOP. Godot-parser en
 UDP-clienttests controleren ook starten op de herstelde bridge. Fysieke
 herverbinding en rijgevoel moeten nog op de KICKR en Ride worden getest.
+
+## Herstel van ploegenachtervolging naar nieuwe wedstrijd
+
+Bij elke overgang SIM -> ERG wordt het oude ERG-doel eerst gewist. De
+modusaanvraag alleen legt dus geen wattage op en bezit nog geen lease.
+Daarna moet het spel een nieuw positief `set_target_power` versturen.
+Als dat uitblijft, blijft de trainer vrijgegeven; een oude 265 W kan niet
+opnieuw geactiveerd worden. Na een time-out zijn verse data en een
+bevestigde FTMS Reset vereist voordat een nieuwe wedstrijd de sturing
+kan activeren. Een FTMS-protocolfout vereist bovendien een nieuwe BLE-
+controller; de oorspronkelijke transactiestatus wordt niet hergebruikt.
