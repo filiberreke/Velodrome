@@ -104,6 +104,8 @@ const DRAFT_RESPONSE_SECONDS := 0.55
 const DRAFT_MIN_SPEED_MPS := 4.5
 var draft_strengths: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var draft_leaders: Array[int] = [-1, -1, -1, -1]
+# The cote d'azur has a fixed cross-slope; only the wooden track banks up in bends.
+const BLUE_APRON_BANK_DEG := 12.0
 const STRAIGHT_BANK_DEG := 12.0
 const CORNER_BANK_DEG := 42.0
 const BANK_TRANSITION_M := 12.0
@@ -1653,7 +1655,13 @@ func _at(distance: float, offset: float) -> Vector3:
 		z = -STRAIGHT / 2.0 + RADIUS * sin(angle)
 		nx = cos(angle)
 		nz = sin(angle)
-	return Vector3(x + offset * nx, 0.015 + offset * tan(_bank_angle(s)), z + offset * nz)
+	# The blue apron stays at a fixed 12-degree cross-slope all the way around.
+	# Wood starts at the same height at TRACK_EDGE, then uses the variable
+	# banking angle; the shared boundary therefore remains watertight.
+	var apron_width: float = minf(offset, TRACK_EDGE)
+	var wood_width: float = maxf(0.0, offset - TRACK_EDGE)
+	var height: float = 0.015 + apron_width * tan(deg_to_rad(BLUE_APRON_BANK_DEG)) + wood_width * tan(_bank_angle(s))
+	return Vector3(x + offset * nx, height, z + offset * nz)
 
 func _direction(s: float, offset: float) -> Vector3:
 	return (_at(s + 0.2, offset) - _at(s - 0.2, offset)).normalized()
@@ -1972,7 +1980,7 @@ func _track_textured_surface(inner: float, outer: float, texture: Texture2D, nam
 	add_child(surface)
 
 func _build_realistic_track() -> void:
-	# No geometry/physics changes: this surface uses the existing _at() banking.
+	# The apron and wooden surface share an edge, but now have independent bank angles.
 	_track_textured_surface(0.0, TRACK_EDGE, BLUE_APRON_TEXTURE, "Cote d'Azur - licht geschilderde aanloop", 8.0, 0.78, Color("ffffff"), 0.80)
 	_track_textured_surface(TRACK_EDGE, TRACK_OUTER_EDGE, WOOD_TEXTURE, "Piste - gelakte grenenhouten latten", 12.5, 2.24, Color("f6f1e7"), 0.65)
 	preload("res://track_branding.gd").build(self)
