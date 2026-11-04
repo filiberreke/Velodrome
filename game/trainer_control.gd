@@ -152,7 +152,12 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		if not state.get("simulation_supported", false):
 			_block("simulation_unsupported")
 		elif state.get("udp_owned", false):
-			_block("control_busy")
+			# On a fresh race only, clear a stale lease held by our own UDP port.
+			# Never touch another controller's active session.
+			if allow_released_session and state.get("udp_owned_by_requester", false):
+				_request("set_target_power", {"watts": 0}, now, true)
+			else:
+				_block("control_busy")
 		elif state.get("mode") == "RELEASED" and state.get("release_confirmed", false) and (allow_released_session or may_resume or state.get("reconnect_ready", false)):
 			_request("set_mode", {"mode": "SIM"}, now, true)
 		elif state.get("mode") == "SIM" and state.get("desired_mode") == "SIM":
