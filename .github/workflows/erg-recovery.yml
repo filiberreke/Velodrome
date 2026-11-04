@@ -1,0 +1,28 @@
+name: ERG recovery regression
+
+on:
+  push:
+    branches:
+      - fix/erg-session-recovery
+  pull_request:
+    paths:
+      - 'bridge/**'
+      - 'game/trainer_control.gd'
+      - 'game/tests/test_trainer_control.gd'
+      - '.github/workflows/erg-recovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bridge-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test FTMS bridge, UDP, recovery
+        run: |
+          python -m unittest discover -s bridge/tests -p 'test_bridge.py' -v
+          python -m unittest discover -s bridge/tests -p 'test_reconnect.py' -v
