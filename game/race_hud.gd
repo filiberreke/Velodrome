@@ -260,8 +260,8 @@ func _build_team_laps() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	team_laps_panel.add_child(column)
-	column.add_child(text("RONDETIJDEN", 16, MUTED))
-	column.add_child(text("Ronde       Tijd (verschil)", 16, MUTED))
+	column.add_child(text("HALVE-RONDETIJDEN · 125 M", 16, MUTED))
+	column.add_child(text("Afstand     Tijd (verschil)", 16, MUTED))
 	team_laps_scroll = ScrollContainer.new()
 	team_laps_scroll.custom_minimum_size.y = 330
 	team_laps_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -271,32 +271,30 @@ func _build_team_laps() -> void:
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rows.add_theme_constant_override("separation", 8)
 	team_laps_scroll.add_child(rows)
-	for i in range(16):
+	for i in range(32):
 		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
 		rows.add_child(row)
-		var lap := text(str(i + 1), 22, MUTED)
-		lap.custom_minimum_size.x = 55
+		var lap := text("%d m" % ((i + 1) * 125), 19, MUTED)
+		lap.custom_minimum_size.x = 76
 		row.add_child(lap)
-		var value := text("", 22)
+		var value := text("", 20)
 		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(value)
-		team_lap_rows.append({"row": row, "value": value})
+		team_lap_rows.append({"row": row, "distance": lap, "value": value})
 		row.hide()
-	team_laps_panel.tooltip_text = "Volledige ronden · verschil op hetzelfde afstandspunt: + voor, − achter. (…) wacht op de tegenploeg."
+	team_laps_panel.tooltip_text = "Tijd per 125 m · cumulatief verschil op hetzelfde afstandspunt: + voor, − achter. (…) wacht op de tegenploeg."
 	team_laps_panel.hide()
 
-static func team_lap_summary(own: Array, opponent: Array) -> Array[Dictionary]:
+static func team_half_summary(own: Array, opponent: Array) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	var own_elapsed := 0.0
-	var opponent_elapsed := 0.0
 	for i in range(own.size()):
-		own_elapsed += float(own[i])
 		var delta: Variant = null
 		if i < opponent.size():
-			opponent_elapsed += float(opponent[i])
-			delta = opponent_elapsed - own_elapsed
-		result.append({"seconds": float(own[i]), "delta": delta})
+			delta = float(opponent[i]) - float(own[i])
+		var prior: float = float(own[i - 1]) if i > 0 else 0.0
+		result.append({"seconds": float(own[i]) - prior, "delta": delta})
 	return result
 
 func _update_team_laps(data: Dictionary) -> void:
@@ -306,7 +304,7 @@ func _update_team_laps(data: Dictionary) -> void:
 	if not team:
 		shown_team_laps = 0
 		return
-	var laps := team_lap_summary(data.get("team_lap_times", []), data.get("opponent_lap_times", []))
+	var laps := team_half_summary(data.get("team_half_crossings", []), data.get("opponent_half_crossings", []))
 	for i in range(team_lap_rows.size()):
 		var row: Dictionary = team_lap_rows[i]
 		row["row"].visible = i < laps.size()
@@ -315,7 +313,7 @@ func _update_team_laps(data: Dictionary) -> void:
 		var gap := "…" if delta == null else ("0.00 s" if absf(float(delta)) < 0.005 else "%s%.2f s" % ["+" if float(delta) > 0.0 else "−", absf(float(delta))])
 		row["value"].text = "%.2f s (%s)" % [float(laps[i]["seconds"]), gap]
 	if laps.size() > shown_team_laps:
-		team_laps_scroll.call_deferred("ensure_control_visible", team_lap_rows[mini(laps.size(), 16) - 1]["row"])
+		team_laps_scroll.call_deferred("ensure_control_visible", team_lap_rows[mini(laps.size(), team_lap_rows.size()) - 1]["row"])
 	shown_team_laps = laps.size()
 
 func _build_bottom() -> void:

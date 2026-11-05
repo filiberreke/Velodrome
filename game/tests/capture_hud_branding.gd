@@ -74,6 +74,27 @@ func capture() -> void:
 	game._update_hud()
 	game._update_visuals(1.0)
 	await save_view("06_time_trial")
+	game.race_mode = 5
+	game.race_laps = 16
+	game.team_size = 3
+	game.rider_count = 6
+	game._configure_peloton()
+	game._prepare_pursuit({}, 350.0)
+	game.team_race.prepare(game, {}, 350.0)
+	game.team_race.front.assign([500.0,425.0])
+	game.team_race.progress.assign([500.0,425.0])
+	game.team_race.velocity.assign([12.5,12.5])
+	game.team_race._apply_formation(game)
+	game.pursuit_half_crossings = [[10.0,20.5,30.3,40.1],[10.8,21.1,30.0]]
+	game.pursuit_half_stats = [[],[]]
+	for team in range(2):
+		for unused in game.pursuit_half_crossings[team]:
+			game.pursuit_half_stats[team].append({"kmh":45.0,"watts":328.0})
+	game.clock = 40.1
+	game._update_countdown_display()
+	game._update_hud()
+	game._update_visuals(1.0)
+	await save_view("07_team_half_laps")
 	game.free()
 	print("HUD_BRANDING_CAPTURES_OK")
 	quit()
