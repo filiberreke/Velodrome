@@ -20,15 +20,17 @@ static func box(world: Node3D, position: Vector3, dimensions: Vector3, colour: C
 	world.add_child(node)
 	return node
 
-static func rider(world: Node3D, position: Vector3, team: int, reverse: bool = false) -> Node3D:
+static func rider(world: Node3D, position: Vector3, team: int, reverse: bool = true) -> Node3D:
 	var node := Rider.new()
+	# Set before add_child: _ready selects the actual pursuit GLB.
+	node.set_meta("pursuit_mode", bool(world.get_meta("pursuit_mode", false)))
 	node.set_meta("rider_index", team % 4)
 	node.set_meta("jersey_config", {"country_kit": COUNTRIES[posmod(team, COUNTRIES.size())]})
 	node.set_meta("preview_rider", true)
 	world.add_child(node)
 	node.position = position
 	node.rotation.y = PI if reverse else 0.0
-	node.pedal(0.25, 90.0, 500.0)
+	node.pedal(0.18 + posmod(team, 4) * 0.07, 90.0, 500.0)
 	return node
 
 static func make(owner_node: Node, mode: String) -> SubViewport:
@@ -40,6 +42,8 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 	viewport.msaa_3d = Viewport.MSAA_2X
 	owner_node.add_child(viewport)
 	var world := Node3D.new()
+	var pursuit := mode in ["pursuit", "team_pursuit"]
+	world.set_meta("pursuit_mode", pursuit)
 	viewport.add_child(world)
 	var sky := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -60,20 +64,32 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 	wood.uv1_scale = Vector3(3, 3, 1)
 	wood.roughness = 0.85
 	floor.material_override = wood
-	box(world, Vector3(-7.0, 0.0, 0), Vector3(2.0, 0.025, 18), Color("329fb9"))
-	for x in [-5.5, -3.7, 4.9]:
-		box(world, Vector3(x, 0.012, 0), Vector3(0.065, 0.025, 18), Color("f3ebd9") if x < -4.0 else Color("d34b50"))
+	if pursuit:
+		# Opposite straights, separated by the infield. Both ride anticlockwise:
+		# +X straight faces -Z; -X straight faces +Z. Blue is on each rider's left.
+		box(world, Vector3(0, 0.0, 0), Vector3(2.0, 0.025, 18), Color("cbd9d4"))
+		for side in [-1.0, 1.0]:
+			box(world, Vector3(side * 1.4, 0.0, 0), Vector3(0.8, 0.025, 18), Color("329fb9"))
+			box(world, Vector3(side * 1.98, 0.012, 0), Vector3(0.045, 0.025, 18), Color("18202a"))
+			box(world, Vector3(side * 2.7, 0.012, 0), Vector3(0.055, 0.025, 18), Color("d34b50"))
+			box(world, Vector3(side * 4.0, 0.012, 0), Vector3(0.055, 0.025, 18), Color("329fb9"))
+			box(world, Vector3(side * 4.6, 0.025, 0), Vector3(5.5, 0.025, 0.20), Color("fff8e9"))
+	else:
+		# GLBs face +Z. A half turn makes forward -Z and rider-left -X.
+		box(world, Vector3(-5.6, 0.0, 0), Vector3(1.2, 0.025, 18), Color("329fb9"))
+		for x in [-4.8, -3.7, 4.9]:
+			box(world, Vector3(x, 0.012, 0), Vector3(0.065, 0.025, 18), Color("18202a") if x < -4.0 else (Color("d34b50") if x < 0 else Color("329fb9")))
 	match mode:
 		"scratch":
 			for i in range(6):
 				rider(world, Vector3(-2.4 + (i % 3) * 2.15, 0, -2.0 + (i / 3) * 3.4), i)
 		"pursuit":
-			rider(world, Vector3(-2.9, 0, 2.6), 0)
-			rider(world, Vector3(2.9, 0, -2.6), 1, true)
+			rider(world, Vector3(3.1, 0, 0.7), 0)
+			rider(world, Vector3(-3.1, 0, -0.7), 1, false)
 		"team_pursuit":
 			for i in range(4):
-				rider(world, Vector3(-2.5, 0, -4.2 + 2.8 * i), 0)
-				rider(world, Vector3(2.5, 0, 4.2 - 2.8 * i), 1, true)
+				rider(world, Vector3(3.1, 0, -3.3 + 2.2 * i), 0)
+				rider(world, Vector3(-3.1, 0, 3.3 - 2.2 * i), 1, false)
 		"points":
 			box(world, Vector3(0, 0.025, 2), Vector3(13, 0.025, 0.30), Color("fff8e9"))
 			for i in range(5):
@@ -93,15 +109,15 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 		"time_trial":
 			rider(world, Vector3(0, 0, 1.2), 0)
 		"tempo":
-			rider(world, Vector3(-2, 0, 4.6), 2)
+			rider(world, Vector3(-2, 0, -4.6), 2)
 			for i in range(5):
 				rider(world, Vector3(-2.4 + (i % 3) * 2.0, 0, -2 + (i / 3) * 2.4), i)
 		"keirin":
-			var pacer := rider(world, Vector3(0, 0, 4.3), 3)
+			var pacer := rider(world, Vector3(0, 0, -5.3), 3)
 			# An engine under the existing bicycle frame distinguishes the pacing bike.
 			box(pacer, Vector3(0, 0.48, 0.02), Vector3(0.42, 0.35, 0.6), Color("414954"))
 			for i in range(5):
-				rider(world, Vector3(0.5 * sin(float(i)), 0, 1.6 - i * 2.3), i)
+				rider(world, Vector3(0.5 * sin(float(i)), 0, -3.0 + i * 2.3), i)
 	var camera := Camera3D.new()
 	world.add_child(camera)
 	camera.position = Vector3(9, 4.2, 11)
