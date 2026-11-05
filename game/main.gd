@@ -442,6 +442,38 @@ var steering_steps := 0
 var watts := 0.0
 # Demo start preset: selected before the countdown, applied ONLY when START fires.
 var demo_launch_watts := 300.0
+# Virtual power is constrained only for keyboard control, never for Zwift Ride.
+const PC_MAX_REQUEST_W := 1300.0
+var pc_energy_model = XScratchAI.new()
+var pc_delivered_watts := 0.0
+var pc_power_limit_watts := -1.0
+
+func _pc_energy_fraction() -> Variant:
+	if not pc_energy_model.initialized or pc_energy_model.wmax[1] <= 0.0:
+		return null
+	return clampf(pc_energy_model.wprime[1] / pc_energy_model.wmax[1], 0.0, 1.0)
+
+func _pc_power(dt: float) -> float:
+	if trainer_seen:
+		return watts
+	if not pc_energy_model.initialized:
+		return watts
+	pc_power_limit_watts = pc_energy_model.power_limit(1, dt)
+	pc_delivered_watts = pc_energy_model._phys_power(1, watts, dt)
+	return pc_delivered_watts
+
+func _reset_pc_energy() -> void:
+	# Reuse exactly the AI's fatigue, W-prime depletion and recovery.
+	var profiles: Array[int] = [0, 3]
+	var forms: Array[float] = [1.0, 1.0]
+	var lanes: Array[float] = [1.18, 1.18]
+	pc_energy_model.reset(profiles, forms, lanes)
+	pc_energy_model.cp[1] = 255.0
+	pc_energy_model.wmax[1] = 30000.0
+	pc_energy_model.wprime[1] = pc_energy_model.wmax[1]
+	pc_energy_model.pmax[1] = PC_MAX_REQUEST_W
+	pc_delivered_watts = 0.0
+	pc_power_limit_watts = -1.0
 var trainer_speed_kmh := -1.0
 var trainer_ready := false
 var trainer_seen := false
@@ -655,6 +687,7 @@ func _riding() -> bool:
 
 func _begin_riding() -> void:
 	running = true
+	_reset_pc_energy()
 	if not trainer_seen:
 		watts = demo_launch_watts
 	else:
@@ -813,9 +846,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_UP, KEY_EQUAL:
 			if not trainer_seen:
 				if _riding():
-					watts = minf(900.0, watts + 25.0)
+					watts = minf(PC_MAX_REQUEST_W, watts + 25.0)
 				else:
-					demo_launch_watts = minf(900.0, demo_launch_watts + 25.0)
+					demo_launch_watts = minf(PC_MAX_REQUEST_W, demo_launch_watts + 25.0)
 		KEY_DOWN, KEY_MINUS:
 			if not trainer_seen:
 				if _riding():
@@ -1476,11 +1509,12 @@ func _advance_race(dt: float) -> void:
 			x_ai.final_line_m = _race_length()
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
+	var player_actual_power: float = _pc_power(dt)
 	var new_finisher := false
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
 			continue
-		var power: float = watts if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
+		var power: float = player_actual_power if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
 		if race_mode in [0, 1, 2] and i > 0:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
@@ -2838,7 +2872,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3052,12 +3086,13 @@ func _update_pursuit(dt: float) -> void:
 	var lateral_height: Array[float] = _pursuit_move_lanes(dt)
 	draft_strengths.fill(0.0)
 	draft_leaders.fill(-1)
+	var player_actual_power: float = _pc_power(dt)
 	var new_finisher := false
 	for i in range(1 if race_mode == 7 else 2):
 		if finish_times[i] >= 0.0:
 			continue
 		var previous: float = distances[i]
-		var power: float = watts if i == 0 else 0.0
+		var power: float = player_actual_power if i == 0 else 0.0
 		var step: float
 		var end_time: float = clock
 		if i == 1 and not pursuit_replay.is_empty():
@@ -3088,11 +3123,11 @@ func _update_pursuit(dt: float) -> void:
 			distances[i] = _race_length()
 		if i == 0:
 			baseline_speed = speeds[i]
-			player_power_integral += watts * (maxf(0.0, end_time - (clock - dt)) if crossed else dt)
-			player_peak_watts = maxf(player_peak_watts, watts)
+			player_power_integral += power * (maxf(0.0, end_time - (clock - dt)) if crossed else dt)
+			player_peak_watts = maxf(player_peak_watts, power)
 			player_speed_peak_kmh = maxf(player_speed_peak_kmh, speeds[i] * 3.6)
 			if player_samples.is_empty() or distances[i] - player_samples[-1].x >= 2.5 or crossed:
-				player_samples.append(Vector2(distances[i], watts))
+				player_samples.append(Vector2(distances[i], power))
 			_record_pursuit_sample(end_time if crossed else clock, distances[i], crossed)
 			if not trainer_seen:
 				_capture_demo_fit_sample()
@@ -3356,8 +3391,8 @@ func _update_bunch_presentation() -> void:
 		for child in bikes[i].get_children():
 			if child is Label3D: child.visible = not active and _rider_label_visible(i)
 	for i in range(rider_energy_badges.size()):
-		var reserve: float = x_ai.wprime[i]/maxf(1.,x_ai.wmax[i]) if i > 0 and x_ai.initialized else -1.0
-		var power: float = watts if i == 0 else ai_power_w[i]
+		var reserve: float = (pc_energy_model.wprime[1] / maxf(1.0, pc_energy_model.wmax[1]) if pc_energy_model.initialized and not trainer_seen else -1.0) if i == 0 else (x_ai.wprime[i]/maxf(1.,x_ai.wmax[i]) if x_ai.initialized else -1.0)
+		var power: float = (watts if trainer_seen else pc_delivered_watts) if i == 0 else ai_power_w[i]
 		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0 and _rider_label_visible(i), points_rules.points[i] if race_mode == 1 else 0, race_mode == 1, _rider_name(i))
 
 func _announce_race_event(message: String, player_event: bool = true) -> void:

@@ -68,6 +68,7 @@ func step(game: Node3D, dt: float) -> void:
 	var previous_front: float = front[0]
 	var previous_offsets: Array[float] = ours.offsets.duplicate()
 	var previous_lanes: Array[float] = ours.lanes.duplicate()
+	var player_actual_power: float = game.watts
 	for team in range(2):
 		if times[team] >= 0.0:
 			continue
@@ -87,7 +88,9 @@ func step(game: Node3D, dt: float) -> void:
 			if game.clock >= float(replay["time_s"]): finish = float(replay["time_s"])
 		else:
 			var forward_m: float = velocity[team] * dt / game._path_metric(game.PURSUIT_START_M + float(team) * 125.0 + front[team], game.LANES[0])
-			power = ours.step(dt, game.watts, hold_power(velocity[team]), forward_m) if team == 0 else theirs.step(dt, pacer.power(dt), hold_power(velocity[team]), forward_m)
+			if team == 0:
+				player_actual_power = game._pc_power(dt)
+			power = ours.step(dt, player_actual_power, hold_power(velocity[team]), forward_m) if team == 0 else theirs.step(dt, pacer.power(dt), hold_power(velocity[team]), forward_m)
 			var result: Dictionary = Pacer.advance(game, front[team], velocity[team], power, dt, game.LANES[0], game.PURSUIT_START_M + float(team) * 125.0)
 			velocity[team] = float(result["speed"])
 			var step_m: float = float(result["step"])
@@ -122,8 +125,8 @@ func step(game: Node3D, dt: float) -> void:
 		if team == 0:
 			game.baseline_speed = velocity[team]
 			var elapsed: float = maxf(0.0, finish - (game.clock - dt)) if times[team] >= 0.0 else dt
-			game.player_power_integral += game.watts * elapsed
-			game.player_peak_watts = maxf(game.player_peak_watts, game.watts)
+			game.player_power_integral += player_actual_power * elapsed
+			game.player_peak_watts = maxf(game.player_peak_watts, player_actual_power)
 			game.player_speed_peak_kmh = maxf(game.player_speed_peak_kmh, velocity[team] * 3.6)
 			_record(game, finish if times[team] >= 0.0 else game.clock, power, times[team] >= 0.0)
 	_apply_formation(game)
@@ -208,7 +211,7 @@ func hud(game: Node3D) -> void:
 	elif game.start_state == "COUNTDOWN": notice = "Start over %d" % maxi(1, ceili(game.countdown))
 	elif game.trainer_seen and not game.connected and not game.finished: notice = "Trainerverbinding onderbroken"
 	var target: float = ours.target_watts()
-	game.race_overlay.update_race({"pursuit": true, "pursuit_player": "Jouw ploeg", "pursuit_opponent": "AI-ploeg" if replay.is_empty() else str(replay["name"]), "pursuit_laps": pair, "pursuit_live_gap": live, "pursuit_split_delta": -float(live) if live != null else 0.0, "pursuit_stats": stats, "draft_enabled": false, "watts": game.watts, "speed_kmh": velocity[0] * 3.6, "gear": game.trainer_gear if game.connected else "—", "heart_rate_bpm": game.trainer_heart_rate_bpm, "lap": mini(game.race_laps, int(progress[0] / game.LAP) + 1), "laps": game.race_laps, "seconds": times[0] if times[0] >= 0.0 else game.clock, "position": 1 if better(0, 1) else 2, "count": 2, "leader_gap": "", "order": order, "distances": positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice, "team_mode": true, "team_half_crossings": game.pursuit_half_crossings[0], "opponent_half_crossings": game.pursuit_half_crossings[1], "team_target": target, "team_out": ours.player_is_out(), "team_leading": ours.order[0] == 0, "team_phase": ours.phase, "team_rank": ours.player_rank() + 1, "team_count": game.team_size, "team_active": game.start_state == "RACING" and not game.finished})
+	game.race_overlay.update_race({"pursuit": true, "pursuit_player": "Jouw ploeg", "pursuit_opponent": "AI-ploeg" if replay.is_empty() else str(replay["name"]), "pursuit_laps": pair, "pursuit_live_gap": live, "pursuit_split_delta": -float(live) if live != null else 0.0, "pursuit_stats": stats, "draft_enabled": false, "watts": game.watts, "speed_kmh": velocity[0] * 3.6, "gear": game.trainer_gear if game.connected else "—", "pc_control": not game.trainer_seen, "pc_energy_fraction": game._pc_energy_fraction(), "pc_delivered_watts": game.pc_delivered_watts, "pc_power_limit_watts": game.pc_power_limit_watts, "heart_rate_bpm": game.trainer_heart_rate_bpm, "lap": mini(game.race_laps, int(progress[0] / game.LAP) + 1), "laps": game.race_laps, "seconds": times[0] if times[0] >= 0.0 else game.clock, "position": 1 if better(0, 1) else 2, "count": 2, "leader_gap": "", "order": order, "distances": positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice, "team_mode": true, "team_half_crossings": game.pursuit_half_crossings[0], "opponent_half_crossings": game.pursuit_half_crossings[1], "team_target": target, "team_out": ours.player_is_out(), "team_leading": ours.order[0] == 0, "team_phase": ours.phase, "team_rank": ours.player_rank() + 1, "team_count": game.team_size, "team_active": game.start_state == "RACING" and not game.finished})
 	game.minimap.set("start_lines", [game.PURSUIT_START_M, game.PURSUIT_START_M + 125.0])
 	game.rankings.text = "PLOEGENACHTERVOLGING\nJouw ploeg: %.1f m\nTegenploeg: %.1f m\nKopvolgorde (0 = speler): %s\nKopbeurt: %.1f s\nOvergenomen beurt: %.1f s / %.1f W\nWissel: %s\nSpelerfactor: %.0f%%\nVermogen op kop: %.1f W" % [progress[0], progress[1], str(ours.order), ours.turn_seconds, ours.copied_seconds, ours.copied_watts, ours.phase, ours.factor(maxi(0, ours.player_rank())) * 100.0, ours.leader_power]
 
