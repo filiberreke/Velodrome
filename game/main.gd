@@ -79,6 +79,7 @@ const FRONT_WHEEL_TIP_M := 1.110
 const RADIUS := 18.0
 const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
 const PURSUIT_START_M := LAP - STRAIGHT * 0.5
+const NEUTRAL_DEPARTURE_M := -STRAIGHT * 0.5
 const UDP_PORT := 51723
 # Player selection is finer than AI corridors; physical track geometry is unchanged.
 const PLAYER_LANE_STEP_M := 0.60
@@ -236,19 +237,17 @@ func _configure_peloton() -> void:
 	ai_lane_targets.resize(count)
 	for i in range(count):
 		var lane: float = LANES[0] if race_mode in [4, 5, 7] else START_LANES[i % START_LANES.size()]
-		# Extra scratch riders start on the next row, not inside the first six.
-		# Use the same real position for tactics, physics and rendering.
+		# A narrow grid on the lower straight gives every rider room to roll away.
+		# Wider rows stretch apart because outside riders cover longer bends.
 		if race_mode in [0, 1, 2]:
-			distances[i] = -2.4 * float(i / START_LANES.size())
-		if race_mode == 2:
-			# A compact two-abreast grid keeps the standing start on the
-			# lower banking; the highest lane can stall at launch power.
-			lane = LANES[0] + float(i % 2)
-			distances[i] = -3.0 * float(i / 2)
+			lane = LANES[0] + 1.2 * float(i % 2)
+			distances[i] = NEUTRAL_DEPARTURE_M - 2.4 * float(i / 2)
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
 		ai_energy_j[i] = 0.0 if i == 0 else AI_CAPACITY_J[type_id] * _form(i)
+	if race_mode in [0, 1, 2]:
+		neutral_start.distance_offset = -NEUTRAL_DEPARTURE_M
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
 	if race_mode in [0, 1, 2]:
 		x_ai = PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())
@@ -634,7 +633,7 @@ func _physics_process(delta: float) -> void:
 		if start_state == "WAIT_STOP":
 			var stopped: bool = _start_conditions_met()
 			zero_stable = minf(ZERO_CONFIRM_SECONDS, zero_stable + delta) if stopped else 0.0
-			if zero_stable >= ZERO_CONFIRM_SECONDS:
+			if stopped and (not _start_requires_standstill() or zero_stable >= ZERO_CONFIRM_SECONDS):
 				start_state = "COUNTDOWN"
 				countdown = 3.0
 		elif start_state == "COUNTDOWN":
@@ -758,14 +757,18 @@ func _update_countdown_display() -> void:
 	race_overlay.signals.set_countdown(value)
 	race_overlay.signals.update_last_lap(start_state == "RACING", maxf(0.0, _race_length() - distances[0]), _race_length(), finished)
 
+func _start_requires_standstill() -> bool:
+	return race_mode not in [0, 1, 2] and not (race_mode == 7 and time_trial_start_type == "flying")
+
 func _start_conditions_met() -> bool:
 	if bridge_bind_error != OK:
 		return false
 	if trainer_seen:
-		return connected and trainer_ready and watts <= ZERO_WATTS_THRESHOLD
-	return watts <= 0.0
+		return connected and trainer_ready and (not _start_requires_standstill() or watts <= ZERO_WATTS_THRESHOLD)
+	return not _start_requires_standstill() or watts <= 0.0
 
 func _final_start_speed_ok() -> bool:
+	if not _start_requires_standstill(): return true
 	# Only check trainer speed during the final second of the countdown.
 	if trainer_seen:
 		return trainer_speed_kmh >= 0.0 and trainer_speed_kmh <= START_FINAL_SECOND_SPEED_KMH
@@ -2712,7 +2715,7 @@ func _update_hud() -> void:
 	elif start_state == "SETUP":
 		stage = "KIES AI-STERKTE EN DRUK START"
 	elif start_state == "WAIT_STOP":
-		stage = "WACHT OP STILSTAND"
+		stage = "WACHT OP STILSTAND" if _start_requires_standstill() else "KLAAR VOOR VERTREK"
 	elif start_state == "COUNTDOWN":
 		stage = "START OVER %d" % maxi(1, ceili(countdown))
 	elif trainer_seen and not connected and _power_hold_active():
@@ -2762,7 +2765,9 @@ func _update_hud() -> void:
 	elif start_state == "SETUP":
 		note.text = "Kies de spelmodus, AI-sterkte, deelnemers en rondes."
 	elif start_state == "WAIT_STOP":
-		if trainer_seen and not connected:
+		if not _start_requires_standstill():
+			note.text = "Je mag blijven trappen; wacht op geldige trainergegevens." if trainer_seen else "Klaar voor de aanloop."
+		elif trainer_seen and not connected:
 			note.text = "KICKR: wacht op verse Bluetooth-data."
 		elif trainer_seen and trainer_speed_kmh < 0.0:
 			note.text = "KICKR: snelheid ontbreekt; start geblokkeerd."
@@ -2771,7 +2776,7 @@ func _update_hud() -> void:
 		else:
 			note.text = "Demo: 0 W / 0 km/u. Startvermogen: %.0f W (pijlen)." % demo_launch_watts
 	elif start_state == "COUNTDOWN":
-		note.text = "Blijf stil staan tot START!" if trainer_seen else "Start uit stilstand; vanaf GO %.0f W. Pijlen wijzigen preset." % demo_launch_watts
+		note.text = "Blijf rustig trappen; de aanloop begint na de aftelling." if not _start_requires_standstill() else ("Blijf stil staan tot START!" if trainer_seen else "Start uit stilstand; vanaf GO %.0f W. Pijlen wijzigen preset." % demo_launch_watts)
 	else:
 		note.text = "KICKR-opname: %d metingen | P = bewaren" % ride_records.size() if recording_active else (recording_message if recording_message != "" else ("SPATIE: eenmalige arcade-boost!" if not boost_used and not trainer_seen else "Kies tactisch je rijlijn. Sprint naar de finish! (P = KICKR-opname bewaren)"))
 
@@ -2833,10 +2838,11 @@ func _update_compact_hud(order: Array[int]) -> void:
 	var notice := ""
 	if start_state == "WAIT_STOP":
 		notice = "Stop met trappen om de aftelling te starten." if trainer_seen else "Klaar voor de start · demo"
+		if not _start_requires_standstill(): notice = "Je mag blijven trappen · klaar voor de aanloop"
 		if trainer_seen and (not connected or trainer_speed_kmh < 0.0):
 			notice = "Wachten op geldige trainergegevens…"
 	elif start_state == "COUNTDOWN":
-		notice = "Blijf stilstaan · start over %d" % maxi(1, ceili(countdown))
+		notice = ("Blijf stilstaan · start over %d" if _start_requires_standstill() else "Je mag blijven trappen · vertrek over %d") % maxi(1, ceili(countdown))
 	elif trainer_seen and not connected and not finished:
 		notice = "Trainerverbinding onderbroken · vermogen tijdelijk vastgehouden" if _power_hold_active() else "Wedstrijd gepauzeerd · wacht op de trainerverbinding"
 	elif finished:
