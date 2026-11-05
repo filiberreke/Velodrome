@@ -643,7 +643,12 @@ func update_race(data: Dictionary) -> void:
 	if active:
 		role = "UITBOLLEN · automatisch aansluiten achteraan" if out else ("EERSTE KOPBEURT · stuur rechts om te wisselen" if target < 0.0 else ("Op kop · stuur rechts om te wisselen" if bool(data.get("team_leading", false)) else "Positie %d/%d" % [int(data.get("team_rank", 1)), int(data.get("team_count", 3))]))
 	var following: bool = not bool(data.get("team_leading", false))
-	power_meter.set_power(float(data["watts"]), target, active and following and not out and target >= 0.0, role)
+	var pc_control := bool(data.get("pc_control", false))
+	var ceiling: float = float(data.get("pc_power_limit_watts", -1.0)) if pc_control else -1.0
+	var actual: float = float(data.get("pc_delivered_watts", data["watts"])) if pc_control and ceiling >= 0.0 else float(data["watts"])
+	var reserve: Variant = data.get("pc_energy_fraction", null) if pc_control else null
+	var energy: float = float(reserve) if (reserve is int or reserve is float) and is_finite(float(reserve)) else -1.0
+	power_meter.set_power(actual, target, active and following and not out and target >= 0.0, role, ceiling, float(data["watts"]) if pc_control else -1.0, energy)
 	status_panel.offset_top = 260.0
 	status_panel.offset_bottom = 322.0
 	speed_label.text = "%.1f" % float(data.get("speed_kmh", 0.0))
