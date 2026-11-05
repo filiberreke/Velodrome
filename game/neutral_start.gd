@@ -15,6 +15,8 @@ func reset() -> void:
 func begin(game) -> void:
 	reset()
 	grid.assign(game.distances)
+	# Include the approach from the middle of the straight in ride exports.
+	distance_offset = -grid[0]
 	game.start_state = "NEUTRAL"
 
 func step(game, dt: float) -> void:
@@ -49,7 +51,7 @@ func step(game, dt: float) -> void:
 			game.speeds[i] = lerpf(prior_speeds[i], game.speeds[i], fraction)
 			game.lane_offsets[i] = lerpf(prior_lanes[i], game.lane_offsets[i], fraction)
 		elapsed += dt * fraction
-		distance_offset = game.LAP
+		distance_offset += game.LAP
 		game._finish_neutral_start()
 		var remaining: float = dt * (1.0 - fraction)
 		if remaining > 0.0:
