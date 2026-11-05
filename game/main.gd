@@ -3564,4 +3564,3 @@ func available_startlist_riders() -> Array[Dictionary]:
 	for entry in result:
 		if not entry.jersey.has("country_kit"): entry.jersey["country_kit"] = entry.country
 	return result
-
