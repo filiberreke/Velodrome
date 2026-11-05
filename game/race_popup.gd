@@ -9,8 +9,11 @@ func _ready() -> void:
 	horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_theme_font_size_override("font_size", 54)
-	add_theme_color_override("font_color", Color.WHITE)
-	add_theme_color_override("font_shadow_color", Color(0, 0, 0, .8))
+	add_theme_font_override("font", preload("res://menu_theme.gd").heading())
+	add_theme_color_override("font_outline_color", Color("122c50"))
+	add_theme_constant_override("outline_size", 5)
+	add_theme_color_override("font_color", Color("fffdf8"))
+	add_theme_color_override("font_shadow_color", Color("122c50"))
 	add_theme_constant_override("shadow_offset_x", 2)
 	add_theme_constant_override("shadow_offset_y", 3)
 	hide()

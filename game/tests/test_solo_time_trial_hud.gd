@@ -77,7 +77,7 @@ func run_test() -> void:
 		game.pursuit_half_crossings[0] = [11.0, 20.0]
 		game._update_hud()
 		check(ui.solo_panel.visible and not ui.nearby_panel.visible, "Checkpoints replace surrounding riders")
-		check(not ui.lap_label.get_parent().visible and not ui.position_label.get_parent().visible and not ui.scratch_center.visible and not ui.pursuit_center.visible, "Bottom hides lap, position and race leadership")
+		check(ui.lap_label.get_parent().visible and not ui.position_label.get_parent().visible and not ui.scratch_center.visible and not ui.pursuit_center.visible, "Lap stays in map; bottom hides position and race leadership")
 		check(ui.solo_bottom.visible and ui.solo_elapsed_label.text == "00:20.0", "Bottom shows elapsed time")
 		check(ui.solo_estimate_label.text == ("00:45" if distance == 500 else "01:35"), "Estimate uses actual race progress rather than shifted track position")
 		check(not ui.slipstream_heading.visible and not ui.slipstream_bar.visible, "Solo has no drafting HUD")
@@ -89,8 +89,8 @@ func run_test() -> void:
 			game.time_trial_reference_kind = kind
 			game.time_trial_reference = {"splits": [12.2, 19.6]}
 			game._update_hud()
-			check(ui.solo_rows[0].delta.text == "-1.200 s" and ui.solo_rows[0].delta.get_theme_color("font_color") == Color("68e09b"), "Faster is negative and green for " + kind)
-			check(ui.solo_rows[1].delta.text == "+1.600 s" and ui.solo_rows[1].delta.get_theme_color("font_color") == Color("ff7b86"), "Slower is positive and red for " + kind)
+			check(ui.solo_rows[0].delta.text == "-1.200 s" and ui.solo_rows[0].delta.get_theme_color("font_color") == Color("27734a"), "Faster is negative and green for " + kind)
+			check(ui.solo_rows[1].delta.text == "+1.600 s" and ui.solo_rows[1].delta.get_theme_color("font_color") == Color("af3843"), "Slower is positive and red for " + kind)
 		game.time_trial_reference = {}
 		game.speeds[0] = 0.0
 		game._update_hud()
@@ -110,3 +110,4 @@ func run_test() -> void:
 	await process_frame
 	print("SOLO HUD: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
+

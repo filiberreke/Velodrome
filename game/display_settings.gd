@@ -12,6 +12,7 @@ var intro_check: CheckButton
 var crowd_slider: HSlider
 var crowd_label: Label
 var panel_root: Control
+var open_button: Button
 var resolution_choice: OptionButton
 var scale_slider: HSlider
 var scale_label: Label
@@ -101,7 +102,7 @@ func _build_menu() -> void:
 	toolbar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	toolbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toolbar)
-	var open_button := Button.new()
+	open_button = Button.new()
 	open_button.text = "Instellingen  ·  F10"
 	open_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	open_button.offset_left = -295
@@ -387,3 +388,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
 		toggle_menu()
 		get_viewport().set_input_as_handled()
+
+func _process(_delta: float) -> void:
+	# In-race access is F10, advertised beside ESC in the HUD footer.
+	if open_button != null:
+		var menu = get_parent().get("setup_panel")
+		open_button.visible = menu != null and menu.is_visible_in_tree()

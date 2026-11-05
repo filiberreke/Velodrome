@@ -1,0 +1,12 @@
+Created using the built-in imagegen tool, 2026-11-05.
+Reference: user-supplied brass last-lap bell photograph, shape only.
+
+Prompt: One isolated polished stylized gold brass last-lap bell as a transparent
+game HUD sprite. Tall gently flaring cup, broad thick rolled rim with two
+concentric bands, small integral top lug, dark golden clapper below the mouth.
+No lettering, rope, hands, long handle, ground plane, or watermark. Simplified
+smooth premium 3D game icon, rich warm gold, controlled soft highlights.
+Nearly frontal three-quarter view, upright, slight underside visible. Centered
+with clearance for a swinging animation. Transparent alpha outside the bell.
+
+The source was resized to 512 x 512 with alpha preserved for the Godot HUD.

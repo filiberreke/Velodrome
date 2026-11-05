@@ -41,7 +41,7 @@ func _ready() -> void:
 	value_label.offset_bottom = BAR_HEIGHT
 	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	value_label.add_theme_constant_override("outline_size", 6)
-	value_label.add_theme_color_override("font_outline_color", Color(0.03, 0.04, 0.05, 0.85))
+	value_label.add_theme_color_override("font_outline_color", Color("122c50"))
 	target_label = _label(22)
 	limit_label = _label(20)
 	limit_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -63,7 +63,7 @@ func _label(font_size: int) -> Label:
 	item.add_theme_font_size_override("font_size", font_size)
 	item.add_theme_color_override("font_color", INK)
 	item.add_theme_constant_override("outline_size", 3)
-	item.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	item.add_theme_color_override("font_outline_color", Color("122c50"))
 	add_child(item)
 	return item
 
@@ -102,8 +102,8 @@ func _draw() -> void:
 	var rect := Rect2(0, 0, size.x, BAR_HEIGHT)
 	var outline := StyleBoxFlat.new()
 	outline.bg_color = Color.TRANSPARENT
-	outline.border_color = Color(0.95, 0.97, 1.0, 0.75)
-	outline.set_border_width_all(1)
+	outline.border_color = Color.TRANSPARENT
+	outline.set_border_width_all(0)
 	outline.set_corner_radius_all(32)
 	var width := size.x * fraction(watts)
 	if width > 0.0:
