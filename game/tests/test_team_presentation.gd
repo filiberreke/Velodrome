@@ -39,13 +39,13 @@ func run_test() -> void:
 		game._update_hud()
 		var ui = game.race_overlay
 		check(ui.team_laps_panel.visible and not ui.nearby_panel.visible, "Team lap table replaces rider classification")
-		check(ui.team_lap_rows[0]["distance"].text == "125 m" and ui.team_lap_rows[1]["distance"].text == "250 m", "Rows identify actual half-lap distance")
-		check(ui.team_lap_rows[0]["value"].text == "10.00 s (+1.00 s)", "First half lap and signed advantage formatted together")
+		check(ui.team_lap_rows[0]["distance"].text == "375 m" and ui.team_lap_rows[1]["distance"].text == "250 m", "Rows identify actual half-lap distance")
+		check(ui.team_lap_rows[2]["value"].text == "10.00 s (+1.00 s)", "First half lap and signed advantage formatted together")
 		check(ui.team_lap_rows[1]["value"].text == "10.50 s (+0.50 s)", "Later segment time and cumulative advantage shown")
-		check(ui.team_lap_rows[2]["value"].text == "9.50 s (…)", "Pending opponent does not fabricate a difference")
+		check(ui.team_lap_rows[0]["value"].text == "9.50 s (…)", "Pending opponent does not fabricate a difference")
 		half_times(game, [10.0,20.5,30.0], [11.0,21.0,31.2])
 		game._update_hud()
-		check(ui.team_lap_rows[2]["value"].text == "9.50 s (+1.20 s)", "Opponent arrival fills pending difference without waiting for another own crossing")
+		check(ui.team_lap_rows[0]["value"].text == "9.50 s (+1.20 s)", "Opponent arrival fills pending difference without waiting for another own crossing")
 		var own: Array = []
 		var opponent: Array = []
 		for i in range(32): own.append((i+1)*10.0); opponent.append((i+1)*10.5)
@@ -54,7 +54,8 @@ func run_test() -> void:
 		await process_frame
 		await process_frame
 		check(ui.team_laps_panel.get_global_rect().end.y < ui.bottom_bar.get_global_rect().position.y, "16-lap scrolling table fits above bottom HUD")
-		check(ui.team_lap_rows[31]["row"].visible and ui.team_lap_rows[31]["distance"].text == "4000 m", "All 32 half laps retained for a 4 km race")
+		check(ui.team_lap_rows[31]["row"].visible and ui.team_lap_rows[0]["distance"].text == "4000 m" and ui.team_lap_rows[31]["distance"].text == "125 m", "All 32 half laps retained for a 4 km race")
+		check(ui.team_laps_scroll.scroll_vertical == 0, "Newest half lap stays visible at top")
 		check(game.lap_times[0].is_empty() and game.lap_times[1].is_empty(), "HUD preserves official full-lap data used by results")
 		half_times(game, [], [])
 		# First wheel crosses before the virtual third-rider timing reference.

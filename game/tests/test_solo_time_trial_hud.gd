@@ -81,7 +81,8 @@ func run_test() -> void:
 		check(ui.solo_bottom.visible and ui.solo_elapsed_label.text == "00:20.0", "Bottom shows elapsed time")
 		check(ui.solo_estimate_label.text == ("00:45" if distance == 500 else "01:35"), "Estimate uses actual race progress rather than shifted track position")
 		check(not ui.slipstream_heading.visible and not ui.slipstream_bar.visible, "Solo has no drafting HUD")
-		check(ui.solo_rows[0].elapsed.text == "11.000" and ui.solo_rows[1].elapsed.text == "9.000", "Each row shows its individual 125 m duration in seconds with three decimals")
+		check(ui.solo_rows[0].elapsed.text == "9.000" and ui.solo_rows[1].elapsed.text == "11.000", "Latest 125 m duration appears first, with three decimals")
+		check(ui.solo_rows[0].distance.text == "250 m" and ui.solo_rows[1].distance.text == "125 m", "Newest distance is at the top")
 		check(ui.solo_rows[distance / 125 - 1].row.visible, "Final checkpoint visible")
 		if distance == 500: check(not ui.solo_rows[4].row.visible, "500 m has four checkpoints")
 		for row in ui.solo_rows: check(row.delta.text.is_empty(), "No comparison omits deltas")
@@ -89,8 +90,8 @@ func run_test() -> void:
 			game.time_trial_reference_kind = kind
 			game.time_trial_reference = {"splits": [12.2, 19.6]}
 			game._update_hud()
-			check(ui.solo_rows[0].delta.text == "-1.200 s" and ui.solo_rows[0].delta.get_theme_color("font_color") == Color("27734a"), "Faster is negative and green for " + kind)
-			check(ui.solo_rows[1].delta.text == "+1.600 s" and ui.solo_rows[1].delta.get_theme_color("font_color") == Color("af3843"), "Slower is positive and red for " + kind)
+			check(ui.solo_rows[1].delta.text == "-1.200 s" and ui.solo_rows[1].delta.get_theme_color("font_color") == Color("27734a"), "Faster is negative and green for " + kind)
+			check(ui.solo_rows[0].delta.text == "+1.600 s" and ui.solo_rows[0].delta.get_theme_color("font_color") == Color("af3843"), "Slower is positive and red for " + kind)
 		game.time_trial_reference = {}
 		game.speeds[0] = 0.0
 		game._update_hud()
@@ -101,6 +102,16 @@ func run_test() -> void:
 		game._update_hud()
 		check(ui.solo_elapsed_label.text == "00:45.1" and ui.solo_estimate_label.text == "00:45", "Finish uses tenths for elapsed and whole seconds for estimate")
 	game._reset()
+	game.setup_panel.select_mode(1)
+	game.setup_panel.pursuit_flow.next_step()
+	game._confirm_start()
+	game.broadcast_intro.finish()
+	game.pursuit_half_crossings = [[11.0, 20.0], [12.0, 22.0]]
+	game.pursuit_half_stats = [[{}, {}], [{}, {}]]
+	game._update_hud()
+	check(game.race_mode == 4 and ui.team_laps_panel.visible and not ui.nearby_panel.visible, "Individual pursuit shows its split history")
+	check(ui.team_lap_rows[0]["distance"].text == "250 m" and ui.team_lap_rows[0]["value"].text == "9.00 s (+2.00 s)", "Individual pursuit shows latest segment and matching opponent gap first")
+	game._reset()
 	game.setup_panel.select_mode(0)
 	game._confirm_start()
 	game.broadcast_intro.finish()
@@ -110,4 +121,3 @@ func run_test() -> void:
 	await process_frame
 	print("SOLO HUD: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
-

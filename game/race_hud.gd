@@ -343,9 +343,10 @@ static func team_half_summary(own: Array, opponent: Array) -> Array[Dictionary]:
 
 func _update_team_laps(data: Dictionary) -> void:
 	var team: bool = bool(data.get("team_mode", false))
-	nearby_panel.visible = not team
-	team_laps_panel.visible = team
-	if not team:
+	var active: bool = team or bool(data.get("pursuit", false))
+	nearby_panel.visible = not active
+	team_laps_panel.visible = active
+	if not active:
 		shown_team_laps = 0
 		return
 	var laps := team_half_summary(data.get("team_half_crossings", []), data.get("opponent_half_crossings", []))
@@ -353,11 +354,13 @@ func _update_team_laps(data: Dictionary) -> void:
 		var row: Dictionary = team_lap_rows[i]
 		row["row"].visible = i < laps.size()
 		if i >= laps.size(): continue
-		var delta: Variant = laps[i]["delta"]
+		var lap_index: int = laps.size() - 1 - i
+		row["distance"].text = "%d m" % ((lap_index + 1) * 125)
+		var delta: Variant = laps[lap_index]["delta"]
 		var gap := "…" if delta == null else ("0.00 s" if absf(float(delta)) < 0.005 else "%s%.2f s" % ["+" if float(delta) > 0.0 else "−", absf(float(delta))])
-		row["value"].text = "%.2f s (%s)" % [float(laps[i]["seconds"]), gap]
-	if laps.size() > shown_team_laps:
-		team_laps_scroll.call_deferred("ensure_control_visible", team_lap_rows[mini(laps.size(), team_lap_rows.size()) - 1]["row"])
+		row["value"].text = "%.2f s (%s)" % [float(laps[lap_index]["seconds"]), gap]
+	if laps.size() != shown_team_laps:
+		team_laps_scroll.set_deferred("scroll_vertical", 0)
 	shown_team_laps = laps.size()
 
 func _build_bottom() -> void:
@@ -441,7 +444,7 @@ func _build_solo_checkpoints() -> void:
 		var delta := text("", 19)
 		delta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(delta)
-		solo_rows.append({"row": row, "elapsed": elapsed, "delta": delta})
+		solo_rows.append({"row": row, "distance": distance, "elapsed": elapsed, "delta": delta})
 	solo_panel.tooltip_text = "Tijd per afzonderlijke 125 meter · negatief/groen = sneller, positief/rood = langzamer dan de referentie."
 	solo_panel.hide()
 
@@ -478,14 +481,17 @@ func _update_solo(data: Dictionary) -> void:
 	solo_reference_label.text = "Aanloopronde · klok start bij GO!" if data.get("run_up", false) else ("Tijd per 125 m" if reference_splits.is_empty() else str(titles.get(kind, "Referentie")))
 	var crossings: Array = data.get("solo_crossings", [])
 	var count := int(data.get("solo_distance_m", 500)) / 125
+	var completed: int = mini(crossings.size(), count)
 	for i in range(solo_rows.size()):
 		var row: Dictionary = solo_rows[i]
 		row.row.visible = i < count
-		var segment: float = float(crossings[i]) - (float(crossings[i - 1]) if i > 0 else 0.0) if i < crossings.size() else 0.0
-		row.elapsed.text = "%.3f" % segment if i < crossings.size() else "—"
+		var split_index: int = completed - 1 - i if i < completed else i
+		row.distance.text = "%d m" % ((split_index + 1) * 125)
+		var segment: float = float(crossings[split_index]) - (float(crossings[split_index - 1]) if split_index > 0 else 0.0) if split_index < completed else 0.0
+		row.elapsed.text = "%.3f" % segment if split_index < completed else "—"
 		row.delta.text = ""
-		if i >= crossings.size() or i >= reference_splits.size(): continue
-		var reference_segment := float(reference_splits[i]) - (float(reference_splits[i - 1]) if i > 0 else 0.0)
+		if split_index >= completed or split_index >= reference_splits.size(): continue
+		var reference_segment := float(reference_splits[split_index]) - (float(reference_splits[split_index - 1]) if split_index > 0 else 0.0)
 		var delta := snappedf(segment - reference_segment, 0.001)
 		row.delta.text = "%+.3f s" % delta if delta != 0.0 else "0.000 s"
 		row.delta.add_theme_color_override("font_color", Color("27734a") if delta < 0.0 else (Color("af3843") if delta > 0.0 else MUTED))
