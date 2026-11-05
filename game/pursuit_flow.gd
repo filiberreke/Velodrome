@@ -51,6 +51,7 @@ func text(value:String,size:int=20,color:Color=MenuStyle.INK)->Label:
 
 func button(value:String,width:float=200)->Button:
 	var node:=Button.new();node.text=value;node.custom_minimum_size=Vector2(width,50);node.add_theme_font_size_override("font_size",21)
+	MenuStyle.toggle_focus(node)
 	var selected:=StyleBoxFlat.new();selected.bg_color=MenuStyle.BLUE;selected.border_color=MenuStyle.BLUE;selected.set_border_width_all(2);selected.set_corner_radius_all(8)
 	node.add_theme_stylebox_override("pressed",selected);node.add_theme_color_override("font_pressed_color",Color.WHITE)
 	return node

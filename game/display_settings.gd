@@ -325,6 +325,7 @@ func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -
 		var button := Button.new()
 		button.text = "Achterkant" if back else "Voorkant"
 		button.toggle_mode = true
+		MenuStyle.toggle_focus(button)
 		button.button_group = group
 		button.button_pressed = not back
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
