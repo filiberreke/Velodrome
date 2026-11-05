@@ -1,4 +1,4 @@
-﻿extends SceneTree
+extends SceneTree
 const Train := preload("res://team_pursuit.gd")
 const Records := preload("res://pursuit_records.gd")
 const Game := preload("res://main.gd")
@@ -186,7 +186,7 @@ func run_test() -> void:
 	check(game.race_mode == 5 and not game.team_race.replay.is_empty(), "Saved team opponent starts through actual menu")
 	game._reset(); options.opponent_choice.select(0); options.refresh_state()
 	game._reset(); game.setup_panel.select_mode(0); game._confirm_start(); game.broadcast_intro.finish(); game._update_hud()
-	check(game.race_mode == 0 and ui.power_meter.role_label.text.is_empty() and ui.power_label.get_theme_color("font_color") == ui.INK, "Scratch restores HUD and normal power colour")
+	check(game.race_mode == 0 and ui.power_meter.role_label.text.is_empty() and ui.power_label.get_theme_color("font_color") == ui.power_meter.INK, "Scratch restores HUD and normal power-bar colour")
 	game._update_visuals(0.01)
 	for item in game.team_race.badges: check(not item.visible, "Team power badges hidden in scratch")
 	check(game.bikes[0].get_child(1) is Label3D, "Other modes keep normal name labels")

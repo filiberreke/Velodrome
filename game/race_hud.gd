@@ -1,9 +1,11 @@
 extends Control
 ## Compact race presentation. Classification and physics remain owned by main.gd.
 const MiniMap := preload("res://minimap.gd")
-const INK := Color("f3f5fa")
-const MUTED := Color("a8bdce")
-const ACCENT := Color("51d7df")
+const MenuStyle := preload("res://menu_theme.gd")
+const INK := MenuStyle.INK
+const MUTED := MenuStyle.MUTED
+const ACCENT := MenuStyle.BLUE
+var signals: Control
 var power_label: Label
 var speed_label: Label
 var slipstream_bar: ProgressBar
@@ -58,12 +60,12 @@ var solo_bottom: HBoxContainer
 var solo_elapsed_label: Label
 var solo_estimate_label: Label
 
-static func style(fill: Color = Color(0.15, 0.17, 0.19, 0.72), border: Color = Color(0.39, 0.42, 0.45, 0.60)) -> StyleBoxFlat:
+static func style(fill: Color = Color(0.9608, 0.9451, 0.9059, 0.75), border: Color = Color(0.8235, 0.8510, 0.8745, 0.65)) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = fill
 	box.border_color = border
 	box.set_border_width_all(1)
-	box.set_corner_radius_all(16)
+	box.set_corner_radius_all(12)
 	box.set_content_margin_all(22)
 	return box
 
@@ -72,6 +74,8 @@ func text(value: String, font_size: int, color: Color = INK) -> Label:
 	node.text = value
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	node.add_theme_font_size_override("font_size", font_size)
+	if value in ["Rondom jou", "RONDETIJDEN", "HALVE-RONDETIJDEN · 125 M", "TUSSENSTAND · PUNTEN"]:
+		node.add_theme_font_override("font", MenuStyle.heading())
 	node.add_theme_color_override("font_color", color)
 	return node
 
@@ -88,12 +92,18 @@ func panel(parent_node: Node, position_preset: int, left: float, top: float, rig
 	return node
 
 func _ready() -> void:
+	theme = MenuStyle.create()
+	var brand := MenuStyle.logo()
+	brand.custom_minimum_size = Vector2.ZERO
+	brand.position = Vector2(32, 24)
+	brand.size = Vector2(348, 68)
+	add_child(brand)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left_stack = VBoxContainer.new()
 	left_stack.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	left_stack.offset_left = 32
-	left_stack.offset_top = 80
+	left_stack.offset_top = 150
 	left_stack.offset_right = 410
 	left_stack.offset_bottom = 916
 	left_stack.add_theme_constant_override("separation", 16)
@@ -101,17 +111,22 @@ func _ready() -> void:
 	_build_power()
 	row_normal = style(Color.TRANSPARENT, Color.TRANSPARENT)
 	row_normal.set_content_margin_all(8)
-	row_player = style(Color(0.12, 0.36, 0.39, 0.50), ACCENT)
+	row_player = style(MenuStyle.BLUE, Color.TRANSPARENT)
 	row_player.set_content_margin_all(8)
 	_build_nearby()
 	_build_points_standings()
 	_build_team_laps()
 	_build_solo_checkpoints()
 	_build_bottom()
+	for surface in [power_panel, bottom_bar]:
+		var paper: StyleBoxFlat = surface.get_theme_stylebox("panel").duplicate()
+		paper.border_color = MenuStyle.WOOD
+		paper.border_width_top = 3
+		surface.add_theme_stylebox_override("panel", paper)
 	_build_developer()
 	status_panel = panel(self, Control.PRESET_CENTER_TOP, -410, 80, 410, 142)
-	status_panel.add_theme_stylebox_override("panel", style(Color(0.15, 0.16, 0.17, 0.80), Color("bd884b")))
-	status_label = text("", 22, Color("ffd199"))
+	status_panel.add_theme_stylebox_override("panel", style(Color(0.9608, 0.9451, 0.9059, 0.75), MenuStyle.WOOD))
+	status_label = text("", 22, INK)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status_panel.add_child(status_label)
@@ -119,6 +134,8 @@ func _ready() -> void:
 	popup = preload("res://race_popup.gd").new()
 	add_child(popup)
 	_build_power_meter()
+	signals = preload("res://race_signals.gd").new()
+	add_child(signals)
 	move_child(developer_panel, -1)
 
 func _build_power_meter() -> void:
@@ -142,13 +159,6 @@ func _build_power() -> void:
 	var title := text("SNELHEID", 16, MUTED)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
-	var toggle := Button.new()
-	toggle.text = "X"
-	toggle.tooltip_text = "Developer-HUD tonen/verbergen (X)"
-	toggle.custom_minimum_size = Vector2(34, 30)
-	toggle.add_theme_font_size_override("font_size", 17)
-	toggle.pressed.connect(toggle_developer)
-	heading.add_child(toggle)
 	var speed_row := HBoxContainer.new()
 	column.add_child(speed_row)
 	speed_label = text("0.0", 40)
@@ -175,7 +185,7 @@ func _build_power() -> void:
 	slipstream_bar.show_percentage = false
 	slipstream_bar.max_value = 69.0
 	slipstream_bar.step = 0.01
-	var track := style(Color(0.04, 0.06, 0.08, 0.50), Color.TRANSPARENT)
+	var track := style(MenuStyle.LINE, Color.TRANSPARENT)
 	track.set_content_margin_all(0)
 	track.set_corner_radius_all(6)
 	var fill := style(ACCENT, Color.TRANSPARENT)
@@ -198,23 +208,26 @@ func _metric(parent_node: VBoxContainer, title: String, value: String) -> Label:
 	return number
 
 func _build_nearby() -> void:
-	map_panel = Control.new()
-	add_child(map_panel)
-	map_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	map_panel.offset_left = -410
-	map_panel.offset_top = 80
-	map_panel.offset_right = -32
-	map_panel.offset_bottom = 312
-	map_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_panel = panel(self, Control.PRESET_TOP_RIGHT, -410, 112, -32, 318)
 	map = MiniMap.new()
 	map_panel.add_child(map)
-	map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map.custom_minimum_size = Vector2(320, 155)
 	map.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var laps := Control.new()
+	map.add_child(laps)
+	laps.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	laps.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lap_label = text("1/1", 38)
+	lap_label.name = "MinimapLap"
+	lap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lap_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	laps.add_child(lap_label)
+	lap_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	nearby_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
 	nearby_panel.add_child(column)
-	column.add_child(text("RONDOM JOU · WEDSTRIJDPOSITIE", 16, MUTED))
+	column.add_child(text("Rondom jou", 22, INK))
 	peloton_label = text("", 17, ACCENT)
 	peloton_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(peloton_label)
@@ -306,16 +319,10 @@ func _update_team_laps(data: Dictionary) -> void:
 	shown_team_laps = laps.size()
 
 func _build_bottom() -> void:
-	bottom_bar = panel(self, Control.PRESET_BOTTOM_WIDE, 32, -144, -32, -28)
+	bottom_bar = panel(self, Control.PRESET_BOTTOM_WIDE, 442, -144, -32, -28)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
 	bottom_bar.add_child(row)
-	var laps := VBoxContainer.new()
-	laps.custom_minimum_size.x = 150
-	row.add_child(laps)
-	laps.add_child(text("RONDE", 16, MUTED))
-	lap_label = text("1/1", 40)
-	laps.add_child(lap_label)
 	var center := HBoxContainer.new()
 	scratch_center = center
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -362,6 +369,13 @@ func _build_bottom() -> void:
 		if title == "GEREDEN TIJD": solo_elapsed_label = value
 		else: solo_estimate_label = value
 	solo_bottom.hide()
+	var help := VBoxContainer.new()
+	help.name = "HudShortcuts"
+	help.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	help.add_theme_constant_override("separation", 8)
+	row.add_child(help)
+	help.add_child(text("ESC · Pauze", 17, MUTED))
+	help.add_child(text("F10 - Instellingen", 17, MUTED))
 
 func _build_solo_checkpoints() -> void:
 	solo_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
@@ -404,7 +418,7 @@ func _update_solo(data: Dictionary) -> void:
 	var solo := bool(data.get("solo_time_trial", false))
 	solo_panel.visible = solo
 	solo_bottom.visible = solo
-	lap_label.get_parent().visible = not solo
+	lap_label.get_parent().visible = true
 	position_label.get_parent().visible = not solo
 	if not solo: return
 	nearby_panel.hide()
@@ -432,16 +446,16 @@ func _update_solo(data: Dictionary) -> void:
 		var reference_segment := float(reference_splits[i]) - (float(reference_splits[i - 1]) if i > 0 else 0.0)
 		var delta := snappedf(segment - reference_segment, 0.001)
 		row.delta.text = "%+.3f s" % delta if delta != 0.0 else "0.000 s"
-		row.delta.add_theme_color_override("font_color", Color("68e09b") if delta < 0.0 else (Color("ff7b86") if delta > 0.0 else MUTED))
+		row.delta.add_theme_color_override("font_color", Color("27734a") if delta < 0.0 else (Color("af3843") if delta > 0.0 else MUTED))
 
 func _build_pursuit_bar(row: HBoxContainer) -> void:
 	pursuit_center = HBoxContainer.new()
 	pursuit_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pursuit_center.add_theme_constant_override("separation", 0)
 	row.add_child(pursuit_center)
-	pursuit_lead_style = style(Color(0.96, 0.97, 0.99, 0.55), Color.TRANSPARENT)
-	pursuit_trail_style = style(Color(0.72, 0.06, 0.13, 0.55), Color.TRANSPARENT)
-	pursuit_tie_style = style(Color(0.40, 0.43, 0.46, 0.35), Color.TRANSPARENT)
+	pursuit_lead_style = style(Color(0.8784, 0.9294, 0.9608, 0.9), Color.TRANSPARENT)
+	pursuit_trail_style = style(Color(0.9608, 0.9451, 0.9059, 0.75), Color.TRANSPARENT)
+	pursuit_tie_style = style(Color(0.9608, 0.9451, 0.9059, 0.55), Color.TRANSPARENT)
 	for box in [pursuit_lead_style, pursuit_trail_style, pursuit_tie_style]:
 		box.set_content_margin_all(12)
 		box.set_corner_radius_all(8)
@@ -519,7 +533,7 @@ func _update_pursuit_bar(data: Dictionary) -> void:
 	for i in range(2):
 		var leads := (delta < 0.0) if i == 0 else (delta > 0.0)
 		pursuit_sides[i].add_theme_stylebox_override("panel", pursuit_tie_style if tied else (pursuit_lead_style if leads else pursuit_trail_style))
-		var ink := Color("14202a") if leads and not tied else INK
+		var ink := INK
 		pursuit_names[i].add_theme_color_override("font_color", ink)
 		pursuit_laps[i].add_theme_color_override("font_color", ink)
 		pursuit_stats[i].add_theme_color_override("font_color", ink)
@@ -527,7 +541,7 @@ func _update_pursuit_bar(data: Dictionary) -> void:
 func _build_developer() -> void:
 	developer_panel = panel(self, Control.PRESET_CENTER_TOP, -550, 160, 550, 888)
 	developer_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	developer_panel.add_theme_stylebox_override("panel", style(Color(0.12, 0.14, 0.16, 0.84), ACCENT))
+	developer_panel.add_theme_stylebox_override("panel", style(MenuStyle.PAPER, ACCENT))
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 18)
 	developer_panel.add_child(column)
@@ -558,6 +572,8 @@ func toggle_developer() -> void:
 func set_developer_texts(labels: Array[Label]) -> void:
 	for item in labels:
 		item.add_theme_font_size_override("font_size", 19)
+		item.add_theme_color_override("font_color", INK)
+		item.add_theme_constant_override("outline_size", 0)
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		developer_body.add_child(item)
@@ -624,7 +640,7 @@ func update_race(data: Dictionary) -> void:
 	gap_label.text = data["leader_gap"]
 	gap_caption.text = "TOT LAATSTE" if bool(data.get("elimination", false)) else ("PELOTON" if not str(data.get("peloton_gap", "")).is_empty() else "KOPPOSITIE")
 	status_label.text = data.get("notice", "")
-	status_panel.visible = not status_label.text.is_empty()
+	status_panel.visible = not status_label.text.is_empty() and signals.countdown_label.text.is_empty()
 	map.set_progress(data["distances"])
 	map.set_race_leader(data.get("race_positions", []) if bool(data.get("points_race", false)) else [])
 	map.set_colors(data["colours"])
@@ -649,6 +665,8 @@ func update_race(data: Dictionary) -> void:
 		row["marker"].add_theme_color_override("font_color", data["colours"][id])
 		row["gap"].text = data["gaps"][id]
 		row["shell"].add_theme_stylebox_override("panel", row_player if id == 0 else row_normal)
+		for key in ["rank", "name", "gap"]:
+			row[key].add_theme_color_override("font_color", MenuStyle.PAPER if id == 0 else (INK if key == "name" else MUTED))
 
 static func closest_race_ids(order: Array[int], positions: Array) -> Array[int]:
 	var close: Array[int] = order.duplicate()
@@ -698,5 +716,5 @@ func _update_points_standings(data: Dictionary) -> void:
 		var id: int = int(order[i])
 		row.rank.text = str(i+1)
 		row.name.text = data.names[id]
-		row.name.add_theme_color_override("font_color", Color("ffdc46") if id == 0 else INK)
+		row.name.add_theme_color_override("font_color", ACCENT if id == 0 else INK)
 		row.score.text = str(scores[id])

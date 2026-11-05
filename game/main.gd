@@ -711,45 +711,19 @@ func _training_distance() -> float:
 	return neutral_start.distance_offset + flying_start.distance_offset + distances[0]
 
 func _update_countdown_display() -> void:
-	# Huge floating numbers above the start line: 3 - 2 - 1, followed by the race start signal.
-	if countdown_label == null or camera == null:
-		return
-	var text := ""
+	# A single screen-space cue stays centered in every race camera.
+	var value := ""
 	if not finished and start_state == "COUNTDOWN":
-		text = str(maxi(1, ceili(countdown)))
+		value = str(maxi(1, ceili(countdown)))
 	elif not finished and start_state == "RACING" and clock < 1.1:
-		text = "START!" if race_mode in [0, 1, 2] else "GO!"
-	if text == "":
-		countdown_label.visible = false
-		countdown_shown = ""
-		return
-	countdown_shown = text
-	var start_signal: bool = text in ["START!", "GO!"]
-	# Time since this number appeared, in game time (each number lasts one second).
-	var age: float = clampf(clock if start_signal else 1.0 - fposmod(countdown, 1.0), 0.0, 1.0)
-	if not start_signal and countdown <= 0.0:
-		age = 0.0
-	var colours := {"3": Color("ff5a4e"), "2": Color("ffa53a"), "1": Color("ffe14d"), "GO!": Color("5df08a"), "START!": Color("5df08a")}
-	var tint: Color = colours.get(text, Color.WHITE)
-	tint.a = clampf((1.0 - age) / 0.25, 0.0, 1.0) if age > 0.75 else 1.0
-	countdown_label.text = text
-	countdown_label.modulate = tint
-	countdown_label.outline_modulate = Color(0.04, 0.10, 0.18, tint.a)
-	# Anchor: floating over the track just past the start line, in front of the riders.
-	var anchor: Vector3 = _at(_rider_distance(0, distances[0]) + 9.0, 3.0) + Vector3.UP * 2.8
-	var cam_fwd: Vector3 = -camera.global_transform.basis.z
-	var to_anchor: Vector3 = anchor - camera.global_position
-	var on_screen := to_anchor.normalized().dot(cam_fwd) > cos(deg_to_rad(camera.fov * 0.32))
-	if not on_screen:
-		# Side/POV views that do not look at the line: float in front of the camera instead.
-		anchor = camera.global_position + cam_fwd * 9.0 + camera.global_transform.basis.y * 0.4
-	var dist: float = camera.global_position.distance_to(anchor)
-	var view_h: float = 2.0 * dist * tan(deg_to_rad(camera.fov) * 0.5)
-	var pop: float = 1.0 + 0.45 * pow(1.0 - minf(age / 0.35, 1.0), 3.0)
-	var target_h: float = view_h * (0.14 if text == "START!" else (0.30 if start_signal else 0.42)) * pop
-	countdown_label.pixel_size = target_h / (float(countdown_label.font_size) * 0.72)
-	countdown_label.global_position = anchor
-	countdown_label.visible = true
+		value = "START!" if race_mode in [0, 1, 2] else "GO!"
+	countdown_shown = value
+	if countdown_label != null:
+		countdown_label.text = value
+		countdown_label.hide()
+	if race_overlay == null: return
+	race_overlay.signals.set_countdown(value)
+	race_overlay.signals.update_last_lap(start_state == "RACING", maxf(0.0, _race_length() - distances[0]), _race_length(), finished)
 
 func _start_conditions_met() -> bool:
 	if bridge_bind_error != OK:
@@ -1010,7 +984,9 @@ func _reset() -> void:
 	results_podium.clear()
 	_clear_elimination_feedback()
 	points_notifications.reset()
-	if race_overlay != null: race_overlay.popup.clear()
+	if race_overlay != null:
+		race_overlay.popup.clear()
+		race_overlay.signals.clear()
 	if broadcast_intro != null: broadcast_intro.cancel()
 	trainer_control.release(_now_s())
 	trainer_telemetry_resume = false
@@ -3588,3 +3564,4 @@ func available_startlist_riders() -> Array[Dictionary]:
 	for entry in result:
 		if not entry.jersey.has("country_kit"): entry.jersey["country_kit"] = entry.country
 	return result
+

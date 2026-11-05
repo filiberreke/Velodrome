@@ -92,7 +92,7 @@ func run_test() -> void:
 		check(g.race_overlay.solo_elapsed_label.text == "00:00.0" and g.race_overlay.solo_estimate_label.text == "—", "HUD clock and estimate wait for GO")
 	g._finish_flying_start()
 	g._update_countdown_display()
-	check(g.countdown_label.text == "GO!" and g.countdown_label.visible, "Large GO appears at timed start")
+	check(g.race_overlay.signals.countdown_label.text == "GO!" and g.race_overlay.signals.countdown_label.visible and not g.countdown_label.visible, "Screen-space GO appears at timed start without duplicate 3D label")
 	g._reset()
 	check(g.flying_start.elapsed == 0.0 and g.flying_start.distance_offset == 0.0, "Reset clears flying start offsets")
 	g.setup_panel.select_mode(7)
@@ -142,3 +142,4 @@ func run_test() -> void:
 	await process_frame
 	print("FLYING TIME TRIAL: %d checks, %d failures" % [checks, failures])
 	quit(0 if failures == 0 else 1)
+

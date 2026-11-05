@@ -1,5 +1,5 @@
 extends RefCounted
-## Shared menu palette. Race HUD and national-kit colours remain independent.
+## Shared menu/HUD palette. National-kit colours remain independent.
 const INK := Color("122c50")
 const MUTED := Color("536980")
 const BLUE := Color("164e98")
