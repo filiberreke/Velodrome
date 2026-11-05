@@ -20,16 +20,11 @@ static func panel(fill: Color = IVORY, outline: Color = Color.TRANSPARENT, paddi
 	skin.set_content_margin_all(padding)
 	return skin
 
-static func focus_ring(colour: Color = BLUE, radius: int = 9) -> StyleBoxFlat:
-	var skin := panel(Color.TRANSPARENT, colour, 0, radius)
-	skin.draw_center = false
-	skin.set_border_width_all(4)
-	return skin
+static func focus_ring(radius: int = 9) -> StyleBox:
+	return preload("res://menu_focus_style.gd").new(radius)
 
 static func toggle_focus(button: BaseButton) -> void:
-	button.add_theme_stylebox_override("focus", focus_ring(Color.WHITE if button.button_pressed else BLUE))
-	button.toggled.connect(func(pressed: bool):
-		button.add_theme_stylebox_override("focus", focus_ring(Color.WHITE if pressed else BLUE)))
+	button.add_theme_stylebox_override("focus", focus_ring())
 
 static func heading() -> SystemFont:
 	var font := SystemFont.new()
@@ -75,7 +70,7 @@ static func create() -> Theme:
 	for kind in ["LineEdit", "TextEdit"]:
 		cached.set_stylebox("normal", kind, panel(PAPER, LINE, 10, 8))
 		cached.set_stylebox("read_only", kind, panel(PALE, LINE, 10, 8))
-		cached.set_stylebox("focus", kind, focus_ring(BLUE, 8))
+		cached.set_stylebox("focus", kind, focus_ring(8))
 		cached.set_color("caret_color", kind, BLUE)
 		cached.set_color("selection_color", kind, BLUE)
 		cached.set_color("font_placeholder_color", kind, MUTED)
@@ -93,7 +88,7 @@ static func create() -> Theme:
 	cached.set_color("font_hover_color", "PopupMenu", INK)
 	cached.set_stylebox("panel", "TabContainer", panel(PAPER, LINE, 18))
 	for kind in ["TabContainer", "TabBar"]:
-		cached.set_stylebox("tab_focus", kind, focus_ring(Color.WHITE, 8))
+		cached.set_stylebox("tab_focus", kind, focus_ring(8))
 		cached.set_color("font_hovered_color", kind, INK)
 		cached.set_stylebox("tab_selected", kind, panel(BLUE, BLUE, 14, 8))
 		cached.set_stylebox("tab_unselected", kind, panel(IVORY, LINE, 14, 8))
@@ -114,7 +109,7 @@ static func create() -> Theme:
 	return cached
 
 static func primary(button: Button) -> void:
-	button.add_theme_stylebox_override("focus", focus_ring(Color.WHITE, 10))
+	button.add_theme_stylebox_override("focus", focus_ring(10))
 	for state in ["normal", "pressed", "hover"]:
 		button.add_theme_stylebox_override(state, panel(BLUE.lightened(.10) if state == "hover" else BLUE, Color.TRANSPARENT, 14, 10))
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
