@@ -1,6 +1,7 @@
 extends SceneTree
 const Meter := preload("res://power_meter.gd")
-const Game := preload("res://main.gd")
+class Game extends "res://main.gd":
+	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 var failures := 0
 
 func check(condition: bool, message: String) -> void:
@@ -40,16 +41,17 @@ func run_test() -> void:
 	check(meter.fill_color == Meter.RED and not meter.target_visible, "Ordinary zones restored")
 	check(meter.get_global_rect().position.x > ui.power_panel.get_global_rect().end.x, "Meter between personal box and minimap")
 	check(meter.get_global_rect().end.x < ui.map_panel.get_global_rect().position.x, "Meter does not overlap minimap")
-	check(not ui.map_panel is PanelContainer and ui.map_panel.get_child_count() == 1, "Minimap has no panel or heading")
+	check(ui.map_panel is PanelContainer and ui.map_panel.get_child_count() == 1, "Minimap uses ivory panel with no heading")
 	game.setup_panel.select_mode(2)
 	var options = game.setup_panel.team_options
 	check(options.resistance_mode() == "MANUAL", "Manual default")
 	options.resistance_choice.select(1)
 	options.resistance_choice.item_selected.emit(1)
-	check(options.resistance_mode() == "ERG" and "nog niet beschikbaar" in options.resistance_hint.text, "Prepared ERG option explained")
+	check(options.resistance_mode() == "ERG" and "ERG in het wiel" in options.resistance_hint.text, "Current ERG option explained")
 	await process_frame
 	await process_frame
 	check(game.setup_panel.start_button.get_global_rect().end.y <= 1080.1, "Expanded menu fits screen")
+	game.setup_panel.page = 4
 	game._confirm_start(); game.broadcast_intro.finish()
 	check(game.team_resistance_mode == "ERG", "Preference stored on actual race start")
 	game._update_hud()

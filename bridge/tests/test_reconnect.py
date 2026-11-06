@@ -114,6 +114,7 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_feedback_gap_waits_for_new_power_without_reloading(self):
         clock = base.Clock(); c = base.ready(clock)
         c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 265})
         controller = base.FakeController()
         sender = base.SimpleNamespace(connected=True, last_received=100, last_power=100)
         clock.advance(3.1); await c.tick(controller, sender)

@@ -28,7 +28,8 @@ func run_test() -> void:
 	await wait_for("CONFIG", func(): return g.setup_panel.page == 5)
 	g.setup_panel.startlist_page.start_button.grab_focus()
 	await wait_for("START", func(): return g.start_state == "INTRO")
-	await wait_for("SKIP", func(): return g.start_state == "WAIT_STOP")
+	# Neutralised starts now accept a rolling rider and immediately count down.
+	await wait_for("SKIP", func(): return not g.broadcast_intro.active and g.start_state == "COUNTDOWN")
 	g.start_state = "RACING"; g.running = true
 	await wait_for("LOOK_DOWN", func(): return g.look_back_held)
 	await wait_for("LOOK_UP", func(): return not g.look_back_held)

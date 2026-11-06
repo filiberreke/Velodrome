@@ -128,21 +128,22 @@ Fysieke trainergrenzen kunnen lager zijn; een weigering stopt via de bestaande F
 
 ```json
 {"type":"command","v":1,"id":"session-01","command":"status"}
-{"type":"command","v":1,"id":"session-02","command":"set_target_power","watts":1300,"ramp_w_per_s":1500}
-{"type":"command","v":1,"id":"session-03","command":"set_mode","mode":"ERG"}
+{"type":"command","v":1,"id":"session-02","command":"set_mode","mode":"ERG"}
+{"type":"command","v":1,"id":"session-03","command":"set_target_power","watts":1300,"ramp_w_per_s":1500}
 {"type":"command","v":1,"id":"session-04","command":"heartbeat"}
 {"type":"command","v":1,"id":"session-05","command":"set_target_power","watts":0}
 {"type":"command","v":1,"id":"session-06","command":"set_mode","mode":"SIM"}
 {"type":"command","v":1,"id":"session-07","command":"stop"}
 ```
 
-- `set_mode`: verplicht `mode`, exact `SIM` of `ERG`. ERG valideert het opgeslagen
-  doel opnieuw; positief ERG vereist verse trainer-powerfeedback.
+- `set_mode`: verplicht `mode`, exact `SIM` of `ERG`. ERG wist een eventueel opgeslagen
+  doel; alleen een aansluitend nieuw positief set_target_power activeert belasting.
 - `set_target_power`: verplicht `watts`, **JSON-integer 0..1300**, geen boolean,
   float, string of null. Optioneel `ramp_w_per_s`: eindig getal 1..10000, geen boolean.
   Zonder rampveld blijft de eerdere snelheid gelden, aanvankelijk 300 W/s of CLI-keuze.
   Positieve doelen moeten passen bij trainerbereik en `min+n*increment`.
-  Positief in SIM wordt klaargezet; expliciet `set_mode ERG` activeert de belasting.
+  Positief in SIM wordt hoogstens klaargezet; `set_mode ERG` wist deze waarde.
+  Stuur voor daadwerkelijke ERG-aansturing een **nieuw** positief doel na de moduswissel.
   Positief na RELEASED hervat ERG, omdat de gewenste modus ERG gebleven is.
   0 vraagt altijd vrijgave via Reset, ook vanuit SIM, zonder ramp of Set Target Power 0.
   Daarna `mode=RELEASED`, `confirmed_target_w=null`, geen automatische terugkeer naar SIM.
@@ -176,6 +177,7 @@ toestand vervangen. Lees met telkens een nieuw status-id:
 | `range_state` | unknown vóór uitlezen; known; unavailable bij ontbrekende 0x2AD8; invalid bij onleesbaar/ongeldig. |
 | `last_error` | Stopreden/fout, anders null. |
 | `udp_owned`, `lease_remaining_s` | Aanwezige ERG-lease en resterende seconden; geen authenticatie. |
+| `udp_owned_by_requester` | Alleen bij status vanaf een UDP-client: deze bronpoort bezit de bestaande lease. Een nieuw spel mag uitsluitend zijn eigen lease met 0 W vrijgeven. |
 | `ramp_w_per_s` | Huidige geconfigureerde overgangssnelheid. |
 
 Controleer voor bevestiging óók doel, modus en disabled=false. Een nieuwere revision
@@ -200,7 +202,7 @@ Bij ongeldig JSON/envelope/schema is `id=null`; bij een schema-geldige opdracht 
 | unsupported_power | Buiten trainerbereik of niet op min+n*increment; doel niet aangepast. |
 | erg_unsupported | Geen Target Power-feature. |
 | range_unavailable | Aanwezige 0x2AD8 onleesbaar/ongeldig; positieve ERG geblokkeerd. |
-| not_active | Nog niet ready, lease verlopen, STOP of terminale fout; zo nodig herstarten. |
+| not_active | Nog niet ready, lege/afgelopen lease, STOP of niet voltooide herstelstap; na timeout kan nieuwe wedstrijd na bevestigde vrijgave opnieuw starten. |
 | control_busy / no_lease | Andere UDP-eigenaar of heartbeat zonder eigen lease. |
 | id_conflict | Zelfde bronpoort/id met andere inhoud. |
 | server_busy | Deduplicatiecache vol; nieuw id na wachttijd gebruiken. |
@@ -241,7 +243,9 @@ vrijgave aan. waiting_for_feedback blijft true totdat verse data én power binne
 zijn. reconnect_ready laat een expliciete nieuwe wedstrijd/opdracht toe zonder
 procesherstart. Zie [RECOVERY.md](RECOVERY.md). Een geldige 0-W-vrijgave mag ook
 tijdens deze offline wachtfase worden klaargezet; andere sturing krijgt not_active.
-udp_timeout, console_stop, udp_stop en ftms_error blijven terminaal voor sturing.
+console_stop en udp_stop blijven terminaal voor sturing. udp_timeout wist
+  de belasting en lease en is na bevestigde Reset herstelbaar. ftms_error leidt tot
+  best-effort Reset en trainerherverbinding; oude doelen worden niet hersteld.
 Geen automatische herbelasting na onderbreking of terminale stop/fout.
 Status blijft beschikbaar. Een FTMS-write/indication kan maximaal vijf seconden
 duren en vrijgave vertragen; cleanup-Reset kan daarna nog maximaal vijf seconden

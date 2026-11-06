@@ -172,7 +172,7 @@ func run_test() -> void:
 	game.pursuit_replay = {}
 	game._update_compact_hud(pursuit_order)
 	check(ui.pursuit_names[1].text == "AI" and ui.pursuit_gap_label.text == "", "AI label and no invented pre-lap difference")
-	check(ui.pursuit_lead_style.bg_color.a < 0.72 and ui.pursuit_trail_style.bg_color.a < 0.72, "White and red are translucent")
+	check(ui.pursuit_lead_style.bg_color.a < 1.0 and ui.pursuit_trail_style.bg_color.a < 1.0, "Pursuit sides remain translucent in the menu palette")
 	await process_frame
 	await process_frame
 	check(ui.bottom_bar.get_global_rect().end.x <= 1920.1, "Pursuit bar remains within viewport")

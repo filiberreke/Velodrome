@@ -79,6 +79,7 @@ const FRONT_WHEEL_TIP_M := 1.110
 const RADIUS := 18.0
 const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
 const PURSUIT_START_M := LAP - STRAIGHT * 0.5
+const NEUTRAL_DEPARTURE_M := -STRAIGHT * 0.5
 const UDP_PORT := 51723
 # Player selection is finer than AI corridors; physical track geometry is unchanged.
 const PLAYER_LANE_STEP_M := 0.60
@@ -104,6 +105,8 @@ const DRAFT_RESPONSE_SECONDS := 0.55
 const DRAFT_MIN_SPEED_MPS := 4.5
 var draft_strengths: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var draft_leaders: Array[int] = [-1, -1, -1, -1]
+# The cote d'azur has a fixed cross-slope; only the wooden track banks up in bends.
+const BLUE_APRON_BANK_DEG := 12.0
 const STRAIGHT_BANK_DEG := 12.0
 const CORNER_BANK_DEG := 42.0
 const BANK_TRANSITION_M := 12.0
@@ -234,19 +237,17 @@ func _configure_peloton() -> void:
 	ai_lane_targets.resize(count)
 	for i in range(count):
 		var lane: float = LANES[0] if race_mode in [4, 5, 7] else START_LANES[i % START_LANES.size()]
-		# Extra scratch riders start on the next row, not inside the first six.
-		# Use the same real position for tactics, physics and rendering.
+		# A narrow grid on the lower straight gives every rider room to roll away.
+		# Wider rows stretch apart because outside riders cover longer bends.
 		if race_mode in [0, 1, 2]:
-			distances[i] = -2.4 * float(i / START_LANES.size())
-		if race_mode == 2:
-			# A compact two-abreast grid keeps the standing start on the
-			# lower banking; the highest lane can stall at launch power.
-			lane = LANES[0] + float(i % 2)
-			distances[i] = -3.0 * float(i / 2)
+			lane = LANES[0] + 1.2 * float(i % 2)
+			distances[i] = NEUTRAL_DEPARTURE_M - 2.4 * float(i / 2)
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
 		ai_energy_j[i] = 0.0 if i == 0 else AI_CAPACITY_J[type_id] * _form(i)
+	if race_mode in [0, 1, 2]:
+		neutral_start.distance_offset = -NEUTRAL_DEPARTURE_M
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
 	if race_mode in [0, 1, 2]:
 		x_ai = PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())
@@ -440,6 +441,38 @@ var steering_steps := 0
 var watts := 0.0
 # Demo start preset: selected before the countdown, applied ONLY when START fires.
 var demo_launch_watts := 300.0
+# Virtual power is constrained only for keyboard control, never for Zwift Ride.
+const PC_MAX_REQUEST_W := 1300.0
+var pc_energy_model = XScratchAI.new()
+var pc_delivered_watts := 0.0
+var pc_power_limit_watts := -1.0
+
+func _pc_energy_fraction() -> Variant:
+	if not pc_energy_model.initialized or pc_energy_model.wmax[1] <= 0.0:
+		return null
+	return clampf(pc_energy_model.wprime[1] / pc_energy_model.wmax[1], 0.0, 1.0)
+
+func _pc_power(dt: float) -> float:
+	if trainer_seen:
+		return watts
+	if not pc_energy_model.initialized:
+		return watts
+	pc_power_limit_watts = pc_energy_model.power_limit(1, dt)
+	pc_delivered_watts = pc_energy_model._phys_power(1, watts, dt)
+	return pc_delivered_watts
+
+func _reset_pc_energy() -> void:
+	# Reuse exactly the AI's fatigue, W-prime depletion and recovery.
+	var profiles: Array[int] = [0, 3]
+	var forms: Array[float] = [1.0, 1.0]
+	var lanes: Array[float] = [1.18, 1.18]
+	pc_energy_model.reset(profiles, forms, lanes)
+	pc_energy_model.cp[1] = 255.0
+	pc_energy_model.wmax[1] = 30000.0
+	pc_energy_model.wprime[1] = pc_energy_model.wmax[1]
+	pc_energy_model.pmax[1] = PC_MAX_REQUEST_W
+	pc_delivered_watts = 0.0
+	pc_power_limit_watts = -1.0
 var trainer_speed_kmh := -1.0
 var trainer_ready := false
 var trainer_seen := false
@@ -608,7 +641,7 @@ func _physics_process(delta: float) -> void:
 		if start_state == "WAIT_STOP":
 			var stopped: bool = _start_conditions_met()
 			zero_stable = minf(ZERO_CONFIRM_SECONDS, zero_stable + delta) if stopped else 0.0
-			if zero_stable >= ZERO_CONFIRM_SECONDS:
+			if stopped and (not _start_requires_standstill() or zero_stable >= ZERO_CONFIRM_SECONDS):
 				start_state = "COUNTDOWN"
 				countdown = 3.0
 		elif start_state == "COUNTDOWN":
@@ -662,6 +695,7 @@ func _riding() -> bool:
 
 func _begin_riding() -> void:
 	running = true
+	_reset_pc_energy()
 	if not trainer_seen:
 		watts = demo_launch_watts
 	else:
@@ -718,54 +752,32 @@ func _training_distance() -> float:
 	return neutral_start.distance_offset + flying_start.distance_offset + distances[0]
 
 func _update_countdown_display() -> void:
-	# Huge floating numbers above the start line: 3 - 2 - 1, followed by the race start signal.
-	if countdown_label == null or camera == null:
-		return
-	var text := ""
+	# A single screen-space cue stays centered in every race camera.
+	var value := ""
 	if not finished and start_state == "COUNTDOWN":
-		text = str(maxi(1, ceili(countdown)))
+		value = str(maxi(1, ceili(countdown)))
 	elif not finished and start_state == "RACING" and clock < 1.1:
-		text = "START!" if race_mode in [0, 1, 2] else "GO!"
-	if text == "":
-		countdown_label.visible = false
-		countdown_shown = ""
-		return
-	countdown_shown = text
-	var start_signal: bool = text in ["START!", "GO!"]
-	# Time since this number appeared, in game time (each number lasts one second).
-	var age: float = clampf(clock if start_signal else 1.0 - fposmod(countdown, 1.0), 0.0, 1.0)
-	if not start_signal and countdown <= 0.0:
-		age = 0.0
-	var colours := {"3": Color("ff5a4e"), "2": Color("ffa53a"), "1": Color("ffe14d"), "GO!": Color("5df08a"), "START!": Color("5df08a")}
-	var tint: Color = colours.get(text, Color.WHITE)
-	tint.a = clampf((1.0 - age) / 0.25, 0.0, 1.0) if age > 0.75 else 1.0
-	countdown_label.text = text
-	countdown_label.modulate = tint
-	countdown_label.outline_modulate = Color(0.04, 0.10, 0.18, tint.a)
-	# Anchor: floating over the track just past the start line, in front of the riders.
-	var anchor: Vector3 = _at(_rider_distance(0, distances[0]) + 9.0, 3.0) + Vector3.UP * 2.8
-	var cam_fwd: Vector3 = -camera.global_transform.basis.z
-	var to_anchor: Vector3 = anchor - camera.global_position
-	var on_screen := to_anchor.normalized().dot(cam_fwd) > cos(deg_to_rad(camera.fov * 0.32))
-	if not on_screen:
-		# Side/POV views that do not look at the line: float in front of the camera instead.
-		anchor = camera.global_position + cam_fwd * 9.0 + camera.global_transform.basis.y * 0.4
-	var dist: float = camera.global_position.distance_to(anchor)
-	var view_h: float = 2.0 * dist * tan(deg_to_rad(camera.fov) * 0.5)
-	var pop: float = 1.0 + 0.45 * pow(1.0 - minf(age / 0.35, 1.0), 3.0)
-	var target_h: float = view_h * (0.14 if text == "START!" else (0.30 if start_signal else 0.42)) * pop
-	countdown_label.pixel_size = target_h / (float(countdown_label.font_size) * 0.72)
-	countdown_label.global_position = anchor
-	countdown_label.visible = true
+		value = "START!" if race_mode in [0, 1, 2] else "GO!"
+	countdown_shown = value
+	if countdown_label != null:
+		countdown_label.text = value
+		countdown_label.hide()
+	if race_overlay == null: return
+	race_overlay.signals.set_countdown(value)
+	race_overlay.signals.update_last_lap(start_state == "RACING", maxf(0.0, _race_length() - distances[0]), _race_length(), finished)
+
+func _start_requires_standstill() -> bool:
+	return race_mode not in [0, 1, 2] and not (race_mode == 7 and time_trial_start_type == "flying")
 
 func _start_conditions_met() -> bool:
 	if bridge_bind_error != OK:
 		return false
 	if trainer_seen:
-		return connected and trainer_ready and watts <= ZERO_WATTS_THRESHOLD
-	return watts <= 0.0
+		return connected and trainer_ready and (not _start_requires_standstill() or watts <= ZERO_WATTS_THRESHOLD)
+	return not _start_requires_standstill() or watts <= 0.0
 
 func _final_start_speed_ok() -> bool:
+	if not _start_requires_standstill(): return true
 	# Only check trainer speed during the final second of the countdown.
 	if trainer_seen:
 		return trainer_speed_kmh >= 0.0 and trainer_speed_kmh <= START_FINAL_SECOND_SPEED_KMH
@@ -861,9 +873,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_UP, KEY_EQUAL:
 			if not trainer_seen:
 				if _riding():
-					watts = minf(900.0, watts + 25.0)
+					watts = minf(PC_MAX_REQUEST_W, watts + 25.0)
 				else:
-					demo_launch_watts = minf(900.0, demo_launch_watts + 25.0)
+					demo_launch_watts = minf(PC_MAX_REQUEST_W, demo_launch_watts + 25.0)
 		KEY_DOWN, KEY_MINUS:
 			if not trainer_seen:
 				if _riding():
@@ -1130,7 +1142,9 @@ func _reset() -> void:
 	results_podium.clear()
 	_clear_elimination_feedback()
 	points_notifications.reset()
-	if race_overlay != null: race_overlay.popup.clear()
+	if race_overlay != null:
+		race_overlay.popup.clear()
+		race_overlay.signals.clear()
 	if broadcast_intro != null: broadcast_intro.cancel()
 	trainer_control.release(_now_s())
 	trainer_telemetry_resume = false
@@ -1620,11 +1634,12 @@ func _advance_race(dt: float) -> void:
 			x_ai.final_line_m = _race_length()
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
+	var player_actual_power: float = _pc_power(dt)
 	var new_finisher := false
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
 			continue
-		var power: float = watts if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
+		var power: float = player_actual_power if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
 		if race_mode in [0, 1, 2] and i > 0:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
@@ -1775,7 +1790,13 @@ func _at(distance: float, offset: float) -> Vector3:
 		z = -STRAIGHT / 2.0 + RADIUS * sin(angle)
 		nx = cos(angle)
 		nz = sin(angle)
-	return Vector3(x + offset * nx, 0.015 + offset * tan(_bank_angle(s)), z + offset * nz)
+	# The blue apron stays at a fixed 12-degree cross-slope all the way around.
+	# Wood starts at the same height at TRACK_EDGE, then uses the variable
+	# banking angle; the shared boundary therefore remains watertight.
+	var apron_width: float = minf(offset, TRACK_EDGE)
+	var wood_width: float = maxf(0.0, offset - TRACK_EDGE)
+	var height: float = 0.015 + apron_width * tan(deg_to_rad(BLUE_APRON_BANK_DEG)) + wood_width * tan(_bank_angle(s))
+	return Vector3(x + offset * nx, height, z + offset * nz)
 
 func _direction(s: float, offset: float) -> Vector3:
 	return (_at(s + 0.2, offset) - _at(s - 0.2, offset)).normalized()
@@ -2094,7 +2115,7 @@ func _track_textured_surface(inner: float, outer: float, texture: Texture2D, nam
 	add_child(surface)
 
 func _build_realistic_track() -> void:
-	# No geometry/physics changes: this surface uses the existing _at() banking.
+	# The apron and wooden surface share an edge, but now have independent bank angles.
 	_track_textured_surface(0.0, TRACK_EDGE, BLUE_APRON_TEXTURE, "Cote d'Azur - licht geschilderde aanloop", 8.0, 0.78, Color("ffffff"), 0.80)
 	_track_textured_surface(TRACK_EDGE, TRACK_OUTER_EDGE, WOOD_TEXTURE, "Piste - gelakte grenenhouten latten", 12.5, 2.24, Color("f6f1e7"), 0.65)
 	preload("res://track_branding.gd").build(self)
@@ -2818,7 +2839,7 @@ func _update_hud() -> void:
 	elif start_state == "SETUP":
 		stage = "KIES AI-STERKTE EN DRUK START"
 	elif start_state == "WAIT_STOP":
-		stage = "WACHT OP STILSTAND"
+		stage = "WACHT OP STILSTAND" if _start_requires_standstill() else "KLAAR VOOR VERTREK"
 	elif start_state == "COUNTDOWN":
 		stage = "START OVER %d" % maxi(1, ceili(countdown))
 	elif trainer_seen and not connected and _power_hold_active():
@@ -2868,7 +2889,9 @@ func _update_hud() -> void:
 	elif start_state == "SETUP":
 		note.text = "Kies de spelmodus, AI-sterkte, deelnemers en rondes."
 	elif start_state == "WAIT_STOP":
-		if trainer_seen and not connected:
+		if not _start_requires_standstill():
+			note.text = "Je mag blijven trappen; wacht op geldige trainergegevens." if trainer_seen else "Klaar voor de aanloop."
+		elif trainer_seen and not connected:
 			note.text = "KICKR: wacht op verse Bluetooth-data."
 		elif trainer_seen and trainer_speed_kmh < 0.0:
 			note.text = "KICKR: snelheid ontbreekt; start geblokkeerd."
@@ -2877,7 +2900,7 @@ func _update_hud() -> void:
 		else:
 			note.text = "Demo: 0 W / 0 km/u. Startvermogen: %.0f W (pijlen)." % demo_launch_watts
 	elif start_state == "COUNTDOWN":
-		note.text = "Blijf stil staan tot START!" if trainer_seen else "Start uit stilstand; vanaf GO %.0f W. Pijlen wijzigen preset." % demo_launch_watts
+		note.text = "Blijf rustig trappen; de aanloop begint na de aftelling." if not _start_requires_standstill() else ("Blijf stil staan tot START!" if trainer_seen else "Start uit stilstand; vanaf GO %.0f W. Pijlen wijzigen preset." % demo_launch_watts)
 	else:
 		note.text = "KICKR-opname: %d metingen | P = bewaren" % ride_records.size() if recording_active else (recording_message if recording_message != "" else ("SPATIE: eenmalige arcade-boost!" if not boost_used and not trainer_seen else "Kies tactisch je rijlijn. Sprint naar de finish! (P = KICKR-opname bewaren)"))
 
@@ -2939,10 +2962,11 @@ func _update_compact_hud(order: Array[int]) -> void:
 	var notice := ""
 	if start_state == "WAIT_STOP":
 		notice = "Stop met trappen om de aftelling te starten." if trainer_seen else "Klaar voor de start · demo"
+		if not _start_requires_standstill(): notice = "Je mag blijven trappen · klaar voor de aanloop"
 		if trainer_seen and (not connected or trainer_speed_kmh < 0.0):
 			notice = "Wachten op geldige trainergegevens…"
 	elif start_state == "COUNTDOWN":
-		notice = "Blijf stilstaan · start over %d" % maxi(1, ceili(countdown))
+		notice = ("Blijf stilstaan · start over %d" if _start_requires_standstill() else "Je mag blijven trappen · vertrek over %d") % maxi(1, ceili(countdown))
 	elif trainer_seen and not connected and not finished:
 		notice = "Trainerverbinding onderbroken · vermogen tijdelijk vastgehouden" if _power_hold_active() else "Wedstrijd gepauzeerd · wacht op de trainerverbinding"
 	elif finished:
@@ -2978,7 +3002,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3192,12 +3216,13 @@ func _update_pursuit(dt: float) -> void:
 	var lateral_height: Array[float] = _pursuit_move_lanes(dt)
 	draft_strengths.fill(0.0)
 	draft_leaders.fill(-1)
+	var player_actual_power: float = _pc_power(dt)
 	var new_finisher := false
 	for i in range(1 if race_mode == 7 else 2):
 		if finish_times[i] >= 0.0:
 			continue
 		var previous: float = distances[i]
-		var power: float = watts if i == 0 else 0.0
+		var power: float = player_actual_power if i == 0 else 0.0
 		var step: float
 		var end_time: float = clock
 		if i == 1 and not pursuit_replay.is_empty():
@@ -3228,11 +3253,11 @@ func _update_pursuit(dt: float) -> void:
 			distances[i] = _race_length()
 		if i == 0:
 			baseline_speed = speeds[i]
-			player_power_integral += watts * (maxf(0.0, end_time - (clock - dt)) if crossed else dt)
-			player_peak_watts = maxf(player_peak_watts, watts)
+			player_power_integral += power * (maxf(0.0, end_time - (clock - dt)) if crossed else dt)
+			player_peak_watts = maxf(player_peak_watts, power)
 			player_speed_peak_kmh = maxf(player_speed_peak_kmh, speeds[i] * 3.6)
 			if player_samples.is_empty() or distances[i] - player_samples[-1].x >= 2.5 or crossed:
-				player_samples.append(Vector2(distances[i], watts))
+				player_samples.append(Vector2(distances[i], power))
 			_record_pursuit_sample(end_time if crossed else clock, distances[i], crossed)
 			if not trainer_seen:
 				_capture_demo_fit_sample()
@@ -3498,8 +3523,8 @@ func _update_bunch_presentation() -> void:
 		for child in bikes[i].get_children():
 			if child is Label3D: child.visible = not active and _rider_label_visible(i)
 	for i in range(rider_energy_badges.size()):
-		var reserve: float = x_ai.wprime[i]/maxf(1.,x_ai.wmax[i]) if i > 0 and x_ai.initialized else -1.0
-		var power: float = watts if i == 0 else ai_power_w[i]
+		var reserve: float = (pc_energy_model.wprime[1] / maxf(1.0, pc_energy_model.wmax[1]) if pc_energy_model.initialized and not trainer_seen else -1.0) if i == 0 else (x_ai.wprime[i]/maxf(1.,x_ai.wmax[i]) if x_ai.initialized else -1.0)
+		var power: float = (watts if trainer_seen else pc_delivered_watts) if i == 0 else ai_power_w[i]
 		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0 and _rider_label_visible(i), points_rules.points[i] if race_mode == 1 else 0, race_mode == 1, _compact_rider_name(_rider_name(i)))
 
 func _announce_race_event(message: String, player_event: bool = true) -> void:

@@ -99,7 +99,7 @@ class ValidationTests(unittest.TestCase):
         for value in (49, 51, 1001, 1300):
             with self.assertRaises(CommandError) as err: c.accept('set_target_power', {'watts': value})
             self.assertEqual(err.exception.code, 'unsupported_power')
-            self.assertEqual(c.target_w, 100)
+            self.assertEqual(c.target_w, 0)
 
     def test_malformed_range(self):
         for raw in (b'', b'12345', struct.pack('<hhH', 100, 50, 1), struct.pack('<hhH', 0, 1300, 0)):
@@ -110,7 +110,7 @@ class ValidationTests(unittest.TestCase):
         for rate in (0, -1, 10001, 10**500, True, '300', float('nan'), float('inf')):
             with self.assertRaises(CommandError):
                 c.accept('set_target_power', {'watts': 1300, 'ramp_w_per_s': rate})
-            self.assertEqual(c.target_w, 100)
+            self.assertEqual(c.target_w, 0)
 
     def test_strict_json(self):
         bad = [b'', b'x' * 1025, b'\xff', b'[]', b'null',
@@ -138,6 +138,7 @@ class ValidationTests(unittest.TestCase):
         clock = Clock(); c = ready(clock)
         owner = ('127.0.0.1', 1000)
         c.accept('set_mode', {'mode': 'ERG'}, owner)
+        c.accept('set_target_power', {'watts': 200}, owner)
         with self.assertRaises(CommandError): c.accept('set_target_power', {'watts': 200}, ('127.0.0.1', 1001))
         clock.advance(4)
         c.accept('heartbeat', source=owner)
@@ -145,9 +146,31 @@ class ValidationTests(unittest.TestCase):
         c.handle_command('sim')
         self.assertIsNone(c.owner)
         c.accept('set_mode', {'mode': 'ERG'}, owner)
+        c.accept('set_target_power', {'watts': 220}, owner)
         clock.advance(6)
         with self.assertRaises(CommandError): c.accept('heartbeat', source=owner)
-        self.assertTrue(c.disabled)
+        self.assertFalse(c.disabled)
+        self.assertEqual(c.target_w, 0)
+        self.assertTrue(c.reconnect_ready)
+
+    def test_fresh_race_may_reset_only_its_own_lease(self):
+        clock = Clock(); c = ready(clock)
+        owner = ('127.0.0.1', 1000)
+        other = ('127.0.0.1', 1001)
+        c.accept('set_mode', {'mode': 'ERG'}, owner)
+        c.accept('set_target_power', {'watts': 265}, owner)
+        self.assertTrue(c.accept('status', source=owner)['udp_owned_by_requester'])
+        self.assertFalse(c.accept('status', source=other)['udp_owned_by_requester'])
+        with self.assertRaises(CommandError) as error:
+            c.accept('set_target_power', {'watts': 0}, other)
+        self.assertEqual(error.exception.code, 'control_busy')
+        clock.advance(6)
+        # Even after expiry the previous owner may release, but cannot renew load.
+        c.accept('set_target_power', {'watts': 0}, owner)
+        self.assertFalse(c.disabled)
+        self.assertIsNone(c.owner)
+        self.assertEqual(c.target_w, 0)
+        self.assertTrue(c.reconnect_ready)
 
     def test_udp_cache_errors_conflicts_and_no_lease_renewal(self):
         clock = Clock(); c = ready(clock)
@@ -156,6 +179,7 @@ class ValidationTests(unittest.TestCase):
         raw = packet('set_mode', mode='ERG')
         protocol.datagram_received(raw, addr)
         first = transport.sent[-1][0]
+        protocol.datagram_received(packet('set_target_power', id='new-target', watts=200), addr)
         clock.advance(4)
         protocol.datagram_received(raw, addr)
         self.assertEqual(transport.sent[-1][0], first)
@@ -237,8 +261,8 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_ramp_up_down_and_sprint(self):
         c = self.setup_mode()
-        c.accept('set_target_power', {'watts': 1300, 'ramp_w_per_s': 2000})
         c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 1300, 'ramp_w_per_s': 2000})
         await self.drive()
         for _ in range(10): await self.drive()
         powers = [struct.unpack('<h', x[1:])[0] for x in self.controller.calls if x[0] == 5]
@@ -252,26 +276,71 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_slow_quantized_ramp(self):
         c = self.setup_mode(limits=(50, 1300, 10))
-        c.accept('set_target_power', {'watts': 100, 'ramp_w_per_s': 10})
         c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 100, 'ramp_w_per_s': 10})
         await self.drive()
         for _ in range(5): await self.drive()
         self.assertEqual(c.sent_w, 50)
         for _ in range(6): await self.drive()
         self.assertEqual(c.sent_w, 60)
 
-    async def test_udp_timeout_releases_and_latches(self):
+    async def test_udp_timeout_releases_and_new_race_recovers(self):
         c = self.setup_mode()
-        c.accept('set_mode', {'mode': 'ERG'}, ('127.0.0.1', 1000))
+        c.simulation_supported = True
+        owner = ('127.0.0.1', 1000)
+        c.accept('set_mode', {'mode': 'ERG'}, owner)
+        c.accept('set_target_power', {'watts': 265}, owner)
         await self.drive()
         await self.drive(5.1)
-        self.assertTrue(c.disabled)
+        self.assertFalse(c.disabled)
         self.assertEqual(c.last_error, 'udp_timeout')
         self.assertTrue(c.release_confirmed)
-        with self.assertRaises(CommandError): c.accept('set_mode', {'mode': 'SIM'})
+        self.assertEqual(c.mode, 'RELEASED')
+        self.assertEqual(c.target_w, 0)
+        self.assertIsNone(c.owner)
+        c.accept('set_mode', {'mode': 'SIM'}, owner)
+        c.accept('set_grade', {'grade_pct': 0}, owner)
+        await self.drive()
+        self.assertEqual(c.mode, 'SIM')
+        self.assertFalse(c.disabled)
+
+    async def test_repeated_team_swaps_never_reuse_old_erg_target(self):
+        c = self.setup_mode()
+        c.simulation_supported = True
+        owner = ('127.0.0.1', 1000)
+        for watts in (199, 232, 265):
+            c.accept('set_mode', {'mode': 'ERG'}, owner)
+            self.assertEqual(c.target_w, 0)
+            self.assertIsNone(c.owner)
+            await self.drive()
+            self.assertFalse(any(op[0] == 5 for op in self.controller.calls[-1:]))
+            c.accept('set_target_power', {'watts': watts}, owner)
+            for _ in range(12):
+                await self.drive()
+                c.accept('heartbeat', source=owner)
+            self.assertEqual(c.target_w, watts)
+            c.accept('set_mode', {'mode': 'SIM'}, owner)
+            c.accept('set_grade', {'grade_pct': 0}, owner)
+            await self.drive()
+            self.assertEqual(c.mode, 'SIM')
+        sent_before = len([x for x in self.controller.calls if x[0] == 5])
+        c.accept('set_mode', {'mode': 'ERG'}, owner)
+        self.assertEqual(c.target_w, 0)
+        self.assertIsNone(c.owner)
+        await self.drive()
+        self.assertEqual(c.mode, 'RELEASED')
+        self.assertEqual(len([x for x in self.controller.calls if x[0] == 5]), sent_before)
+        await self.drive(6)
+        self.assertFalse(c.disabled)
+        self.assertFalse(c.reconnect_ready)
+        c.accept('set_target_power', {'watts': 240}, owner)
+        await self.drive()
+        self.assertEqual(c.target_w, 240)
+        self.assertEqual(c.mode, 'ERG')
 
     async def test_data_timeout(self):
         c = self.setup_mode(); c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 265})
         self.clock.advance(3.1)
         await c.tick(self.controller, self.sender)
         self.assertFalse(c.disabled)
@@ -280,6 +349,7 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_power_timeout_despite_other_notifications(self):
         c = self.setup_mode(); c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 265})
         self.clock.advance(3.1)
         self.sender.last_received = self.clock()
         await c.tick(self.controller, self.sender)
@@ -288,6 +358,7 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_disconnect_releases_without_more_targets(self):
         c = self.setup_mode(); c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 265})
         await self.drive()
         count = len(self.controller.calls)
         self.sender.connected = False
@@ -298,8 +369,8 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_stall_does_not_catch_up_entire_ramp(self):
         c = self.setup_mode()
-        c.accept('set_target_power', {'watts': 1300, 'ramp_w_per_s': 100})
         c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 1300, 'ramp_w_per_s': 100})
         await self.drive()
         first = c.sent_w
         await self.drive(2.0)
@@ -342,6 +413,7 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_changed_request_during_initialize(self):
         c = self.setup_mode(); c.accept('set_mode', {'mode': 'ERG'})
+        c.accept('set_target_power', {'watts': 265})
         self.controller.hook = lambda stage: c.accept('set_target_power', {'watts': 0}) if stage == 'initialize' else None
         await self.drive()
         self.controller.hook = None
@@ -439,8 +511,8 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
             protocol.datagram_received(packet('set_grade', id='grade-1', grade_pct=1, ramp_pct_per_s=100), addr)
             await until(lambda: c.road.confirmed() is not None and c.road.confirmed()['grade_pct'] == 1)
             self.assertTrue(any(x[0] == 0x11 for x in client.writes))
-            protocol.datagram_received(packet('set_target_power', id='i1', watts=200), addr)
             protocol.datagram_received(packet('set_mode', id='i2', mode='ERG'), addr)
+            protocol.datagram_received(packet('set_target_power', id='i1', watts=200), addr)
             await until(lambda: c.sent_w == 200)
             self.assertEqual(c.applied_revision, c.revision)
             c.handle_command('sim')

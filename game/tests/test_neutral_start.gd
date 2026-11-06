@@ -30,11 +30,15 @@ func make_game(mode: int, count: int = 16) -> Game:
 	g._begin_riding()
 	return g
 func run_test() -> void:
-	for mode in [0, 1, 2]:
+	for scenario in [[0,16], [1,16], [2,16], [0,24], [1,24], [2,24]]:
+		var mode: int = scenario[0]
 		for dt in [0.1, 1.0 / 60.0]:
-			var g := make_game(mode)
+			var g := make_game(mode, scenario[1])
 			print("Neutral scenario: mode=%d dt=%.4f" % [mode, dt])
 			check(g.start_state == "NEUTRAL" and g.running, "Group events enter neutral start")
+			check(is_equal_approx(g.distances[0], g.NEUTRAL_DEPARTURE_M), "Departure is at the middle of the straight")
+			check(absf(g._bank_angle(g._track_s(g.distances[0])) - deg_to_rad(g.STRAIGHT_BANK_DEG)) < 0.001, "Departure is on straight banking")
+			check(is_zero_approx(g._training_distance()), "Ride distance starts at zero")
 			g.watts = 350.0
 			var tick := 0
 			while g.start_state == "NEUTRAL" and tick < int(150.0 / dt):
@@ -43,6 +47,8 @@ func run_test() -> void:
 				var training_before: float = g._training_distance()
 				g.neutral_start.step(g, dt)
 				if g.start_state == "NEUTRAL":
+					if before[0] < 0.0 and g.distances[0] >= 0.0:
+						check(g.clock == 0.0, "First finish passage only begins the full neutral lap")
 					check(g.clock == 0.0 and g.lap_times[0].is_empty(), "No race clock or laps in neutral")
 					check(g.speeds.max() <= g.neutral_start.MAX_SPEED_MPS + 0.001, "Moderate opening pace")
 					check(g.distances.max() - g.distances.min() < 40.0, "Formation remains compact")
@@ -54,7 +60,7 @@ func run_test() -> void:
 						check(absf(g.distances[i] + g.LAP - before[i]) < 2.0, "Physical rider position stays continuous")
 				tick += 1
 			check(g.start_state == "RACING", "Neutral lap completes for mode %d at %.4f s" % [mode, dt])
-			check(g.neutral_start.elapsed > 25.0 and g.neutral_start.distance_offset == g.LAP, "Exactly one opening lap excluded from race distance")
+			check(g.neutral_start.elapsed > 25.0 and is_equal_approx(g.neutral_start.distance_offset, g.LAP - g.NEUTRAL_DEPARTURE_M), "Approach and full neutral lap excluded from race distance")
 			check(g.lap_times[0].is_empty() and g.scratch_rules.events.is_empty(), "No premature lap results or lap gains")
 			if mode == 1: check(g.points_rules.sprints.is_empty() and g.points_rules.points.max() == 0, "No points before the official start")
 			if mode == 2: check(g.elimination_rules.eliminated.is_empty() and g.elimination_rules.next_line_m == 500.0, "First elimination stays two racing laps away")
@@ -126,9 +132,46 @@ func run_test() -> void:
 	g.neutral_start.reset()
 	check(g.neutral_start.elapsed == 0.0 and g.neutral_start.distance_offset == 0.0 and g.neutral_start.grid.is_empty(), "Restart clears all neutral state")
 	g.free()
+	# Pedalling and wheel speed never block an opening lap, but stale data does.
+	for mode in [0, 1, 2, 7]:
+		g = make_game(mode)
+		if mode == 7: g.time_trial_start_type = "flying"
+		g.trainer_seen = true
+		g.connected = true
+		g.trainer_ready = true
+		g.watts = 250.0
+		g.trainer_speed_kmh = 28.0
+		g.last_telemetry = g._now_s()
+		g.start_state = "WAIT_STOP"
+		g._physics_process(0.1)
+		check(g.start_state == "COUNTDOWN", "Opening lap accepts an already pedalling trainer")
+		g.countdown = 0.5
+		g._physics_process(0.1)
+		check(g.start_state == "COUNTDOWN", "Pedalling does not reset final countdown second")
+		g.countdown = 0.0
+		g._physics_process(0.1)
+		check(g.start_state == ("RUN_UP" if mode == 7 else "NEUTRAL"), "Countdown enters correct opening phase")
+		g.connected = false
+		check(not g._start_conditions_met(), "Disconnected trainer still blocks departure")
+		g.connected = true
+		g.trainer_ready = false
+		check(not g._start_conditions_met(), "Stale data still blocks departure")
+		g.trainer_ready = true
+		g.bridge_bind_error = ERR_ALREADY_IN_USE
+		check(not g._start_conditions_met(), "Bridge errors still block departure")
+		g.free()
 	# Timed disciplines still start from rest directly after the countdown.
 	for mode in [4, 5, 7]:
 		g = make_game(mode)
+		g.trainer_seen = true
+		g.connected = true
+		g.trainer_ready = true
+		g.watts = 250.0
+		g.trainer_speed_kmh = 25.0
+		check(not g._start_conditions_met() and not g._final_start_speed_ok(), "Standing start still requires rest")
+		g.watts = 0.0
+		g.trainer_speed_kmh = 0.0
+		check(g._start_conditions_met() and g._final_start_speed_ok(), "Standing start accepts stopped trainer")
 		check(g.start_state == "RACING" and g.neutral_start.elapsed == 0.0 and g.speeds[0] == 0.0, "Timed event %d retains standing start" % mode)
 		g.free()
 	print("NEUTRAL START: %s" % ("PASS" if failures == 0 else "FAIL (%d)" % failures))

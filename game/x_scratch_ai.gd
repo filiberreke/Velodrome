@@ -102,6 +102,14 @@ func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float
 		last_role_change[i] = 0.0
 	initialized = true
 
+func power_limit(i: int, dt: float) -> float:
+	# Read-only ceiling for the same step as _phys_power, before reserve changes.
+	var adjusted_cp: float = cp[i] * (1.0 - 0.10 * fatigue[i])
+	var ceiling: float = pmax[i] * (1.0 - 0.25 * fatigue[i])
+	if ceiling <= adjusted_cp:
+		return ceiling
+	return adjusted_cp + minf(wprime[i], (ceiling - adjusted_cp) * dt) / maxf(dt, 0.0001)
+
 func _phys_power(i: int, wanted: float, dt: float) -> float:
 	var adjusted_cp: float = cp[i] * (1.0 - 0.10 * fatigue[i])
 	var ceiling: float = pmax[i] * (1.0 - 0.25 * fatigue[i])
