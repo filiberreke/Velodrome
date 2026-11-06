@@ -1,0 +1,31 @@
+{
+  "issue": "https://github.com/filiberreke/Velodrome/issues/33",
+  "base": "f8e94ae",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "python": "3.12",
+  "command": "python tests/run_ride_mapping.py (GODOT_BIN set)",
+  "runner_exit": 0,
+  "godot_suites_passed": [
+    "test_ride_mapping",
+    "test_ride_mapping_routing",
+    "test_controller_settings",
+    "test_ride_phase2",
+    "test_ride_pursuit_navigation",
+    "test_analog_steering",
+    "test_bridge_navigation"
+  ],
+  "bridge_unittest": {"passed": 89, "skipped": 0, "godot_integration_enabled": true},
+  "visual_review": "Controller mapping editor rendered at 1920x1080 and inspected; controls fit and diagnostic rows scroll.",
+  "isolation": "Temporary project and user directories; free test UDP ports; source .blend and result .csv files excluded from test import. Runtime assets unchanged.",
+  "known_engine_messages": [
+    "Failed to read the root certificate store",
+    "UVs are required to generate tangents (existing GLB assets)",
+    "Parameter material is null (headless rendering)"
+  ],
+  "physical_hardware_tested": false,
+  "limitations": [
+    "Arcade bindings are stored for future use; no arcade gameplay is added.",
+    "SHIFT mappings add game actions while retaining independent bridge gearing.",
+    "Legacy bridges without raw edges only support press actions."
+  ]
+}

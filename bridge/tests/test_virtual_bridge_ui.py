@@ -162,6 +162,10 @@ class VirtualBridgeTests(unittest.TestCase):
         self.assertEqual(self.receive()['sample_id'], 5)
 
     @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_configurable_mapping(self):
+        self.run_integration('test_ride_mapping_udp.gd', require_commands=False)
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
     def test_godot_pursuit_settings_and_start_navigation(self):
         self.run_integration('test_ride_pursuit_udp.gd', require_commands=False)
 
@@ -232,6 +236,15 @@ class VirtualBridgeTests(unittest.TestCase):
             try:
                 while proc.poll() is None and time.monotonic() < deadline:
                     progress = log_path.read_text(errors='replace')
+                    for step, button, edge in [('CAPTURE', 'POWER_LEFT', 'tap'),
+                                               ('LOOK_DOWN', 'A', 'down'), ('LOOK_UP', 'A', 'up'),
+                                               ('INFO_DOWN', 'POWER_LEFT', 'down'), ('INFO_UP', 'POWER_LEFT', 'up')]:
+                        marker = 'RIDE_MAP_' + step
+                        if marker in progress and marker not in flow_steps:
+                            if edge == 'tap': self.bridge.button(button)
+                            elif edge == 'down': self.bridge.press_button(button)
+                            else: self.bridge.release_button(button)
+                            flow_steps.add(marker)
                     for step in ['MODE_RIGHT', 'MODE_A', 'OPPONENT_A', 'STRENGTH_UP',
                                  'CAROUSEL_UP', 'OPPONENT_RIGHT', 'PERCENT_DOWN',
                                  'PERCENT_RIGHT', 'START_DOWN', 'START_A']:

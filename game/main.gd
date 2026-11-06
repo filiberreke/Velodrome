@@ -545,6 +545,7 @@ var keyboard_look_back := false
 var ride_look_back := false
 var ride_look_source := "B"
 var ride_buttons: Dictionary = {}
+var ride_mapping := preload("res://ride_mapping.gd").new()
 var last_controller_signal := -1.0
 var ride_navigation: CanvasLayer
 # Visual-only lean; race physics remains untouched.
@@ -575,6 +576,10 @@ var fit_gps_export_path := ""
 
 
 func _ready() -> void:
+	var legacy_mapping := OS.get_executable_path().get_base_dir().path_join("bridge/button_mapping.json")
+	if not FileAccess.file_exists(legacy_mapping):
+		legacy_mapping = ProjectSettings.globalize_path("res://").path_join("../bridge/button_mapping.json")
+	ride_mapping.load_settings(ride_mapping.PATH, legacy_mapping)
 	player_appearance.load_preferences()
 	Engine.max_fps = 90
 	if _bind_bridge() != OK:
@@ -958,6 +963,35 @@ func _ride_action(key: String, source: String = "B") -> void:
 				"UP": _cycle_camera(-1)
 				"DOWN": _cycle_camera(1)
 
+func _ride_profile() -> String:
+	return "race" if _ride_context() == "race" else "menu"
+
+func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
+	var source := ride_mapping.physical(str(packet.get("source_button", "")))
+	if source not in ride_mapping.BUTTONS or not packet.get("pressed") is bool: return
+	if packet.pressed:
+		if ride_buttons.has(source): return
+		var action: String = ride_mapping.action_for(_ride_profile(), source)
+		var trigger := "press"
+		if not action.is_empty(): trigger = ride_mapping.profiles[_ride_profile()][action].trigger
+		var key: String = ride_mapping.KEYS.get(action, "")
+		# Older/custom bridge files remain authoritative until a UI mapping is saved.
+		if not ride_mapping.customized and packet.has("mapped_action"):
+			key = str(packet.mapped_action) if not source.begins_with("SHIFT_") else ""
+			trigger = "hold" if key == "B" and _ride_profile() == "race" else "press"
+		ride_buttons[source] = {"context":_ride_context(), "key":key, "trigger":trigger, "testing":testing}
+		if testing:
+			var preferences := get_node("GameSettings")
+			if source == "Z" and not preferences.controller_test.capture_consumed:
+				preferences.bridge_action("Z")
+		elif trigger != "release" and not key.is_empty(): _ride_action(key, source)
+	else:
+		var edge: Dictionary = ride_buttons.get(source, {})
+		ride_buttons.erase(source)
+		if source == ride_look_source: ride_look_back = false
+		if not testing and not edge.is_empty() and not edge.testing and edge.context == _ride_context() and edge.trigger == "release" and not edge.key.is_empty():
+			_ride_action(edge.key, source)
+
 func _steer_player(direction: int) -> void:
 	if _ride_context() != "race" or not running or finished or not _riding():
 		return
@@ -1021,12 +1055,7 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 					if held not in packet.buttons: ride_buttons.erase(held)
 				if ride_look_source not in packet.buttons: ride_look_back = false
 		else:
-			var source := str(packet.get("source_button", ""))
-			if bool(packet.get("pressed", false)):
-				if not ride_buttons.has(source): ride_buttons[source] = {"context":_ride_context(), "pending":true}
-			else:
-				ride_buttons.erase(source)
-				if source == ride_look_source: ride_look_back = false
+			_ride_raw_button(packet, testing)
 		_refresh_look_back()
 		return
 	if packet.get("type", "") == "steering":
@@ -1070,14 +1099,21 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 				watts = 0.0
 	elif packet.get("type", "") == "button":
 		var key := str(packet.get("button", ""))
-		var source := str(packet.get("source_button", key))
+		var source: String = ride_mapping.physical(str(packet.get("source_button", key)))
+		# Raw edges already routed this press; suppress the bridge's legacy copy.
+		if ride_buttons.has(source): return
+		if packet.get("pressed", true) != true: return
+		if testing:
+			if source == "Z" and key == "Z" and not preferences.controller_test.capturing and preferences.controller_test.candidate.is_empty():
+				preferences.bridge_action("Z")
+			return
+		if ride_mapping.customized:
+			var action: String = ride_mapping.action_for(_ride_profile(), source)
+			if action.is_empty() or ride_mapping.profiles[_ride_profile()][action].trigger != "press": return
+			_ride_action(ride_mapping.KEYS.get(action, ""), source)
+			return
 		if source.begins_with("SHIFT_") or key.begins_with("SHIFT_") or source in ["POWER_LEFT", "POWER_RIGHT", "DROP_LEFT", "DROP_RIGHT", "ONOFF_LEFT", "ONOFF_RIGHT"]:
 			return
-		if packet.get("pressed", true) != true: return
-		if ride_buttons.has(source):
-			var edge: Dictionary = ride_buttons[source]
-			if not edge.pending or edge.context != _ride_context(): return
-			edge.pending = false
 		_ride_action(key, source)
 
 static func _bridge_number(value: Variant, fallback: float) -> float:
