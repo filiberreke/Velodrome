@@ -13,6 +13,10 @@ func press(key:String)->void:
 	g._process_bridge_packet({"type":"button","button":key,"source_button":key})
 	g._process_bridge_packet({"type":"controller_button","source_button":key,"pressed":false})
 	await process_frame
+func native_press(key:Key)->void:
+	for down in [true,false]:
+		var event:=InputEventKey.new();event.keycode=key;event.pressed=down;root.push_input(event)
+	await process_frame
 func focus()->Control: return root.gui_get_focus_owner()
 func seek(target:Control)->void:
 	for i in range(20):
@@ -38,7 +42,25 @@ func run_test()->void:
 	await press("RIGHT");await press("A")
 	check(menu.selected==1 and flow.step==1,"Ride enters individual pursuit")
 	await seek(flow.distance_buttons[0])
-	await press("RIGHT");await press("A")
+	flow.demo_row.hide()
+	await process_frame;await process_frame
+	# Native arrow keys must follow the same rows as Ride buttons.
+	await native_press(KEY_RIGHT)
+	check(focus()==flow.distance_buttons[1],"One native RIGHT moves from 1 km to 4 km with demo power hidden")
+	await native_press(KEY_RIGHT)
+	check(focus()==flow.distance_buttons[0],"Native RIGHT wraps within distance row")
+	await native_press(KEY_LEFT)
+	check(focus()==flow.distance_buttons[1],"Native LEFT stays in distance row")
+	flow.previous_button.grab_focus()
+	await native_press(KEY_RIGHT)
+	check(focus()==flow.proceed_button,"Native RIGHT moves between navigation buttons")
+	await native_press(KEY_RIGHT)
+	check(focus()==flow.previous_button,"Native RIGHT stays in navigation row")
+	flow.demo_row.show()
+	flow.distance_buttons[0].grab_focus()
+	await press("RIGHT")
+	check(focus()==flow.distance_buttons[1],"One Ride RIGHT moves from 1 km to 4 km")
+	await press("A")
 	check(menu.pursuit_options.distance_m()==4000,"Ride selects 4 km")
 	await seek(flow.proceed_button);await press("A")
 	check(flow.step==2 and g.start_state=="SETUP","Ride reaches opponent step")

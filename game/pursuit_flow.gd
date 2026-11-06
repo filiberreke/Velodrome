@@ -244,6 +244,7 @@ func update_bridge()->void:
 	proceed_button.disabled=menu.bridge_unavailable or(step==2 and not can_start())
 	status.text="Bridge niet beschikbaar: sluit andere spelinstanties."if menu.bridge_unavailable else("Kies een tegenstander om te starten."if step==2 and candidates.is_empty()else"")
 	status.visible=not status.text.is_empty()
+	_sync_horizontal_focus()
 
 func _save()->void:
 	if options==null:return
@@ -276,6 +277,16 @@ func _bridge_rows()->Array:
 			if control.is_visible_in_tree() and not(control is BaseButton and control.disabled):available.append(control)
 		if not available.is_empty():visible_rows.append(available)
 	return visible_rows
+
+func _sync_horizontal_focus()->void:
+	# Native keyboard navigation otherwise uses geometry and can choose the
+	# closer navigation button below a distance choice when demo power is hidden.
+	# Explicit neighbours keep keyboard and Ride LEFT/RIGHT in the same row.
+	for row in _bridge_rows():
+		for i in row.size():
+			var control:Control=row[i]
+			control.focus_neighbor_left=control.get_path_to(row[posmod(i-1,row.size())])
+			control.focus_neighbor_right=control.get_path_to(row[posmod(i+1,row.size())])
 
 func _bridge_focus_row(row:Array)->void:
 	if row.has(proceed_button):proceed_button.grab_focus();return
