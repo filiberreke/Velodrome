@@ -44,7 +44,10 @@ class VirtualBridgeTests(unittest.TestCase):
     def receive(self, kind=None):
         while True:
             packet = json.loads(self.receiver.recv(4096))
-            if kind == 'steering' or packet['type'] != 'steering':
+            if kind is not None:
+                if packet['type'] == kind:
+                    return packet
+            elif packet['type'] not in ('steering', 'controller_button', 'controller_connection'):
                 return packet
 
     def test_analog_slider_transmits_pressure_and_release_independently(self):
@@ -93,7 +96,56 @@ class VirtualBridgeTests(unittest.TestCase):
         self.bridge.loop()
         self.assertTrue(self.receive()['valid'])
         self.bridge.button('RIGHT')
-        self.assertEqual(self.receive(), dict(type='button', button='RIGHT'))
+        self.assertEqual(self.receive(), dict(type='button', button='RIGHT', source_button='RIGHT'))
+
+    def test_button_press_release_and_unmapped_keys(self):
+        self.receive()
+        self.bridge.press_button('B')
+        self.assertEqual(self.receive('controller_button'),
+                         dict(type='controller_button', source_button='B', mapped_action='B', pressed=True))
+        self.assertEqual(self.receive(), dict(type='button', button='B', source_button='B'))
+        self.bridge.press_button('B')
+        self.bridge.release_button('B')
+        self.assertEqual(self.receive('controller_button')['pressed'], False)
+        self.assertFalse(self.bridge.held_buttons)
+        self.bridge.press_button('Y')
+        self.assertEqual(self.receive('controller_button'),
+                         dict(type='controller_button', source_button='Y', mapped_action='Y', pressed=True))
+        self.assertEqual(self.receive(), dict(type='button', button='Y', source_button='Y'))
+        self.bridge.release_button('Y')
+        self.assertEqual(self.receive('controller_button')['pressed'], False)
+
+    def test_all_shift_keys_use_side_for_gear_direction(self):
+        self.receive()
+        for key, expected in [('SHIFT_UP_LEFT', 3), ('SHIFT_DOWN_LEFT', 2),
+                              ('SHIFT_UP_RIGHT', 3), ('SHIFT_DOWN_RIGHT', 4)]:
+            self.bridge.press_button(key)
+            self.bridge.press_button(key)
+            self.assertEqual(self.bridge.gear, expected, 'Held key only shifts once')
+            self.bridge.release_button(key)
+        self.bridge.shift(-1)
+        self.assertEqual(self.bridge.gear, 3, 'Helper must shift once')
+
+    def test_pause_and_held_button_heartbeat(self):
+        self.receive()
+        self.bridge.press_button('Z')
+        self.assertEqual(self.receive('controller_button')['mapped_action'], 'Z')
+        self.assertEqual(self.receive()['button'], 'Z')
+        self.bridge.loop()
+        heartbeat = self.receive('controller_connection')
+        self.assertEqual(heartbeat['buttons'], ['Z'])
+
+    def test_ride_disconnection_releases_held_buttons(self):
+        self.receive()
+        self.bridge.press_button('B')
+        self.receive('controller_button')
+        self.receive()
+        self.bridge.ride_connected.set(False)
+        self.bridge.loop()
+        released = self.receive('controller_button')
+        self.assertEqual((released['source_button'], released['pressed']), ('B', False))
+        self.assertEqual(self.receive('controller_connection')['connected'], False)
+        self.assertFalse(self.bridge.held_buttons)
 
     def test_closed_godot_socket_does_not_stop_scheduled_loop(self):
         self.receive()
@@ -110,6 +162,41 @@ class VirtualBridgeTests(unittest.TestCase):
         self.assertEqual(self.receive()['sample_id'], 5)
 
     @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_pursuit_settings_and_start_navigation(self):
+        self.run_integration('test_ride_pursuit_udp.gd', require_commands=False)
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_phase2_from_physical_button_bytes(self):
+        from ride_protocol import decode_packet
+        wire = {'A': '2308efffffff0f', 'B': '2308dfffffff0f', 'Z': '2308fffeffff0f'}
+        original_press = self.bridge.press_button
+        original_release = self.bridge.release_button
+
+        def physical_name(name):
+            decoded = decode_packet(bytes.fromhex(wire[name]))
+            self.assertEqual(decoded, {name})
+            return next(iter(decoded))
+
+        with patch.object(self.bridge, 'press_button', side_effect=lambda name: original_press(physical_name(name))), \
+             patch.object(self.bridge, 'release_button', side_effect=lambda name: original_release(physical_name(name))):
+            self.run_integration('test_ride_phase2_udp.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_phase2_with_phase1_mapping(self):
+        mapping = dict(self.bridge.mapping)
+        mapping.pop('Z')
+        self.bridge.close()
+        # Exercise the simulator's actual startup loader with the old file.
+        with patch.object(ui.Path, 'read_text', return_value=json.dumps(mapping)):
+            self.bridge = ui.VirtualBridge(MagicMock())
+        self.assertEqual(self.bridge.mapping['Z'], 'Z')
+        self.run_integration('test_ride_phase2_udp.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_phase2_controller_flow(self):
+        self.run_integration('test_ride_phase2_udp.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
     def test_godot_detection_countdown_and_three_races(self):
         self.run_integration('test_virtual_bridge.gd')
 
@@ -122,28 +209,45 @@ class VirtualBridgeTests(unittest.TestCase):
         self.bridge.released = True
         self.run_integration('test_team_bridge.gd')
 
-    def run_integration(self, script):
+    def run_integration(self, script, require_commands=True):
         # Bind the game on the receiver's ephemeral port, avoiding any running game.
         port = self.receiver.getsockname()[1]
         self.receiver.close()
         repo = SOURCE.parents[2]
         command_port = self.bridge.rx.getsockname()[1]
-        command = [os.environ['GODOT_BIN'], '--headless', '--path', str(repo/'game'),
+        command = [os.environ['GODOT_BIN'], '--headless', '--path', os.environ.get('GODOT_PROJECT', str(repo/'game')),
                    '--script', 'res://tests/'+script, '--',
                    str(port), str(command_port)]
         with tempfile.TemporaryDirectory() as folder:
             log_path = Path(folder) / 'godot.log'
             with log_path.open('w+b') as log:
-                self.run_godot(command, log, log_path)
+                self.run_godot(command, log, log_path, require_commands=require_commands)
 
-    def run_godot(self, command, log, log_path):
+    def run_godot(self, command, log, log_path, require_commands=True):
         with subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT) as proc:
             deadline = time.monotonic() + 45
             shifted = False
             steered = False
+            flow_steps = set()
             try:
                 while proc.poll() is None and time.monotonic() < deadline:
                     progress = log_path.read_text(errors='replace')
+                    for step in ['MODE_RIGHT', 'MODE_A', 'OPPONENT_A', 'STRENGTH_UP',
+                                 'CAROUSEL_UP', 'OPPONENT_RIGHT', 'PERCENT_DOWN',
+                                 'PERCENT_RIGHT', 'START_DOWN', 'START_A']:
+                        marker = 'PURSUIT_FLOW_'+step
+                        if marker in progress and marker not in flow_steps:
+                            self.bridge.button(step.rsplit('_', 1)[1])
+                            flow_steps.add(marker)
+                    for step, button in [('SETTINGS', 'Z'), ('CLOSE', 'B'), ('SELECT', 'A'),
+                                         ('CONFIG', 'A'), ('START', 'A'), ('SKIP', 'A'),
+                                         ('LOOK_DOWN', 'B'), ('LOOK_UP', 'B'), ('PAUSE', 'Z'),
+                                         ('RESUME', 'A'), ('RESULTS', 'B')]:
+                        if 'RIDE_FLOW_'+step in progress and step not in flow_steps:
+                            if step == 'LOOK_DOWN': self.bridge.press_button(button)
+                            elif step == 'LOOK_UP': self.bridge.release_button(button)
+                            else: self.bridge.button(button)
+                            flow_steps.add(step)
                     self.bridge.packet_drop.set('VIRTUAL_BRIDGE_DROP' in progress and 'VIRTUAL_BRIDGE_RESTORE' not in progress)
                     if 'TEAM_BRIDGE_POWER' in progress:
                         self.bridge.power.set(300)
@@ -167,7 +271,8 @@ class VirtualBridgeTests(unittest.TestCase):
                 self.assertEqual(proc.returncode, 0, output)
                 self.assertNotIn('SCRIPT ERROR', output)
                 self.assertIn('VIRTUAL_BRIDGE_OK', output)
-                self.assertGreater(self.bridge.counter, 0, 'Godot must send actual trainer commands')
+                if require_commands:
+                    self.assertGreater(self.bridge.counter, 0, 'Godot must send actual trainer commands')
             finally:
                 if proc.poll() is None: proc.kill(); proc.wait()
 

@@ -2,6 +2,21 @@
 
 Start de echte Python-bridge niet tegelijk met deze testtool. De tool opent UDP 51725 en verzendt naar Godot op 127.0.0.1:51723. Er worden geen BLE- of ANT+-verbindingen gemaakt en geen trainercommando's naar fysieke hardware verstuurd.
 
+## Controller-tab testen zonder hardware (featurebranch)
+
+1. Start `python bridge/tools/virtual_bridge_ui.py` uit deze branch en start Godot uit dezelfde branch.
+2. Open **F10 -> Instellingen -> Controller** in Godot.
+3. Druk met de muis op een van de 16 fysieke Ride-knoppen in de virtuele bridge, **houd ingedrukt** en controleer de opgelichte rij. Bij muis loslaten dooft de rij.
+4. Test ook **Y**, **Z** en de powerknoppen: deze zijn zichtbaar, ook als er geen spelactie aan gekoppeld is.
+5. Test beide analoge paddles: de bestaande gecombineerde stuurwaarde wordt in Godot weergegeven (-100 tot +100).
+6. Vink **Zwift Ride verbonden** uit terwijl een knop ingedrukt is: de virtuele bridge stuurt loslaten en een verbindingsmelding. Vink weer aan voor een nieuwe sessie.
+
+De virtuele bridge verstuurt nu net als de echte bridge een aanvullend `controller_button`-bericht voor indrukken/loslaten (met `source_button`, `mapped_action`, `pressed`) plus `controller_connection` bij verbinding en verbreking. Bestaande `button`-berichten met `source_button` blijven werken.
+
+**Opgelet:** met de Controller-tab open blokkeert Godot de reguliere spelacties. In de simulator blijft het wijzigen van een gesimuleerde versnelling via de bestaande schakelknoppen mogelijk, maar er wordt nooit echte trainerhardware aangestuurd. De speciale knoptest mag niet tegelijk met de echte bridge op dezelfde poorten draaien.
+
+De bediening wordt voor deze fase getest; knopmapping aanpassen en de televisie-intro zijn nog geen onderdeel van deze branch.
+
 ## Starten op Windows
 
 Installeer Python 3 met Tkinter (de standaardinstallatie van python.org bevat Tkinter). Open een terminal in de repository en voer uit:

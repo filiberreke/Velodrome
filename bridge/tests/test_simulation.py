@@ -30,7 +30,7 @@ class SimulationValidation(unittest.TestCase):
         grade, crr, cw = road.target(5, 4)
         self.assertAlmostEqual(grade, 5)
         self.assertAlmostEqual(crr, .004)
-        self.assertAlmostEqual(cw, .51)
+        self.assertAlmostEqual(cw, road.cw)
         # The model scales gravitational+rolling force by k and aero by k^3.
         for original_grade in [-20, -5, 0, 5, 20]:
             theta = math.atan(original_grade / 100)
@@ -45,7 +45,7 @@ class SimulationValidation(unittest.TestCase):
     def test_config_rejects_silent_saturation(self):
         path = Path(__file__).parents[1] / 'simulation_config.json'
         config = json.loads(path.read_text())
-        config['gear_factors'][-1] = 2
+        config['gear_factors'][-1] = 3
         with tempfile.TemporaryDirectory() as folder:
             file = Path(folder) / 'config.json'; file.write_text(json.dumps(config))
             with self.assertRaises(ValueError): RoadSimulation(config_path=file)
@@ -148,6 +148,11 @@ class SimulationAsync(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.controller.calls[-1][0], 4)
         c.handle_command('grade 3'); await self.drive()
         c.handle_command('erg'); await self.drive()
+        # Main requires a fresh positive target after changing modes; selecting
+        # ERG alone must keep the trainer released instead of reusing old load.
+        self.assertEqual(c.mode, 'RELEASED')
+        self.assertEqual(c.target_w, 0)
+        c.handle_command('target 200'); await self.drive()
         self.assertEqual(c.mode, 'ERG')
         self.assertEqual(self.controller.calls[-1][0], 5)
         with self.assertRaises(CommandError): c.handle_command('grade 2')
@@ -164,7 +169,11 @@ class SimulationAsync(unittest.IsolatedAsyncioTestCase):
                 self.clock.advance(3.1)
                 await c.tick(self.controller, self.sender)
                 self.assertEqual(c.last_error, 'trainer_data_timeout')
-            self.assertEqual(c.disabled, fault == 'lease')
+            # UDP lease expiry is recoverable, like stale trainer feedback.
+            self.assertFalse(c.disabled)
+            self.assertEqual(c.mode, 'RELEASED')
+            self.assertEqual(c.target_w, 0)
+            self.assertIsNone(c.owner)
             self.assertEqual(c.waiting_for_feedback, fault == 'feedback')
             self.assertTrue(c.release_confirmed)
 

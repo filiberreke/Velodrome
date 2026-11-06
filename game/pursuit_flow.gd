@@ -51,6 +51,7 @@ func text(value:String,size:int=20,color:Color=MenuStyle.INK)->Label:
 
 func button(value:String,width:float=200)->Button:
 	var node:=Button.new();node.text=value;node.custom_minimum_size=Vector2(width,50);node.add_theme_font_size_override("font_size",21)
+	MenuStyle.toggle_focus(node)
 	var selected:=StyleBoxFlat.new();selected.bg_color=MenuStyle.BLUE;selected.border_color=MenuStyle.BLUE;selected.set_border_width_all(2);selected.set_corner_radius_all(8)
 	node.add_theme_stylebox_override("pressed",selected);node.add_theme_color_override("font_pressed_color",Color.WHITE)
 	return node
@@ -170,9 +171,9 @@ func _show_step()->void:
 	proceed_button.text="Start wedstrijd →"if step==2 else"Kies tegenstander →"
 	menu.page_title.text="Kies je tegenstander"if step==2 else"Stel je wedstrijd in"
 	menu.page_title.add_theme_font_size_override("font_size",36)
-	menu.breadcrumb.text="02  Instellingen     /     Tegenstander"
+	menu.breadcrumb.text="↑/↓ Onderdeel kiezen    ·    ←/→ Aanpassen    ·    A Bevestigen    ·    B Terug"
 	if step==2:summary_label.text="%s  ·  %d km%s"%["Ploegenachtervolging"if team else"Achtervolging",options.distance_m()/1000,"  ·  %d renners"%options.team_size()if team else""]
-	update_bridge();proceed_button.grab_focus.call_deferred()
+	update_bridge();_bridge_default_focus.call_deferred()
 
 func select_kind(value:int)->void:
 	kind=value;_load_candidates(true);_save()
@@ -243,6 +244,7 @@ func update_bridge()->void:
 	proceed_button.disabled=menu.bridge_unavailable or(step==2 and not can_start())
 	status.text="Bridge niet beschikbaar: sluit andere spelinstanties."if menu.bridge_unavailable else("Kies een tegenstander om te starten."if step==2 and candidates.is_empty()else"")
 	status.visible=not status.text.is_empty()
+	_sync_horizontal_focus()
 
 func _save()->void:
 	if options==null:return
@@ -254,14 +256,87 @@ func _save()->void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(preferences_path.get_base_dir()))
 	preferences.save(preferences_path)
 
+func _bridge_rows()->Array:
+	var rows:Array=[]
+	if step==1:
+		rows.append(distance_buttons)
+		rows.append(size_buttons)
+		rows.append([advanced_toggle])
+		rows.append([resistance])
+		for input in factor_controls:rows.append([input.get_line_edit()])
+		rows.append([demo_input.get_line_edit()])
+	else:
+		rows.append([ai_tab,replay_tab])
+		rows.append([left_arrow,right_arrow])
+		rows.append([strength_slider,strength_input.get_line_edit()])
+	rows.append([previous_button,proceed_button])
+	var visible_rows:Array=[]
+	for row in rows:
+		var available:Array[Control]=[]
+		for control in row:
+			if control.is_visible_in_tree() and not(control is BaseButton and control.disabled):available.append(control)
+		if not available.is_empty():visible_rows.append(available)
+	return visible_rows
+
+func _sync_horizontal_focus()->void:
+	# Native keyboard navigation otherwise uses geometry and can choose the
+	# closer navigation button below a distance choice when demo power is hidden.
+	# Explicit neighbours keep keyboard and Ride LEFT/RIGHT in the same row.
+	for row in _bridge_rows():
+		for i in row.size():
+			var control:Control=row[i]
+			control.focus_neighbor_left=control.get_path_to(row[posmod(i-1,row.size())])
+			control.focus_neighbor_right=control.get_path_to(row[posmod(i+1,row.size())])
+
+func _bridge_focus_row(row:Array)->void:
+	if row.has(proceed_button):proceed_button.grab_focus();return
+	if row.has(strength_input.get_line_edit()):strength_input.get_line_edit().grab_focus();return
+	for control in row:
+		if control is BaseButton and control.toggle_mode and control.button_pressed:
+			control.grab_focus();return
+	row[0].grab_focus()
+
+func _bridge_default_focus()->void:
+	if not is_visible_in_tree():return
+	if not proceed_button.disabled:proceed_button.grab_focus()
+	else:
+		var rows:=_bridge_rows()
+		if not rows.is_empty():_bridge_focus_row(rows[0])
+
 func bridge_action(value:String)->void:
 	if value=="B":back();return
-	if step==2:
-		if value in ["LEFT","RIGHT"]:cycle(-1 if value=="LEFT"else 1)
-		elif value in ["UP","DOWN"]:strength_input.value+=5 if value=="UP"else -5
-		elif value=="A":next_step()
+	if value not in ["UP","DOWN","LEFT","RIGHT","A"]:return
+	var rows:=_bridge_rows()
+	if rows.is_empty():return
+	var focused:=get_viewport().gui_get_focus_owner()
+	var row_index:=-1
+	for i in rows.size():
+		if rows[i].has(focused):row_index=i;break
+	if row_index<0:
+		_bridge_default_focus()
+		focused=get_viewport().gui_get_focus_owner()
+		for i in rows.size():
+			if rows[i].has(focused):row_index=i;break
+		if row_index<0:return
+	if value in ["UP","DOWN"]:
+		_bridge_focus_row(rows[posmod(row_index+(-1 if value=="UP"else 1),rows.size())])
 		return
-	var actions:={"LEFT":"ui_left","RIGHT":"ui_right","UP":"ui_up","DOWN":"ui_down","A":"ui_accept"}
-	if not actions.has(value):return
-	for pressed in [true,false]:
-		var event:=InputEventAction.new();event.action=actions[value];event.pressed=pressed;get_viewport().push_input(event)
+	if value in ["LEFT","RIGHT"]:
+		var direction:=-1 if value=="LEFT"else 1
+		if step==2 and focused in [left_arrow,right_arrow]:cycle(direction);return
+		var input:=focused.get_parent() as SpinBox
+		if input!=null:input.value+=direction*input.step;return
+		if focused is Range:focused.value+=direction*focused.step;return
+		if focused is OptionButton:
+			var index:=posmod(focused.selected+direction,focused.item_count)
+			focused.select(index);focused.item_selected.emit(index);return
+		var row:Array=rows[row_index]
+		row[posmod(row.find(focused)+direction,row.size())].grab_focus()
+		return
+	if focused is OptionButton:
+		var index:=posmod(focused.selected+1,focused.item_count)
+		focused.select(index);focused.item_selected.emit(index)
+	elif focused is BaseButton:
+		# Keep native activation/toggle behavior, including mouse/keyboard fallback.
+		for pressed in [true,false]:
+			var event:=InputEventAction.new();event.action="ui_accept";event.pressed=pressed;get_viewport().push_input(event)

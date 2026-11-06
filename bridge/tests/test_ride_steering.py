@@ -31,6 +31,31 @@ def message(paddles, legacy=False, bitmap=0xffffffff):
 
 
 class RideSteeringTests(unittest.TestCase):
+    def test_current_physical_button_bitmaps(self):
+        # Fixed wire fixtures from BikeControl RideButtonMask (not BUTTON_BITS).
+        # An encoder using BUTTON_BITS would reproduce the decoder's mistake.
+        fixtures = {
+            'LEFT': '2308feffffff0f', 'UP': '2308fdffffff0f',
+            'RIGHT': '2308fbffffff0f', 'DOWN': '2308f7ffffff0f',
+            'A': '2308efffffff0f', 'B': '2308dfffffff0f',
+            'Y': '2308bfffffff0f', 'Z': '2308fffeffff0f',
+            'SHIFT_UP_LEFT': '2308fffdffff0f',
+            'SHIFT_DOWN_LEFT': '2308fffbffff0f',
+            'POWER_LEFT': '2308fff7ffff0f',
+            'ONOFF_LEFT': '2308ffefffff0f',
+            'SHIFT_UP_RIGHT': '2308ffdfffff0f',
+            'SHIFT_DOWN_RIGHT': '2308ffbfffff0f',
+            'POWER_RIGHT': '2308fffffeff0f',
+            'ONOFF_RIGHT': '2308fffffdff0f',
+        }
+        for name, wire_hex in fixtures.items():
+            with self.subTest(name=name):
+                self.assertEqual(decode_packet(bytes.fromhex(wire_hex)), {name})
+
+    def test_unused_high_bits_do_not_invent_drop_or_power_buttons(self):
+        for bit in (0x10000, 0x20000):
+            self.assertEqual(decode_packet(message({}, bitmap=0xffffffff ^ bit)), set())
+
     def test_current_and_legacy_analog_layouts(self):
         for legacy in (True, False):
             for value in (-100, -85, -25, 0, 25, 85, 100):

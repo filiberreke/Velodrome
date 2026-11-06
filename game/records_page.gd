@@ -50,6 +50,7 @@ func _ready() -> void:
 		var button := Button.new()
 		button.text = mode_choice.get_item_text(i)
 		button.toggle_mode = true
+		MenuStyle.toggle_focus(button)
 		button.custom_minimum_size = Vector2([260,330,150][i], 54)
 		button.pressed.connect(func() -> void: mode_choice.select(i); refresh())
 		filters.add_child(button)
@@ -61,6 +62,7 @@ func _ready() -> void:
 		var button := Button.new()
 		button.text = distance_choice.get_item_text(i)
 		button.toggle_mode = true
+		MenuStyle.toggle_focus(button)
 		button.custom_minimum_size = Vector2(120, 54)
 		button.pressed.connect(func() -> void: distance_choice.select(i); refresh())
 		filters.add_child(button)

@@ -38,12 +38,12 @@ class AeroFTMS(unittest.IsolatedAsyncioTestCase):
         c.accept('set_grade', {'grade_pct': 5, 'aero_scale': .31})
         await drive()
         first = c.status()['confirmed_simulation']
-        self.assertGreater(first['cw'], round(.51 * .31, 2))
+        self.assertGreater(first['cw'], round(c.road.cw * .31, 2))
         for _ in range(5): await drive()
         after = c.status()['confirmed_simulation']
         self.assertEqual(after['grade_pct'], before['grade_pct'])
         self.assertEqual(after['crr'], before['crr'])
-        self.assertEqual(after['cw'], round(.51 * .31, 2))
+        self.assertEqual(after['cw'], round(c.road.cw * .31, 2))
         self.assertEqual(c.applied_revision, c.revision)
         c.accept('set_grade', {'grade_pct': 5, 'aero_scale': 1})
         for _ in range(5): await drive()

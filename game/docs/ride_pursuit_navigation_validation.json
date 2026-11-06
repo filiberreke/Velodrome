@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-04",
+  "engine": "Godot 4.7.2",
+  "problem": "Opponent-screen shortcuts captured all arrows and prevented navigating the other controls. Generic setup editing could also intercept focus events before pursuit flow routing.",
+  "behavior": "Up/down moves through visible rows; left/right edits a value, changes carousel opponent, or moves between buttons; A activates the focused button; B goes back. Disabled/hidden controls are skipped.",
+  "godot": {
+    "passed": 6,
+    "failed": 0,
+    "suites": [
+      "test_ride_pursuit_navigation",
+      "test_pursuit_flow",
+      "test_ride_phase2",
+      "test_bridge_navigation",
+      "test_exit_pause",
+      "test_result_navigation"
+    ]
+  },
+  "new_coverage": [
+    "individual and team setup without injected GUI focus",
+    "distance, squad size, resistance, wheel-power factors and demo watts",
+    "AI and saved opponents, strength, explicit start",
+    "empty saved-opponent list recovery",
+    "LIVE trainer hides demo controls; three-rider squad hides the third factor"
+  ],
+  "bridge_unit_suite": {
+    "total": 86,
+    "passed": 80,
+    "skipped_optional_godot": 6,
+    "failed": 0
+  },
+  "targeted_udp_integration": {
+    "passed": 1,
+    "failed": 0,
+    "test": "test_godot_pursuit_settings_and_start_navigation",
+    "route": "VirtualBridge press/release packets over actual localhost UDP to Godot opponent selection and start"
+  },
+  "limitations": [
+    "Physical Zwift Ride retest pending.",
+    "Headless rendering reports existing dummy-material and Windows certificate-store messages; no script errors or assertion failures in final runs."
+  ]
+}

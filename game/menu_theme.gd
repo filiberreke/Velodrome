@@ -20,6 +20,12 @@ static func panel(fill: Color = IVORY, outline: Color = Color.TRANSPARENT, paddi
 	skin.set_content_margin_all(padding)
 	return skin
 
+static func focus_ring(radius: int = 9) -> StyleBox:
+	return preload("res://menu_focus_style.gd").new(radius)
+
+static func toggle_focus(button: BaseButton) -> void:
+	button.add_theme_stylebox_override("focus", focus_ring())
+
 static func heading() -> SystemFont:
 	var font := SystemFont.new()
 	font.font_names = PackedStringArray(["Arial", "Liberation Sans", "DejaVu Sans"])
@@ -52,9 +58,7 @@ static func create() -> Theme:
 		cached.set_stylebox("hover", kind, panel(PALE, BLUE, 12, 9))
 		cached.set_stylebox("pressed", kind, panel(BLUE, BLUE, 12, 9))
 		cached.set_stylebox("disabled", kind, panel(IVORY, LINE, 12, 9))
-		var focus := panel(Color.TRANSPARENT, BLUE, 0, 9)
-		focus.set_border_width_all(3)
-		cached.set_stylebox("focus", kind, focus)
+		cached.set_stylebox("focus", kind, focus_ring())
 		cached.set_constant("outline_size", kind, 0)
 	cached.set_icon("arrow", "OptionButton", icon('<path d="m7 10 5 5 5-5"/>', Color.WHITE))
 	cached.set_constant("modulate_arrow", "OptionButton", 1)
@@ -66,11 +70,12 @@ static func create() -> Theme:
 	for kind in ["LineEdit", "TextEdit"]:
 		cached.set_stylebox("normal", kind, panel(PAPER, LINE, 10, 8))
 		cached.set_stylebox("read_only", kind, panel(PALE, LINE, 10, 8))
-		cached.set_stylebox("focus", kind, panel(Color.TRANSPARENT, BLUE, 0, 8))
+		cached.set_stylebox("focus", kind, focus_ring(8))
 		cached.set_color("caret_color", kind, BLUE)
 		cached.set_color("selection_color", kind, BLUE)
 		cached.set_color("font_placeholder_color", kind, MUTED)
 	for kind in ["CheckBox", "CheckButton"]:
+		cached.set_stylebox("focus", kind, focus_ring())
 		cached.set_color("font_pressed_color", kind, INK)
 		cached.set_icon("checked", kind, icon('<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 12 3 3 7-7"/>', BLUE))
 		cached.set_icon("unchecked", kind, icon('<rect x="3" y="3" width="18" height="18" rx="4"/>', MUTED))
@@ -83,6 +88,7 @@ static func create() -> Theme:
 	cached.set_color("font_hover_color", "PopupMenu", INK)
 	cached.set_stylebox("panel", "TabContainer", panel(PAPER, LINE, 18))
 	for kind in ["TabContainer", "TabBar"]:
+		cached.set_stylebox("tab_focus", kind, focus_ring(8))
 		cached.set_color("font_hovered_color", kind, INK)
 		cached.set_stylebox("tab_selected", kind, panel(BLUE, BLUE, 14, 8))
 		cached.set_stylebox("tab_unselected", kind, panel(IVORY, LINE, 14, 8))
@@ -103,6 +109,7 @@ static func create() -> Theme:
 	return cached
 
 static func primary(button: Button) -> void:
+	button.add_theme_stylebox_override("focus", focus_ring(10))
 	for state in ["normal", "pressed", "hover"]:
 		button.add_theme_stylebox_override(state, panel(BLUE.lightened(.10) if state == "hover" else BLUE, Color.TRANSPARENT, 14, 10))
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:

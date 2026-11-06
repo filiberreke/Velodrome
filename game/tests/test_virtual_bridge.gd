@@ -31,7 +31,7 @@ func run_test() -> void:
 		if game.trainer_seen: break
 	game._update_hud()
 	check(game.trainer_seen and game.connected and game.trainer_ready, "Actual Python simulator detected in SETUP")
-	check(menu.bridge_label.text.contains("LIVE") and not menu.demo_settings.visible, "Menu reflects received bridge instead of demo")
+	check(menu.bridge_live and not menu.demo_settings.visible, "Menu reflects received bridge instead of demo")
 	check(game.watts == 0.0 and game.trainer_speed_kmh == 0.0 and game._final_start_speed_ok(), "Simulator startup permits standing start")
 	# Invalid trainer telemetry and command failure must not gain automatic recovery.
 	game.running = true
@@ -48,6 +48,11 @@ func run_test() -> void:
 	game.trainer_control.owned = false
 	game.trainer_control.may_resume = false
 	game._reset()
+	# The invalid-status fixture above deliberately interrupts an acquisition.
+	# Start the real UDP round trips with a fresh client rather than its pending ACKs.
+	game.trainer_control.close()
+	game.trainer_control = Game.TrainerControl.new()
+	game.trainer_control.port = int(args[1])
 	for race in range(3):
 		game._read_bridge()
 		game._confirm_start()
@@ -56,7 +61,7 @@ func run_test() -> void:
 		for tick in range(65):
 			game._physics_process(0.1)
 			await create_timer(0.02).timeout
-		check(game.start_state == "RACING" and game.running and game.recording_active, "Race %d uses trainer path after countdown" % race)
+		check(game._riding() and game.running and game.recording_active, "Race %d uses trainer path after countdown" % race)
 		check(game.demo_fit_records.is_empty() and game.watts == 0.0, "No demo power or demo recording injected")
 		for tick in range(40):
 			game._physics_process(0.02)
@@ -79,7 +84,7 @@ func run_test() -> void:
 				await create_timer(0.02).timeout
 				if game.trainer_control.phase == "ACTIVE" and game.trainer_selected_gear == 4: break
 			check(game.connected and game.trainer_control.phase == "ACTIVE" and game.trainer_control.owned and game.trainer_control.armed, "Fresh telemetry re-probes and resumes own SIM session")
-			check(game.start_state == "RACING" and game.trainer_selected_gear == 4, "Same race and gear restored after packet loss")
+			check(game._riding() and game.trainer_selected_gear == 4, "Same race and gear restored after packet loss")
 			print("VIRTUAL_BRIDGE_SHIFT")
 			for tick in range(50):
 				game._physics_process(0.02)
@@ -103,7 +108,7 @@ func run_test() -> void:
 	check(second._bind_bridge(game.udp.get_local_port()) != OK, "Occupied telemetry port detected")
 	second.setup_panel = menu
 	second._update_hud()
-	check(menu.bridge_label.text.contains("51723 bezet") and menu.start_button.disabled and not menu.demo_settings.visible, "Port conflict displayed; no silent demo start")
+	check(menu.bridge_unavailable and menu.start_button.disabled and not menu.demo_settings.visible, "Port conflict displayed; no silent demo start")
 	second._confirm_start()
 	check(second.start_state == "SETUP" and not second._start_conditions_met(), "Port conflict cannot enter race via start action or countdown")
 	second.setup_panel = null

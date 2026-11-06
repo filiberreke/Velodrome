@@ -16,6 +16,12 @@ func run() -> void:
 	check(game.rider_name_mode == 0 and not game._rider_label_visible(1), "Auto must suppress dense bunch")
 	check(not game.rider_energy_badges[1].visible, "Energy name cards must also hide")
 	game.bikes[1].position = Vector3(0,0,25)
+	game.start_state = "NEUTRAL"
+	game._update_bunch_presentation()
+	check(game.rider_energy_badges[1].visible, "Neutral lap must show full rider card, not bare name")
+	check(game._compact_rider_name("Hugo Ganno") == "H. Ganno", "Card name abbreviates first name")
+	check(game._compact_rider_name("Ganno") == "Ganno", "Single rider name remains intact")
+	game.start_state = "RACING"
 	game._update_bunch_presentation()
 	check(game._rider_label_visible(1) and game.rider_energy_badges[1].visible, "Solo rider must retain name and stats")
 	check(not game._rider_label_visible(0), "Own HUD should not be duplicated")

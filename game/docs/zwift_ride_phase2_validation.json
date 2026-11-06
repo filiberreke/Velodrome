@@ -1,0 +1,91 @@
+{
+  "date": "2026-11-04",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "main_merged": "364ea52fa788492e27f663f07e72bab0959c5249",
+  "merge_commit": "aa7eed7c6d3194ad4af0e8a737bcc665a545a338",
+  "godot_suites": {
+    "passed": 9,
+    "failed": 0,
+    "scripts": [
+      "test_ride_phase2",
+      "test_controller_settings",
+      "test_exit_pause",
+      "test_result_navigation",
+      "test_bridge_navigation",
+      "test_analog_steering",
+      "test_ai_energy_display",
+      "test_rider_name_visibility",
+      "test_bridge_protocol"
+    ]
+  },
+  "bridge_tests": {
+    "passed": 78,
+    "failed": 0,
+    "skipped": 0,
+    "udp_integration_tests": 3
+  },
+  "visual_checks": [
+    "settings window rendered and inspected",
+    "pause overlay rendered and inspected"
+  ],
+  "environment_notes": [
+    "Separate APPDATA/LOCALAPPDATA test profile; ephemeral UDP ports.",
+    "Test copy uses existing imported graphical assets. Fresh asset import/export was not validated.",
+    "Windows root certificate store warning and asset UID fallback warnings did not prevent tests."
+  ],
+  "limitations": [
+    "Physical Ride/KICKR hardware not tested.",
+    "External Strava sign-in remains a browser interaction.",
+    "Independent bridge SHIFT handling remains active in Controller diagnostics, as in phase 1.",
+    "UDP may lose a button press; repeat the press if needed. Controller heartbeats repair a lost rear-view release."
+  ],
+  "follow_up_z_mapping": {
+    "date": "2026-11-04",
+    "reproduced": "Phase-1 mapping missing Z emits controller diagnostics but no game action.",
+    "fix": "Default omitted Z binding in shared loader; preserve explicit empty/custom bindings; simulator uses same loader.",
+    "bridge_suite": {
+      "total": 81,
+      "passed": 77,
+      "skipped_optional_godot": 4,
+      "failed": 0
+    },
+    "targeted_real_udp": {
+      "passed": 2,
+      "failed": 0,
+      "scenarios": [
+        "current mapping controller flow",
+        "phase-1 mapping startup then controller flow including pause/resume"
+      ]
+    }
+  },
+  "follow_up_physical_button_names": {
+    "date": "2026-11-04",
+    "user_confirmation": "Physical left SHIFT + appears as Z in the old decoder.",
+    "source": "https://github.com/OpenBikeControl/bikecontrol/blob/1458e974574fe2dc99546c3bda3cf2f99736e0b0/lib/bluetooth/devices/zwift/zwift_ride.dart#L326",
+    "fix": "Correct nine digital bitmasks from Z onward; preserve symbolic UDP names and independent analog decoding.",
+    "independent_fixtures": {
+      "digital_buttons": 16,
+      "results": "passed",
+      "old_decoder": "nine button-name failures plus an unused-high-bit regression"
+    },
+    "bridge_suite_without_optional_godot": {
+      "total": 85,
+      "passed": 80,
+      "skipped": 5,
+      "failed": 0
+    },
+    "full_suite": {
+      "total": 85,
+      "passed": 84,
+      "failed": 1,
+      "passed_godot_integrations": [
+        "phase2_controller_flow",
+        "phase2_from_physical_button_bytes",
+        "phase2_with_phase1_mapping",
+        "manual_team_gears_and_erg_return"
+      ],
+      "failed_godot_integration": "detection_countdown_and_three_races exceeded its time budget; an isolated retry with a larger budget also timed out"
+    },
+    "hardware_retest": "Pending after updating/restarting the bridge; reported left SHIFT + to Z mismatch matches the corrected bitmask exactly."
+  }
+}
