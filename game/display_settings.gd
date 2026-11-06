@@ -364,6 +364,7 @@ func _on_appearance_draft(_index: int) -> void:
 	_update_appearance_preview()
 
 func _on_settings_tab_changed(index: int) -> void:
+	get_parent().call("_clear_look_back")
 	appearance_preview.set_active(panel_root.visible and index == 0)
 	if controller_test != null:
 		controller_test.call("set_testing", controller_test_active())
