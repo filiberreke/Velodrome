@@ -392,7 +392,7 @@ async def main(args):
             print('ANT+ overgeslagen (--no-ant). Hartslag in telemetrie = null.')
 
         discovery = Discovery(discover_devices)
-        trainer_search = DeviceSearch(discovery, lambda records: select_device(records, args.trainer), 'KICKR')
+        trainer_search = DeviceSearch(discovery, lambda records: select_device(records, args.trainer), 'FTMS-trainer')
         ride_search = DeviceSearch(discovery, lambda records: select_left_ride(records, args.ride), 'Linker Zwift Ride')
 
         combined = CombinedMode(args.erg_ramp_w_per_s)
@@ -425,7 +425,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description='Velodrome 250 v0.15: lokale UDP SIM/ERG + ANT+ hartslag')
     p.add_argument('--list', action='store_true', help='Alleen BLE-apparaten tonen (start ANT+ niet)')
     p.add_argument('--no-ant', action='store_true', help='Start alleen KICKR en Zwift Ride, zonder ANT+ dongle')
-    p.add_argument('--trainer', default='KICKR', help='Deel van trainernaam')
+    p.add_argument('--trainer', default='', help='Optioneel deel van trainernaam; standaard automatische FTMS-detectie')
     p.add_argument('--ride', default='', help='Optioneel BLE-adres van de LINKER Ride; standaard auto-detectie')
     p.add_argument('--erg-ramp-w-per-s', type=float, default=300.0, help='ERG overgangssnelheid 1..10000 W/s, standaard 300')
     args = p.parse_args()
