@@ -18,4 +18,25 @@ Keep all extracted files and folders together, including `VelodromeGame.exe`, it
 
 The existing `.github/workflows/windows-demo.yml` is unchanged. The bundled workflow reuses its exported game and adds a Python bridge and launcher.
 
+## Bridge runtime files
+
+PyInstaller 6 stores the bridge's supporting files in `bridge/_internal/`.
+The workflow includes every JSON file from the source `bridge/` directory using
+`--add-data` with destination `.`. This places `gear_config.json`,
+`simulation_config.json` and `button_mapping.json` beside the frozen modules,
+where their `Path(__file__).with_name(...)` loaders expect them. Keep these
+files in `_internal`; copies beside `VelodromeBridge.exe` are not used.
+
+Before upload, the workflow checks that all three required configurations exist,
+compares every bundled JSON file with its source, and runs
+`bridge/VelodromeBridge.exe --check-config` from an unrelated working directory.
+This loads the real gear, road simulation and button mapping configurations
+without starting Bluetooth, ANT+, UDP listeners or the game.
+
+The game still requires `VelodromeGame.exe`, `VelodromeGame.pck`,
+`Initialize-Config.ps1` and the `defaults/` configuration templates. Python
+dependencies are collected by PyInstaller; the legacy ANT+ `libusb0.dll` and
+matching driver are machine prerequisites, not repository assets. Hardware
+operation is not covered by the configuration check.
+
 **Testing status:** The bundled release has not yet been verified on Windows hardware. If the launcher does not start the game, report the contents of the extracted folder and any error message. FTMS resistance should be released before closing; terminating the bridge is not guaranteed to send an FTMS Reset. PyInstaller's ANT+ backend may require further adjustments.

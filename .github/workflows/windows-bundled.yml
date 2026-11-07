@@ -61,10 +61,16 @@ jobs:
       - name: Package independent Python bridge
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onedir --console --name VelodromeBridge --distpath bundled --workpath .build/bridge --specpath .build bridge/bridge.py
+          # Destination '.' is relative to PyInstaller's _internal directory,
+          # matching the bridge modules' Path(__file__).with_name(...) lookups.
+          $dataArgs = @()
+          foreach ($config in Get-ChildItem bridge -File -Filter '*.json') {
+            # Absolute source paths also work when the spec lives in .build/.
+            $dataArgs += @('--add-data', "$($config.FullName):.")
+          }
+          python -m PyInstaller --noconfirm --clean --onedir --contents-directory _internal --console --name VelodromeBridge --distpath bundled --workpath .build/bridge --specpath .build @dataArgs bridge/bridge.py
           if ($LASTEXITCODE -ne 0) { throw 'Bridge packaging failed' }
           Move-Item bundled/VelodromeBridge bundled/bridge
-          Get-ChildItem bridge -Filter '*.json' | Copy-Item -Destination bundled/bridge
 
       - name: Package single-entry launcher
         shell: pwsh
@@ -79,6 +85,27 @@ jobs:
           if (Test-Path bundled/Start-Velodrome.cmd) { throw 'Standalone start script must not be included in bundled release' }
           foreach ($file in @('Velodrome.exe','VelodromeGame.exe','VelodromeGame.pck','bridge/VelodromeBridge.exe','Initialize-Config.ps1')) {
             if (!(Test-Path (Join-Path bundled $file))) { throw "Missing bundled file: $file" }
+          }
+          foreach ($required in @('gear_config.json','simulation_config.json','button_mapping.json')) {
+            if (!(Test-Path -PathType Leaf "bundled/bridge/_internal/$required")) { throw "Missing bridge configuration: $required" }
+          }
+          foreach ($config in Get-ChildItem bridge -File -Filter '*.json') {
+            $packaged = Join-Path bundled/bridge/_internal $config.Name
+            if (!(Test-Path -PathType Leaf $packaged)) { throw "Missing bundled JSON: $packaged" }
+            if ((Get-FileHash $config.FullName).Hash -ne (Get-FileHash $packaged).Hash) { throw "Bundled JSON differs from source: $packaged" }
+          }
+
+      - name: Check frozen bridge configuration without hardware
+        shell: pwsh
+        run: |
+          # Exercise actual frozen module paths from an unrelated working directory.
+          $bridge = (Resolve-Path bundled/bridge/VelodromeBridge.exe).Path
+          Push-Location $env:RUNNER_TEMP
+          try {
+            & $bridge --check-config
+            if ($LASTEXITCODE -ne 0) { throw 'Frozen bridge configuration check failed' }
+          } finally {
+            Pop-Location
           }
 
       - name: Upload combined Windows distribution
