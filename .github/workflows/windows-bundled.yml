@@ -42,6 +42,9 @@ jobs:
             if (!(Test-Path (Join-Path bundled $required))) { throw "Existing demo config file missing: $required" }
           }
           Rename-Item bundled/Velodrome.exe VelodromeGame.exe
+          Rename-Item bundled/Velodrome.pck VelodromeGame.pck
+          # The bundled launcher is the only supported entry point.
+          if (Test-Path bundled/Start-Velodrome.cmd) { Remove-Item bundled/Start-Velodrome.cmd -Force }
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -73,7 +76,8 @@ jobs:
       - name: Verify bundled file layout
         shell: pwsh
         run: |
-          foreach ($file in @('Velodrome.exe','VelodromeGame.exe','Velodrome.pck','bridge/VelodromeBridge.exe','Initialize-Config.ps1')) {
+          if (Test-Path bundled/Start-Velodrome.cmd) { throw 'Standalone start script must not be included in bundled release' }
+          foreach ($file in @('Velodrome.exe','VelodromeGame.exe','VelodromeGame.pck','bridge/VelodromeBridge.exe','Initialize-Config.ps1')) {
             if (!(Test-Path (Join-Path bundled $file))) { throw "Missing bundled file: $file" }
           }
 
