@@ -424,6 +424,7 @@ async def main(args):
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description='Velodrome 250 v0.15: lokale UDP SIM/ERG + ANT+ hartslag')
     p.add_argument('--list', action='store_true', help='Alleen BLE-apparaten tonen (start ANT+ niet)')
+    p.add_argument('--check-config', action='store_true', help='Controleer alle configuratiebestanden en sluit af zonder apparaten te starten')
     p.add_argument('--no-ant', action='store_true', help='Start alleen KICKR en Zwift Ride, zonder ANT+ dongle')
     p.add_argument('--trainer', default='KICKR', help='Deel van trainernaam')
     p.add_argument('--ride', default='', help='Optioneel BLE-adres van de LINKER Ride; standaard auto-detectie')
@@ -434,6 +435,12 @@ if __name__ == '__main__':
         validate_rate(args.erg_ramp_w_per_s)
     except ValueError as exc:
         p.error(str(exc))
+    if args.check_config:
+        # Use the same loaders and module-relative paths as normal startup.
+        CombinedMode(args.erg_ramp_w_per_s)
+        ButtonMapper.load()
+        print('Bridge configuration OK: gear_config.json, simulation_config.json, button_mapping.json')
+        p.exit()
     handler = RotatingFileHandler(Path(__file__).with_name('bridge.log'), maxBytes=1000000, backupCount=2, encoding='utf-8')
     logging.basicConfig(level=logging.INFO, handlers=[handler, logging.StreamHandler()],
                         format='%(asctime)s %(levelname)s %(name)s %(message)s')
