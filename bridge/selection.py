@@ -13,10 +13,24 @@ def is_left_ride(device, advertisement):
     return bool(marker and marker[0] == 8)
 
 
+FTMS_UUID = "00001826-0000-1000-8000-00805f9b34fb"
+TRAINER_NAME_TOKENS = ("kickr", "tacx", "neo", "flux", "elite", "direto", "suito", "justo")
+
+
+def advertises_ftms(advertisement):
+    services = getattr(advertisement, 'service_uuids', None) or ()
+    return any(str(service).casefold() in ("1826", "0x1826", FTMS_UUID)
+               for service in services)
+
+
 def select_device(records, query, default_tokens=()):
     """Ordinary BLE name selection (trainer etc.)."""
     needle = (query or '').strip().casefold()
-    tokens = tuple(t.casefold() for t in default_tokens)
+    tokens = tuple(t.casefold() for t in default_tokens) or TRAINER_NAME_TOKENS
+    if not needle:
+        for device, advertisement in records:
+            if advertises_ftms(advertisement):
+                return device
     for device, advertisement in records:
         names = (advertised_name(device, advertisement), getattr(device, 'name', '') or '')
         if needle:
