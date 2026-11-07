@@ -398,7 +398,9 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
         raw, endpoint = sender.sock.sent[-1]
         self.assertEqual(endpoint, ('127.0.0.1', 51723))
         result = json.loads(raw)
-        self.assertEqual(set(result), {'type', 'valid', 'power_w', 'speed_kmh', 'cadence_rpm', 'sample_id', 'heart_rate_bpm', 'gear'})
+        self.assertEqual(set(result), {'type', 'valid', 'power_w', 'speed_kmh', 'cadence_rpm', 'sample_id', 'power_sample_id', 'power_age_s', 'heart_rate_bpm', 'gear'})
+        self.assertEqual(result['power_sample_id'], 0)
+        self.assertIsNone(result['power_age_s'])
         self.assertTrue(result['valid'])
         self.assertEqual(result['gear'], 4)
         self.assertEqual(result['heart_rate_bpm'], 140)

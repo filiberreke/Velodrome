@@ -1,6 +1,7 @@
 extends Control
 signal start_requested
 signal difficulty_changed(value: float)
+signal training_environment_requested(active: bool)
 const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
 const Records := preload("res://pursuit_records.gd")
@@ -63,6 +64,16 @@ var demo_power_input: SpinBox
 var difficulty_slider: HSlider
 var difficulty_label: Label
 var race_settings: VBoxContainer
+var hub_page: VBoxContainer
+var training_page: VBoxContainer
+var tournament_page: VBoxContainer
+var ftp_page
+var hub_button: Button
+var races_back: Button
+var menu_margin: MarginContainer
+var menu_layout: VBoxContainer
+var menu_tint: ColorRect
+var session_panel: PanelContainer
 
 static func panel_style(colour: Color, outline: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -86,11 +97,13 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var tint := ColorRect.new()
+	menu_tint = tint
 	tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	tint.color = Color(0.07, 0.16, 0.27, 0.12)
 	tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tint)
 	var margin := MarginContainer.new()
+	menu_margin = margin
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right"]: margin.add_theme_constant_override("margin_" + side, 64)
 	margin.add_theme_constant_override("margin_top", 22)
@@ -123,6 +136,7 @@ func _ready() -> void:
 	shell.add_theme_stylebox_override("panel", paper)
 	outer.add_child(shell)
 	var layout := VBoxContainer.new()
+	menu_layout = layout
 	layout.add_theme_constant_override("separation", 16)
 	shell.add_child(layout)
 	var title_row := HBoxContainer.new()
@@ -209,7 +223,91 @@ func _ready() -> void:
 	records_page.back_requested.connect(show_choices)
 	footer_label = label("Pijltjes: kiezen  •  A: bevestigen  •  B: terug  •  Z / F10: instellingen", 17, MUTED)
 	layout.add_child(footer_label)
-	show_choices()
+	_build_hub(layout)
+	show_hub()
+
+func _hub_button(parent: VBoxContainer, caption: String, action: Callable) -> Button:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size.y = 90
+	button.pressed.connect(action)
+	parent.add_child(button)
+	return button
+
+func _build_hub(layout: VBoxContainer) -> void:
+	hub_page = VBoxContainer.new()
+	hub_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hub_page.add_theme_constant_override("separation", 24)
+	layout.add_child(hub_page)
+	hub_button = _hub_button(hub_page, "Wedstrijden  →", show_choices)
+	_hub_button(hub_page, "Training  →", show_training)
+	_hub_button(hub_page, "Toernooien  →", show_tournaments)
+	races_back = _hub_button(choice_page, "← Hoofdmenu", show_hub)
+	races_back.custom_minimum_size.y = 46
+	training_page = VBoxContainer.new()
+	training_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(training_page)
+	_hub_button(training_page, "FTP Ramp Test  →", show_ftp)
+	_hub_button(training_page, "← Hoofdmenu", show_hub)
+	tournament_page = VBoxContainer.new()
+	tournament_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(tournament_page)
+	tournament_page.add_child(label("Toernooien worden later toegevoegd.", 28))
+	_hub_button(tournament_page, "← Hoofdmenu", show_hub)
+	ftp_page = preload("res://ftp_training.gd").new()
+	layout.add_child(ftp_page)
+	ftp_page.back_requested.connect(show_training)
+	ftp_page.environment_requested.connect(_training_environment)
+	session_panel = PanelContainer.new()
+	session_panel.position = Vector2(30, 30)
+	session_panel.custom_minimum_size = Vector2(600, 0)
+	session_panel.size = Vector2(600, 0)
+	session_panel.add_theme_stylebox_override("panel", MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 24, 14))
+	add_child(session_panel)
+	session_panel.hide()
+
+func _training_environment(active: bool) -> void:
+	if active:
+		if ftp_page.get_parent() != session_panel: ftp_page.reparent(session_panel)
+		menu_margin.hide()
+		menu_tint.hide()
+		session_panel.show()
+	else:
+		if ftp_page.get_parent() != menu_layout: ftp_page.reparent(menu_layout)
+		session_panel.hide()
+		menu_margin.show()
+		menu_tint.show()
+	training_environment_requested.emit(active)
+
+func _hide_hub_pages() -> void:
+	if hub_page == null: return
+	for node in [hub_page, training_page, tournament_page, ftp_page]: node.hide()
+
+func _show_section(index: int, caption: String, node: Control) -> void:
+	if ftp_page.test.running(): ftp_page.finish("Test verlaten")
+	_hide_hub_pages()
+	for child in [choice_page, settings_page, records_page, pursuit_flow, startlist_page]: child.hide()
+	page = index
+	page_title.text = caption
+	breadcrumb.text = "Velodrome v0.2"
+	footer_label.show()
+	node.show()
+	var focus: Control = node.get_child(0)
+	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
+	focus.grab_focus.call_deferred()
+
+func show_hub() -> void:
+	_show_section(0, "Welkom in Velodrome", hub_page)
+
+func show_training() -> void:
+	_show_section(6, "Training", training_page)
+
+func show_tournaments() -> void:
+	_show_section(7, "Toernooien", tournament_page)
+	tournament_page.get_child(1).grab_focus.call_deferred()
+
+func show_ftp() -> void:
+	_show_section(8, "FTP Ramp Test", ftp_page)
 
 func _build_settings(layout: VBoxContainer) -> void:
 	settings_page = CenterContainer.new()
@@ -342,6 +440,7 @@ func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: i
 	return input
 
 func show_choices() -> void:
+	_hide_hub_pages()
 	footer_label.show()
 	page_title.add_theme_font_size_override("font_size",44)
 	if startlist_page != null: startlist_page.hide()
@@ -357,6 +456,7 @@ func show_choices() -> void:
 		cards[selected].grab_focus.call_deferred()
 
 func select_mode(index: int) -> void:
+	_hide_hub_pages()
 	if page == 2 and selected in [0, 3, 5]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	footer_label.show()
 	page_title.add_theme_font_size_override("font_size",44)
@@ -430,6 +530,10 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8]:
+		bridge_action("B")
+		get_viewport().set_input_as_handled()
+		return
 	if visible and page in [2, 3, 4, 5] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
 		if page == 5: startlist_page.back()
 		elif selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
@@ -450,12 +554,20 @@ func bridge_action(button: String) -> void:
 		return
 	if button == "B":
 		if page in [2, 3]: show_choices()
+		elif page in [1, 6, 7]: show_hub()
+		elif page == 8: ftp_page.leave()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	if focused == null or not is_ancestor_of(focused):
 		if page == 1: cards[selected].grab_focus()
+		elif page == 0: hub_button.grab_focus()
+		elif page == 6: training_page.get_child(0).grab_focus()
+		elif page == 7: tournament_page.get_child(1).grab_focus()
+		elif page == 8:
+			if ftp_page.test.running(): ftp_page.stop_button.grab_focus()
+			else: ftp_page.back_button.grab_focus()
 		else: back_button.grab_focus()
 	for pressed in [true, false]:
 		var event := InputEventAction.new()

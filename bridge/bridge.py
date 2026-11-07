@@ -39,6 +39,7 @@ class Sender:
         self.last_received = 0.0
         self.connected = False
         self.sample_id = 0
+        self.power_sample_id = 0  # Distinct measured power, not cadence-only notifications.
         self.heart_rate = HeartRateState()
         self.combined_mode = None  # Linked after device selection; no FTMS startup changes.
 
@@ -54,6 +55,8 @@ class Sender:
                        "speed_kmh": self.latest.get("speed_kmh"),
                        "cadence_rpm": self.latest.get("cadence_rpm"),
                        "sample_id": self.sample_id,
+                       "power_sample_id": self.power_sample_id,
+                       "power_age_s": max(0.0, time.monotonic() - self.last_power) if self.last_power else None,
                        "heart_rate_bpm": self.heart_rate.current_bpm(),
                        "gear": self.combined_mode.selected_gear() if self.combined_mode is not None else None})
             await asyncio.sleep(0.1)
@@ -88,6 +91,7 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
                         sender.last_received = time.monotonic()
                         if 'power_w' in values:
                             sender.last_power = sender.last_received
+                            sender.power_sample_id += 1
                         sender.sample_id += 1
                     except ValueError as exc:
                         print("FTMS decode:", exc)

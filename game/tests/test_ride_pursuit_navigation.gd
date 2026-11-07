@@ -39,6 +39,7 @@ func run_test()->void:
 	flow.preferences_path="user://test_ride_pursuit_selection.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(flow.preferences_path))
 	# Enter individual pursuit from the gallery using only Ride buttons.
+	await press("A") # v0.2: enter Wedstrijden from the higher-level menu.
 	await press("RIGHT");await press("A")
 	check(menu.selected==1 and flow.step==1,"Ride enters individual pursuit")
 	await seek(flow.distance_buttons[0])

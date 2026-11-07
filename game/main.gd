@@ -4,6 +4,7 @@ signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
 const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
+var training_environment
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
@@ -603,6 +604,7 @@ func _ready() -> void:
 	add_child(exit_menu)
 	exit_menu.setup(self)
 	_reset()
+	setup_panel.show_hub()
 
 func _bind_bridge(port: int = UDP_PORT) -> Error:
 	bridge_bind_error = udp.bind(port, "127.0.0.1")
@@ -621,6 +623,11 @@ func _begin_dropout(since: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_read_bridge()
+	if training_environment != null and training_environment.active:
+		trainer_control.tick(false, 0.0, 1.0, _now_s())
+		exit_menu.set_exit_visible(false)
+		training_environment.advance(delta)
+		return
 	if _now_s() - last_telemetry > 1.0:
 		trainer_ready = false
 		_begin_dropout(last_telemetry)
@@ -826,6 +833,7 @@ func _resume_race() -> void:
 	exit_menu.hide_pause()
 
 func _quit_application() -> void:
+	if setup_panel != null and setup_panel.ftp_page != null: setup_panel.ftp_page.shutdown()
 	trainer_control.close()
 	_save_recording("exit")
 	get_tree().quit()
@@ -922,6 +930,10 @@ func _ride_context() -> String:
 	return "race"
 
 func _ride_action(key: String, source: String = "B") -> void:
+	# Physical gears stay owned by the bridge during training, including when
+	# a user mapped their shift paddles to menu confirmation/back actions.
+	if setup_panel != null and setup_panel.visible and setup_panel.page == 8 and source.begins_with("SHIFT_"):
+		return
 	var preferences := get_node_or_null("GameSettings")
 	# The diagnostic page consumes every gameplay action. Z explicitly exits it.
 	if preferences != null and preferences.controller_test_active():
@@ -935,7 +947,7 @@ func _ride_action(key: String, source: String = "B") -> void:
 			else: ride_navigation.navigate(exit_menu.backdrop, key, exit_menu.resume_button, true)
 		"setup":
 			if key == "Z": preferences.toggle_menu()
-			elif key == "B" and setup_panel.page == 1: exit_menu.show_quit()
+			elif key == "B" and setup_panel.page == 0: exit_menu.show_quit()
 			elif setup_panel.selected in [1, 2] and setup_panel.pursuit_flow.visible:
 				# The pursuit flow owns its rows; generic range editing must not
 				# consume arrows or A before that screen can navigate/confirm.
@@ -1040,6 +1052,8 @@ func _process_bridge_json(raw: String) -> void:
 	_process_bridge_packet(parser.data)
 
 func _process_bridge_packet(packet: Dictionary) -> void:
+	if setup_panel != null and setup_panel.ftp_page != null:
+		setup_panel.ftp_page.receive(packet, _now_s())
 	var preferences: Node = get_node_or_null("GameSettings")
 	var testing: bool = preferences != null and preferences.call("controller_test_active")
 	if packet.get("type", "") in ["controller_button", "controller_connection"]:
@@ -2282,6 +2296,7 @@ func _build_hud() -> void:
 	difficulty_slider.value = ai_difficulty
 	menu.difficulty_changed.connect(_difficulty_changed)
 	menu.start_requested.connect(_confirm_start)
+	menu.training_environment_requested.connect(_training_environment_requested)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(24, 255)
 	result_panel.custom_minimum_size = Vector2(425, 380)
@@ -2538,6 +2553,17 @@ func _set_menu_visible(is_visible: bool) -> void:
 		boost_dog.visible = not is_visible
 	if arena != null and arena.get("board") != null:
 		arena.get("board").visible = not is_visible
+
+func _training_environment_requested(active: bool) -> void:
+	if active:
+		if training_environment == null:
+			training_environment = preload("res://training_environment.gd").new()
+			add_child(training_environment)
+		broadcast_intro.cancel()
+		training_environment.enter()
+	elif training_environment != null:
+		training_environment.leave()
+		exit_menu.set_exit_visible(true)
 
 func _difficulty_changed(value: float) -> void:
 	ai_difficulty = value
@@ -2796,6 +2822,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_clear_look_back()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		if what == NOTIFICATION_WM_CLOSE_REQUEST and setup_panel != null and setup_panel.ftp_page != null:
+			setup_panel.ftp_page.shutdown()
 		trainer_control.close()
 		_save_recording("exit")
 

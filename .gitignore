@@ -35,3 +35,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Isolated local Godot test settings, logs and captures
+/.test-user/
