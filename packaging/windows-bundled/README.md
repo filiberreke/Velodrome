@@ -1,14 +1,21 @@
-# Combined Windows release (additional workflow)
+# Combined Windows release (game + bridge)
 
-The existing `.github/workflows/windows-demo.yml` remains **unchanged**. It already handles Godot 4.7.2, Blender source isolation, asset import, export, config templates, and Windows smoke tests.
+## Start the bundled version
 
-1. Run the existing **Windows demo build** workflow successfully.
-2. Note that workflow run's numeric GitHub Actions run ID.
-3. Run **Windows bundled game and bridge** from Actions on this branch, supplying `demo_run_id`.
-4. Download the `Velodrome-Bundled-Windows-x64` artifact.
+1. Download the **Velodrome-Bundled-Windows-x64** artifact from GitHub Actions.
+2. Extract the entire ZIP to a writable folder.
+3. Double-click **Velodrome.exe** in the extracted folder.
 
-The new workflow consumes the **validated** `Velodrome-Demo-Windows-x64` artifact; it never rebuilds or changes the standalone game. It renames the game EXE inside its own temporary release folder to `VelodromeGame.exe`, retaining the original `Velodrome.pck`, configuration templates and initialization script. It then packages the Python bridge and a top-level `Velodrome.exe` launcher.
+**Do not use `Start-Velodrome.cmd` for the bundled version.** That script belongs to the standalone Windows demo, where `Velodrome.exe` is the game itself. In the bundled version, `Velodrome.exe` is the launcher: it initializes the configuration, starts the bridge, launches the game and stops the bridge when the game closes.
 
-Users start one `Velodrome.exe` but must retain the entire extracted folder. The launcher initializes config using the existing script, starts the bridge, runs the game, and terminates the bridge when the game exits. Godot and bridge remain separate processes communicating via existing UDP ports.
+Keep all extracted files and folders together, including the bridge, game executable, Godot PCK and configuration templates.
 
-**Not yet hardware-tested.** Force-terminating a bridge is not a guaranteed FTMS Reset; release active resistance before closing. PyInstaller's ANT+ backend may need adjustments after a Windows hardware test. The source demo run and bundled workflow should use compatible commits; no automatic provenance check is implemented.
+## Build in GitHub Actions
+
+1. Ensure the existing **Windows demo build** workflow has a successful run with an available artifact.
+2. Open **Windows bundled game and bridge** under Actions and choose **Run workflow**. **No run ID is needed**: the workflow automatically selects the latest successful demo run with an available `Velodrome-Demo-Windows-x64` artifact.
+3. Download the resulting `Velodrome-Bundled-Windows-x64` artifact.
+
+The existing `.github/workflows/windows-demo.yml` is unchanged. The bundled workflow reuses its exported game and adds a Python bridge and launcher.
+
+**Testing status:** The bundled release has not yet been verified on Windows hardware. If the launcher does not start the game, report the contents of the extracted folder and any error message. FTMS resistance should be released before closing; terminating the bridge is not guaranteed to send an FTMS Reset. PyInstaller's ANT+ backend may require further adjustments.
