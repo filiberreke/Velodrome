@@ -2,11 +2,6 @@ name: Windows bundled game and bridge
 
 on:
   workflow_dispatch:
-    inputs:
-      demo_run_id:
-        description: 'Successful run ID of existing Windows demo build (windows-demo.yml)'
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -25,9 +20,22 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          DEMO_RUN_ID: ${{ inputs.demo_run_id }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          gh run download $env:DEMO_RUN_ID --repo "${{ github.repository }}" --name Velodrome-Demo-Windows-x64 --dir bundled
+          $runs = gh api "repos/$env:GH_REPO/actions/workflows/windows-demo.yml/runs?status=success&per_page=50" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve successful demo runs' }
+          $selected = $null
+          foreach ($candidate in $runs.workflow_runs) {
+            $artifacts = gh api "repos/$env:GH_REPO/actions/runs/$($candidate.id)/artifacts?per_page=100" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "Could not inspect artifacts for run $($candidate.id)" }
+            if (@($artifacts.artifacts | Where-Object { $_.name -eq 'Velodrome-Demo-Windows-x64' -and -not $_.expired }).Count -gt 0) {
+              $selected = $candidate.id
+              break
+            }
+          }
+          if (-not $selected) { throw 'No successful demo run with an available Windows artifact found' }
+          Write-Host "Using latest successful demo build with available artifact: $selected"
+          gh run download $selected --repo "$env:GH_REPO" --name Velodrome-Demo-Windows-x64 --dir bundled
           if ($LASTEXITCODE -ne 0) { throw 'Validated Windows demo artifact unavailable; run existing windows-demo workflow first' }
           if (!(Test-Path bundled/Velodrome.exe) -or !(Test-Path bundled/Velodrome.pck)) { throw 'Existing game export is incomplete' }
           foreach ($required in @('Initialize-Config.ps1','defaults/riders_config.cfg','defaults/strava_config.cfg')) {
