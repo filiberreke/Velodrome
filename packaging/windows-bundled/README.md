@@ -6,9 +6,9 @@
 2. Extract the entire ZIP to a writable folder.
 3. Double-click **Velodrome.exe** in the extracted folder.
 
-**Do not use `Start-Velodrome.cmd` for the bundled version.** That script belongs to the standalone Windows demo, where `Velodrome.exe` is the game itself. In the bundled version, `Velodrome.exe` is the launcher: it initializes the configuration, starts the bridge, launches the game and stops the bridge when the game closes.
+**The bundled ZIP contains no `Start-Velodrome.cmd`.** It is deliberately excluded because it is only for the standalone Windows demo. In this bundled version, `Velodrome.exe` is the only start point: it initializes the configuration, starts the bridge, launches the game and stops the bridge when the game closes.
 
-Keep all extracted files and folders together, including the bridge, game executable, Godot PCK and configuration templates.
+Keep all extracted files and folders together, including `VelodromeGame.exe`, its matching `VelodromeGame.pck`, the `bridge/` folder and configuration templates. Do not start `VelodromeGame.exe` directly.
 
 ## Build in GitHub Actions
 
