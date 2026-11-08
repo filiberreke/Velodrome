@@ -68,6 +68,7 @@ var hub_page: VBoxContainer
 var training_page: VBoxContainer
 var tournament_page: VBoxContainer
 var ftp_page
+var workout_editor_page: VBoxContainer
 var hub_button: Button
 var races_back: Button
 var menu_margin: MarginContainer
@@ -248,12 +249,16 @@ func _build_hub(layout: VBoxContainer) -> void:
 	training_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(training_page)
 	_hub_button(training_page, "FTP Ramp Test  →", show_ftp)
+	_hub_button(training_page, "Workout-editor  →", show_workout_editor)
 	_hub_button(training_page, "← Hoofdmenu", show_hub)
 	tournament_page = VBoxContainer.new()
 	tournament_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(tournament_page)
 	tournament_page.add_child(label("Toernooien worden later toegevoegd.", 28))
 	_hub_button(tournament_page, "← Hoofdmenu", show_hub)
+	workout_editor_page = preload("res://workout_editor.gd").new()
+	layout.add_child(workout_editor_page)
+	workout_editor_page.back_requested.connect(show_training)
 	ftp_page = preload("res://ftp_training.gd").new()
 	layout.add_child(ftp_page)
 	ftp_page.back_requested.connect(show_training)
@@ -281,7 +286,7 @@ func _training_environment(active: bool) -> void:
 
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
-	for node in [hub_page, training_page, tournament_page, ftp_page]: node.hide()
+	for node in [hub_page, training_page, tournament_page, ftp_page, workout_editor_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
 	if ftp_page.test.running(): ftp_page.finish("Test verlaten")
@@ -305,6 +310,9 @@ func show_training() -> void:
 func show_tournaments() -> void:
 	_show_section(7, "Toernooien", tournament_page)
 	tournament_page.get_child(1).grab_focus.call_deferred()
+
+func show_workout_editor() -> void:
+	_show_section(10, "Workout-editor", workout_editor_page)
 
 func show_ftp() -> void:
 	_show_section(8, "FTP Ramp Test", ftp_page)
