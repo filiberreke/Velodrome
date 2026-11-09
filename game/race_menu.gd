@@ -3,6 +3,7 @@ signal start_requested
 signal difficulty_changed(value: float)
 signal training_environment_requested(active: bool)
 signal piste_environment_requested(active: bool)
+signal training_upload_requested(activity: Dictionary)
 const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
 const Records := preload("res://pursuit_records.gd")
@@ -69,6 +70,8 @@ var hub_page: VBoxContainer
 var training_page: VBoxContainer
 var piste_page: VBoxContainer
 var derny_page: VBoxContainer
+var training_history_page: VBoxContainer
+var training_store = preload("res://training_store.gd").new()
 var tournament_page: VBoxContainer
 var ftp_page
 var workout_editor_page: VBoxContainer
@@ -323,11 +326,16 @@ func _build_hub(layout: VBoxContainer) -> void:
 	layout.add_child(piste_page)
 	_hub_button(piste_page, "Dernytraining  →", show_derny)
 	piste_page.add_child(label("Vaste pistesessies, door ons voorbereid. Geen import of export.", 22, MUTED))
+	_hub_button(piste_page, "Opgeslagen trainingen  →", show_training_history)
 	_hub_button(piste_page, "← Hoofdmenu", show_hub)
 	derny_page = preload("res://derny_training.gd").new()
 	layout.add_child(derny_page)
 	derny_page.back_requested.connect(show_piste_training)
 	derny_page.environment_requested.connect(_piste_environment)
+	derny_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
+	training_history_page = preload("res://training_history.gd").new()
+	training_history_page.menu = self
+	layout.add_child(training_history_page)
 	tournament_page = VBoxContainer.new()
 	tournament_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(tournament_page)
@@ -363,10 +371,10 @@ func _training_environment(active: bool) -> void:
 
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
-	for node in [hub_page, training_page, piste_page, derny_page, tournament_page, ftp_page, workout_editor_page]: node.hide()
+	for node in [hub_page, training_page, piste_page, derny_page, training_history_page, tournament_page, ftp_page, workout_editor_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
-	if session_panel != null and derny_page.get_parent() == session_panel: derny_page.leave()
+	if derny_page.scene != null and derny_page.scene.active: _piste_environment(false)
 	if ftp_page.test.running(): ftp_page.finish("Test verlaten")
 	_hide_hub_pages()
 	for child in [choice_page, settings_page, records_page, pursuit_flow, startlist_page]: child.hide()
@@ -378,6 +386,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	var focus: Control = node.get_child(0)
 	if node == hub_page: focus = hub_button
 	if node == derny_page: focus = derny_page.start_button
+	if node == training_history_page: focus = training_history_page.get_child(1)
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
 	focus.grab_focus.call_deferred()
@@ -394,17 +403,18 @@ func show_piste_training() -> void:
 func show_derny() -> void:
 	_show_section(12, "Dernytraining", derny_page)
 
+func show_training_history() -> void:
+	training_history_page.refresh()
+	_show_section(13,"Opgeslagen trainingen",training_history_page)
+
 func _piste_environment(active: bool) -> void:
+	piste_environment_requested.emit(active)
 	if active:
-		piste_environment_requested.emit(true)
 		if not derny_page.session.running(): return
-		if derny_page.get_parent() != session_panel: derny_page.reparent(session_panel)
 		menu_margin.hide()
 		menu_tint.hide()
-		session_panel.show()
+		session_panel.hide()
 	else:
-		piste_environment_requested.emit(false)
-		if derny_page.get_parent() != menu_layout: derny_page.reparent(menu_layout)
 		session_panel.hide()
 		menu_margin.show()
 		menu_tint.show()
@@ -640,7 +650,7 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8, 10, 11, 12]:
+	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8, 10, 11, 12, 13]:
 		bridge_action("B")
 		get_viewport().set_input_as_handled()
 		return
@@ -668,6 +678,7 @@ func bridge_action(button: String) -> void:
 		elif page == 8: ftp_page.leave()
 		elif page == 10: show_training()
 		elif page == 12: derny_page.leave()
+		elif page == 13: show_piste_training()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return

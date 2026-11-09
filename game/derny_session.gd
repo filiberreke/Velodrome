@@ -81,3 +81,8 @@ func advance(dt: float, metric: float, player_distance: float, player_metric: fl
 	if running() and look_cooldown <= 0.0:
 		gesture_requested.emit("look_back")
 		look_cooldown = 5.0 if gap > 5.0 else 16.0
+
+static func required_power(speed_mps: float, reduction: float, grade_pct: float = 0.0) -> float:
+	var v := maxf(0, speed_mps)
+	var aero := .5 * 1.20 * .334 * v * v * (1-clampf(reduction,0,MAX_DRAFT))
+	return maxf(0, (aero + .004 * 80 * 9.81 + 80 * 9.81 * grade_pct / 100) * v / .975)

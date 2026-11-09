@@ -801,13 +801,21 @@ func _final_start_speed_ok() -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
-	if piste_training != null and piste_training.active and event is InputEventKey and event.pressed and not event.echo:
+	if piste_training != null and piste_training.active and _ride_context() == "piste" and event is InputEventKey and event.keycode == KEY_B:
+		keyboard_look_back = event.pressed
+		_refresh_look_back()
+		get_viewport().set_input_as_handled()
+		return
+	if piste_training != null and piste_training.active and _ride_context() == "piste" and event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_LEFT, KEY_A: piste_training.steer(-1)
 			KEY_RIGHT, KEY_D: piste_training.steer(1)
 			KEY_UP: piste_training.demo_power = minf(1000, piste_training.demo_power + 25)
 			KEY_DOWN: piste_training.demo_power = maxf(0, piste_training.demo_power - 25)
-			KEY_ESCAPE: setup_panel.derny_page.leave()
+			KEY_ESCAPE: setup_panel.derny_page.finish("Handmatig gestopt")
+			KEY_C: _cycle_camera(1)
+			KEY_V: _cycle_rider_names()
+			KEY_P: piste_training._persist(false)
 			_: return
 		get_viewport().set_input_as_handled()
 		return
@@ -848,6 +856,7 @@ func _resume_race() -> void:
 	exit_menu.hide_pause()
 
 func _quit_application() -> void:
+	if piste_training != null and piste_training.active: piste_training.finish_session("Spel gesloten",false)
 	if setup_panel != null and setup_panel.ftp_page != null: setup_panel.ftp_page.shutdown()
 	trainer_control.close()
 	_save_recording("exit")
@@ -927,9 +936,6 @@ func _cycle_camera(direction: int) -> void:
 		bikes[0].visible = look_back_held or camera_mode != 2
 
 func _refresh_look_back() -> void:
-	if piste_training != null and piste_training.active:
-		bikes[0].show()
-		return
 	look_back_held = keyboard_look_back or ride_look_back
 	if not bikes.is_empty(): bikes[0].visible = look_back_held or camera_mode != 2
 
@@ -942,17 +948,25 @@ func _ride_context() -> String:
 	var preferences := get_node_or_null("GameSettings")
 	if preferences != null and preferences.panel_root.visible: return "settings"
 	if race_paused or (exit_menu != null and exit_menu.quitting_application): return "pause"
+	if piste_training != null and piste_training.active: return "piste"
 	if setup_panel != null and setup_panel.visible: return "setup"
 	if broadcast_intro != null and broadcast_intro.active: return "intro"
 	if finished: return "results"
 	return "race"
 
 func _ride_action(key: String, source: String = "B") -> void:
-	if piste_training != null and piste_training.active:
+	if piste_training != null and piste_training.active and _ride_context() == "piste":
 		if source.begins_with("SHIFT_"): return
 		if key == "LEFT": piste_training.steer(-1)
 		elif key == "RIGHT": piste_training.steer(1)
-		elif key in ["B", "Z"]: setup_panel.derny_page.leave()
+		elif key == "Y": _cycle_rider_names()
+		elif key == "UP": _cycle_camera(-1)
+		elif key == "DOWN": _cycle_camera(1)
+		elif key == "B":
+			ride_look_source = source
+			ride_look_back = true
+			_refresh_look_back()
+		elif key == "Z": setup_panel.derny_page.finish("Handmatig gestopt")
 		return
 	# Physical gears stay owned by the bridge during training, including when
 	# a user mapped their shift paddles to menu confirmation/back actions.
@@ -1000,7 +1014,7 @@ func _ride_action(key: String, source: String = "B") -> void:
 				"DOWN": _cycle_camera(1)
 
 func _ride_profile() -> String:
-	return "race" if _ride_context() == "race" else "menu"
+	return "race" if _ride_context() in ["race","piste"] else "menu"
 
 func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
 	var source := ride_mapping.physical(str(packet.get("source_button", "")))
@@ -1029,7 +1043,7 @@ func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
 			_ride_action(edge.key, source)
 
 func _steer_player(direction: int) -> void:
-	if piste_training != null and piste_training.active:
+	if piste_training != null and piste_training.active and _ride_context() == "piste":
 		piste_training.steer(direction)
 		return
 	if _ride_context() != "race" or not running or finished or not _riding():
@@ -1063,7 +1077,7 @@ func _process_steering(value: Variant) -> void:
 		return
 	steering_direction = direction
 	steering_steps = 1
-	if piste_training != null and piste_training.active:
+	if piste_training != null and piste_training.active and _ride_context() == "piste":
 		piste_training.steer(direction)
 		return
 	# Consume presses during menus/countdown so holding through GO cannot steer.
@@ -1212,6 +1226,9 @@ func _restart_same_race() -> void:
 	start_state = "WAIT_STOP"
 
 func _reset() -> void:
+	if piste_training != null and piste_training.active:
+		piste_training.finish_session("Training verlaten",false)
+		setup_panel._piste_environment(false)
 	_clear_look_back()
 	pursuit_start.clear()
 	race_paused = false
@@ -2010,10 +2027,10 @@ func _update_visuals(dt: float) -> void:
 	if finished:
 		_place_finish_camera()
 		return
-	var offset: float = lane_offsets[0]
-	var t: Vector3 = _direction(_rider_distance(0, distances[0]), offset)
-	var start_view: bool = not _riding() and not finished
-	var follow_position: Vector3 = bikes[0].position
+	_follow_rider_camera(_rider_distance(0,distances[0]),lane_offsets[0],dt,not _riding() and not finished,bikes[0].position)
+
+func _follow_rider_camera(follow_distance: float, offset: float, dt: float, start_view: bool, follow_position: Vector3) -> void:
+	var t: Vector3 = _direction(follow_distance, offset)
 	var desired: Vector3
 	var target: Vector3
 	var target_fov: float = 72.0
@@ -2022,8 +2039,8 @@ func _update_visuals(dt: float) -> void:
 		# Rearward view from just ahead of the rider: follow the curved track,
 		# so other riders behind remain visible even through the banking.
 		# No changes to bike movement, lane choice, or race physics.
-		desired = _at(_rider_distance(0, distances[0]) + 3.0, offset) + Vector3(0.0, 2.65, 0.0)
-		target = _at(_rider_distance(0, distances[0]) - 13.0, offset) + Vector3(0.0, 1.10, 0.0)
+		desired = _at(follow_distance + 3.0, offset) + Vector3(0.0, 2.65, 0.0)
+		target = _at(follow_distance - 13.0, offset) + Vector3(0.0, 1.10, 0.0)
 		target_fov = 77.0
 	elif camera_mode == 2:
 		# Very subtle POV sway synchronized to the standing sprint crank phase.
@@ -2037,8 +2054,8 @@ func _update_visuals(dt: float) -> void:
 		target_fov = 78.0
 	elif camera_mode == 3:
 		# Infield side camera to inspect rider posture and bike shape.
-		var inner_probe: Vector3 = _at(_rider_distance(0, distances[0]), maxf(0.2, offset - 1.8))
-		var outer_probe: Vector3 = _at(_rider_distance(0, distances[0]), minf(8.4, offset + 1.8))
+		var inner_probe: Vector3 = _at(follow_distance, maxf(0.2, offset - 1.8))
+		var outer_probe: Vector3 = _at(follow_distance, minf(8.4, offset + 1.8))
 		# IMPORTANT: lateral track probe includes vertical banking height.
 		# Taking its 3D normal pulled the camera BELOW the infield floor in bends.
 		# Use a horizontal-only inward direction and independent camera height.
@@ -2053,9 +2070,9 @@ func _update_visuals(dt: float) -> void:
 		# Follow the actual track arc rather than extending the current tangent.
 		# This keeps the chase camera inboard of the external advertising wall.
 		var safe_lane: float = clampf(offset - 0.75, 1.1, 6.3)
-		var back_on_track: Vector3 = _at(_rider_distance(0, distances[0]) - back, safe_lane)
+		var back_on_track: Vector3 = _at(follow_distance - back, safe_lane)
 		desired = back_on_track + Vector3(0.0, height, 0.0)
-		target = _at(_rider_distance(0, distances[0]) + (7.0 if close_mode else 9.0), offset) + Vector3(0.0, 1.1, 0.0)
+		target = _at(follow_distance + (7.0 if close_mode else 9.0), offset) + Vector3(0.0, 1.1, 0.0)
 		target_fov = (72.0 if close_mode else 77.0) if start_view else (69.0 if close_mode else 72.0)
 	if boost_left > 0.0:
 		target_fov += 4.0
@@ -2068,7 +2085,7 @@ func _update_visuals(dt: float) -> void:
 	# Camera looks along local -Z while the bicycle faces local +Z.
 	# Their roll signs therefore differ; negate to follow the visible rider lean.
 	var pov_rock_roll: float = deg_to_rad(1.8) * pov_sway if camera_mode == 2 and not look_back_held else 0.0
-	camera_roll = lerp_angle(camera_roll, -visual_rolls[0] * follow_ratio + pov_rock_roll, clampf(dt * (12.0 if _curve_factor(_rider_distance(0, distances[0])) == 0.0 else 8.0), 0.0, 1.0))
+	camera_roll = lerp_angle(camera_roll, -visual_rolls[0] * follow_ratio + pov_rock_roll, clampf(dt * (12.0 if _curve_factor(follow_distance) == 0.0 else 8.0), 0.0, 1.0))
 	camera.rotate_object_local(Vector3(0.0, 0.0, 1.0), camera_roll)
 
 func _update_boost_dog(dt: float) -> void:
@@ -2328,6 +2345,10 @@ func _build_hud() -> void:
 	menu.start_requested.connect(_confirm_start)
 	menu.training_environment_requested.connect(_training_environment_requested)
 	menu.piste_environment_requested.connect(_piste_environment_requested)
+	menu.training_upload_requested.connect(_upload_training)
+	strava_client.status_changed.connect(func(message):
+		menu.derny_page.upload_status = message
+	)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(24, 255)
 	result_panel.custom_minimum_size = Vector2(425, 380)
@@ -2869,6 +2890,7 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_clear_look_back()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		if what == NOTIFICATION_WM_CLOSE_REQUEST and piste_training != null and piste_training.active: piste_training.finish_session("Spel gesloten",false)
 		if what == NOTIFICATION_WM_CLOSE_REQUEST and setup_panel != null and setup_panel.ftp_page != null:
 			setup_panel.ftp_page.shutdown()
 		trainer_control.close()
@@ -3852,3 +3874,24 @@ func available_startlist_riders() -> Array[Dictionary]:
 	for entry in result:
 		if not entry.jersey.has("country_kit"): entry.jersey["country_kit"] = entry.country
 	return result
+
+func _upload_training(activity: Dictionary) -> void:
+	if strava_client.working:
+		setup_panel.derny_page.upload_status = "Er is al een Strava-upload bezig."
+		return
+	var payload := preload("res://training_store.gd").fit_payload(activity)
+	if payload.is_empty():
+		setup_panel.derny_page.upload_status = "Minstens twee ritmetingen nodig voor Strava."
+		return
+	var file := FileAccess.open("user://training_upload.fit",FileAccess.WRITE)
+	if file == null:
+		setup_panel.derny_page.upload_status = "Strava-bestand kon niet worden gemaakt."
+		return
+	file.store_buffer(payload)
+	file.close()
+	strava_desired_title = "Velodrome - Dernytraining" + (" (PC-proefrit)" if activity.get("demo",false) else "")
+	strava_desired_description = "Dernytraining · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
+	if activity.get("demo",false): strava_desired_description = "GESIMULEERDE PC-PROEFRIT. " + strava_desired_description
+	strava_save_screenshot = false
+	strava_screenshot_path = ""
+	strava_client.begin_export(ProjectSettings.globalize_path("user://training_upload.fit"),strava_desired_title,strava_desired_description)

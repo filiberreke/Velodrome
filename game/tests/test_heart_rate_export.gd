@@ -4,7 +4,7 @@ class Model extends "res://main.gd":
 	func _ready() -> void: set_physics_process(false)
 class UploadSpy extends Node:
 	var payload := PackedByteArray()
-	func begin_export(path: String, _title: String) -> void:
+	func begin_export(path: String, _title: String, _description: String = "") -> void:
 		payload = FileAccess.get_file_as_bytes(path)
 var failures := 0
 

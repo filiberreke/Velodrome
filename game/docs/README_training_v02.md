@@ -157,7 +157,9 @@ Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
 
 ## Dernytraining (Pistetraining)
 
-- Eén fysieke aanloopronde van 250 m, geleidelijk van 20 naar 30 km/u.
+- Eén aanloopronde van 250 m, automatisch meegenomen van 20 naar 30 km/u.
+  Je blijft in het wiel, onafhankelijk van het gemeten vermogen: niet inhalen
+  of lossen tijdens deze aanloop. De meetgegevens zelf blijven ongewijzigd.
 - Daarna 30 km/u; elke 60 seconden +1 km/u, zonder snelheidsplafond.
 - De piloot geeft één duim omhoog bij het begin van het 30-km/u-blok en kondigt
   de volgende stappen één keer aan, 1,5 seconde vóór de minuutgrens.
@@ -167,7 +169,10 @@ Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
   Een snelheidssignaal heeft voorrang. De platte-handanimatie wordt niet gebruikt.
 - Direct achter de derny maximaal 88% minder luchtweerstand (normaal maximaal 69%).
   De beschutting neemt af met afstand en zijwaartse afwijking; naast of vóór de
-  derny is ze nul. Inhalen blijft vrij mogelijk en geeft volledige luchtweerstand.
+  derny is ze nul. In het wiel begrenst het spel de snelheid bij een volgafstand van circa 2,8 m.
+  Bij te dicht volgen verschijnt een waarschuwing om minder vermogen te leveren.
+  Bewust minimaal twee rijlijnen opzij sturen maakt inhalen mogelijk, met volledige
+  luchtweerstand.
   Dit zijn instelbare spelwaarden, geen claim van een gemeten aerodynamisch model.
 - Meer dan 15 m achterstand gedurende 5 s beëindigt het tempo-deel; opnieuw
   aansluiten wist de teller. Resultaat: hoogste voltooide minuut en volgtijd.
@@ -179,7 +184,10 @@ Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
   het scherm meldt dit. Er wordt geen ERG-belasting gebruikt.
 - Verse gevalideerde vermogensmetingen zijn vereist zodra een trainer bekend is.
   Meetuitval, een bedieningsfout of een ontbrekend bridgeantwoord stopt de sessie
-  en geeft eigen trainerbediening vrij. B/Escape en Terug herstellen het menu.
+  en geeft eigen trainerbediening vrij. Escape/Z stopt en opent het resultaat.
+  B blijft de wedstrijdknop voor achteromkijken; de cameraknoppen gebruiken
+  hetzelfde profiel en dezelfde camera-opstelling als wedstrijden. C wisselt
+  de camera op het toetsenbord, V/Y wisselt de naamlabels.
 - Zonder aangesloten trainer is een expliciet gemarkeerde PC-proefrit beschikbaar:
   links/rechts sturen en omhoog/omlaag het proefvermogen aanpassen. Fysieke
   versnellingsknoppen blijven versnellingsknoppen en kunnen de training niet stoppen.
@@ -200,3 +208,42 @@ De tweede controleert het echte model, toetsenbord/controller, traineruitval,
 terugkeer naar het menu en behoud van de bestaande wedstrijdomgeving. Met
 `-- --capture` zonder `--headless` maakt hij beelden in `.test-user/derny-captures`.
 De fysieke gevoelssterkte op een KICKR/Zwift Ride moet nog op hardware worden getoetst.
+
+
+## HUD, grafiek, archief en Strava
+
+Tijdens de dernytraining vervangt een afgeleide van de bestaande wedstrijd-HUD
+het oude tekstkader. De vermogensbalk bovenaan gebruikt het bestaande doelpijltje.
+Het richtvermogen is een schatting voor constante dernysnelheid bij de actuele
+beschutting en routehelling, op basis van hetzelfde krachtenmodel als de speler.
+Het is geen ERG-doel en houdt geen rekening met een extra versnelling om aan te sluiten.
+Snelheid, hartslag, cadans, versnelling en de horizontale slipstreambalk staan in
+het bekende wedstrijdpaneel. Ontbrekende sensormetingen blijven zichtbaar als onbekend.
+
+Onderaan toont een semitransparante grafiek de volledige tijdlijn van snelheid,
+geleverd vermogen, hartslag en cadans. De vier kleuren hebben elk een expliciet
+vermelde schaal en eenheid; de horizontale as is de verstreken trainingstijd.
+Onbekende waarden worden niet als nul getekend.
+
+Elke gestarte training krijgt een JSON-bestand in `user://training_sessions`, met
+een begincheckpoint, een update ongeveer iedere tien seconden en een definitieve
+opslag bij stoppen, lossen, meetuitval, teruggaan of normaal afsluiten. Een abrupte
+procesuitval kan het laatste checkpoint herstellen; de laatste tien seconden
+kunnen dan ontbreken. De bestanden bevatten de echte beschikbare sensormetingen,
+virtuele snelheid/afstand, de automatisch geholpen aanlooptijd en het resultaat.
+PC-proefritten zijn als simulatie gemarkeerd. Bij een schrijffout meldt het
+resultaatscherm dat de opslag is mislukt.
+
+Onder Pistetraining → Opgeslagen trainingen kun je eerdere sessies openen, de
+grafiek bekijken en alsnog voor Strava kiezen. De knop Opslaan op Strava bouwt
+een FIT-bestand uit precies die sessie en gebruikt de bestaande Strava-client en
+koppeling. Er wordt niets automatisch geüpload. De activiteit is virtueel, zonder
+verzonnen GPS-route; de beschrijving vermeldt de geholpen aanloop en simulatiedata
+bij een PC-proefrit. Werkelijke sensormetingen worden niet door dernysnelheid of
+richtvermogen vervangen.
+
+De regressiecontrole `test_training_store.gd` dekt checkpoints, herladen,
+FIT-opbouw, ontbrekende sensoren en de richtvermogensberekening. De uitgebreide
+`test_derny_training.gd` controleert ook vast aansluiten bij 0 W, begrenzen bij
+hoog vermogen, bewust inhalen, de wedstrijdcamera's, de HUD, meetreeksen,
+automatisch bewaren en de Strava-overdracht via een testclient zonder netwerk.

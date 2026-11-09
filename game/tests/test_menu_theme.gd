@@ -26,7 +26,7 @@ func run_test() -> void:
 			check(bounds.encloses(card.get_global_rect()), "Every tile fits at %s" % resolution)
 		for i in range(10):
 			for j in range(i + 1, 10): check(not menu.cards[i].get_global_rect().intersects(menu.cards[j].get_global_rect()), "Gallery cards do not overlap")
-	for index in [7,8]:
+	for index in [6,8]:
 		menu.cards[index].pressed.emit()
 		await settle()
 		check(menu.page == 2 and menu.start_button.disabled, "Future discipline opens an informative unavailable page")
