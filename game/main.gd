@@ -5,6 +5,7 @@ signal infield_riders_changed
 const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
 var training_environment
+var piste_training
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
@@ -623,6 +624,10 @@ func _begin_dropout(since: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_read_bridge()
+	if piste_training != null and piste_training.active:
+		exit_menu.set_exit_visible(false)
+		piste_training.advance(delta)
+		return
 	if training_environment != null and training_environment.active:
 		trainer_control.tick(false, 0.0, 1.0, _now_s())
 		exit_menu.set_exit_visible(false)
@@ -796,6 +801,16 @@ func _final_start_speed_ok() -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
+	if piste_training != null and piste_training.active and event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_LEFT, KEY_A: piste_training.steer(-1)
+			KEY_RIGHT, KEY_D: piste_training.steer(1)
+			KEY_UP: piste_training.demo_power = minf(1000, piste_training.demo_power + 25)
+			KEY_DOWN: piste_training.demo_power = maxf(0, piste_training.demo_power - 25)
+			KEY_ESCAPE: setup_panel.derny_page.leave()
+			_: return
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.keycode == KEY_B and not event.pressed:
 		keyboard_look_back = false
 		_refresh_look_back()
@@ -912,6 +927,9 @@ func _cycle_camera(direction: int) -> void:
 		bikes[0].visible = look_back_held or camera_mode != 2
 
 func _refresh_look_back() -> void:
+	if piste_training != null and piste_training.active:
+		bikes[0].show()
+		return
 	look_back_held = keyboard_look_back or ride_look_back
 	if not bikes.is_empty(): bikes[0].visible = look_back_held or camera_mode != 2
 
@@ -930,6 +948,12 @@ func _ride_context() -> String:
 	return "race"
 
 func _ride_action(key: String, source: String = "B") -> void:
+	if piste_training != null and piste_training.active:
+		if source.begins_with("SHIFT_"): return
+		if key == "LEFT": piste_training.steer(-1)
+		elif key == "RIGHT": piste_training.steer(1)
+		elif key in ["B", "Z"]: setup_panel.derny_page.leave()
+		return
 	# Physical gears stay owned by the bridge during training, including when
 	# a user mapped their shift paddles to menu confirmation/back actions.
 	if setup_panel != null and setup_panel.visible and setup_panel.page == 8 and source.begins_with("SHIFT_"):
@@ -1005,6 +1029,9 @@ func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
 			_ride_action(edge.key, source)
 
 func _steer_player(direction: int) -> void:
+	if piste_training != null and piste_training.active:
+		piste_training.steer(direction)
+		return
 	if _ride_context() != "race" or not running or finished or not _riding():
 		return
 	if race_mode == 5:
@@ -1036,6 +1063,9 @@ func _process_steering(value: Variant) -> void:
 		return
 	steering_direction = direction
 	steering_steps = 1
+	if piste_training != null and piste_training.active:
+		piste_training.steer(direction)
+		return
 	# Consume presses during menus/countdown so holding through GO cannot steer.
 	if _ride_context() != "race" or not running or finished or not _riding():
 		return
@@ -2297,6 +2327,7 @@ func _build_hud() -> void:
 	menu.difficulty_changed.connect(_difficulty_changed)
 	menu.start_requested.connect(_confirm_start)
 	menu.training_environment_requested.connect(_training_environment_requested)
+	menu.piste_environment_requested.connect(_piste_environment_requested)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(24, 255)
 	result_panel.custom_minimum_size = Vector2(425, 380)
@@ -2563,6 +2594,22 @@ func _training_environment_requested(active: bool) -> void:
 		training_environment.enter()
 	elif training_environment != null:
 		training_environment.leave()
+		exit_menu.set_exit_visible(true)
+
+func _piste_environment_requested(active: bool) -> void:
+	if active:
+		var page = setup_panel.derny_page
+		if trainer_seen and (not setup_panel.ftp_page.fresh(_now_s()) or not setup_panel.ftp_page.release_complete() or trainer_control.phase == "RELEASING"):
+			page.session.phase = "RESULT"
+			page.session.reason = "Wacht op verse vermogensmetingen en vrijgave van de trainer"
+			return
+		if piste_training == null:
+			piste_training = preload("res://derny_environment.gd").new()
+			add_child(piste_training)
+		broadcast_intro.cancel()
+		piste_training.enter()
+	elif piste_training != null:
+		piste_training.leave()
 		exit_menu.set_exit_visible(true)
 
 func _difficulty_changed(value: float) -> void:

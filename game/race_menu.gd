@@ -2,6 +2,7 @@ extends Control
 signal start_requested
 signal difficulty_changed(value: float)
 signal training_environment_requested(active: bool)
+signal piste_environment_requested(active: bool)
 const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
 const Records := preload("res://pursuit_records.gd")
@@ -66,6 +67,8 @@ var difficulty_label: Label
 var race_settings: VBoxContainer
 var hub_page: VBoxContainer
 var training_page: VBoxContainer
+var piste_page: VBoxContainer
+var derny_page: VBoxContainer
 var tournament_page: VBoxContainer
 var ftp_page
 var workout_editor_page: VBoxContainer
@@ -293,14 +296,20 @@ func _build_hub(layout: VBoxContainer) -> void:
 	hub_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	hub_page.add_theme_constant_override("separation", 16)
 	layout.add_child(hub_page)
-	hub_button = _hub_tile(hub_page, "Wedstrijden", "Kies je discipline. Vind je ritme. Ga voor de winst.", [0, 1, 2], show_choices)
+	var first_row := HBoxContainer.new()
+	first_row.name = "WedstrijdenEnToernooien"
+	first_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	first_row.add_theme_constant_override("separation", 16)
+	hub_page.add_child(first_row)
+	hub_button = _hub_tile(first_row, "Wedstrijden", "Kies je discipline en ga voor de winst.", [0], show_choices)
+	_hub_tile(first_row, "Toernooien", "Binnenkort: meerdere wedstrijden, één klassement.", [2], show_tournaments)
 	var second_row := HBoxContainer.new()
-	second_row.name = "TrainingEnToernooien"
+	second_row.name = "ErgEnPistetraining"
 	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	second_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(second_row)
-	_hub_tile(second_row, "Training", "Bouw je workout of ontdek je FTP op de baan.", [], show_training)
-	_hub_tile(second_row, "Toernooien", "Een nieuwe uitdaging op de baan. Binnenkort beschikbaar.", [2], show_tournaments)
+	_hub_tile(second_row, "ERG-training", "Workouts op vermogen en FTP-tests.", [], show_training)
+	_hub_tile(second_row, "Pistetraining", "Oefen achter de derny op de echte piste.", [7], show_piste_training)
 	races_back = _hub_button(choice_page, "← Hoofdmenu", show_hub)
 	races_back.custom_minimum_size.y = 46
 	training_page = VBoxContainer.new()
@@ -309,6 +318,16 @@ func _build_hub(layout: VBoxContainer) -> void:
 	_hub_button(training_page, "FTP Ramp Test  →", show_ftp)
 	_hub_button(training_page, "Workout-editor  →", show_workout_editor)
 	_hub_button(training_page, "← Hoofdmenu", show_hub)
+	piste_page = VBoxContainer.new()
+	piste_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(piste_page)
+	_hub_button(piste_page, "Dernytraining  →", show_derny)
+	piste_page.add_child(label("Vaste pistesessies, door ons voorbereid. Geen import of export.", 22, MUTED))
+	_hub_button(piste_page, "← Hoofdmenu", show_hub)
+	derny_page = preload("res://derny_training.gd").new()
+	layout.add_child(derny_page)
+	derny_page.back_requested.connect(show_piste_training)
+	derny_page.environment_requested.connect(_piste_environment)
 	tournament_page = VBoxContainer.new()
 	tournament_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(tournament_page)
@@ -344,9 +363,10 @@ func _training_environment(active: bool) -> void:
 
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
-	for node in [hub_page, training_page, tournament_page, ftp_page, workout_editor_page]: node.hide()
+	for node in [hub_page, training_page, piste_page, derny_page, tournament_page, ftp_page, workout_editor_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
+	if session_panel != null and derny_page.get_parent() == session_panel: derny_page.leave()
 	if ftp_page.test.running(): ftp_page.finish("Test verlaten")
 	_hide_hub_pages()
 	for child in [choice_page, settings_page, records_page, pursuit_flow, startlist_page]: child.hide()
@@ -356,6 +376,8 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	footer_label.show()
 	node.show()
 	var focus: Control = node.get_child(0)
+	if node == hub_page: focus = hub_button
+	if node == derny_page: focus = derny_page.start_button
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
 	focus.grab_focus.call_deferred()
@@ -364,7 +386,28 @@ func show_hub() -> void:
 	_show_section(0, "Welkom in Velodrome", hub_page)
 
 func show_training() -> void:
-	_show_section(6, "Training", training_page)
+	_show_section(6, "ERG-training", training_page)
+
+func show_piste_training() -> void:
+	_show_section(11, "Pistetraining", piste_page)
+
+func show_derny() -> void:
+	_show_section(12, "Dernytraining", derny_page)
+
+func _piste_environment(active: bool) -> void:
+	if active:
+		piste_environment_requested.emit(true)
+		if not derny_page.session.running(): return
+		if derny_page.get_parent() != session_panel: derny_page.reparent(session_panel)
+		menu_margin.hide()
+		menu_tint.hide()
+		session_panel.show()
+	else:
+		piste_environment_requested.emit(false)
+		if derny_page.get_parent() != menu_layout: derny_page.reparent(menu_layout)
+		session_panel.hide()
+		menu_margin.show()
+		menu_tint.show()
 
 func show_tournaments() -> void:
 	_show_section(7, "Toernooien", tournament_page)
@@ -597,7 +640,7 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8]:
+	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8, 10, 11, 12]:
 		bridge_action("B")
 		get_viewport().set_input_as_handled()
 		return
@@ -621,9 +664,10 @@ func bridge_action(button: String) -> void:
 		return
 	if button == "B":
 		if page in [2, 3]: show_choices()
-		elif page in [1, 6, 7]: show_hub()
+		elif page in [1, 6, 7, 11]: show_hub()
 		elif page == 8: ftp_page.leave()
 		elif page == 10: show_training()
+		elif page == 12: derny_page.leave()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return
@@ -631,6 +675,8 @@ func bridge_action(button: String) -> void:
 	if focused == null or not is_ancestor_of(focused):
 		if page == 1: cards[selected].grab_focus()
 		elif page == 0: hub_button.grab_focus()
+		elif page == 11: piste_page.get_child(0).grab_focus()
+		elif page == 12: derny_page.stop_button.grab_focus() if derny_page.session.running() else derny_page.start_button.grab_focus()
 		elif page == 6: training_page.get_child(0).grab_focus()
 		elif page == 7: tournament_page.get_child(1).grab_focus()
 		elif page == 8:

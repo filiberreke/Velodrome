@@ -126,9 +126,9 @@ Dit is een FTP-schatting. Er zijn nog geen fysieke hardwaretests uitgevoerd.
 
 ## Hoofdmenu en workout-editor
 
-Het hoofdmenu toont Wedstrijden over de volle breedte, met beelden uit Scratch,
-Achtervolging en Ploegenachtervolging. Daaronder staan Training en Toernooien elk
-op halve breedte. Training heeft een miniatuur van een workoutgrafiek.
+Het hoofdmenu heeft vier tegels: bovenaan Wedstrijden en Toernooien, onderaan
+ERG-training en Pistetraining. ERG-training heeft een workoutgrafiek als miniatuur.
+Pistetraining bevat vaste sessies zonder ZWO-import of -export.
 De tegels gebruiken het bestaande ivoren/blauwe menuthema en de bestaande baanbeelden.
 Toernooien behoudt zijn pagina met de melding dat deze functie later wordt toegevoegd.
 
@@ -153,3 +153,50 @@ Godot --headless --path game --script res://tests/test_workout_editor_ui.gd
 Deze controle test echte muisklikken op de grafiek, selectie, bewerken met behoud
 van focus, volgorde, dupliceren, verwijderen, ZWO-import/export en de schermindeling.
 Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
+
+
+## Dernytraining (Pistetraining)
+
+- Eén fysieke aanloopronde van 250 m, geleidelijk van 20 naar 30 km/u.
+- Daarna 30 km/u; elke 60 seconden +1 km/u, zonder snelheidsplafond.
+- De piloot geeft één duim omhoog bij het begin van het 30-km/u-blok en kondigt
+  de volgende stappen één keer aan, 1,5 seconde vóór de minuutgrens.
+- Bij elke nieuwe stap verschijnt de snelheid drie seconden centraal in beeld,
+  via dezelfde `race_popup.gd` als de wedstrijdmeldingen.
+- Achteromkijken gebeurt ongeveer elke 16 s, bij meer dan 5 m afstand elke 5 s.
+  Een snelheidssignaal heeft voorrang. De platte-handanimatie wordt niet gebruikt.
+- Direct achter de derny maximaal 88% minder luchtweerstand (normaal maximaal 69%).
+  De beschutting neemt af met afstand en zijwaartse afwijking; naast of vóór de
+  derny is ze nul. Inhalen blijft vrij mogelijk en geeft volledige luchtweerstand.
+  Dit zijn instelbare spelwaarden, geen claim van een gemeten aerodynamisch model.
+- Meer dan 15 m achterstand gedurende 5 s beëindigt het tempo-deel; opnieuw
+  aansluiten wist de teller. Resultaat: hoogste voltooide minuut en volgtijd.
+- Vermogen bepaalt de virtuele snelheid via een krachtenmodel, met de bestaande
+  pistegeometrie en hoogte-effecten. Het tempo wordt niet aan de speler vastgeklikt.
+- Een echte trainer gebruikt de bestaande SIM-client, inclusief routehelling en
+  `aero_scale` waar ondersteund. Zonder die mogelijkheid blijft de virtuele wake
+  werken, maar kan de trainer de lagere luchtweerstand niet voelbaar overnemen;
+  het scherm meldt dit. Er wordt geen ERG-belasting gebruikt.
+- Verse gevalideerde vermogensmetingen zijn vereist zodra een trainer bekend is.
+  Meetuitval, een bedieningsfout of een ontbrekend bridgeantwoord stopt de sessie
+  en geeft eigen trainerbediening vrij. B/Escape en Terug herstellen het menu.
+- Zonder aangesloten trainer is een expliciet gemarkeerde PC-proefrit beschikbaar:
+  links/rechts sturen en omhoog/omlaag het proefvermogen aanpassen. Fysieke
+  versnellingsknoppen blijven versnellingsknoppen en kunnen de training niet stoppen.
+
+Het aangeleverde `derny_pilot.glb` staat in `game/assets/derny/`, met de vier
+originele `DP_Derny*`-animaties. De `.blend` en de bouwscripts blijven de
+bronbestanden van de gebruiker; de game heeft alleen het GLB-bestand nodig.
+
+Controles in Godot 4.7.2:
+
+```text
+Godot --headless --path game --script res://tests/test_derny_session.gd
+Godot --headless --path game --script res://tests/test_derny_training.gd
+```
+
+De eerste test controleert tempo, minuutgrenzen, gebaren, beschutting en lossen.
+De tweede controleert het echte model, toetsenbord/controller, traineruitval,
+terugkeer naar het menu en behoud van de bestaande wedstrijdomgeving. Met
+`-- --capture` zonder `--headless` maakt hij beelden in `.test-user/derny-captures`.
+De fysieke gevoelssterkte op een KICKR/Zwift Ride moet nog op hardware worden getoetst.
