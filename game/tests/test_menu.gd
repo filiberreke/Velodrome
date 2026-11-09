@@ -39,7 +39,7 @@ func run_test() -> void:
 	check(people.size() > 0, "Stadium crowd is available for race restoration")
 	for person in people:
 		check(not person.visible, "Stadium empty in menus")
-	for index in [4, 6, 8]:
+	for index in [4, 8]:
 		menu.cards[index].pressed.emit()
 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")

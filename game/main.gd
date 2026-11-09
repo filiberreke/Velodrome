@@ -134,6 +134,8 @@ var rider_names: Array[String] = ["JIJ", "TIJDRIJDER", "SPRINTER", "AANVALLER"]
 var rider_forms: Array[float] = [1.0, 1.0, 1.0, 1.0]
 var rider_kits: Array[Dictionary] = []
 var race_mode := 0
+var keirin_percent := 100.0
+var keirin = preload("res://keirin_race.gd").new()
 var rider_count_input: SpinBox
 var form_rng := RandomNumberGenerator.new()
 var rider_config := ConfigFile.new()
@@ -170,6 +172,7 @@ func _form(i: int) -> float:
 	return rider_forms[i] if i < rider_forms.size() else 1.0
 
 func _configure_peloton() -> void:
+	if race_mode == 3: rider_count = 6; race_laps = 6
 	neutral_start.reset()
 	flying_start.reset()
 	if race_mode == 5:
@@ -192,7 +195,7 @@ func _configure_peloton() -> void:
 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
 		# 1 = TT, 2 = sprinter, 3 = attacker.
 		var configured: Dictionary = _configured_rider(i, kind) if i > 0 else {"profile": 0, "name": player_display_name}
-		if race_mode in [0,1,2] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
+		if race_mode in [0,1,2,3] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
 			configured = selected_startlist[i - 1].duplicate(true)
 		if race_mode == 4 and i > 0:
 			configured = pursuit_opponent_config.duplicate(true) if not pursuit_opponent_config.is_empty() else _configured_rider(1, 1)
@@ -261,8 +264,8 @@ func _configure_peloton() -> void:
 	if race_mode in [0, 1, 2]:
 		neutral_start.distance_offset = -NEUTRAL_DEPARTURE_M
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
-	if race_mode in [0, 1, 2]:
-		x_ai = PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())
+	if race_mode in [0, 1, 2, 3]:
+		x_ai = preload("res://keirin_ai.gd").new() if race_mode == 3 else (PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new()))
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 		x_ai.configure_riders(rider_identities, rider_forms)
@@ -284,6 +287,10 @@ func _configure_peloton() -> void:
 	if peloton_markers == null:
 		peloton_markers = preload("res://peloton_markers.gd").new()
 		add_child(peloton_markers)
+	if race_mode == 3:
+		keirin.percent = keirin_percent
+		keirin.configure(self)
+	else: keirin.hide()
 	infield_riders_changed.emit()
 
 func _spawn_peloton() -> void:
@@ -665,6 +672,7 @@ func _physics_process(delta: float) -> void:
 		trainer_control.tick(false, 0.0, 1.0, _now_s())
 		return
 	if start_state == "INTRO": broadcast_intro.advance(delta)
+	var keirin_player_already_finished: bool = finished
 	if not finished:
 		if start_state == "WAIT_STOP":
 			var stopped: bool = _start_conditions_met()
@@ -695,7 +703,7 @@ func _physics_process(delta: float) -> void:
 				_update_race(delta)
 	# After the player finishes, let AI riders complete their own races.
 	# The player's distance and time are frozen by finish_times[0].
-	if finished and start_state == "RACING" and not _all_riders_finished():
+	if finished and start_state == "RACING" and not _all_riders_finished() and (race_mode != 3 or keirin_player_already_finished):
 		clock += delta
 		_update_race(delta)
 	# Run each finished rider's coast immediately after THEIR finish, even while
@@ -731,6 +739,8 @@ func _begin_riding() -> void:
 		ride_start_unix = int(Time.get_unix_time_from_system())
 	if race_mode in [0, 1, 2]:
 		neutral_start.begin(self)
+	elif race_mode == 3:
+		keirin.begin(self)
 	elif race_mode == 7 and time_trial_start_type == "flying":
 		flying_start.begin(self)
 	else:
@@ -1063,6 +1073,9 @@ func _steer_player(direction: int) -> void:
 		if direction > 0:
 			team_race.request_player_exchange()
 		return
+	if race_mode == 3:
+		if keirin.phase == "FREE": player_lane = 2 if direction > 0 else 0
+		return
 	player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
 func _read_bridge() -> void:
@@ -1097,6 +1110,8 @@ func _process_steering(value: Variant) -> void:
 	if race_mode == 5:
 		if direction > 0:
 			team_race.request_player_exchange()
+	elif race_mode == 3:
+		if keirin.phase == "FREE": player_lane = 2 if direction > 0 else 0
 	else:
 		player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
@@ -1221,7 +1236,7 @@ func _expire_bridge_optional_fields(now: float) -> void:
 
 func _restart_same_race() -> void:
 	if replay_setup.is_empty(): return
-	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "keirin_percent", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		set(key, replay_setup[key])
 	_restarting_event = true
 	_reset()
@@ -1341,7 +1356,7 @@ func _draft_target(rider: int) -> float:
 		draft_leaders[rider] = -1
 		return 0.0
 	# Non-scratch modes retain the exact prior drafting model.
-	if race_mode not in [0, 1, 2]:
+	if race_mode not in [0, 1, 2, 3]:
 		if speeds[rider] < DRAFT_MIN_SPEED_MPS:
 			return 0.0
 		var old_best := 0.0
@@ -1374,7 +1389,7 @@ func _draft_target(rider: int) -> float:
 	for other in range(rider_count):
 		if other == rider or finish_times[other] >= 0.0:
 			continue
-		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2] else distances[other] - distances[rider]
+		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2, 3] else distances[other] - distances[rider]
 		if gap <= 0.35 or gap >= 9.0:
 			continue
 		var lateral: float = absf(lane_offsets[other] - lane_offsets[rider])
@@ -1384,7 +1399,7 @@ func _draft_target(rider: int) -> float:
 		if real_gap < 1.0 or real_gap > 9.0:
 			continue
 		var drag_benefit: float = 0.62 * maxf(0.0, 1.0 - gap / 10.0) * maxf(0.18, 1.0 - lateral / 1.25)
-		if race_mode in [0, 1, 2]:
+		if race_mode in [0, 1, 2, 3]:
 			var more_wheels := 0
 			for third in range(rider_count):
 				if third == rider or finish_times[third] >= 0.0:
@@ -1413,7 +1428,7 @@ func _effective_draft_strength(rider: int) -> float:
 	if race_mode in [4, 5, 7]:
 		return 0.0
 	var strength: float = clampf(draft_strengths[rider], 0.0, 1.0)
-	if race_mode not in [0, 1, 2]:
+	if race_mode not in [0, 1, 2, 3]:
 		return strength
 	var speed_ratio: float = clampf((speeds[rider] - SCRATCH_DRAFT_RAMP_START_MPS) / (SCRATCH_DRAFT_RAMP_END_MPS - SCRATCH_DRAFT_RAMP_START_MPS), 0.0, 1.0)
 	return strength * lerpf(SCRATCH_DRAFT_LOW_SPEED_SCALE, 1.0, speed_ratio)
@@ -1421,14 +1436,14 @@ func _effective_draft_strength(rider: int) -> float:
 func _draft_drag_reduction(rider: int) -> float:
 	if race_mode in [4, 5, 7]:
 		return 0.0
-	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2] else DRAFT_MAX_DRAG_REDUCTION
+	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2, 3] else DRAFT_MAX_DRAG_REDUCTION
 	return limit * _effective_draft_strength(rider)
 
 func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
 	if race_mode in [4, 5, 7]:
 		draft_strength = 0.0
 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
-	if race_mode in [0, 1, 2, 4, 5]:
+	if race_mode in [0, 1, 2, 3, 4, 5]:
 		var v: float = maxf(current_speed, 0.0)
 		var aero_factor: float = maxf(1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION, 1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION * draft_strength)
 		var drag: float = 0.5 * 1.20 * 0.334 * v * v * aero_factor
@@ -1750,6 +1765,9 @@ func elimination_simulation_time() -> float:
 	return _elimination_epoch + _elimination_ticks * ELIMINATION_PHYSICS_STEP
 
 func _advance_race(dt: float) -> void:
+	if race_mode == 3:
+		keirin.advance(self, dt)
+		return
 	if race_mode == 5:
 		team_race.step(self, dt)
 		return
@@ -1991,7 +2009,7 @@ func _update_coasting(dt: float) -> void:
 	for i in range(rider_count):
 		if finish_times[i] < 0.0:
 			continue
-		if race_mode == 2 and elimination_exit.has(i):
+		if race_mode in [2, 3] and elimination_exit.has(i):
 			_update_eliminated_exit(i, dt)
 			continue
 		if coast_speeds[i] <= 0.0: continue
@@ -2033,7 +2051,8 @@ func _player_won() -> bool:
 	return true
 
 func _update_visuals(dt: float) -> void:
-	if finish_overlay != null and finish_overlay.visible:
+	if race_mode == 3: keirin._present_pilot(self)
+	if finish_overlay != null and finish_overlay.visible and race_mode != 3:
 		_place_results_camera()
 		return
 	if setup_panel != null and setup_panel.visible:
@@ -2054,6 +2073,7 @@ func _update_visuals(dt: float) -> void:
 		# Imported Blender wheel mesh reaches local ground at y=0.  On the
 		# bank, visual lean can otherwise push the inboard tyre below the track.
 		var model_lift: float = 0.085 + 0.18 * absf(sin(visual_rolls[i]))
+		if race_mode == 3 and lateral < 0.0: position.y = 0.015
 		bikes[i].position = position + Vector3(0.0, model_lift, 0.0)
 		var tangent: Vector3 = _direction(display_distance, lateral)
 		bikes[i].rotation.y = atan2(tangent.x, tangent.z)
@@ -2061,7 +2081,7 @@ func _update_visuals(dt: float) -> void:
 		visual_rolls[i] = lerp_angle(visual_rolls[i], lean_target, clampf(dt * (12.0 if lean_target == 0.0 else 5.0), 0.0, 1.0))
 		bikes[i].rotation.z = visual_rolls[i]
 		pursuit_start.align_rider(self, i, display_distance - FRONT_WHEEL_TIP_M - starting_grid, model_lift)
-		if race_mode == 2 and elimination_exit.has(i) and int(elimination_exit[i]["stage"]) >= 1:
+		if race_mode in [2, 3] and elimination_exit.has(i) and int(elimination_exit[i]["stage"]) >= 1:
 			var exit_state: Dictionary = elimination_exit[i]
 			bikes[i].position = Vector3(exit_state["position"]) + Vector3.UP * 0.09
 			var head: Vector3 = Vector3(exit_state["heading"])
@@ -2074,14 +2094,17 @@ func _update_visuals(dt: float) -> void:
 		if finish_times[i] >= 0.0:
 			# Continue the normal cycling loop at progressively lower cadence while coasting.
 			# beta.16.16: the race winner sits up and raises both arms.
-			visual.call("set_victory", race_mode != 2 and i == _winner_index())
+			visual.call("set_victory", race_mode not in [2, 3] and i == _winner_index())
 			visual.call("pedal", dt, clampf(coast_speeds[i] * 5.5, 0.0, 110.0), 120.0)
 		else:
 			visual.call("set_victory", false)
-			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
+			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1, 3] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
 	pursuit_start.update(self, dt)
 	team_race.update_badges(self)
 	_update_bunch_presentation()
+	if race_mode == 3 and finish_overlay != null and finish_overlay.visible:
+		_place_results_camera()
+		return
 	if broadcast_intro != null and broadcast_intro.apply_camera(): return
 	if finished:
 		_place_finish_camera()
@@ -2712,7 +2735,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2, 3, 5, 7]:
+	if choice not in [0, 1, 2, 3, 5, 6, 7]:
 		return
 	if choice in [1,2] and setup_panel.page != 4: return
 	var replay: Dictionary = {}
@@ -2734,13 +2757,16 @@ func _confirm_start() -> void:
 		if not replay.is_empty(): replay = PursuitRecords.scaled_replay(replay, pursuit_opponent_percent)
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0))))
+	race_mode = 3 if choice == 6 else (7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))))
+	if choice == 6: keirin_percent = setup_panel.keirin_derny.value
 	race_laps = int(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))))
+	if choice == 6: race_laps = 6
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
 	rider_count = 1 if choice == 7 else (team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 5 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))))
+	if choice == 6: rider_count = 6
 	if choice in [1, 2]:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
@@ -2748,7 +2774,7 @@ func _confirm_start() -> void:
 	_clear_elimination_feedback()
 	selected_startlist.clear()
 	startlist_mode = -1
-	if choice in [0,3,5] and setup_panel.page == 5:
+	if choice in [0,3,5,6] and setup_panel.page == 5:
 		if not setup_panel.startlist_page.can_start(): return
 		selected_startlist.assign(setup_panel.startlist_page.lineup.duplicate(true))
 		startlist_mode = race_mode
@@ -2766,7 +2792,7 @@ func _confirm_start() -> void:
 	else:
 		_tt_prepare_event()
 	replay_setup = {"riders": rider_identities.duplicate(true), "forms": rider_forms.duplicate(), "replay": replay.duplicate(true), "cp": options.configured_cp() if options != null else 0.0, "team_factors": team_race.ours.position_factors.duplicate()}
-	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "keirin_percent", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		replay_setup[key] = get(key)
 	trainer_control.arm()
 	zero_stable = 0.0
@@ -3017,7 +3043,7 @@ func _lean_debug_text() -> String:
 	return "BANK DEBUG: %s | offset %.1f m | lean %.1f deg" % ["BOCHT" if on_bend else "RECHT", _track_s(distances[0]), rad_to_deg(visual_rolls[0])]
 
 func _ai_diagnostics_text() -> String:
-	var uses_wprime: bool = race_mode in [0, 1, 2]
+	var uses_wprime: bool = race_mode in [0, 1, 2, 3]
 	var text: String = "\nAI: %d%% | CP / W-prime model X\n" % int(ai_difficulty) if uses_wprime else "\nAI: %d%% (80%% = beta.10)\nAI resterende inspanning (TT) / anaeroob\n" % int(ai_difficulty)
 	for j in range(1, rider_count):
 		# The reserve and its maximum must come from the same model, including
@@ -3178,6 +3204,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
 	if start_state == "NEUTRAL" and (not trainer_seen or connected or _power_hold_active()): notice = neutral_start.notice(self)
+	if race_mode == 3 and start_state == "RACING": notice = "DERNY · %.1f km/u · uitsturen na 3 ronden" % (keirin.speed*3.6) if keirin.phase == "PACED" else "DERNY UIT · VRIJE WEDSTRIJD"
 	if start_state == "RUN_UP" and (not trainer_seen or connected or _power_hold_active()): notice = flying_start.notice(self)
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
@@ -3206,7 +3233,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 3] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3241,7 +3268,7 @@ func _refresh_fullscreen_results() -> void:
 	for n in range(rider_count): ordered.append(n)
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
-	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
+	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Keirin · Uitslag" if race_mode == 3 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag"))
 	if finish_subtitle != null:
 		finish_subtitle.text = ("VLIEGENDE START · 125 M TUSSENTIJDEN" if time_trial_start_type == "flying" else "STAANDE START · 125 M TUSSENTIJDEN") if race_mode == 7 else "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
 	if pursuit_save_box != null:
@@ -3720,7 +3747,7 @@ func _points_order() -> Array[int]:
 func _update_bunch_presentation() -> void:
 	# Scratch/points/elimination start with a neutral lap. Show the full rider
 	# card there too, instead of falling back to a name-only Label3D.
-	var active: bool = race_mode in [0, 1, 2] and start_state in ["NEUTRAL", "RACING"]
+	var active: bool = race_mode in [0, 1, 2, 3] and start_state in ["NEUTRAL", "RACING"]
 	if active: peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	if peloton_markers != null: peloton_markers.update_bunch(self, peloton_info, active)
 	for i in range(bikes.size()):
@@ -3809,7 +3836,7 @@ func _record_ai_performances() -> void:
 			ai_recorded[i] = true
 			var identity: Dictionary = rider_identities[i]
 			var parameters := {"cp_w":pursuit_pacer.cp_w if race_mode == 4 else float(identity.get("cp_w",0.0)), "max_power_w":float(identity.get("max_power_w",0.0)), "w_prime_j":float(identity.get("w_prime_j",0.0))}
-			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
+			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1,3] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
 
 func _update_elimination_jury(dt: float) -> void:
 	var rear: Array[float] = []
@@ -3873,6 +3900,9 @@ func _elimination_box_target(rider: int) -> Vector3:
 	return Vector3(-14.1 - 0.45 * float(slot % 2), 0.15, -25.0 + 10.0 * float(box_index) + 0.85 * float(slot / 2))
 
 func _update_eliminated_exit(rider: int, dt: float) -> void:
+	if race_mode == 3:
+		keirin.update_finish_exit(self, rider, dt)
+		return
 	var route: Dictionary = elimination_exit[rider]
 	var stage: int = int(route["stage"])
 	if stage == 3:
