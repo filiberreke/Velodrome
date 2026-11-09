@@ -157,17 +157,18 @@ Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
 
 ## Dernytraining (Pistetraining)
 
-- Eén aanloopronde van 250 m, automatisch meegenomen van 20 naar 30 km/u.
+- Instelbare startsnelheid van 10–60 km/u (standaard 30), gevolgd door één
+  geholpen aanloopronde van 250 m.
   Je blijft in het wiel, onafhankelijk van het gemeten vermogen: niet inhalen
   of lossen tijdens deze aanloop. De meetgegevens zelf blijven ongewijzigd.
-- Daarna 30 km/u; elke 60 seconden +1 km/u, zonder snelheidsplafond.
-- De piloot geeft één duim omhoog bij het begin van het 30-km/u-blok en kondigt
+- Daarna de gekozen gemiddelde rondesnelheid; elke 60 seconden +1 km/u, zonder snelheidsplafond.
+- De piloot geeft één duim omhoog bij het begin van het eerste tempoblok en kondigt
   de volgende stappen één keer aan, 1,5 seconde vóór de minuutgrens.
 - Bij elke nieuwe stap verschijnt de snelheid drie seconden centraal in beeld,
   via dezelfde `race_popup.gd` als de wedstrijdmeldingen.
 - Achteromkijken gebeurt ongeveer elke 16 s, bij meer dan 5 m afstand elke 5 s.
   Een snelheidssignaal heeft voorrang. De platte-handanimatie wordt niet gebruikt.
-- Direct achter de derny maximaal 88% minder luchtweerstand (normaal maximaal 69%).
+- Direct achter de derny maximaal 60% minder luchtweerstand (normaal maximaal 69%).
   De beschutting neemt af met afstand en zijwaartse afwijking; naast of vóór de
   derny is ze nul. In het wiel begrenst het spel de snelheid bij een volgafstand van circa 2,8 m.
   Bij te dicht volgen verschijnt een waarschuwing om minder vermogen te leveren.
@@ -214,9 +215,12 @@ De fysieke gevoelssterkte op een KICKR/Zwift Ride moet nog op hardware worden ge
 
 Tijdens de dernytraining vervangt een afgeleide van de bestaande wedstrijd-HUD
 het oude tekstkader. De vermogensbalk bovenaan gebruikt het bestaande doelpijltje.
-Het richtvermogen is een schatting voor constante dernysnelheid bij de actuele
-beschutting en routehelling, op basis van hetzelfde krachtenmodel als de speler.
-Het is geen ERG-doel en houdt geen rekening met een extra versnelling om aan te sluiten.
+Het richtvermogen is een geschat rondegemiddelde in het wiel van de derny,
+bij maximaal 60% beschutting. Het wordt vooraf berekend over de volledige
+baan, niet uit de helling van de huidige meter. Het is geen ERG-doel en bevat
+geen extra vermogen om opnieuw aan te sluiten. Veranderingen tussen de
+snelheidsstappen bewegen het pijltje geleidelijk (maximaal 20 W per seconde).
+De werkelijke trainerhelling en de zwaartekracht in de rennersfysica blijven actief.
 Snelheid, hartslag, cadans, versnelling en de horizontale slipstreambalk staan in
 het bekende wedstrijdpaneel. Ontbrekende sensormetingen blijven zichtbaar als onbekend.
 
@@ -247,3 +251,33 @@ FIT-opbouw, ontbrekende sensoren en de richtvermogensberekening. De uitgebreide
 `test_derny_training.gd` controleert ook vast aansluiten bij 0 W, begrenzen bij
 hoog vermogen, bewust inhalen, de wedstrijdcamera's, de HUD, meetreeksen,
 automatisch bewaren en de Strava-overdracht via een testclient zonder netwerk.
+
+
+## Vermogen, snelheid en rijlijn van de derny
+
+De startsnelheid wordt vóór elke start gekozen. Aanloop, tempoblokken, centrale
+meldingen, resultaten, trainingsarchief en Strava-beschrijving gebruiken die keuze.
+Oudere opgeslagen trainingen zonder startsnelheidsveld blijven als 30 km/u zichtbaar.
+
+De derny wordt niet op een vaste snelheid vastgezet. Hij krijgt per tempoblok
+een vast aandrijfvermogen en gebruikt hetzelfde krachtenmodel en dezelfde
+hellingsinvloed als de renner. Daardoor vertraagt hij bergop en versnelt hij
+bergaf. Het vermogen wordt vooraf afgestemd op de gewenste gemiddelde snelheid
+over een volledige ronde op de geplande rijlijn. Na een versnelling of een
+rijlijnwissel is er een natuurlijke overgang naar dat nieuwe gemiddelde.
+De HUD toont de actuele dernysnelheid naast het gemiddelde; de centrale melding
+bij een nieuwe stap vermeldt expliciet dat het om het gemiddelde gaat.
+De geleverde watts van de speler worden altijd afzonderlijk opgenomen.
+
+Vanaf de gekozen startsnelheid rijdt de derny op de laagste rijlijn (1,18 m).
+Bij iedere extra 5 km/u schuift hij 0,60 m naar buiten, geleidelijk met 0,20 m/s,
+tot maximaal het midden van de bestaande blauwe lijn (3,55 m). De renner volgt
+die lijn automatisch. Handmatig sturen is een afwijking ten opzichte van die
+rijlijn: twee stappen naar buiten blijven voldoende om bewust in te halen.
+Het gevolgde terrein blijft zowel voor de speler als de trainer voelbaar.
+
+`test_derny_motor.gd` meet met de echte pistegeometrie meerdere rondes: constant
+aandrijfvermogen, vertragen/versnellen op hellingen, een gemiddelde rondesnelheid
+binnen 0,3 km/u van het doel en een stabiel richtpijltje. De sessie- en UI-tests
+controleren de startsnelheidskeuze, +1 km/u-stappen, 60%-limiet, automatische
+rijlijnwissels en bewaren/herladen van de gekozen startsnelheid.

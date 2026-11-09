@@ -1,15 +1,20 @@
 extends "res://training_environment.gd"
 ## Isolated piste exercise: shares the empty training venue, never race state.
 const Session := preload("res://derny_session.gd")
+const Motor := preload("res://derny_motor.gd")
+var motor := Motor.new()
 const Visual := preload("res://derny_visual.gd")
-const LANE := 2.38
+const LOWEST_LANE := 1.18
+const BLUE_LINE := 3.55
+const LANE_RISE_MPS := .20
+var derny_lane_offset := LOWEST_LANE
 var page
 var session
 var pilot: Node3D
 var popup: Label
 var player_speed := 20.0 / 3.6
-var player_lane_offset := LANE
-var player_lane_target := 2
+var player_lane_offset := LOWEST_LANE
+var player_lane_target := 0
 var reduction := 0.0
 var road_grade := 0.0
 var demo := false
@@ -55,8 +60,9 @@ func enter() -> void:
 	demo = not game.trainer_seen
 	demo_power = 130.0
 	player_speed = 20.0 / 3.6
-	player_lane_offset = LANE
-	player_lane_target = 2
+	derny_lane_offset = LOWEST_LANE
+	player_lane_offset = LOWEST_LANE
+	player_lane_target = 0
 	reduction = 0.0
 	road_grade = 0.0
 	control_started = game._now_s()
@@ -70,7 +76,12 @@ func enter() -> void:
 	too_close = false
 	var stamp := Time.get_datetime_string_from_system().replace(":", "-")
 	activity = {"version":1, "id":stamp + "-%08x" % randi(), "kind":"derny", "title":"Dernytraining", "started_unix":int(Time.get_unix_time_from_system()), "started_local":Time.get_datetime_string_from_system(false,true), "demo":demo}
-	session.start(start_distance)
+	session.start(start_distance,page.start_speed.value)
+	activity["start_speed_kmh"] = session.start_speed_kmh
+	player_speed = session.target_kmh/3.6
+	motor.speed_mps = player_speed
+	motor.configure(game,session.start_speed_kmh,LOWEST_LANE)
+	session.guidance_power_w = motor.rider_mean_power_w
 	if not demo: game.trainer_control.arm()
 	super.enter()
 	_capture_sample()
@@ -93,11 +104,11 @@ func release_trainer() -> void:
 	game.trainer_control.tick(false, 0.0, 1.0, game._now_s())
 func _lane_gap(from: float, to: float) -> float:
 	var delta := to-from
-	if absf(delta) > 60: return delta * game._path_metric(from,LANE)
-	var point: Vector3 = game._at(from,LANE)
+	if absf(delta) > 60: return delta * game._path_metric(from,derny_lane_offset)
+	var point: Vector3 = game._at(from,derny_lane_offset)
 	var length := 0.0
 	for i in range(1,5):
-		var next: Vector3 = game._at(lerpf(from,to,i/4.0),LANE)
+		var next: Vector3 = game._at(lerpf(from,to,i/4.0),derny_lane_offset)
 		length += point.distance_to(next)
 		point = next
 	return length * signf(delta)
@@ -112,10 +123,13 @@ func _behind_derny(metres: float) -> float:
 		else: high = middle
 	return low
 func steer(direction: int) -> void:
-	if session.phase == "PACE": player_lane_target = clampi(player_lane_target + direction, 0, game.LANES.size() - 1)
+	if session.phase != "PACE": return
+	var minimum := floori((game.LANES[0]-derny_lane_offset)/game.PLAYER_LANE_STEP_M)
+	var maximum := ceili((game.LANES[-1]-derny_lane_offset)/game.PLAYER_LANE_STEP_M)
+	player_lane_target = clampi(player_lane_target+direction,minimum,maximum)
 func _speed_changed(kmh: int) -> void:
 	popup.clear()
-	popup.enqueue("DERNY  ·  %d km/u" % kmh)
+	popup.enqueue("DERNY  ·  gemiddeld %d km/u" % kmh)
 func advance(dt: float) -> void:
 	if not active or session == null: return
 	var now: float = game._now_s()
@@ -144,39 +158,47 @@ func advance(dt: float) -> void:
 func _step(dt: float, power: float) -> void:
 	var previous: Vector3 = game._at(distance, player_lane_offset)
 	var before := distance
-	var metric: float = game._path_metric(distance, LANE)
+	var desired_lane := Session.lane_at_speed(session.target_kmh,session.start_speed_kmh)
+	var old_derny_lane := derny_lane_offset
+	derny_lane_offset = move_toward(derny_lane_offset,desired_lane,LANE_RISE_MPS*dt)
+	var metric: float = game._path_metric(distance,derny_lane_offset)
 	var runup: bool = session.phase == "RUNUP"
+	var motor_mean: float = session.start_speed_kmh if runup else session.target_kmh
+	motor.configure(game,motor_mean,Session.lane_at_speed(motor_mean,session.start_speed_kmh))
+	motor.advance_speed(game,session.derny_distance,old_derny_lane,derny_lane_offset,dt)
 	too_close = false
 	if runup:
 		# Assisted approach: measured watts remain real; virtual motion follows pilot.
-		player_lane_offset = LANE
-		player_lane_target = 2
-		session.advance(dt,game._path_metric(session.derny_distance,LANE),session.derny_distance-3/metric,metric)
+		player_lane_offset = derny_lane_offset
+		player_lane_target = 0
+		session.advance(dt,game._path_metric(session.derny_distance,derny_lane_offset),session.derny_distance-3/metric,metric,motor.speed_mps)
 		distance = _behind_derny(3.0)
-		player_speed = session.target_kmh / 3.6
+		player_speed = motor.speed_mps
 		assisted_seconds += dt
 	else:
 		var lateral_before := player_lane_offset
 		var gap_before := gap()
-		player_lane_offset = move_toward(player_lane_offset,game.LANES[player_lane_target],game.LANE_CHANGE_MPS*dt)
-		reduction = Session.draft_reduction(gap_before,player_lane_offset-LANE)
+		var following_lane := clampf(derny_lane_offset + player_lane_target * game.PLAYER_LANE_STEP_M,game.LANES[0],game.LANES[-1])
+		player_lane_offset = move_toward(player_lane_offset,following_lane,game.LANE_CHANGE_MPS*dt)
+		reduction = Session.draft_reduction(gap_before,player_lane_offset-derny_lane_offset)
 		player_speed = Session.next_speed(player_speed,power,reduction,dt)
 		var forward: Vector3 = game._at(distance+player_speed*dt/game._path_metric(distance,player_lane_offset),player_lane_offset)
 		var side: Vector3 = game._at(distance,player_lane_offset)
 		player_speed = game._banked_speed(player_speed,forward.y-side.y,side.y-previous.y,absf(player_lane_offset-lateral_before),dt,power)
 		distance += player_speed*dt/game._path_metric(distance,player_lane_offset)
-		session.advance(dt,game._path_metric(session.derny_distance,LANE),distance,metric)
+		session.advance(dt,game._path_metric(session.derny_distance,derny_lane_offset),distance,metric,motor.speed_mps)
 		# Hold the wheel despite excess watts. Deliberately move two lanes out to pass.
-		if gap_before > 0 and absf(player_lane_offset-LANE) < PASS_LATERAL and gap() < FOLLOW_GAP + .06:
-			player_speed = minf(player_speed,session.target_kmh/3.6)
+		if gap_before > 0 and absf(player_lane_offset-derny_lane_offset) < PASS_LATERAL and gap() < FOLLOW_GAP + .06:
+			player_speed = minf(player_speed,motor.speed_mps)
 			distance = minf(distance,before+player_speed*dt/game._path_metric(before,player_lane_offset))
 			if gap() < FOLLOW_GAP: distance = _behind_derny(FOLLOW_GAP)
 			too_close = true
-		elif gap() < FOLLOW_GAP + .15 and gap() > 0 and player_speed > session.target_kmh/3.6 + .02 and absf(player_lane_offset-LANE) < PASS_LATERAL:
+		elif gap() < FOLLOW_GAP + .15 and gap() > 0 and player_speed > motor.speed_mps + .02 and absf(player_lane_offset-derny_lane_offset) < PASS_LATERAL:
 			too_close = true
 	var current: Vector3 = game._at(distance,player_lane_offset)
 	road_grade = lerpf(road_grade,game.TrainerControl.route_grade(previous,current),1-exp(-8*dt))
-	reduction = Session.draft_reduction(gap(),player_lane_offset-LANE)
+	reduction = Session.draft_reduction(gap(),player_lane_offset-derny_lane_offset)
+	session.update_guidance(dt,motor.rider_mean_power_w)
 	total_elapsed += dt
 	total_distance += maxf(0,(distance-before)*game._path_metric(distance,player_lane_offset))
 func _present(dt: float) -> void:
@@ -188,8 +210,8 @@ func _present(dt: float) -> void:
 	bike.get_child(0).call("set_victory", false)
 	bike.get_child(0).call("pedal", dt if session.running() else 0, 85.0 if demo else maxf(0, game.cadence), demo_power if demo else game.watts)
 	pilot.animator.speed_scale = 1.0 if session.running() else 0.0
-	var pilot_forward: Vector3 = game._direction(session.derny_distance, LANE)
-	pilot.position = game._at(session.derny_distance, LANE)
+	var pilot_forward: Vector3 = game._direction(session.derny_distance, derny_lane_offset)
+	pilot.position = game._at(session.derny_distance, derny_lane_offset)
 	pilot.rotation = Vector3(0, atan2(pilot_forward.x, pilot_forward.z), -game._bank_angle(game._track_s(session.derny_distance)))
 	game.visual_rolls[0] = bike.rotation.z
 	game._follow_rider_camera(distance,player_lane_offset,dt,false,bike.position)
@@ -197,11 +219,11 @@ func _present(dt: float) -> void:
 	hud.update_training(self)
 
 func required_power() -> float:
-	return Session.required_power(session.target_kmh/3.6,reduction,road_grade)
+	return session.guidance_power_w
 func _capture_sample() -> void:
 	if not demo and not game.setup_panel.ftp_page.fresh(game._now_s()): return
 	if not samples.is_empty() and total_elapsed <= float(samples[-1].time_s): return
-	samples.append({"time_s":total_elapsed,"distance_m":total_distance,"game_speed_kmh":player_speed*3.6,"power_w":demo_power if demo else game.setup_panel.ftp_page.measured,"heart_rate_bpm":null if demo else game.trainer_heart_rate_bpm,"cadence_rpm":-1.0 if demo else game.cadence,"draft_pct":reduction*100,"target_kmh":session.target_kmh,"assisted":session.phase=="RUNUP"})
+	samples.append({"time_s":total_elapsed,"distance_m":total_distance,"game_speed_kmh":player_speed*3.6,"power_w":demo_power if demo else game.setup_panel.ftp_page.measured,"heart_rate_bpm":null if demo else game.trainer_heart_rate_bpm,"cadence_rpm":-1.0 if demo else game.cadence,"draft_pct":reduction*100,"target_kmh":session.target_kmh,"derny_speed_kmh":motor.speed_mps*3.6,"derny_power_w":motor.power_w,"assisted":session.phase=="RUNUP"})
 	last_sample = total_elapsed
 	hud.graph.set_samples(samples)
 func _persist(final: bool) -> void:

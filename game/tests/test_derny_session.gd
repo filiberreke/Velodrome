@@ -20,7 +20,7 @@ func _initialize() -> void:
 	check(changes == [30,31], "One central speed event per new step")
 	check(signals.count("speed_up") == 2, "One thumbs-up for start and one for first increase")
 	var sheltered := Session.draft_reduction(3, 0)
-	check(is_equal_approx(sheltered, .88) and sheltered > .69, "Derny wake exceeds normal rider shelter")
+	check(is_equal_approx(sheltered, .60), "Derny shelter is capped at 60 percent")
 	check(Session.draft_reduction(-2, 0) == 0 and Session.draft_reduction(3, 1.1) == 0, "Passing and riding beside derny remove shelter")
 	check(Session.draft_reduction(10, 0) < sheltered, "Wake fades with distance")
 	check(Session.next_speed(12, 150, sheltered, .1) > Session.next_speed(12, 150, 0, .1), "Wake affects force-based speed")
@@ -38,5 +38,26 @@ func _initialize() -> void:
 	for i in range(1600): session.advance(.01, 1, session.derny_distance - 7, 1)
 	check(signals.count("look_back") - close_count > close_count, "Pilot checks behind more frequently at larger gap")
 	check(not signals.has("slow_down"), "No slowing hand in increasing-speed training")
+	changes.clear()
+	session.start(0,35)
+	for i in range(10000):
+		session.advance(.01,1,session.derny_distance-3,1)
+		if session.phase == "PACE": break
+	check(changes == [35] and session.target_kmh == 35,"Chosen start speed follows approach lap")
+	for i in range(6000): session.advance(.01,1,session.derny_distance-3,1)
+	check(changes == [35,36] and session.completed_kmh == 35,"Minute steps and result use chosen starting speed")
+	session.start(0,10)
+	check(session.target_kmh < 10,"Low chosen speeds still have a gradual approach")
+	check(Session.lane_at_speed(30,30) == 1.18 and Session.lane_at_speed(34.9,30) == 1.18,"Pilot begins on lowest line")
+	check(is_equal_approx(Session.lane_at_speed(35,30),1.78) and is_equal_approx(Session.lane_at_speed(40,30),2.38),"Every extra 5 km/h raises one riding corridor")
+	check(Session.lane_at_speed(100,30) == 3.55,"Pilot never moves above blue line")
+	session.start(0,30)
+	session.target_kmh = 30
+	for i in range(1000): session.update_guidance(.01)
+	var lap_power := session.guidance_power_w
+	check(is_equal_approx(lap_power,Session.required_power(30.0/3.6,.6)),"Needle is lap mean in the wheel")
+	session.target_kmh = 60
+	session.update_guidance(.1)
+	check(session.guidance_power_w-lap_power <= Session.GUIDANCE_MAX_W_PER_S*.1+.001,"Needle slews gradually after pacing changes")
 	print("DERNY_SESSION failures=", failures)
 	quit(0 if failures == 0 else 1)

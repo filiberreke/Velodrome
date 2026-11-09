@@ -34,6 +34,7 @@ func run_test() -> void:
 	menu.show_piste_training()
 	menu.piste_page.get_child(0).pressed.emit()
 	check(menu.page == 12, "Derny opens under piste training")
+	await shot("derny_setup")
 	menu.derny_page.begin()
 	await settle()
 	var scene = game.piste_training
@@ -49,25 +50,25 @@ func run_test() -> void:
 	game._refresh_look_back()
 	check(not game.bikes[0].visible, "POV hides own rider just as in races")
 	scene.advance(.1)
-	check(scene.reduction > .7, "Physical drafting is stronger than ordinary rider")
+	check(scene.reduction > .59 and scene.reduction <= .60, "Physical drafting is capped at sixty percent")
 	await shot("approach")
 	scene.demo_power = 0
 	for i in range(400):
 		if scene.session.phase != "RUNUP": break
 		scene.advance(.25)
 		check(scene.gap() > 2.7 and scene.gap() < 3.3, "Assisted approach cannot overtake or lose wheel: gap %.3f phase %s distance %.3f" % [scene.gap(),scene.session.phase,scene.distance])
-	check(scene.session.phase == "PACE" and absf(scene.player_speed * 3.6-30) < .2, "Assisted lap delivers player to 30 km/h")
+	check(scene.session.phase == "PACE" and absf(scene.player_speed-scene.motor.speed_mps) < .05, "Assisted lap delivers player to 30 km/h")
 	scene.demo_power = 1000
 	for i in range(20): scene.advance(.25)
-	check(scene.gap() >= 2.79 and scene.too_close and scene.player_speed*3.6 <= 30.01, "Excess watts are capped behind derny with warning")
+	check(scene.gap() >= 2.79 and scene.too_close and scene.player_speed <= scene.motor.speed_mps+.02, "Excess watts are capped behind derny with warning")
 	check(scene.hud.phase_label.text.contains("TE DICHT"), "Closing warning is visible")
 	check(scene.hud.power_meter.target_visible and scene.required_power() > 0, "Race power bar shows estimated watt target")
 	check(scene.samples.size() > 20 and scene.store.load_activity(scene.activity.id).samples.size() > 1, "Time series is periodically persisted while riding")
 	scene.player_lane_target += 2
 	for i in range(28): scene.advance(.25)
 	check(scene.gap() < 0 and scene.reduction == 0, "Deliberate lateral overtake remains possible in full wind")
-	scene.player_lane_target = 2
-	scene.player_lane_offset = scene.LANE
+	scene.player_lane_target = 0
+	scene.player_lane_offset = scene.derny_lane_offset
 	scene.distance = scene._behind_derny(3)
 	scene.player_speed = 30.0/3.6
 	var mode: int = game.camera_mode
@@ -101,7 +102,7 @@ func run_test() -> void:
 	check(scene.pilot.gesture_count.speed_up == gestures, "Thumb is not retriggered each frame")
 	scene.session.elapsed = 59.99
 	scene.advance(.03)
-	check(scene.session.target_kmh == 31 and scene.popup.text == "DERNY  ·  31 km/u", "New speed appears centrally at minute boundary")
+	check(scene.session.target_kmh == 31 and scene.popup.text == "DERNY  ·  gemiddeld 31 km/u", "New speed appears centrally at minute boundary")
 	await settle()
 	await shot("speed_31")
 	scene.pilot.gesture("speed_up")
@@ -131,6 +132,27 @@ func run_test() -> void:
 	menu.show_piste_training()
 	check(not scene.active and not scene.popup.visible and menu.page == 11 and menu.menu_margin.visible, "Back restores piste menu and clears popup")
 	check(game.arena.get_node("LevendigMiddenterrein").visible, "Original race venue is restored")
+	# A user-selected start speed propagates into pacing, following and the archive.
+	menu.show_derny()
+	page.start_speed.value = 35
+	page.begin()
+	check(scene.session.start_speed_kmh == 35 and scene.derny_lane_offset == scene.LOWEST_LANE,"UI-selected start speed begins on lowest riding line")
+	scene.session.phase = "PACE"
+	scene.session.target_kmh = 40
+	scene.player_speed = 40.0/3.6
+	scene.demo_power = 1000
+	for i in range(16): scene.advance(.25)
+	check(absf(scene.derny_lane_offset-1.78) < .001 and absf(scene.player_lane_offset-scene.derny_lane_offset) < .001,"Pilot rises smoothly after extra 5 km/h and rider follows automatically")
+	check(scene.hud.slipstream_bar.max_value == 60 and scene.reduction <= .60,"HUD and physical wake share sixty percent maximum")
+	scene.session.guidance_power_w = scene.Session.required_power(40.0/3.6,.60)
+	var guide: float = scene.required_power()
+	scene.road_grade = 12
+	scene.session.update_guidance(.1)
+	check(is_equal_approx(scene.required_power(),guide) and scene.road_grade == 12,"Lap-average needle ignores local hill while actual trainer grade is retained")
+	page.finish("Instelbaarheidstest")
+	check(page.selected_activity.start_speed_kmh == 35 and menu.training_store.load_activity(scene.activity.id).start_speed_kmh == 35,"Chosen starting speed is archived and shown in result")
+	page.start_speed.value = 30
+	page.leave()
 	# A real trainer with invalid/stale power must not start or silently become a demo.
 	game.trainer_seen = true
 	menu.show_derny()

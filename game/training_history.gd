@@ -25,7 +25,7 @@ func refresh() -> void:
 	for activity in activities:
 		var button := Button.new()
 		var duration: int = int(activity.get("duration_s",0))
-		button.text = "%s · Derny · %d:%02d · %d km/u%s" % [activity.get("started_local",""),duration/60,duration%60,int(activity.get("completed_kmh",0))," · PC-proefrit" if activity.get("demo",false) else ""]
+		button.text = "%s · Derny · %d:%02d · start %d km/u · beste %d km/u%s" % [activity.get("started_local",""),duration/60,duration%60,int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0))," · PC-proefrit" if activity.get("demo",false) else ""]
 		if not activity.get("final",false): button.text += " · tussentijds bewaard"
 		button.custom_minimum_size.y = 64
 		button.pressed.connect(func(): menu.show_derny(); menu.derny_page.show_activity(activity))

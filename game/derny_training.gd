@@ -15,11 +15,28 @@ var upload_button: Button
 var result_graph: Control
 var selected_activity := {}
 var upload_status := ""
+var start_speed: SpinBox
+var start_speed_row: HBoxContainer
 func _ready() -> void:
 	add_theme_constant_override("separation", 14)
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	title = _label("Dernytraining", 34)
-	detail = _label("Tijdens de aanloopronde word je automatisch meegenomen tot 30 km/u. Daarna elke minuut +1 km/u.\nIn het wiel remt het spel onbedoeld inhalen af; stuur bewust twee rijlijnen opzij om te passeren.\nMeer dan 15 meter achterstand gedurende 5 seconden beëindigt de training.\nElke training wordt lokaal bewaard. Na afloop kun je naar Strava uploaden.",22)
+	detail = _label("Kies je startsnelheid. Tijdens de aanloopronde word je automatisch meegenomen. De gekozen snelheid is een rondegemiddelde, elke minuut +1 km/u.\nDe derny rijdt met vast vermogen: trager bergop, sneller bergaf. Hij begint onderaan en gaat bij elke extra 5 km/u één rijlijn hoger. Jij volgt automatisch.\nIn het wiel remt het spel onbedoeld inhalen af; stuur bewust twee rijlijnen opzij om te passeren.\nMeer dan 15 meter achterstand gedurende 5 seconden beëindigt de training.\nElke training wordt lokaal bewaard. Na afloop kun je naar Strava uploaden.",22)
+	start_speed_row = HBoxContainer.new()
+	start_speed_row.add_theme_constant_override("separation",16)
+	add_child(start_speed_row)
+	var speed_label := Label.new()
+	speed_label.text = "Startsnelheid (rondegemiddelde)"
+	speed_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	start_speed_row.add_child(speed_label)
+	start_speed = SpinBox.new()
+	start_speed.min_value = Session.MIN_START_KMH
+	start_speed.max_value = Session.MAX_START_KMH
+	start_speed.step = 1
+	start_speed.value = Session.DEFAULT_START_KMH
+	start_speed.suffix = "km/u"
+	start_speed.custom_minimum_size.x = 180
+	start_speed_row.add_child(start_speed)
 	result = _label("", 24)
 	start_button = _button("Start dernytraining", begin)
 	result_graph = preload("res://training_graph.gd").new()
@@ -67,6 +84,9 @@ func _refresh() -> void:
 	if start_button == null: return
 	var running := session.running()
 	var has_result := not selected_activity.is_empty()
+	start_speed_row.get_child(0).text = "Startsnelheid volgende training" if has_result else "Startsnelheid (rondegemiddelde)"
+	start_speed_row.visible = not running
+	start_speed.editable = not running
 	start_button.visible = not running
 	stop_button.hide()
 	detail.visible = not running and not has_result
@@ -75,7 +95,7 @@ func _refresh() -> void:
 	upload_button.disabled = selected_activity.get("samples",[]).size() < 2
 	if has_result:
 		var duration: int = int(selected_activity.get("duration_s",0))
-		result.text = "%s · %d:%02d · %.2f km\nHoogste voltooide stap: %d km/u\n%s" % [selected_activity.get("reason","") if not str(selected_activity.get("reason","")).is_empty() else "Tussentijds bewaarde training",duration/60,duration%60,float(selected_activity.get("distance_m",0))/1000,int(selected_activity.get("completed_kmh",0)),upload_status]
+		result.text = "%s · %d:%02d · %.2f km\nStartsnelheid: %d km/u · hoogste voltooide stap: %d km/u\n%s" % [selected_activity.get("reason","") if not str(selected_activity.get("reason","")).is_empty() else "Tussentijds bewaarde training",duration/60,duration%60,float(selected_activity.get("distance_m",0))/1000,int(selected_activity.get("start_speed_kmh",Session.DEFAULT_START_KMH)),int(selected_activity.get("completed_kmh",0)),upload_status]
 		if selected_activity.get("demo",false): result.text += "\nPC-proefrit · gesimuleerde activiteit"
 	elif session.phase == "RESULT": result.text = session.reason
 	else: result.text = "Zonder trainer kun je een PC-proefrit maken."

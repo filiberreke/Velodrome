@@ -3961,7 +3961,7 @@ func _upload_training(activity: Dictionary) -> void:
 	file.store_buffer(payload)
 	file.close()
 	strava_desired_title = "Velodrome - Dernytraining" + (" (PC-proefrit)" if activity.get("demo",false) else "")
-	strava_desired_description = "Dernytraining · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
+	strava_desired_description = "Dernytraining · gemiddelde startsnelheid %d km/u · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
 	if activity.get("demo",false): strava_desired_description = "GESIMULEERDE PC-PROEFRIT. " + strava_desired_description
 	strava_save_screenshot = false
 	strava_screenshot_path = ""

@@ -38,20 +38,21 @@ func _ready() -> void:
 func update_training(scene) -> void:
 	var power: float = scene.demo_power if scene.demo else scene.game.setup_panel.ftp_page.measured
 	var target: float = scene.required_power()
-	var role := "Richtvermogen · schatting" if scene.session.phase == "PACE" else "Automatisch meegenomen tot 30 km/u"
+	var role := "Richtvermogen · rondegemiddelde" if scene.session.phase == "PACE" else "Automatisch meegenomen tot %d km/u" % scene.session.start_speed_kmh
 	if not scene.demo and scene.game.trainer_control.phase == "ACTIVE" and not scene.game.trainer_control.aero_supported: role += " · beschutting alleen virtueel"
 	power_meter.set_power(power,target,true,role)
+	power_meter.tooltip_text = "Gemiddeld richtvermogen voor een volledige ronde in het wiel. Om opnieuw aan te sluiten kan meer vermogen nodig zijn."
 	speed_label.text = "%.1f" % (scene.player_speed * 3.6)
 	var heart: Variant = scene.game.trainer_heart_rate_bpm if not scene.demo else null
 	heart_label.text = "%d bpm" % int(heart) if heart is float or heart is int else "— bpm"
 	cadence_label.text = "%.0f rpm" % scene.game.cadence if not scene.demo and scene.game.cadence >= 0 else "— rpm"
 	gear_label.text = str(scene.game.trainer_gear) if not scene.demo else "PC-proefrit"
 	gear_label.get_parent().get_child(0).text = "VERSNELLING" if not scene.demo else "BEDIENING"
-	slipstream_bar.max_value = 88
+	slipstream_bar.max_value = scene.session.MAX_DRAFT * 100
 	slipstream_bar.value = scene.reduction * 100
 	slipstream_label.text = "%d%%" % roundi(scene.reduction*100)
-	var caption := "Aanloop · automatisch aansluiten · nog %.0f m" % maxf(0,250-scene.session.runup_distance) if scene.session.phase == "RUNUP" else "Derny %.0f km/u · %.1f m · volgende stap over %d s" % [scene.session.target_kmh,scene.gap(),int(ceil(60-fmod(scene.session.elapsed,60)))]
-	if scene.too_close: caption = "TE DICHT · begrensd op %.0f km/u · minder vermogen" % scene.session.target_kmh
+	var caption := "Aanloop · automatisch aansluiten · nog %.0f m" % maxf(0,250-scene.session.runup_distance) if scene.session.phase == "RUNUP" else "Derny %.1f km/u · gemiddeld %.0f · %.1f m · stap over %d s" % [scene.motor.speed_mps*3.6,scene.session.target_kmh,scene.gap(),int(ceil(60-fmod(scene.session.elapsed,60)))]
+	if scene.too_close: caption = "TE DICHT · begrensd op %.1f km/u · minder vermogen" % (scene.motor.speed_mps*3.6)
 	elif scene.session.loss_seconds > 0: caption = "SLUIT AAN · nog %.1f s" % maxf(0,5-scene.session.loss_seconds)
 	phase_label.text = caption
 	status_panel.show()
