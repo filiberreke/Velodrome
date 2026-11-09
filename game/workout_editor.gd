@@ -179,17 +179,17 @@ func _build_inspector() -> void:
 	var block := blocks[selected]
 	inspector.add_child(_label(_display(block.kind), 20))
 	if block.kind == "IntervalsT":
-		_spin(inspector, "Herhalingen", block.repeat, 1, 100, 1, func(v): _set("repeat", int(v)))
+		_spin(inspector, "Herhalingen", block.repeat, 1, 100, 1, func(v): _set_block_value("repeat", int(v)))
 		for key in ["on_duration", "off_duration"]:
-			_spin(inspector, key + " (seconden)", block[key], 1, 3600, 5, func(v): _set(key, v))
+			_spin(inspector, key + " (seconden)", block[key], 1, 3600, 5, func(v): _set_block_value(key, v))
 		for key in ["on_power", "off_power"]:
-			_spin(inspector, key + " (% FTP)", float(block[key]) * 100, 0, 300, 1, func(v): _set(key, v / 100.0))
+			_spin(inspector, key + " (% FTP)", float(block[key]) * 100, 0, 300, 1, func(v): _set_block_value(key, v / 100.0))
 	else:
-		_spin(inspector, "Duur (seconden)", block.duration, 1, 86400, 5, func(v): _set("duration", v))
+		_spin(inspector, "Duur (seconden)", block.duration, 1, 86400, 5, func(v): _set_block_value("duration", v))
 		if block.kind != "FreeRide":
-			_spin(inspector, "Startvermogen (% FTP)", float(block.power_low) * 100, 0, 300, 1, func(v): _set("power_low", v / 100.0))
+			_spin(inspector, "Startvermogen (% FTP)", float(block.power_low) * 100, 0, 300, 1, func(v): _set_block_value("power_low", v / 100.0))
 			if block.kind in ["Warmup", "Cooldown", "Ramp"]:
-				_spin(inspector, "Eindvermogen (% FTP)", float(block.power_high) * 100, 0, 300, 1, func(v): _set("power_high", v / 100.0))
+				_spin(inspector, "Eindvermogen (% FTP)", float(block.power_high) * 100, 0, 300, 1, func(v): _set_block_value("power_high", v / 100.0))
 	inspector.add_child(_label("Tekstbericht", 18))
 	message_edit = LineEdit.new()
 	message_edit.placeholder_text = "Instructie voor de renner"
@@ -198,7 +198,7 @@ func _build_inspector() -> void:
 	offset_spin = _spin(inspector, "Na seconden", float(block.events[0].time) if not block.events.is_empty() else 0.0, 0, _duration(block), 1, func(_v): pass)
 	_button(inspector, "Bericht bewaren", _save_message)
 
-func _set(key: String, value: Variant) -> void:
+func _set_block_value(key: String, value: Variant) -> void:
 	if selected < 0: return
 	blocks[selected][key] = value
 	# Preserve inspector focus while updating the graph and list on commit.
