@@ -235,14 +235,72 @@ func _hub_button(parent: VBoxContainer, caption: String, action: Callable) -> Bu
 	parent.add_child(button)
 	return button
 
+func _hub_tile(parent: Container, caption: String, description: String, preview_indices: Array[int], action: Callable) -> Button:
+	var button := Button.new()
+	button.name = caption
+	button.custom_minimum_size.y = 200
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.tooltip_text = caption + " · " + description
+	for state in ["normal", "hover", "pressed"]:
+		button.add_theme_stylebox_override(state, MenuStyle.panel(MenuStyle.PAPER if state == "normal" else MenuStyle.PALE, MenuStyle.LINE if state == "normal" else ACCENT, 0, 12))
+	parent.add_child(button)
+	var content := HBoxContainer.new()
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 24
+	content.offset_right = -16
+	content.offset_top = 16
+	content.offset_bottom = -16
+	content.add_theme_constant_override("separation", 20)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(content)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(copy)
+	var title := label(caption + "  →", 34)
+	title.add_theme_font_override("font", MenuStyle.heading())
+	copy.add_child(title)
+	var detail := label(description, 19, MUTED)
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	copy.add_child(detail)
+	var images := HBoxContainer.new()
+	images.name = "Afbeeldingen"
+	images.add_theme_constant_override("separation", 10)
+	images.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(images)
+	if preview_indices.is_empty():
+		var chart := preload("res://training_tile_art.gd").new()
+		chart.custom_minimum_size.x = 280
+		chart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		images.add_child(chart)
+	for index in preview_indices:
+		var image := TextureRect.new()
+		image.name = MODES[index]["key"]
+		image.texture = previews[index].get_texture()
+		image.custom_minimum_size.x = 260
+		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		images.add_child(image)
+	button.pressed.connect(action)
+	return button
+
 func _build_hub(layout: VBoxContainer) -> void:
 	hub_page = VBoxContainer.new()
 	hub_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	hub_page.add_theme_constant_override("separation", 24)
+	hub_page.add_theme_constant_override("separation", 16)
 	layout.add_child(hub_page)
-	hub_button = _hub_button(hub_page, "Wedstrijden  →", show_choices)
-	_hub_button(hub_page, "Training  →", show_training)
-	_hub_button(hub_page, "Toernooien  →", show_tournaments)
+	hub_button = _hub_tile(hub_page, "Wedstrijden", "Kies je discipline. Vind je ritme. Ga voor de winst.", [0, 1, 2], show_choices)
+	var second_row := HBoxContainer.new()
+	second_row.name = "TrainingEnToernooien"
+	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	second_row.add_theme_constant_override("separation", 16)
+	hub_page.add_child(second_row)
+	_hub_tile(second_row, "Training", "Bouw je workout of ontdek je FTP op de baan.", [], show_training)
+	_hub_tile(second_row, "Toernooien", "Een nieuwe uitdaging op de baan. Binnenkort beschikbaar.", [2], show_tournaments)
 	races_back = _hub_button(choice_page, "← Hoofdmenu", show_hub)
 	races_back.custom_minimum_size.y = 46
 	training_page = VBoxContainer.new()
@@ -298,6 +356,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	footer_label.show()
 	node.show()
 	var focus: Control = node.get_child(0)
+	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
 	focus.grab_focus.call_deferred()
 
@@ -564,6 +623,7 @@ func bridge_action(button: String) -> void:
 		if page in [2, 3]: show_choices()
 		elif page in [1, 6, 7]: show_hub()
 		elif page == 8: ftp_page.leave()
+		elif page == 10: show_training()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return

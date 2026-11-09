@@ -2,13 +2,14 @@ extends VBoxContainer
 ## Standalone ZWO workout editor, embedded in the training menu.
 signal back_requested
 const Workout := preload("res://zwo_workout.gd")
-const BG := Color("#102538")
-const PANEL := Color("#1a3449")
-const BLUE := Color("#43a5ed")
+const MenuStyle := preload("res://menu_theme.gd")
+const PANEL := MenuStyle.PAPER
+const BLUE := MenuStyle.BLUE
 var blocks: Array[Dictionary] = []
 var selected := -1
 var name_edit: LineEdit
-var list_box: VBoxContainer
+var block_buttons: Array[Button] = []
+var action_buttons: Array[Button] = []
 var graph: Control
 var inspector: VBoxContainer
 var duration_spin: SpinBox
@@ -41,24 +42,27 @@ func _ready() -> void:
 	for kind in ["Warmup", "SteadyState", "Recovery", "IntervalsT", "FreeRide", "Cooldown"]:
 		_button(library, _display(kind) + "  +", func(): _add(kind))
 	var middle := _panel(columns, 660)
-	middle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	middle.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	middle.add_child(_label("WORKOUT", 23))
+	middle.add_child(_label("Klik op een blok om de details rechts te bewerken.", 17))
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	middle.add_child(scroll)
-	list_box = VBoxContainer.new()
-	list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list_box)
+	graph = Control.new()
+	graph.name = "WorkoutTimeline"
+	graph.custom_minimum_size = Vector2(600, 280)
+	graph.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	graph.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	graph.draw.connect(_draw_graph)
+	graph.resized.connect(_layout_blocks)
+	scroll.add_child(graph)
 	var controls := HBoxContainer.new()
 	middle.add_child(controls)
-	_button(controls, "Omhoog", func(): _move(-1))
-	_button(controls, "Omlaag", func(): _move(1))
-	_button(controls, "Dupliceren", _duplicate)
-	_button(controls, "Verwijderen", _remove)
-	graph = Control.new()
-	graph.custom_minimum_size.y = 200
-	graph.draw.connect(_draw_graph)
-	middle.add_child(graph)
+	action_buttons.append(_button(controls, "← Links", func(): _move(-1)))
+	action_buttons.append(_button(controls, "Rechts →", func(): _move(1)))
+	action_buttons.append(_button(controls, "Dupliceren", _duplicate))
+	action_buttons.append(_button(controls, "Verwijderen", _remove))
 	var right := _panel(columns, 270)
 	right.add_child(_label("GESELECTEERD BLOK", 22))
 	inspector = VBoxContainer.new()
@@ -103,7 +107,7 @@ func _label(value: String, size: int) -> Label:
 	var l := Label.new()
 	l.text = value
 	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", Color.WHITE)
+	l.add_theme_color_override("font_color", MenuStyle.INK)
 	return l
 
 func _button(parent: Node, title: String, callback: Callable) -> Button:
@@ -141,18 +145,62 @@ func _select(index: int) -> void:
 	_refresh()
 
 func _refresh() -> void:
-	for child in list_box.get_children(): child.queue_free()
-	var total := 0.0
+	var restore_focus := graph.is_ancestor_of(get_viewport().gui_get_focus_owner()) if get_viewport().gui_get_focus_owner() != null else false
+	for button in block_buttons:
+		graph.remove_child(button)
+		button.queue_free()
+	block_buttons.clear()
 	for i in range(blocks.size()):
-		var block := blocks[i]
-		var duration := _duration(block)
-		total += duration
-		var text := "%02d  %s   %s   %d%% FTP" % [i + 1, _display(block.kind), _clock(duration), roundi(float(block.power_low) * 100)]
-		var b := _button(list_box, text, func(): _select(i))
-		if i == selected: b.add_theme_color_override("font_color", BLUE)
-	for child in inspector.get_children(): child.queue_free()
+		var button := Button.new()
+		button.name = "Block_%d" % i
+		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		button.add_theme_stylebox_override("hover", MenuStyle.panel(Color(1, 1, 1, .16), BLUE, 0, 2))
+		button.add_theme_stylebox_override("pressed", MenuStyle.panel(Color(1, 1, 1, .25), BLUE, 0, 2))
+		button.add_theme_stylebox_override("focus", MenuStyle.focus_ring(2))
+		button.pressed.connect(_select.bind(i))
+		graph.add_child(button)
+		block_buttons.append(button)
+	for child in inspector.get_children():
+		inspector.remove_child(child)
+		child.queue_free()
 	if selected >= 0 and selected < blocks.size(): _build_inspector()
+	else: inspector.add_child(_label("Voeg links een bouwsteen toe.", 16))
+	_update_timeline()
+	if restore_focus and selected >= 0: block_buttons[selected].grab_focus.call_deferred()
+
+func _update_timeline() -> void:
+	var total := 0.0
+	for block in blocks: total += _duration(block)
 	summary.text = "%d blokken  ·  %s totaal" % [blocks.size(), _clock(total)]
+	action_buttons[0].disabled = selected <= 0
+	action_buttons[1].disabled = selected < 0 or selected >= blocks.size() - 1
+	for i in [2, 3]: action_buttons[i].disabled = selected < 0
+	var width := 0.0
+	for block in blocks: width += maxf(72.0, 600.0 * _duration(block) / maxf(total, 1.0))
+	graph.custom_minimum_size.x = width
+	_layout_blocks()
+
+func _block_widths() -> Array[float]:
+	var total := 0.0
+	for block in blocks: total += _duration(block)
+	var widths: Array[float] = []
+	var used := 0.0
+	for block in blocks:
+		var width := maxf(72.0, 600.0 * _duration(block) / maxf(total, 1.0))
+		widths.append(width)
+		used += width
+	for i in range(widths.size()): widths[i] *= graph.size.x / maxf(used, 1.0)
+	return widths
+
+func _layout_blocks() -> void:
+	var x := 0.0
+	var widths := _block_widths()
+	for i in range(block_buttons.size()):
+		block_buttons[i].position = Vector2(x, 0)
+		block_buttons[i].size = Vector2(widths[i], graph.size.y)
+		block_buttons[i].tooltip_text = "%d · %s · %s" % [i + 1, _display(blocks[i].kind), _clock(_duration(blocks[i]))]
+		x += widths[i]
 	graph.queue_redraw()
 
 func _duration(block: Dictionary) -> float:
@@ -181,11 +229,11 @@ func _build_inspector() -> void:
 	if block.kind == "IntervalsT":
 		_spin(inspector, "Herhalingen", block.repeat, 1, 100, 1, func(v): _set_block_value("repeat", int(v)))
 		for key in ["on_duration", "off_duration"]:
-			_spin(inspector, key + " (seconden)", block[key], 1, 3600, 5, func(v): _set_block_value(key, v))
+			_spin(inspector, ("Inspanning" if key == "on_duration" else "Herstel") + " (seconden)", block[key], 1, 3600, 1, func(v): _set_block_value(key, v))
 		for key in ["on_power", "off_power"]:
-			_spin(inspector, key + " (% FTP)", float(block[key]) * 100, 0, 300, 1, func(v): _set_block_value(key, v / 100.0))
+			_spin(inspector, ("Inspanning" if key == "on_power" else "Herstel") + " (% FTP)", float(block[key]) * 100, 0, 300, 1, func(v): _set_block_value(key, v / 100.0))
 	else:
-		_spin(inspector, "Duur (seconden)", block.duration, 1, 86400, 5, func(v): _set_block_value("duration", v))
+		_spin(inspector, "Duur (seconden)", block.duration, 1, 86400, 1, func(v): _set_block_value("duration", v))
 		if block.kind != "FreeRide":
 			_spin(inspector, "Startvermogen (% FTP)", float(block.power_low) * 100, 0, 300, 1, func(v): _set_block_value("power_low", v / 100.0))
 			if block.kind in ["Warmup", "Cooldown", "Ramp"]:
@@ -201,8 +249,9 @@ func _build_inspector() -> void:
 func _set_block_value(key: String, value: Variant) -> void:
 	if selected < 0: return
 	blocks[selected][key] = value
-	# Preserve inspector focus while updating the graph and list on commit.
-	_refresh.call_deferred()
+	# Keep focus and pending instruction text while refreshing the chart.
+	_update_timeline()
+	if is_instance_valid(offset_spin): offset_spin.max_value = _duration(blocks[selected])
 
 func _save_message() -> void:
 	if selected < 0: return
@@ -229,26 +278,43 @@ func _remove() -> void:
 	_select(mini(selected, blocks.size() - 1))
 
 func _draw_graph() -> void:
-	var total := 0.0
-	for block in blocks: total += _duration(block)
-	if total <= 0: return
+	var h := graph.size.y - 54.0
+	var widths := _block_widths()
+	var peak := 1.5
+	for block in blocks:
+		peak = maxf(peak, maxf(float(block.get("on_power", 0)), maxf(float(block.power_low), float(block.power_high))))
+	for level in [0.5, 1.0, 1.5]:
+		var y: float = h - float(level) / peak * (h - 28)
+		graph.draw_line(Vector2(0, y), Vector2(graph.size.x, y), MenuStyle.LINE, 1)
 	var x := 0.0
-	var w := graph.size.x
-	var h := graph.size.y
-	graph.draw_line(Vector2(0, h - 4), Vector2(w, h - 4), Color("#8fa5b6"), 1)
+	var font := get_theme_default_font()
 	for i in range(blocks.size()):
 		var block := blocks[i]
-		var width := w * _duration(block) / total
-		var low := clampf(float(block.power_low) / 1.5, 0.0, 1.0)
-		var high := clampf(float(block.power_high) / 1.5, 0.0, 1.0)
-		var color := Color("#54c96e") if block.kind == "Warmup" else Color("#439ee9")
-		if block.kind == "Recovery": color = Color("#9aaab9")
-		if block.kind == "Cooldown": color = Color("#56b7e8")
-		if block.kind == "IntervalsT": color = Color("#e5767b")
-		var points := PackedVector2Array([Vector2(x, h - 4), Vector2(x, h - 4 - low * (h - 20)), Vector2(x + width, h - 4 - high * (h - 20)), Vector2(x + width, h - 4)])
-		graph.draw_colored_polygon(points, color)
-		if i == selected: graph.draw_rect(Rect2(x, 0, width, h), Color.WHITE, false, 2)
+		var width := widths[i]
+		var low := float(block.power_low)
+		var high := float(block.power_high) if block.kind in ["Warmup", "Cooldown", "Ramp"] else low
+		var color := Color("54b87a") if block.kind == "Warmup" else Color("439ee9")
+		if block.kind == "Recovery": color = Color("9aaab9")
+		if block.kind == "Cooldown": color = Color("56b7e8")
+		if block.kind == "FreeRide": color = Color("bc8a43"); low = .45; high = .45
+		if block.kind == "IntervalsT":
+			color = Color("e5767b")
+			var duration := _duration(block)
+			var cursor := x
+			for rep in range(int(block.repeat)):
+				for pair in [[block.on_duration, block.on_power], [block.off_duration, block.off_power]]:
+					var part := width * float(pair[0]) / duration
+					var height := float(pair[1]) / peak * (h - 28)
+					graph.draw_rect(Rect2(cursor, h - height, part, height), color)
+					cursor += part
+		else:
+			graph.draw_colored_polygon(PackedVector2Array([Vector2(x, h), Vector2(x, h - low / peak * (h - 28)), Vector2(x + width, h - high / peak * (h - 28)), Vector2(x + width, h)]), color)
+		graph.draw_line(Vector2(x, 0), Vector2(x, graph.size.y), MenuStyle.LINE, 1)
+		if i == selected: graph.draw_rect(Rect2(x + 2, 2, width - 4, graph.size.y - 4), BLUE, false, 3)
+		graph.draw_string(font, Vector2(x + 8, h + 22), "%d · %s" % [i + 1, _display(block.kind)], HORIZONTAL_ALIGNMENT_LEFT, width - 16, 14, MenuStyle.INK)
+		graph.draw_string(font, Vector2(x + 8, h + 42), _clock(_duration(block)), HORIZONTAL_ALIGNMENT_LEFT, width - 16, 14, MenuStyle.MUTED)
 		x += width
+	if blocks.is_empty(): graph.draw_string(font, Vector2(20, 60), "Voeg links een bouwsteen toe.", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, MenuStyle.MUTED)
 
 func _dialog(mode: FileDialog.FileMode) -> FileDialog:
 	var d := FileDialog.new()
@@ -294,16 +360,16 @@ func _save_file(path: String) -> void:
 		if kind == "Recovery": kind = "SteadyState"
 		var attrs := ""
 		if kind == "IntervalsT":
-			attrs = ' Repeat="%d" OnDuration="%g" OffDuration="%g" OnPower="%g" OffPower="%g"' % [block.repeat, block.on_duration, block.off_duration, block.on_power, block.off_power]
+			attrs = ' Repeat="%d" OnDuration="%s" OffDuration="%s" OnPower="%s" OffPower="%s"' % [block.repeat, block.on_duration, block.off_duration, block.on_power, block.off_power]
 		elif kind in ["Warmup", "Cooldown", "Ramp"]:
-			attrs = ' Duration="%g" PowerLow="%g" PowerHigh="%g"' % [block.duration, block.power_low, block.power_high]
+			attrs = ' Duration="%s" PowerLow="%s" PowerHigh="%s"' % [block.duration, block.power_low, block.power_high]
 		elif kind == "FreeRide":
-			attrs = ' Duration="%g"' % block.duration
+			attrs = ' Duration="%s"' % block.duration
 		else:
-			attrs = ' Duration="%g" Power="%g"' % [block.duration, block.power_low]
+			attrs = ' Duration="%s" Power="%s"' % [block.duration, block.power_low]
 		file.store_line("<%s%s>" % [kind, attrs])
 		for event in block.events:
-			file.store_line('<textevent timeoffset="%g" message="%s"/>' % [event.time, _escape(str(event.message))])
+			file.store_line('<textevent timeoffset="%s" message="%s"/>' % [event.time, _escape(str(event.message))])
 		file.store_line("</%s>" % kind)
 	file.store_line("</workout></workout_file>")
 	file.close()

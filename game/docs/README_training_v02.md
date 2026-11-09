@@ -122,3 +122,34 @@ de inmiddels bestaande tijdrit nog ten onrechte als niet speelbaar.
    terugkeer van alle normale wedstrijddecors en publiek.
 
 Dit is een FTP-schatting. Er zijn nog geen fysieke hardwaretests uitgevoerd.
+
+
+## Hoofdmenu en workout-editor
+
+Het hoofdmenu toont Wedstrijden over de volle breedte, met beelden uit Scratch,
+Achtervolging en Ploegenachtervolging. Daaronder staan Training en Toernooien elk
+op halve breedte. Training heeft een miniatuur van een workoutgrafiek.
+De tegels gebruiken het bestaande ivoren/blauwe menuthema en de bestaande baanbeelden.
+Toernooien behoudt zijn pagina met de melding dat deze functie later wordt toegevoegd.
+
+De workout-editor heeft links de bouwstenen, in het midden één klikbare grafiek
+en rechts de eigenschappen van het geselecteerde blok. Links/Rechts verplaatst
+het geselecteerde blok in de tijdlijn. Dupliceren maakt een onafhankelijke kopie;
+Verwijderen werkt ook tot een lege workout. Korte blokken blijven aanklikbaar via
+een minimale breedte en horizontaal scrollen. De intervallen tonen inspanning en herstel.
+Bewerken van duur of vermogen behoudt de veldfocus en een nog niet bewaard tekstbericht.
+De controllerknop B keert vanuit de editor terug naar Training.
+
+ZWO-export gebruikt geldige Godot-getalopmaak; import leest XML-tekst zonder
+foutmeldingen. Zoals in de bestaande trainingslezer worden geïmporteerde intervallen
+uitgevouwen naar afzonderlijke inspannings- en herstelblokken.
+
+Extra controle:
+
+```text
+Godot --headless --path game --script res://tests/test_workout_editor_ui.gd
+```
+
+Deze controle test echte muisklikken op de grafiek, selectie, bewerken met behoud
+van focus, volgorde, dupliceren, verwijderen, ZWO-import/export en de schermindeling.
+Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.

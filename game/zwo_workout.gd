@@ -62,7 +62,7 @@ func parse(xml: String) -> bool:
 		if status != OK:
 			error = "Ongeldige XML"
 			return false
-		var kind := parser.get_node_name()
+		var kind := parser.get_node_name() if parser.get_node_type() in [XMLParser.NODE_ELEMENT, XMLParser.NODE_ELEMENT_END] else ""
 		match parser.get_node_type():
 			XMLParser.NODE_ELEMENT:
 				if kind in ["name", "description", "author"]: field = kind
