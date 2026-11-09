@@ -17,6 +17,7 @@ func run_test() -> void:
 	await process_frame
 	var page = game.bridge_devices
 	check(not page.panel_root.visible, "No bridge: hub remains usable")
+	check(page.close_button.text == "Overslaan", "No connection uses Overslaan")
 	var server := PacketPeerUDP.new()
 	server.bind(0, "127.0.0.1")
 	page.port = server.get_local_port()
@@ -38,6 +39,18 @@ func run_test() -> void:
 	check(page.panel_root.visible and page.auto_shown, "Available bridge opens devices before menu interaction")
 	check(page.choices.trainer.item_count == 2 and page.choices.controller.item_count == 2, "Roles filter actual inventory")
 	check(page.mapping_link.visible, "Selected controller exposes button mapping link")
+	check(page.close_button.text == "Kies deze setup", "Connected devices use Kies deze setup")
+	check(page.mapping_link.get_parent() == page.choices.controller.get_parent(), "Mapping belongs directly to controller section")
+	check(page.mapping_link.get_index() > page.choices.controller.get_index(), "Mapping follows selected controller")
+	check(page.mapping_link.flat and page.mapping_link.text == "Knoptoewijzing aanpassen", "Mapping uses subtle action label")
+	page.snapshot.connected = {}
+	page._refresh()
+	check(page.close_button.text == "Overslaan" and not page.controller_connection.visible, "Selection without a connection still uses Overslaan")
+	page.snapshot.connected = {"heart_rate": "hr-1"}
+	page._refresh()
+	check(page.close_button.text == "Kies deze setup", "Heart-rate-only connection also confirms setup")
+	page.snapshot.connected = {"trainer": "bike-1", "controller": "ride-1"}
+	page._refresh()
 	page.close_page()
 	page._process(0.0)
 	check(not page.panel_root.visible, "Skip does not immediately reopen page")
@@ -68,7 +81,9 @@ func run_test() -> void:
 	page.last_response = -10.0
 	page._process(0.0)
 	check(page.choices.trainer.disabled and page.status.text.contains("niet bereikbaar"), "Bridge loss disables stale selection")
+	check(page.close_button.text == "Overslaan" and not page.controller_connection.visible, "Bridge loss clears connected action and badge")
 	if DisplayServer.get_name() != "headless":
+		page.last_response = Time.get_ticks_msec() / 1000.0
 		page.error = ""
 		page.snapshot = state
 		page.snapshot.selected.controller = "ride-1"

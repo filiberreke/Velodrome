@@ -23,8 +23,10 @@ Per rol verschijnen alleen werkelijk waargenomen, ondersteunde apparaten:
   actieve stream. Deze backend meldt geen sensor-ID en scant geen sensorlijst;
   individueel kiezen tussen meerdere ANT+-zenders wordt niet ondersteund.
 
-Geen / overslaan schakelt die rol expliciet uit. Overslaan / terug sluit de
-pagina zonder bestaande keuzes te veranderen. Expliciete keuzes worden atomair
+Geen / overslaan schakelt die rol expliciet uit. De afsluitknop heet Overslaan
+zolang geen apparaat verbonden is en Kies deze setup zodra minstens een apparaat
+verbonden is. De knop sluit de pagina zonder bestaande keuzes te veranderen.
+Bij bridge-uitval wordt de knop opnieuw Overslaan. Expliciete keuzes worden atomair
 opgeslagen in `device_selections.json` naast de bridgesource of bridge-executable.
 Deze persoonlijke file staat in .gitignore. Opslagfouten worden gemeld en wijzigen
 de selectie niet. Zonder opgeslagen keuze behoudt de bridge zijn bestaande
@@ -38,8 +40,10 @@ verbinden onafhankelijk opnieuw. Een rolwissel wacht tot de oude verbinding en
 trainer-Reset afgehandeld zijn. ACK bevestigt selectie/opslag, geen hardwarelink.
 De pagina vermeldt afzonderlijk welke verbindingen actief zijn.
 
-Na een besturingskeuze opent de link **Instellingen > Besturing > Knoptoewijzing**
-de bestaande editor. De sluitknop heet dan Terug naar apparaten; Escape en Ride Z
+Na een besturingskeuze verschijnt direct onder Besturing de subtiele link
+**Knoptoewijzing aanpassen**, met een instellingenicoon en een verwijspijl. Die
+opent **Instellingen > Besturing > Knoptoewijzing**. Een groen Verbonden-label
+verschijnt alleen bij een actuele besturingsverbinding. De sluitknop heet dan Terug naar apparaten; Escape en Ride Z
 brengen je ook terug. In de testmodus blijft invoer voor knopvastlegging bestemd;
 er ontsnappen geen wedstrijdacties. Wedstrijdklok, afstand en positie blijven bij
 alle overlaywissels bewaard.

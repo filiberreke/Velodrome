@@ -18,8 +18,9 @@ Start de echte Python-bridge niet tegelijk met deze testtool. De tool opent UDP 
    uitgeschakelde trainer geeft ongeldige telemetrie en vrijgegeven belasting;
    uitgeschakelde besturing verstuurt geen knop-/paddle-invoer. Schakel de rol
    via het gevonden apparaat weer in om verder te testen.
-5. Gebruik bij gekozen besturing de link **Instellingen > Besturing >
-   Knoptoewijzing**. Sluit met **Terug naar apparaten**, Escape of Ride Z.
+5. Klik na verbinding op **Kies deze setup** om verder te gaan. Zonder verbonden
+   apparaten heet die knop **Overslaan**. Gebruik bij gekozen besturing de link **Knoptoewijzing aanpassen**
+   direct onder Besturing. Sluit met **Terug naar apparaten**, Escape of Ride Z.
 6. Vink **Wahoo KICKR gevonden** of **Zwift Ride (links) gevonden** uit om het
    geselecteerde apparaat te laten verdwijnen. De selectie blijft bewaard en
    verschijnt als niet beschikbaar. Vink opnieuw aan om herstel te testen.

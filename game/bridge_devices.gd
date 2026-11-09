@@ -17,6 +17,8 @@ var panel_root: ColorRect
 var open_button: Button
 var status: Label
 var choices: Dictionary = {}
+var mapping_separator: HSeparator
+var controller_connection: Label
 var mapping_link: Button
 var close_button: Button
 var return_focus: Control
@@ -64,20 +66,64 @@ func _ready() -> void:
 	status.custom_minimum_size = Vector2(1000, 90)
 	box.add_child(status)
 	for i in ROLES.size():
+		var section := VBoxContainer.new()
+		section.add_theme_constant_override("separation", 10)
+		if ROLES[i] == "controller":
+			var card := PanelContainer.new()
+			card.add_theme_stylebox_override("panel", Style.panel(Style.PAPER, Style.LINE, 16, 16))
+			box.add_child(card)
+			card.add_child(section)
+		else:
+			box.add_child(section)
+		var header := HBoxContainer.new()
+		section.add_child(header)
 		var label := Label.new()
 		label.text = LABELS[i]
-		box.add_child(label)
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header.add_child(label)
+		if ROLES[i] == "controller":
+			controller_connection = Label.new()
+			controller_connection.text = "Verbonden"
+			controller_connection.add_theme_font_size_override("font_size", 16)
+			controller_connection.add_theme_color_override("font_color", Color("008b38"))
+			controller_connection.add_theme_stylebox_override("normal", Style.panel(Color("d9f5e3"), Color.TRANSPARENT, 6, 12))
+			header.add_child(controller_connection)
 		var option := OptionButton.new()
 		option.custom_minimum_size.y = 48
-		box.add_child(option)
+		section.add_child(option)
 		choices[ROLES[i]] = option
 		option.item_selected.connect(func(index: int): _select(ROLES[i], index))
-	mapping_link = Button.new()
-	mapping_link.text = "Instellingen > Besturing > Knoptoewijzing"
-	mapping_link.pressed.connect(open_mapping)
-	box.add_child(mapping_link)
+		if ROLES[i] == "controller":
+			mapping_separator = HSeparator.new()
+			section.add_child(mapping_separator)
+			mapping_link = Button.new()
+			mapping_link.text = "Knoptoewijzing aanpassen"
+			mapping_link.tooltip_text = "Instellingen > Besturing > Knoptoewijzing"
+			mapping_link.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			mapping_link.flat = true
+			mapping_link.custom_minimum_size.y = 40
+			mapping_link.icon = Style.icon('<path d="M4 6h4m4 0h8M4 12h9m4 0h3M4 18h2m4 0h10M8 3v6m5 0v6M6 15v6"/>', Style.MUTED)
+			mapping_link.add_theme_constant_override("icon_max_width", 20)
+			mapping_link.add_theme_font_size_override("font_size", 18)
+			mapping_link.add_theme_color_override("font_color", Style.MUTED)
+			mapping_link.add_theme_color_override("font_pressed_color", Style.INK)
+			mapping_link.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+			mapping_link.add_theme_stylebox_override("hover", Style.panel(Style.PALE, Color.TRANSPARENT, 6))
+			mapping_link.add_theme_stylebox_override("pressed", Style.panel(Style.PALE, Color.TRANSPARENT, 6))
+			var arrow := TextureRect.new()
+			arrow.texture = Style.icon('<path d="M7 17 17 7M8 7h9v9"/>', Style.MUTED)
+			arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			arrow.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+			arrow.offset_left = -26
+			arrow.offset_right = -6
+			arrow.offset_top = -10
+			arrow.offset_bottom = 10
+			mapping_link.add_child(arrow)
+			mapping_link.pressed.connect(open_mapping)
+			section.add_child(mapping_link)
 	close_button = Button.new()
-	close_button.text = "Overslaan / terug"
+	close_button.text = "Overslaan"
+	Style.primary(close_button)
 	close_button.pressed.connect(close_page)
 	box.add_child(close_button)
 	panel_root.hide()
@@ -117,6 +163,7 @@ func _process(_delta: float) -> void:
 	if now - last_response > 3.0:
 		status.text = "Bridge niet bereikbaar. Start de bridge of ga verder met Overslaan."
 		for option in choices.values(): option.disabled = true
+		_update_connection_action(false)
 
 func handle_response(packet: Dictionary, now: float) -> void:
 	var id := str(packet.get("id", ""))
@@ -168,6 +215,16 @@ func _refresh() -> void:
 		option.disabled = snapshot.is_empty() or not pending.is_empty()
 	var controller := str(selected.get("controller", "")) if selected.get("controller") != null else str(connected.get("controller", ""))
 	mapping_link.visible = not controller.is_empty()
+	mapping_separator.visible = mapping_link.visible
+	_update_connection_action(Time.get_ticks_msec() / 1000.0 - last_response <= 3.0)
+
+func _update_connection_action(online: bool) -> void:
+	var connected: Dictionary = snapshot.get("connected", {})
+	var any_connected := false
+	for role in ROLES:
+		if online and not str(connected.get(role, "")).is_empty(): any_connected = true
+	close_button.text = "Kies deze setup" if any_connected else "Overslaan"
+	controller_connection.visible = online and not str(connected.get("controller", "")).is_empty()
 
 func _select(role: String, index: int) -> void:
 	if not pending.is_empty(): return
