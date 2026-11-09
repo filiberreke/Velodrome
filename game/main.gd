@@ -17,6 +17,16 @@ var x_ai = XScratchAI.new()
 const PointsAI := preload("res://points_ai.gd")
 const EliminationRules := preload("res://elimination_race_rules.gd")
 const EliminationAI := preload("res://elimination_ai.gd")
+const EliminationMotion := preload("res://elimination_motion.gd")
+const ELIMINATION_PHYSICS_STEP := 1.0 / 60.0
+var _elimination_accumulator := 0.0
+var _elimination_epoch := 0.0
+var _elimination_ticks := 0
+var _elimination_clock_ready := false
+var _elimination_motion_metrics: Array[float] = []
+var _elimination_motion_drafts: Array[float] = []
+var _elimination_motion_heights: Array[float] = []
+var _elimination_motion_previous_lanes: Array[float] = []
 var elimination_rules = EliminationRules.new()
 var elimination_notice: Label
 var elimination_notice_until := -1.0
@@ -258,6 +268,7 @@ func _configure_peloton() -> void:
 		x_ai.configure_riders(rider_identities, rider_forms)
 	if race_mode == 2:
 		var rear_positions: Array[float] = []
+		_elimination_clock_ready = false; _elimination_accumulator = 0.0; _elimination_ticks = 0
 		for distance in distances: rear_positions.append(distance - REAR_TRAILING_EDGE_M)
 		elimination_rules.reset(count, rear_positions)
 	pursuit_start.clear()
@@ -1602,6 +1613,8 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode in [4, 7]:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
+	var previous_lanes: Array[float] = []
+	if race_mode == 2: previous_lanes = lane_offsets.duplicate()
 	if race_mode not in [0, 1, 2]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
@@ -1609,6 +1622,11 @@ func _move_lanes(dt: float) -> Array[float]:
 		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2] and x_ai.initialized else ai_lane_targets[i])
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
+	if race_mode == 2:
+		var metrics: Array[float] = []
+		for i in range(rider_count): metrics.append(_path_metric(distances[i], previous_lanes[i]))
+		lane_offsets = EliminationMotion.constrain_lanes(distances, speeds, previous_lanes, lane_offsets, finish_times, metrics, dt)
+		for i in range(rider_count): heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lanes[i]).y
 	return heights
 
 func _race_length() -> float:
@@ -1699,10 +1717,37 @@ func _update_trainer_control() -> void:
 
 func _update_race(dt: float) -> void:
 	var previous: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
-	_advance_race(dt)
+	if race_mode == 2:
+		if not _elimination_clock_ready:
+			_elimination_epoch = clock - dt; _elimination_ticks = 0; _elimination_accumulator = 0.0; _elimination_clock_ready = true
+		var frame_clock: float = clock
+		_elimination_accumulator += dt
+		while _elimination_accumulator + 0.00000001 >= ELIMINATION_PHYSICS_STEP:
+			_elimination_ticks += 1
+			clock = _elimination_epoch + _elimination_ticks * ELIMINATION_PHYSICS_STEP
+			_advance_race(ELIMINATION_PHYSICS_STEP)
+			_elimination_accumulator -= ELIMINATION_PHYSICS_STEP
+			if _all_riders_finished(): _elimination_accumulator = 0.0; break
+		clock = frame_clock
+	else:
+		_advance_race(dt)
 	var current: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
 	var grade: float = TrainerControl.route_grade(previous, current)
 	trainer_road_grade = lerpf(trainer_road_grade, grade, 1.0 - exp(-8.0 * maxf(dt, 0.0)))
+
+func _elimination_metric_for(i: int, lane: float) -> float:
+	return _path_metric(distances[i], lane)
+
+func _elimination_predict_speed(i: int, power: float, dt: float) -> float:
+	var initial: float = baseline_speed if i == 0 else speeds[i]
+	var speed: float = _next_speed(initial, power, dt, _elimination_motion_drafts[i])
+	var metric: float = _elimination_motion_metrics[i]
+	var step: float = speed * dt / metric
+	var slope: float = _at(distances[i] + step, lane_offsets[i]).y - _at(distances[i], lane_offsets[i]).y
+	return _banked_speed(speed, slope, _elimination_motion_heights[i], absf(lane_offsets[i] - _elimination_motion_previous_lanes[i]), dt, power)
+
+func elimination_simulation_time() -> float:
+	return _elimination_epoch + _elimination_ticks * ELIMINATION_PHYSICS_STEP
 
 func _advance_race(dt: float) -> void:
 	if race_mode == 5:
@@ -1723,15 +1768,26 @@ func _advance_race(dt: float) -> void:
 	for rider in range(rider_count):
 		effective_drafts.append(_effective_draft_strength(rider))
 	var new_lap_event: int = points_rules.events.size() if race_mode == 1 else scratch_rules.events.size()
+	var player_actual_power: float = (_pc_power(dt) if finish_times[0] < 0.0 else 0.0) if race_mode == 2 else 0.0
 	var x_powers: Array[float] = []
 	if race_mode in [0, 1, 2]:
-		x_ai.human_power_w = watts
+		x_ai.human_power_w = player_actual_power if race_mode == 2 else watts
 		if race_mode == 2:
 			x_ai.elimination_line_m = elimination_rules.next_line_m
 			x_ai.final_line_m = _race_length()
+			x_ai.rear_reference_offset = REAR_TRAILING_EDGE_M
+			_elimination_motion_metrics.clear()
+			for i in range(rider_count): _elimination_motion_metrics.append(_path_metric(distances[i], lane_offsets[i]))
+			_elimination_motion_drafts = effective_drafts
+			_elimination_motion_heights = lateral_height_changes
+			_elimination_motion_previous_lanes = prior_lanes
+			x_ai.position_metrics = _elimination_motion_metrics
+			x_ai.metric_predictor = Callable(self, "_elimination_metric_for")
+			x_ai.speed_predictor = Callable(self, "_elimination_predict_speed")
+			x_ai.lane_targets[0] = LANES[player_lane]
 		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
-	var player_actual_power: float = _pc_power(dt)
+	if race_mode != 2: player_actual_power = _pc_power(dt)
 	var new_finisher := false
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
@@ -1769,6 +1825,9 @@ func _advance_race(dt: float) -> void:
 			baseline_speed = _banked_speed(baseline_speed, slope_dh, lateral_height_changes[i], lateral_travel, dt, power)
 			if boost_active:
 				boosted_speed = _banked_speed(boosted_speed, slope_dh, lateral_height_changes[i], lateral_travel, dt, BOOST_POWER_W)
+		if race_mode == 2 and x_ai.motion_ready:
+			speeds[i] = x_ai.planned_speeds[i]
+			if i == 0: baseline_speed = speeds[i]
 		if i != 0:
 			ai_stall_time[i] = ai_stall_time[i] + dt if speeds[i] < 0.6 and power >= 80.0 else 0.0
 		var actual_step: float = speeds[i] * dt / metric

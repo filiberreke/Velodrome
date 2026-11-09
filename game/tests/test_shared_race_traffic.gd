@@ -33,7 +33,9 @@ func run_test() -> void:
 	# lapped traffic and the former deterministic tie in longitudinal resolve.
 	for scenario in range(6):
 		var reference: Array = []
-		for mode in [0, 1, 2]:
+		# Scratch and points retain their shared movement. Elimination now has
+		# its own safety-first native policy, tested in test_elimination_native.
+		for mode in [0, 1]:
 			var g := race(mode)
 			g.distances.assign([50.0, 50.5, 20.0, 10.0])
 			g.speeds.fill(8.0); g.baseline_speed = 14.0; g.watts = 650.0
@@ -50,7 +52,7 @@ func run_test() -> void:
 				reference = [g.distances.duplicate(), g.speeds.duplicate(), g.lane_offsets.duplicate()]
 			else:
 				for i in range(4):
-					check(is_equal_approx(g.distances[i], reference[0][i]) and is_equal_approx(g.speeds[i], reference[1][i]) and is_equal_approx(g.lane_offsets[i], reference[2][i]), "Identical physical movement for scratch/points/elimination, scenario %d rider %d" % [scenario, i])
+					check(is_equal_approx(g.distances[i], reference[0][i]) and is_equal_approx(g.speeds[i], reference[1][i]) and is_equal_approx(g.lane_offsets[i], reference[2][i]), "Identical physical movement for scratch/points, scenario %d rider %d" % [scenario, i])
 			if scenario == 0: check(g.distances[0] > g.distances[1], "Faster player can pass a close wheel")
 			if scenario in [1,3]: check(is_equal_approx(g.lane_offsets[0], 2.38), "Requested manual lane completes beside another rider")
 			g.free()

@@ -1,0 +1,19 @@
+{
+  "parent": "2bb7ec6997a52d051736d4979da0e225e214644c",
+  "approved_source": "17a827ce0cad145c789bd6a3752d0ca7ed2f8dd4",
+  "engine": "Godot 4.7.2",
+  "main_blob": "ff69f9c089c361ba1f2b0b80e89e1dc914cf7d1b",
+  "headless_passed": [
+    "test_elimination_native_core",
+    "test_elimination_native",
+    "test_derny_session",
+    "test_ftp_ramp",
+    "test_zwo_ftp_core",
+    "test_training_store",
+    "test_derny_training",
+    "test_training_environment",
+    "test_heart_rate_export"
+  ],
+  "earlier_v02_parent": "a3117a27e7717004c1de66bde086d735df3fafb4",
+  "earlier_validation": "Twelve suites passed; v0.2 menu assertions passed with eight existing dummy-renderer material errors reproduced on unchanged baseline."
+}

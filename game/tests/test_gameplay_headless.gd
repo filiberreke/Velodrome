@@ -32,6 +32,7 @@ func run_races() -> void:
 		game.race_laps = scenario[1]
 		game.ai_difficulty = 80.0
 		game._configure_peloton()
+		var start_distances: Array[float] = game.distances.duplicate()
 		# Fix forms and RNG after default initialization, before any race steps.
 		game.rider_forms.fill(1.0)
 		game.x_ai.reset(game.rider_profiles, game.rider_forms, game.lane_offsets)
@@ -75,7 +76,7 @@ func run_races() -> void:
 			if game.clock >= 10.0 and not start_checked:
 				start_checked = true
 				for i in range(1, game.rider_count):
-					check(game.speeds[i] > 2.0 and game.distances[i] > 10.0, "AI starts under own power")
+					check(game.speeds[i] > 2.0 and game.distances[i] - start_distances[i] > 10.0, "AI starts under own power from its staggered grid position")
 			if game.distances.max() >= float(next_snapshot) * 250.0:
 				var riders: Array[Dictionary] = []
 				for i in range(game.rider_count):
