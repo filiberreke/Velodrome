@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "source_sha256": "8df0f468eea47396f4f39b60930ad339bfd539341e3b2b25a879832803c58bdf",
+  "portable_standard_library_cli": true,
+  "seed": 17,
+  "frame_dt": 0.13,
+  "all_race_metrics_equal": true,
+  "all_30_lap_speeds_equal": true
+}

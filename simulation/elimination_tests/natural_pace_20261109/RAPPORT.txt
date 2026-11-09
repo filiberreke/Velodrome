@@ -1,0 +1,181 @@
+VERVOLGONDERZOEK AFVALLING — 9 november 2026
+
+UITKOMST
+De resterende kunstmatige spreiding is verder verkleind. Voor de oorspronkelijke
+zeven seeds (17-23) gaat de gemiddelde spreiding van 26.84 naar
+10.01 m. Dat is de vergelijking met de reeds gecorrigeerde versie,
+niet met het oorspronkelijke experiment van 138,87 m.
+
+Over alle 60 wedstrijden (seeds 17-76, 16 renners, difficulty 80):
+                                   Eerdere fix        Nieuwe v2
+Gem. spreiding                      41.94 m            10.34 m
+Gem. AI-spreiding zonder renner 0    33.71 m            8.90 m
+Gem. snelheid eliminatiefase        41.10 km/u          39.84 km/u
+Gem. slipstreamsterkte              0.465                0.376
+Gem. W-prime-fractie na lijnen      0.314                0.519
+Botsingscorrecties per wedstrijd    0                    0
+
+Het totale tempo is lager doordat de extra snelheidsvraag is verwijderd.
+De slipstreamsterkte daalt ook: een kleinere longitudinale spreiding betekent
+niet automatisch betere wieluitlijning; renners kunnen meer naast elkaar
+rijden. Dat blijft een beperking van deze versie, zichtbaar in bovenstaande
+cijfers. De hogere resterende W-prime komt uit minder onnodige inspanning,
+niet uit aangepaste energieparameters.
+
+De laatste twaalf seeds (65-76) zijn pas na het kiezen van de natuurlijke
+positioneringsregeling toegevoegd. Hun gemiddelde spreiding is 40.44 m vóór en
+10.70 m na de wijziging.
+De twaalf eerdere nieuwe seeds (29-40): 44.62 naar
+10.37 m.
+Seeds met een grotere gemiddelde spreiding na de wijziging: geen binnen deze 60 races.
+De grootste momentane spreiding over alle races is 406.75 m oud
+en 82.98 m nieuw. Gemiddelden zijn dus geen
+garantie dat elk groot gat onder alle omstandigheden verdwijnt.
+
+BEWEZEN OORZAKEN EN CORRECTIES
+1. Vermogen werd geboekt voordat duidelijk was welke beweging de rijlijn toeliet.
+   Een ingesloten volger kon daardoor W-prime verbruiken aan 400 W en vervolgens
+   toch tot het tempo van zijn voorganger worden begrensd. Nu wordt eerst de
+   haalbare vermogensvraag uit de bewegingsruimte berekend, daarna pas CP,
+   W-prime, Pmax en vermoeidheid afgerekend. Geen terugbetaling achteraf en
+   geen extra energie. Het bestaande snelheidsvangnet blijft bestaan voor
+   situaties waarin alleen uitrollen niet voldoende kan vertragen.
+2. De oude rijlijncontrole beschouwde afzonderlijke veeggebieden als een botsing,
+   ook wanneer twee renners parallel dezelfde kant op bewogen of uiteen gingen.
+   Nu wordt hun onderlinge laterale afstand gedurende de gezamenlijke beweging
+   getoetst. Samenlopende trajecten en kruisingen blijven geblokkeerd als de
+   longitudinale ruimte ontbreekt. Het model houdt dezelfde 0,60 m rijlijnafstand.
+   Een tweede fout blokkeerde het verlaten van een veilig wiel: de planner
+   eiste ook daarvoor de 3,6 m-buffer voor NIEUWE invoegbewegingen, terwijl de
+   volger rond 3,2 m bleef rijden. Nu wordt voor een vertrekkend traject apart
+   gecontroleerd of de bestaande 2 m-volgafstand tijdens de afscheiding veilig
+   blijft. Nieuwe invoegbewegingen houden hun ruimere buffer. In de gerichte
+   probleemseeds 25 en 36 verdwijnt daardoor de onnodige AI-kloof van circa 93 m.
+3. Wielvolgen vergeleek fysieke snelheden alsof alle rijlijnen even lang waren.
+   Nu worden wieltempo en verkeersvoorspelling naar dezelfde referentieafstand
+   omgerekend. De vermogensvraag bevat bovendien de versnelling die nodig is
+   om het doeltempo te bereiken, in plaats van alleen het evenwichtsvermogen.
+4. De hoge afvallingsurgentie bleef soms doorlopen tot de laatste renner de
+   lijn passeerde. Nu reset de tactische cyclus op de 500 m-grens van de kop.
+5. De minimumsnelheidsregeling is OP VERZOEK VOLLEDIG VERWIJDERD. Er is geen
+   universele vraag naar 41,4-44,3 km/u meer. Cruisen gebruikt de bestaande
+   vermogenskeuze; volgen/sluiten gebruikt het wieltempo, de afstand en de
+   benodigde versnelling; positioneren gebruikt rang, afstand tot de volgende
+   jury en het eigen CP/W-prime/Pmax. De positioneringsvoorbereiding begint nu
+   50 m vóór de bel van de afvallingsronde; de urgentie is volledig bij nog
+   200 m tot de afvalling. Zo is er tijd om een veilige route te reserveren en
+   werkelijk op snelheid te komen. Er wordt geen doelsnelheid opgelegd.
+
+   Alleen de snelheidsankerregel weglaten hield in 48 proefraces het veld
+   compact, maar maakte de afvallingsrondes gemiddeld niet sneller: de versnelling kwam te laat en
+   liep door in de volgende tussenronde. Extra defensieve inspanning op basis
+   van marge tot de laatste renner bleek evenmin de juiste oplossing. Beide
+   proeven staan in no_floor_* en position_defense_*; deze opties zijn niet
+   als verborgen snelheidsvloer teruggebracht. De uiteindelijke wijziging is
+   eerder positioneren met de bestaande ranggebonden vermogenscurve.
+
+De opgelegde proef blijft 650 W voor renner 0 van 35-60 s, daarna 250 W.
+Dat is een vermogensvraag: ook deze renner valt onder de fysieke grenzen en
+de verkeersregeling. Een geblokkeerde aanval hoeft daardoor niet werkelijk
+650 W te blijven verbruiken terwijl zijn snelheid kunstmatig wordt afgeknipt.
+De Pmax/CP/W-prime/fatigue-parameters, startopstelling en eliminatieregels blijven
+gelijk. De vorige verwijdering van het foutieve buitenbaanplafond blijft behouden.
+
+RONDESNELHEDEN
+Gemiddelden van de gewone gepaarde cycli, rondes 5-28, over alle 60 races:
+                         Tussenronde       Afvallingsronde
+Eerdere fix              41.35 km/u         41.00 km/u
+Nieuwe v2                39.61 km/u         40.28 km/u
+Het nieuwe verschil is +0.67 km/u. In 563/720 individuele
+gepaarde cycli is de afvallingsronde sneller. De volledige tabel van ALLE
+dertig rondes, inclusief start/aanval en finale, staat in RONDESNELHEDEN.txt.
+De meting gebruikt tijdgewogen fysieke veldsnelheden en geïnterpoleerde
+rondegrenzen, met daarnaast afzonderlijke 250 m-splittijden van kop en renners.
+
+TIJDSTAP: TWEE VERSCHILLENDE VRAGEN
+A. Aanroep-/frame-interval van de gebruiker of game-loop.
+De oude simulator liet dit rechtstreeks de fysica en beslismomenten bepalen.
+De nieuwe simulator heeft een vaste integratiestap van 0,05 s, een beslisklok
+van 0,20 s en een meetklok van 0,50 s. Een accumulator verdeelt willekeurige
+frame-intervallen over dezelfde gehele interne ticks. Geen tijd wordt overgeslagen.
+Voor seeds 17,23,24,31,41,42,52,53,64,65,76 is bij frame-intervallen 0,10 / 0,20 / 0,40 /
+0,13 s elke interne toestand (positie, snelheid, W-prime en rijlijn) identiek,
+bevestigd met hashes over het volledige verloop. Ook de uitslagen zijn exact gelijk.
+
+Gem. spreiding over precies deze elf frame-testseeds:
+Frame-interval           Eerdere fix          Nieuwe v2
+ 0.1 s                34.41 m          10.31 m
+ 0.2 s                40.58 m          10.31 m
+ 0.4 s                53.57 m          10.31 m
+0.13 s           niet gemeten          10.31 m
+
+B. De echte fysieke integratiestap.
+Externe frame-onafhankelijkheid bewijst GEEN numerieke convergentie. Daarom is
+ook integration_dt gevarieerd, bij dezelfde beslisklok van 0,20 s en meetklok
+van 0,50 s. Zeven seeds: 17,23,24,25,26,27,28.
+Integratiestap       Gem. spreiding v2
+  0.1 s        11.49 m
+ 0.05 s        10.11 m
+0.025 s        9.83 m
+De individuele uitslagen en trajecten zijn bij deze echte verfijning niet
+identiek. Discrete wielkeuze, rijlijnreservering en eliminaties kunnen kleine
+afwijkingen nog versterken. De gemeten resterende gevoeligheid staat dus
+expliciet in de resultaten; niet elke vorm van tijdstapgevoeligheid is verdwenen.
+De standaardinstelling is 0,05 s. integration_dt moet de beslis- en meetklok delen.
+
+VEILIGHEID EN TESTS
+Alle 120 volledig geobserveerde hoofdwedstrijden zijn voltooid met nul noodcorrecties.
+Iedere stap controleert niet-achteruitrijden, minimaal 2 m afstand tot de
+veiligheidsvoorganger in dezelfde rijlijn en geldige W-prime-grenzen.
+Het passief gelogde oude model levert exact dezelfde resultaten als de
+ongewijzigde eerder geleverde fix. tests.json bevat daarnaast gerichte proeven
+voor energieboekhouding, parallelle/uiteengaande/kruisende rijlijnbewegingen,
+de snelheidsmaat op 9 rijlijncombinaties, versnellingsfeedback, het terugzetten
+van urgentie en het behoud van de aansluitvraag voor geloste renners.
+
+Ruwe aantallen snelheidsbegrenzingen zijn niet rechtstreeks vergelijkbaar omdat
+de nieuwe fysica viermaal zo vaak loopt. Begrensde renner-tijd als fractie van
+alle actieve renner-tijd: oud 23.21%, nieuw
+1.16%. De nieuwe vermogensregeling anticipeert op
+verkeer; noodzakelijke snelheidsingrepen zijn niet uitgeschakeld.
+
+WAT OVERBLIJFT
+Een gecontroleerde renner die na een aanval vast 250 W vraagt kan op eigen
+kracht alsnog lossen. AI-renners kunnen fysiek hun W-prime opgebruiken.
+Een oorzaakproef zonder de externe 650/250 W-override geeft voor seeds 17-40
+gemiddeld 6.72 m spreiding en een grootste
+momentane spreiding van 48.32 m. Dit is alleen
+een diagnoseproef; de geleverde v2 houdt de override actief.
+
+span_m blijft absolute wedstrijdvoortgang van alle actieve renners, niet de
+kleinste bezette boog op de piste. Veiligheid in dit onderzoeksmodel gebruikt
+eveneens absolute voortgang; ontmoetingen met gedubbelde renners modulo 250 m
+vallen buiten het model. De rijlijnwissels zijn discreet en bochten/slipstream
+zijn benaderingen. Nul correcties betekent daarom geen volledige fysieke
+validatie van een echte piste of van de Godot-game.
+
+BESTANDEN EN UITVOEREN
+source/elimination_v2.py: leesbare, zelfstandig uitvoerbare nieuwe simulator.
+baseline/: de ongewijzigde eerder geleverde fix met haar afhankelijkheden.
+source/changes.patch: het volledige verschil tussen die versies.
+source/validate.py: hoofdvergelijking, rijlijnafstanden, tijdstap- en rondetests.
+source/clock_probes.py: echte integratieverfijning bij vaste beslisklok.
+results/before_after.csv: alle 120 hoofdwedstrijden.
+results/frame_sensitivity.csv: de frame-intervalvergelijkingen.
+results/internal_step_exploration.csv: de 21 echte verfijningswedstrijden.
+results/lap_*.csv en rider_lap_speeds.csv: alle ronde- en rennersplits.
+results/diagnostics.json: grote-gatgebeurtenissen, maxima en tellingen per race.
+results/trace_*.csv.gz: vier voorbeeldraces, per renner gelogd op 0,20 s-cadans.
+results/pre_recovery/, pre_departure/, pre_natural_pace/: tussenresultaten.
+Overige *_exploration.csv-bestanden documenteren de onderzochte alternatieven.
+provenance.json: bron- en resultaathashes. GitHub is niet gewijzigd.
+
+Vanuit deze map, Python 3.12, uitsluitend standaardbibliotheek:
+python source/elimination_v2.py --seed 17 --dt 0.4 --lap-csv rondes_seed17.csv
+python source/validate.py
+python source/clock_probes.py
+python source/no_override_probe.py
+python source/package_results.py
+
+dt is nu het externe aanroepinterval. integration_dt is afzonderlijk instelbaar
+via --integration-dt; alleen die parameter verfijnt de echte fysica.
