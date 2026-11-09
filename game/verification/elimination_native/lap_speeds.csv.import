@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://chw22iqs8nl1j"
+
+[deps]
+
+files=["res://verification/elimination_native/lap_speeds.riders.translation", "res://verification/elimination_native/lap_speeds.seed.translation", "res://verification/elimination_native/lap_speeds.attack.translation", "res://verification/elimination_native/lap_speeds.phase.translation", "res://verification/elimination_native/lap_speeds.crossing.translation", "res://verification/elimination_native/lap_speeds.lap.translation", "res://verification/elimination_native/lap_speeds.leader.translation", "res://verification/elimination_native/lap_speeds.mean.translation"]
+
+source_file="res://verification/elimination_native/lap_speeds.csv"
+dest_files=["res://verification/elimination_native/lap_speeds.riders.translation", "res://verification/elimination_native/lap_speeds.seed.translation", "res://verification/elimination_native/lap_speeds.attack.translation", "res://verification/elimination_native/lap_speeds.phase.translation", "res://verification/elimination_native/lap_speeds.crossing.translation", "res://verification/elimination_native/lap_speeds.lap.translation", "res://verification/elimination_native/lap_speeds.leader.translation", "res://verification/elimination_native/lap_speeds.mean.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
