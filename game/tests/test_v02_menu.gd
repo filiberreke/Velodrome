@@ -25,7 +25,7 @@ func run_test() -> void:
 	menu.hub_button.pressed.emit()
 	await settle()
 	check(menu.page == 1 and menu.choice_page.visible and not menu.hub_page.visible, "Races retain original gallery")
-	check(menu.MODES.size() == 10 and menu.PLAYABLE == [0, 1, 2, 3, 5, 7], "All original race IDs and availability preserved")
+	check(menu.MODES.size() == 10 and menu.PLAYABLE == [0, 1, 2, 3, 5, 6, 7], "Existing race IDs preserved; keirin enabled")
 	for card in menu.cards:
 		check(root.get_visible_rect().encloses(card.get_global_rect()), "Existing race card fits with new back button")
 	menu.select_mode(0)

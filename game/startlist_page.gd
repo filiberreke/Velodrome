@@ -101,7 +101,7 @@ func _save() -> void:
 	remembered[menu.selected] = lineup.duplicate(true)
 
 func can_start() -> bool:
-	if menu.page != 5 or menu.selected not in [0,3,5]: return false
+	if menu.page != 5 or menu.selected not in [0,3,5,6]: return false
 	if menu.bridge_unavailable or lineup.size() != opponent_count(): return false
 	var seen: Array[String] = []
 	for entry in lineup:

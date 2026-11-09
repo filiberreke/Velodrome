@@ -1,0 +1,127 @@
+{
+  "base_v02_commit": "bdd5f7e249800e42900d6da2ed2caa3b049b1310",
+  "native_batch_base_v02_commit": "f4329b7",
+  "latest_bridge_retested": true,
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "races": 200,
+  "rider_starts": 1200,
+  "all_finish": true,
+  "all_return_to_box": true,
+  "frame_rate_comparison": "seed 17, 0.1 s versus 1/60 s; all six finish differences < 0.00001 s",
+  "tests": [
+    {
+      "test": "test_keirin",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_keirin_flow",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_v02_menu",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store.",
+        "ERROR: Parameter \"material\" is null.",
+        "ERROR: Parameter \"material\" is null.",
+        "ERROR: Parameter \"material\" is null.",
+        "ERROR: Parameter \"material\" is null.",
+        "ERROR: Parameter \"material\" is null.",
+        "ERROR: Parameter \"material\" is null.",
+        "ERROR: Parameter \"material\" is null.",
+        "ERROR: Parameter \"material\" is null."
+      ]
+    },
+    {
+      "test": "test_derny_session",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_menu",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_derny_training",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_elimination_native_core",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_elimination_native_small",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_shared_race_traffic",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_gameplay_headless",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "test_points_race",
+      "passed": true,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
+      ]
+    },
+    {
+      "test": "VirtualBridgeTests.test_derny_starts_from_released_with_zero_power",
+      "passed": true,
+      "errors": [],
+      "environment": []
+    }
+  ],
+  "known_baseline_failure": {
+    "test": "test_startlist_flow",
+    "same_failures_before_and_after": [
+      "Time trial has an explicit future record category",
+      "Future category does not promise unsupported distances or squad sizes"
+    ]
+  },
+  "source_sha256": {
+    "keirin_ai.gd": "00e260a7d4cd6a63a17671d460ebbc8dae970eb7ac6bd8eb89d19e322d0b5e30",
+    "keirin_race.gd": "bebfffdcb032cd008a19b352dbb467da58d48366bac6fee811dc05e8bb9c9db5",
+    "main.gd": "d6e417b73e538f5b548db6b946b45ec46c95a2444fcc299dc3d950dfa56ff02d"
+  }
+}
