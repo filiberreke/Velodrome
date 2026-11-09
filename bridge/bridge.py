@@ -7,6 +7,7 @@ import time
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+import sys
 from bleak import BleakClient, BleakScanner
 from ride_protocol import decode_state
 from steering import SteeringState
@@ -16,6 +17,7 @@ from selection import select_device, select_left_ride
 from device_search import Discovery, DeviceSearch, RETRY_SECONDS
 from hr_bridge import HeartRateState, HeartRateUDPProtocol, HR_PORT
 from ant_worker import AntWorker
+from device_registry import DeviceRegistry
 
 BIKE_DATA = "00002ad2-0000-1000-8000-00805f9b34fb"
 FTMS_SERVICE = "00001826-0000-1000-8000-00805f9b34fb"
@@ -41,9 +43,12 @@ class Sender:
         self.sample_id = 0
         self.power_sample_id = 0  # Distinct measured power, not cadence-only notifications.
         self.heart_rate = HeartRateState()
+        self.devices = None
         self.combined_mode = None  # Linked after device selection; no FTMS startup changes.
 
     def send(self, packet):
+        if self.devices and packet.get('type') == 'controller_connection':
+            self.devices.connected['controller'] = self.devices.chosen['controller'] if packet.get('connected') else ''
         self.sock.sendto(json.dumps(packet).encode("utf-8"), TARGET)
 
     async def publish(self):
@@ -57,7 +62,7 @@ class Sender:
                        "sample_id": self.sample_id,
                        "power_sample_id": self.power_sample_id,
                        "power_age_s": max(0.0, time.monotonic() - self.last_power) if self.last_power else None,
-                       "heart_rate_bpm": self.heart_rate.current_bpm(),
+                       "heart_rate_bpm": self.devices.bpm() if self.devices else self.heart_rate.current_bpm(),
                        "gear": self.combined_mode.selected_gear() if self.combined_mode is not None else None})
             await asyncio.sleep(0.1)
 
@@ -81,6 +86,7 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
                 if not any(s.uuid.lower() == FTMS_SERVICE for s in client.services):
                     raise RuntimeError("FTMS 1826 ontbreekt op geselecteerd apparaat")
                 sender.connected = True
+                if sender.devices: sender.devices.connected['trainer'] = str(device.address)
                 connected_at = time.monotonic()
                 sender.latest.clear()
                 sender.last_received = sender.last_power = 0.0
@@ -203,6 +209,7 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
         except Exception as exc:
             print("KICKR verbindingsfout:", type(exc).__name__, str(exc))
         sender.connected = False
+        if sender.devices: sender.devices.connected['trainer'] = ''
         sender.latest.clear()
         if combined is not None:
             combined.connection_lost()
@@ -393,17 +400,18 @@ async def main(args):
             ant_worker = AntWorker()
             ant_worker.start()
         else:
-            print('ANT+ overgeslagen (--no-ant). Hartslag in telemetrie = null.')
+            print('ANT+ overgeslagen (--no-ant). BLE-hartslag kan via Apparaten worden gekozen.')
 
         discovery = Discovery(discover_devices)
-        trainer_search = DeviceSearch(discovery, lambda records: select_device(records, args.trainer), 'KICKR')
-        ride_search = DeviceSearch(discovery, lambda records: select_left_ride(records, args.ride), 'Linker Zwift Ride')
+        settings_dir = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
+        devices = DeviceRegistry(discovery, sender.heart_rate, settings_dir / 'device_selections.json')
+        sender.devices = devices
 
         combined = CombinedMode(args.erg_ramp_w_per_s)
         sender.combined_mode = combined
         try:
             command_transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
-                lambda: CommandProtocol(combined), local_addr=(COMMAND_HOST, COMMAND_PORT))
+                lambda: CommandProtocol(combined, devices=devices), local_addr=(COMMAND_HOST, COMMAND_PORT))
         except OSError as exc:
             print(f'UDP-commandopoort {COMMAND_PORT} niet beschikbaar: {exc}. Geen FTMS-sturing gestart.')
             return
@@ -411,8 +419,32 @@ async def main(args):
         mapper = ButtonMapper.load()
         print('Ride knoppenmapping:', mapper.mapping)
         print('Bridge wacht op apparaten; KICKR en linker Ride verbinden onafhankelijk zodra ze beschikbaar zijn.')
-        tasks = [trainer_loop(None, sender, combined=combined, device_search=trainer_search),
-                 ride_loop(None, sender, mapper, combined=combined, device_search=ride_search),
+        def trainer_task():
+            search = DeviceSearch(discovery, lambda rows: devices.choose('trainer', rows,
+                                  lambda found: select_device(found, args.trainer)), 'Trainer')
+            return trainer_loop(None, sender, combined=combined, device_search=search)
+
+        def controller_task():
+            search = DeviceSearch(discovery, lambda rows: devices.choose('controller', rows,
+                                  lambda found: select_left_ride(found, args.ride)), 'Besturing')
+            return ride_loop(None, sender, mapper, combined=combined, device_search=search)
+
+        def clear_trainer():
+            sender.connected = False
+            sender.latest.clear()
+            combined.connection_lost()
+
+        def clear_controller():
+            sender.send({'type': 'steering', 'value': 0})
+            sender.send({'type': 'controller_connection', 'connected': False})
+
+        def clear_hr():
+            devices.ble_hr = HeartRateState()
+
+        tasks = [devices.scan_loop(),
+                 devices.supervise('trainer', trainer_task, clear_trainer),
+                 devices.supervise('controller', controller_task, clear_controller),
+                 devices.supervise('heart_rate', lambda: devices.hr_loop(BleakClient), clear_hr),
                  sender.publish(), combined_console(combined)]
         await asyncio.gather(*tasks)
     finally:
