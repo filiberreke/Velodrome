@@ -22,8 +22,11 @@ class VirtualBridgeTests(unittest.TestCase):
         self.receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.receiver.bind(('127.0.0.1', 0))
         self.receiver.settimeout(1)
+        self.settings_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.settings_dir.cleanup)
         self.interpreter = tk.Tcl()
         self.patches = [patch.object(ui, 'COMMAND_PORT', 0),
+                        patch.object(ui, 'SELECTION_PATH', Path(self.settings_dir.name) / 'virtual.json'),
                         patch.object(ui, 'TELEMETRY_PORT', self.receiver.getsockname()[1]),
                         patch.object(ui, 'ttk', MagicMock()), patch.object(ui.tk, 'Text', MagicMock())]
         for name in ('DoubleVar', 'BooleanVar', 'StringVar'):
@@ -49,6 +52,98 @@ class VirtualBridgeTests(unittest.TestCase):
                     return packet
             elif packet['type'] not in ('steering', 'controller_button', 'controller_connection'):
                 return packet
+
+    def latest_telemetry(self):
+        while True:
+            packet = self.receive('telemetry')
+            if packet['sample_id'] == self.bridge.sample: return packet
+
+    def device_request(self, command='devices', **params):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
+            client.settimeout(1)
+            client.sendto(json.dumps(dict(type='command', v=1, id='test-device', command=command, **params)).encode(),
+                          self.bridge.rx.getsockname())
+            self.bridge.loop()
+            return json.loads(client.recv(65535))
+
+    def test_two_devices_preset_exposes_exact_supported_names(self):
+        self.bridge.two_devices.set(True)
+        reply = self.device_request()
+        self.assertTrue(reply['ok'])
+        devices = reply['state']['devices']
+        self.assertEqual([d['name'] for d in devices], ['Wahoo KICKR', 'Zwift Ride (links)'])
+        self.assertEqual([d['roles'] for d in devices], [['trainer'], ['controller']])
+        self.assertFalse(self.bridge.role_ready('heart_rate'))
+        self.assertIsNone(self.latest_telemetry()['heart_rate_bpm'])
+
+    def test_role_selection_persists_and_controls_telemetry(self):
+        self.receive()
+        reply = self.device_request('select_device', role='trainer', address='')
+        self.assertTrue(reply['ok'])
+        self.bridge.loop()
+        self.assertFalse(self.latest_telemetry()['valid'])
+        self.assertEqual(self.bridge.mode, 'RELEASED')
+        saved = json.loads(ui.SELECTION_PATH.read_text(encoding='utf-8'))
+        self.assertEqual(saved['trainer'], '')
+        self.bridge.close()
+        self.bridge = ui.VirtualBridge(MagicMock())
+        self.assertEqual(self.bridge.devices.selected['trainer'], '')
+        self.assertFalse(self.bridge.role_ready('trainer'))
+        reply = self.device_request('select_device', role='trainer', address='virtual:wahoo-kickr')
+        self.assertTrue(reply['ok'])
+        self.assertTrue(self.bridge.role_ready('trainer'))
+
+    def test_wrong_role_and_missing_device_are_rejected(self):
+        reply = self.device_request('select_device', role='trainer', address='virtual:zwift-ride')
+        self.assertEqual(reply['code'], 'device_unavailable')
+        self.bridge.device_present['virtual:wahoo-kickr'].set(False)
+        reply = self.device_request('select_device', role='trainer', address='virtual:wahoo-kickr')
+        self.assertEqual(reply['code'], 'device_unavailable')
+        self.assertEqual(self.bridge.devices.selected['trainer'], 'virtual:wahoo-kickr')
+        self.bridge.device_present['virtual:wahoo-kickr'].set(True)
+        self.bridge.loop()
+        self.assertTrue(self.bridge.role_ready('trainer'))
+
+    def test_disabling_controller_releases_inputs_and_suppresses_paddles(self):
+        self.receive()
+        self.bridge.press_button('B')
+        self.receive('controller_button')
+        self.receive()
+        self.bridge.right_paddle.set(85)
+        reply = self.device_request('select_device', role='controller', address='')
+        self.assertTrue(reply['ok'])
+        self.assertFalse(self.bridge.held_buttons)
+        self.assertEqual(self.bridge.right_paddle.get(), 0)
+        self.bridge.loop()
+        self.bridge.press_button('A')
+        self.assertFalse(self.bridge.held_buttons)
+        self.assertEqual(self.bridge.steering.get(), 0)
+
+    def test_full_bridge_outage_drops_command_replies(self):
+        self.receive()
+        self.bridge.bridge_online.set(False)
+        with self.assertRaises(socket.timeout): self.device_request()
+        self.bridge.bridge_online.set(True)
+        self.assertTrue(self.device_request()['ok'])
+
+    def test_selection_retries_do_not_reset_new_trainer_lease(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
+            client.settimeout(1)
+            raw = json.dumps(dict(type='command', v=1, id='retry-device', command='select_device', role='trainer', address='')).encode()
+            client.sendto(raw, self.bridge.rx.getsockname())
+            self.bridge.loop()
+            original = client.recv(65535)
+            self.bridge.owner = ('127.0.0.1', 1234)
+            self.bridge.lease = time.monotonic() + 5
+            client.sendto(raw, self.bridge.rx.getsockname())
+            self.bridge.loop()
+            self.assertEqual(original, client.recv(65535))
+            self.assertEqual(self.bridge.owner, ('127.0.0.1', 1234))
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_godot_device_selection_with_two_devices(self):
+        self.bridge.two_devices.set(True)
+        self.run_integration('test_virtual_devices_udp.gd', require_commands=False)
 
     def test_analog_slider_transmits_pressure_and_release_independently(self):
         self.receive()
@@ -236,6 +331,14 @@ class VirtualBridgeTests(unittest.TestCase):
             try:
                 while proc.poll() is None and time.monotonic() < deadline:
                     progress = log_path.read_text(errors='replace')
+                    for marker, variable, value in [
+                            ('VIRTUAL_DEVICES_HIDE', self.bridge.device_present['virtual:wahoo-kickr'], False),
+                            ('VIRTUAL_DEVICES_RETURN', self.bridge.device_present['virtual:wahoo-kickr'], True),
+                            ('VIRTUAL_DEVICES_OFFLINE', self.bridge.bridge_online, False),
+                            ('VIRTUAL_DEVICES_ONLINE', self.bridge.bridge_online, True)]:
+                        if marker in progress and marker not in flow_steps:
+                            variable.set(value)
+                            flow_steps.add(marker)
                     for step, button, edge in [('CAPTURE', 'POWER_LEFT', 'tap'),
                                                ('LOOK_DOWN', 'A', 'down'), ('LOOK_UP', 'A', 'up'),
                                                ('INFO_DOWN', 'POWER_LEFT', 'down'), ('INFO_UP', 'POWER_LEFT', 'up')]:
