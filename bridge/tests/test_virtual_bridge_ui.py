@@ -72,10 +72,38 @@ class VirtualBridgeTests(unittest.TestCase):
     def test_startup_transmits_valid_stationary_telemetry_and_schedules_next_frame(self):
         packet = self.receive()
         self.assertEqual(packet, dict(type='telemetry', valid=True, power_w=0,
-            speed_kmh=0, cadence_rpm=0, heart_rate_bpm=140, sample_id=1, gear=4))
+            speed_kmh=0, cadence_rpm=0, heart_rate_bpm=140, sample_id=1, power_sample_id=1, power_age_s=0.0, gear=4))
         self.bridge.root.after.assert_called_once_with(100, self.bridge.loop)
         self.bridge.loop()
-        self.assertEqual(self.receive()['sample_id'], 2)
+        packet = self.receive()
+        self.assertEqual(packet['sample_id'], 2)
+        self.assertEqual(packet['power_sample_id'], 2)
+        self.assertEqual(packet['power_age_s'], 0.0)
+
+    def test_released_trainer_keeps_fresh_zero_power_measurements(self):
+        self.receive()
+        self.bridge.mode = 'RELEASED'
+        self.bridge.desired_mode = 'ERG'
+        self.bridge.released = True
+        self.bridge.loop()
+        packet = self.receive()
+        self.assertTrue(packet['valid'])
+        self.assertEqual(packet['power_w'], 0)
+        self.assertGreater(packet['power_sample_id'], 1)
+        self.assertEqual(packet['power_age_s'], 0.0)
+        self.assertIsNone(packet['gear'])
+        self.bridge.connected.set(False)
+        self.bridge.loop()
+        packet = self.receive()
+        self.assertFalse(packet['valid'])
+        self.assertIsNone(packet['power_age_s'])
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_derny_starts_from_released_with_zero_power(self):
+        self.bridge.mode = 'RELEASED'
+        self.bridge.desired_mode = 'ERG'
+        self.bridge.released = True
+        self.run_integration('test_derny_virtual_bridge.gd')
 
     def test_transmit_controls_and_drop_recovery(self):
         self.receive()

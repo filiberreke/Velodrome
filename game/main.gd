@@ -2676,12 +2676,24 @@ func _training_environment_requested(active: bool) -> void:
 		training_environment.leave()
 		exit_menu.set_exit_visible(true)
 
+func _piste_start_blocker() -> String:
+	if not trainer_seen: return ""
+	var ftp = setup_panel.ftp_page
+	if ftp.bridge_update_needed:
+		return "De bridge mist actuele vermogensgegevens. Werk de bridge bij en start die opnieuw."
+	if not ftp.fresh(_now_s()):
+		return "Geen verse vermogensmetingen. Controleer de trainerverbinding."
+	if not ftp.release_complete() or trainer_control.phase == "RELEASING":
+		return "De trainerbediening is nog niet vrij. Wacht op bevestiging van de bridge."
+	return ""
+
 func _piste_environment_requested(active: bool) -> void:
 	if active:
 		var page = setup_panel.derny_page
-		if trainer_seen and (not setup_panel.ftp_page.fresh(_now_s()) or not setup_panel.ftp_page.release_complete() or trainer_control.phase == "RELEASING"):
+		var blocker := _piste_start_blocker()
+		if not blocker.is_empty():
 			page.session.phase = "RESULT"
-			page.session.reason = "Wacht op verse vermogensmetingen en vrijgave van de trainer"
+			page.session.reason = blocker
 			return
 		if piste_training == null:
 			piste_training = preload("res://derny_environment.gd").new()

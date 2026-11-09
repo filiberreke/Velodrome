@@ -294,6 +294,9 @@ class VirtualBridge:
                            "power_w": round(self.power.get()), "speed_kmh": self.speed.get(),
                            "cadence_rpm": round(self.cadence.get()), "heart_rate_bpm": round(self.hr.get()),
                            "sample_id": self.sample,
+                           # Each simulator tick is a new power measurement, also at 0 W.
+                           "power_sample_id": self.sample,
+                           "power_age_s": 0.0 if self.connected.get() else None,
                            "gear": self.gear if self.send_gear.get() and self.mode == self.desired_mode == "SIM" else None})
         try:
             while True:

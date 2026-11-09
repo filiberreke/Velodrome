@@ -81,3 +81,23 @@ Een tweede integratietest start manuele ploegenachtervolging met een reeds `RELE
 
 Bij de echte bridge blijft de oorspronkelijke knop beschikbaar in het extra UDP-veld `source_button`, bijvoorbeeld `{"type":"button","button":"RIGHT","source_button":"SHIFT_UP_RIGHT"}`. Godot gebruikt dit om schakelen buiten de menu's te houden. Sturen gebruikt nu een apart `{"type":"steering","value":25}`-bericht uit de analoge paddles. De integratietest controleert dat schakelen op kop de versnelling wijzigt zonder uit te sturen, en dat daarna de rechter paddle wel een wissel start. Zie ook `game/tests/test_analog_steering.gd` en `game/tests/test_bridge_navigation.gd` voor de drukniveaus, vloeiende verplaatsing en menubediening.
 
+
+
+## Dernytraining starten met een vrijgegeven simulator
+
+Ook in `RELEASED` en bij 0 W blijft de simulator nieuwe vermogensmetingen sturen,
+met `power_sample_id` en `power_age_s`. De dernytraining accepteert deze geldige
+nulmetingen en activeert SIM opnieuw via de bestaande handshake. Trappen of de
+vermogensschuif verhogen is dus niet nodig om de geholpen aanloop te starten.
+
+Bij de melding dat de bridge actuele vermogensgegevens mist: werk ook
+`bridge/tools/virtual_bridge_ui.py` bij en sluit/herstart de virtuele bridge.
+Een reeds geopend Python-venster blijft de oude code en berichten gebruiken.
+De game onderscheidt nu een verouderde bridge, ontbrekende verse metingen en
+trainerbediening die nog op vrijgave wacht. De controle op verse metingen blijft
+ook voor echte hardware actief.
+
+`test_derny_starts_from_released_with_zero_power` in
+`bridge/tests/test_virtual_bridge_ui.py` test de echte Python/Godot-UDP-koppeling:
+starten vanuit RELEASED bij 0 W, SIM-heractivatie, blijven rijden in de geholpen
+aanloop en de regeling na stoppen weer vrijgeven.
