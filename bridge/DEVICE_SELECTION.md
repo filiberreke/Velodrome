@@ -7,8 +7,9 @@ bouwen; deze featurebranch levert broncode, geen nieuwe releasebinary.
 Wanneer de commandobridge bereikbaar is, verschijnt Apparaten eenmalig vóór
 interactie met het hoofdmenu. Ook een later gestarte bridge wordt ontdekt zodra
 het spel in SETUP staat. Tijdens een wedstrijd wordt geen onverwachte pagina
-geopend. Apparaten staat rechtsboven naast Instellingen en blijft tijdens pauze
-bereikbaar. Openen tijdens een lopende wedstrijd pauzeert deze via de bestaande
+geopend. De bridgestatus rechtsboven naast Instellingen is een aanklikbare
+statusknop met een tandwielicoon. Deze opent de apparatenpagina en blijft tijdens
+pauze bereikbaar. Er is geen afzonderlijke Apparaten-knop meer. Openen tijdens een lopende wedstrijd pauzeert deze via de bestaande
 vrijgaveflow; sluiten hervat niet automatisch. Hervat via het pauzemenu.
 
 Per rol verschijnen alleen werkelijk waargenomen, ondersteunde apparaten:

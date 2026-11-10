@@ -34,9 +34,16 @@ func _ready() -> void:
 	toolbar.theme = Style.create()
 	add_child(toolbar)
 	open_button = Button.new()
-	open_button.text = "Apparaten"
+	open_button.text = get_parent().setup_panel.bridge_status_text
+	open_button.icon = Style.icon('<path d="m9.7 3-.6 2.1-2 .9-1.9-1.1L3 8.7l1.6 1.6v2.3L3 14.2l2.2 3.8 2.2-.6 2 1.2.5 2.4h4.4l.5-2.4 2-1.2 2.2.6 2.2-3.8-1.6-1.6v-2.3L21 8.7l-2.2-3.8-1.9 1.1-2-.9L14.3 3Z"/><circle cx="12" cy="12" r="3"/>', Style.MUTED)
+	open_button.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	open_button.add_theme_font_size_override("font_size", 18)
+	open_button.add_theme_color_override("font_color", Style.MUTED)
+	open_button.add_theme_constant_override("h_separation", 16)
+	open_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	open_button.tooltip_text = "Bridge-apparaten instellen"
 	open_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	open_button.offset_left = -525
+	open_button.offset_left = -785
 	open_button.offset_right = -310
 	open_button.offset_top = 48
 	open_button.offset_bottom = 100
@@ -156,6 +163,8 @@ func _process(_delta: float) -> void:
 		pending = ""
 		error = "Geen bevestiging ontvangen. Controleer de bridge; de lijst wordt opnieuw opgehaald."
 	var settings = get_parent().get_node_or_null("GameSettings")
+	open_button.text = get_parent().setup_panel.bridge_status_text
+	open_button.tooltip_text = open_button.text + "\nBridge-apparaten instellen"
 	open_button.visible = not panel_root.visible and (settings == null or not settings.panel_root.visible)
 	if not auto_shown and now - last_response < 3.0 and get_parent().get("start_state") == "SETUP":
 		auto_shown = true

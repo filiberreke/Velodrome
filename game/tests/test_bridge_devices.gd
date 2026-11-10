@@ -18,6 +18,15 @@ func run_test() -> void:
 	var page = game.bridge_devices
 	check(not page.panel_root.visible, "No bridge: hub remains usable")
 	check(page.close_button.text == "Overslaan", "No connection uses Overslaan")
+	var preferences = game.get_node("GameSettings")
+	check(not page.open_button.get_global_rect().intersects(preferences.open_button.get_global_rect()), "Status/setup control does not overlap settings")
+	check(page.open_button.icon != null and page.open_button.text != "Apparaten", "Single status control includes setup icon instead of separate devices caption")
+	game.setup_panel.update_bridge_status(true, true, false)
+	page._process(0.0)
+	check(page.open_button.text.contains("Trainer verbonden"), "Combined control preserves live bridge status")
+	game.setup_panel.update_bridge_status(false, false, false)
+	page._process(0.0)
+	check(page.open_button.text.contains("Demo beschikbaar"), "Combined control preserves demo status")
 	var server := PacketPeerUDP.new()
 	server.bind(0, "127.0.0.1")
 	page.port = server.get_local_port()
@@ -54,11 +63,12 @@ func run_test() -> void:
 	page.close_page()
 	page._process(0.0)
 	check(not page.panel_root.visible, "Skip does not immediately reopen page")
+	check(page.open_button.is_visible_in_tree(), "Combined status/setup control is visible after closing devices")
 	game.start_state = "RACING"
 	game.running = true
 	game.clock = 123.0
 	game.player_lane = 2
-	page.open_page()
+	page.open_button.pressed.emit()
 	check(game.race_paused, "Opening during race pauses it")
 	check(game.clock == 123.0 and game.player_lane == 2, "Opening preserves race time and lane")
 	page.open_mapping()
@@ -93,6 +103,19 @@ func run_test() -> void:
 		await process_frame
 		RenderingServer.force_draw()
 		root.get_texture().get_image().save_png("res://../.test-user/bridge-devices.png")
+		page.close_page()
+		page._process(0.0)
+		await process_frame
+		RenderingServer.force_draw()
+		root.get_texture().get_image().save_png("res://../.test-user/bridge-status-paused.png")
+		game.exit_menu.hide_pause()
+		game.start_state = "SETUP"
+		game.race_paused = false
+		game.setup_panel.show_hub()
+		page._process(0.0)
+		await process_frame
+		RenderingServer.force_draw()
+		root.get_texture().get_image().save_png("res://../.test-user/bridge-status-menu.png")
 	server.close()
 	game.queue_free()
 	await process_frame

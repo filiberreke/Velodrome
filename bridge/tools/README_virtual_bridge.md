@@ -28,8 +28,8 @@ Start de echte Python-bridge niet tegelijk met deze testtool. De tool opent UDP 
    commando-antwoorden. Godot meldt de bridge als niet bereikbaar. Vink opnieuw
    aan om herstel via periodieke polling te testen. De bestaande optie
    **Simuleer verlies ... UDP-telemetrie** laat commando-antwoorden wel door.
-8. Start een wedstrijd, pauzeer en open **Apparaten** rechtsboven naast
-   Instellingen. Test de keuzes en de instellingenlink. Na sluiten blijft de
+8. Start een wedstrijd, pauzeer en klik op de **bridgestatus met tandwiel** rechtsboven naast
+   Instellingen om de apparatenpagina te openen. Test de keuzes en de instellingenlink. Na sluiten blijft de
    wedstrijd gepauzeerd op dezelfde tijd/positie. Hervat via het pauzemenu.
 
 Selecties staan in `bridge/virtual_device_selections.json`, afzonderlijk van
