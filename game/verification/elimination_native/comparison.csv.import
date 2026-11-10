@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cyxjgpmkbmloi"
+
+[deps]
+
+files=["res://verification/elimination_native/comparison.seed.translation", "res://verification/elimination_native/comparison.attack.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation"]
+
+source_file="res://verification/elimination_native/comparison.csv"
+dest_files=["res://verification/elimination_native/comparison.seed.translation", "res://verification/elimination_native/comparison.attack.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation", "res://verification/elimination_native/comparison.before.translation", "res://verification/elimination_native/comparison.after.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

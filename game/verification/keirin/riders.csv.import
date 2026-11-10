@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bf3rwgvmh720f"
+
+[deps]
+
+files=["res://verification/keirin/riders.seed.translation", "res://verification/keirin/riders.rider.translation", "res://verification/keirin/riders.profile.translation", "res://verification/keirin/riders.finish.translation", "res://verification/keirin/riders.sprint.translation", "res://verification/keirin/riders.sprint.translation"]
+
+source_file="res://verification/keirin/riders.csv"
+dest_files=["res://verification/keirin/riders.seed.translation", "res://verification/keirin/riders.rider.translation", "res://verification/keirin/riders.profile.translation", "res://verification/keirin/riders.finish.translation", "res://verification/keirin/riders.sprint.translation", "res://verification/keirin/riders.sprint.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

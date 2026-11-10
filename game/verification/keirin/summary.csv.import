@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cvupbaub0e45x"
+
+[deps]
+
+files=["res://verification/keirin/summary.races.translation", "res://verification/keirin/summary.finished.translation", "res://verification/keirin/summary.boxed.translation", "res://verification/keirin/summary.sprinter.translation", "res://verification/keirin/summary.attacker.translation", "res://verification/keirin/summary.mean.translation", "res://verification/keirin/summary.mean.translation", "res://verification/keirin/summary.races.translation", "res://verification/keirin/summary.races.translation"]
+
+source_file="res://verification/keirin/summary.csv"
+dest_files=["res://verification/keirin/summary.races.translation", "res://verification/keirin/summary.finished.translation", "res://verification/keirin/summary.boxed.translation", "res://verification/keirin/summary.sprinter.translation", "res://verification/keirin/summary.attacker.translation", "res://verification/keirin/summary.mean.translation", "res://verification/keirin/summary.mean.translation", "res://verification/keirin/summary.races.translation", "res://verification/keirin/summary.races.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
