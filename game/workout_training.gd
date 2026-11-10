@@ -112,6 +112,7 @@ func _refresh() -> void:
 	back_button.disabled = running
 	if running:
 		result.text = "%d:%02d / %d:%02d\n%s · %.0f W gemeten\n%s" % [int(test.elapsed)/60,int(test.elapsed)%60,int(test.duration())/60,int(test.duration())%60,"Vrij rijden" if test.phase == "FREE" else "Doel %d W" % test.target(now_s()),measured,test.instruction()]
+		result.text += "\nCadans · " + cadence_text()
 		var status := signal_state.status(now_s())
 		if not status.is_empty(): result.text += "\n"+status
 	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.")

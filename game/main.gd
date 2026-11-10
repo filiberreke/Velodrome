@@ -776,6 +776,7 @@ func _finish_neutral_start() -> void:
 	peloton_info.clear()
 	x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 	x_ai.configure_riders(rider_identities, rider_forms)
+	x_ai.apply_ai_strength(ai_difficulty)
 	start_state = "RACING"
 
 func _finish_flying_start() -> void:
@@ -1912,6 +1913,7 @@ func _advance_race(dt: float) -> void:
 	if race_mode == 1:
 		var old_finishes: Array[float] = finish_times.duplicate()
 		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
+		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 		for message in points_notifications.collect(points_rules, float(peloton_info.get("center", _race_positions().max()))):
 			if race_overlay != null: race_overlay.popup.enqueue(message)
 		for i in range(rider_count):
@@ -3557,7 +3559,7 @@ func _update_pursuit(dt: float) -> void:
 		else:
 			ai_power_w[i] = power
 			ai_energy_j[i] = pursuit_pacer.reserve_j
-			tt_effort_remaining = pursuit_pacer.reserve_j / PursuitPacer.WPRIME_J
+			tt_effort_remaining = pursuit_pacer.reserve_j / maxf(1.0, pursuit_pacer.capacity_j)
 		if crossed:
 			finish_times[i] = end_time
 			coast_distances[i] = _race_length()

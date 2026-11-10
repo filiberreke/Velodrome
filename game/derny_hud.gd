@@ -57,7 +57,7 @@ func update_training(scene) -> void:
 	speed_label.text = "%.1f" % (scene.player_speed * 3.6)
 	var heart: Variant = scene.game.trainer_heart_rate_bpm if not scene.demo else null
 	heart_label.text = "%d bpm" % int(heart) if heart is float or heart is int else "— bpm"
-	cadence_label.text = "%.0f rpm" % scene.game.cadence if not scene.demo and scene.game.cadence >= 0 else "— rpm"
+	cadence_label.text = "%.0f rpm" % scene.game.cadence if not scene.demo and scene.game.setup_panel.ftp_page.live(scene.game._now_s()) and scene.game.cadence >= 0 else "— rpm"
 	gear_label.text = str(scene.game.trainer_gear) if not scene.demo else "PC-proefrit"
 	gear_label.get_parent().get_child(0).text = "VERSNELLING" if not scene.demo else "BEDIENING"
 	slipstream_bar.max_value = scene.session.MAX_DRAFT * 100

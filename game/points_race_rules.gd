@@ -61,10 +61,12 @@ func _judge_laps(distances: Array[float], seconds: float) -> void:
 		elif float(bunch.front) - positions[i] >= LAP - 0.00000001: change = -1
 		if change == 0 or pending_gains.has(i): continue
 		# Preserve sprint eligibility when the bunch is caught inside the last 100 m.
-		var upcoming_lap: int = floori(distances[i] / LAP) + 1 - credits[i]
-		var metres_to_line: float = LAP - fposmod(distances[i], LAP)
+		# At the line, judging runs before scoring that very crossing.
+		var physical_lap: int = ceili(distances[i] / LAP)
+		var upcoming_lap: int = physical_lap - credits[i]
+		var metres_to_line: float = physical_lap * LAP - distances[i]
 		if change > 0 and metres_to_line <= 100.0 and upcoming_lap == next_sprint_lap():
-			pending_gains[i] = true
+			pending_gains[i] = physical_lap
 			continue
 		_award_lap(i, change, seconds)
 
@@ -106,7 +108,7 @@ func advance(previous: Array[float], current: Array[float], seconds: float, dt: 
 			points[crossing.rider] += award
 			if sprint.lap == laps: finish_times[crossing.rider] = crossing.seconds
 		# Sprint points are awarded before this rider's provisional lap bonus.
-		if pending_gains.has(int(crossing.rider)):
+		if pending_gains.get(int(crossing.rider), -1) == int(crossing.lap):
 			pending_gains.erase(int(crossing.rider))
 			_award_lap(int(crossing.rider), 1, crossing.seconds)
 

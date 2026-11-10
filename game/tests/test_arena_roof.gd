@@ -40,11 +40,9 @@ func run() -> void:
 	game.setup_panel.select_mode(0)
 	game._confirm_start()
 	var intro = game.broadcast_intro
-	check(intro.active and intro.DURATION == 44.0, "Existing intro timing retained")
-	var reveal: Dictionary = intro.sample(16.0)
-	var forward: Vector3 = (reveal.target - reveal.position).normalized()
-	check(forward.dot((Vector3(0, 14.3, 0) - reveal.position).normalized()) > cos(deg_to_rad(25)), "Intro frames the screen naturally")
-	for i in 441:
+	check(intro.active and intro.duration == 26.0, "Compact stadium tour timing retained")
+	# The current tour looks around the stadium rather than holding on the screen.
+	for i in range(int(intro.duration * 10.0) + 1):
 		var pos: Vector3 = intro.sample(float(i) / 10.0).position
 		# The cabin passage is higher than the screen, but far outside its
 		# footprint. Check physical separation from the ring, not global Y.

@@ -35,7 +35,7 @@ func run_test()->void:
 	flow.strength_input.value=100
 	game._confirm_start()
 	check(game.race_mode==4 and game.rider_identities[1].id==chosen and game.pursuit_pacer.difficulty_percent==100,"Selected rider and percentage reach the actual opponent")
-	check(is_equal_approx(game.pursuit_pacer.power(0),minf(game.pursuit_pacer.max_power_w,game.pursuit_pacer.target_w*100./80.)),"AI strength keeps the requested-power /80 rule")
+	check(is_equal_approx(game.pursuit_pacer.power(0),minf(game.pursuit_pacer.power_limit_w,game.pursuit_pacer.target_w)),"AI strength scales capacity once, without multiplying target power again")
 	game.broadcast_intro.finish();game._reset();menu.select_mode(1);flow.next_step()
 	check(menu.pursuit_options.selected_ai().id==chosen and flow.strength_input.value==100,"Last opponent and percentage restore from saved preferences")
 	flow.back();flow.select_distance(1000);flow.next_step()
