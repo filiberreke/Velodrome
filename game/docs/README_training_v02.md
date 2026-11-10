@@ -56,15 +56,17 @@ velden of wedstrijdconsumenten te wijzigen:
 
 De FTP-test vereist de bijgewerkte bridge. Een oude bridge blijft voor de
 bestaande wedstrijden bruikbaar maar kan deze test niet starten. De test weigert
-verouderd vermogen, ongeldige waarden en teruglopende meetnummers. Herhaalde
+ongeldige metingen voor de vermogensberekening. Na herstel mag een bridge met een nieuwe meetteller doorgaan. Herhaalde
 UDP-pakketten en meldingen met alleen cadans/snelheid vernieuwen geen meting.
 De lokale meettijd wordt gecorrigeerd met `power_age_s`.
 
 ## Stoppen en uitval
 
-- Ongeldig vermogen, meetuitval of een meetinterval langer dan **1,25 s** stopt
-  de test. Er wordt geen gemeten vermogen bij verzonnen en geen automatische
-  herstart gedaan na herstel. Cadans is optioneel en ontbrekende cadans is geen nul.
+- De verbindingscontrole deelt de wedstrijdinstellingen: na korte uitval wordt
+  maximaal **10 seconden** op het laatste vermogen doorgereden. Daarna pauzeren
+  tijd en voortgang, met automatische hervatting bij herstel. Alleen een
+  FTP-test stopt als de werkelijke pauze langer dan **60 seconden** duurt.
+  Cadans is optioneel en ontbrekende cadans is geen nul.
 - Iedere nieuwe rampstap heeft 10 s gewenning. Daarna stopt de test na 10 s
   aaneengesloten onder 85% van het doel, of na 5 s met cadans onder 40 rpm én
   vermogen onder 90% van het doel. Herstel boven de grens wist die teller.
@@ -184,8 +186,9 @@ Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
   werken, maar kan de trainer de lagere luchtweerstand niet voelbaar overnemen;
   het scherm meldt dit. Er wordt geen ERG-belasting gebruikt.
 - Verse gevalideerde vermogensmetingen zijn vereist zodra een trainer bekend is.
-  Meetuitval, een bedieningsfout of een ontbrekend bridgeantwoord stopt de sessie
-  en geeft eigen trainerbediening vrij. Escape/Z stopt en opent het resultaat.
+  Bij meetuitval wordt maximaal tien seconden overbrugd en daarna gepauzeerd.
+  De eigen trainerbelasting wordt vrijgegeven; bij herstel hervat dezelfde sessie.
+  Bedieningsfouten blijven apart gemeld. Escape/Z stopt en opent het resultaat.
   B blijft de wedstrijdknop voor achteromkijken; de cameraknoppen gebruiken
   hetzelfde profiel en dezelfde camera-opstelling als wedstrijden. C wisselt
   de camera op het toetsenbord, V/Y wisselt de naamlabels.
@@ -228,7 +231,7 @@ Onbekende waarden worden niet als nul getekend.
 
 Elke gestarte training krijgt een JSON-bestand in `user://training_sessions`, met
 een begincheckpoint, een update ongeveer iedere tien seconden en een definitieve
-opslag bij stoppen, lossen, meetuitval, teruggaan of normaal afsluiten. Een abrupte
+opslag bij stoppen, lossen, teruggaan of normaal afsluiten; meetuitval pauzeert de sessie. Een abrupte
 procesuitval kan het laatste checkpoint herstellen; de laatste tien seconden
 kunnen dan ontbreken. De bestanden bevatten de echte beschikbare sensormetingen,
 virtuele snelheid/afstand, de automatisch geholpen aanlooptijd en het resultaat.
@@ -380,7 +383,7 @@ tijd, pelotontempo, relatieve winst, gemiddeld vermogen en piekvermogen.
 
 Beide vaste sessies gebruiken dezelfde trainingsomgeving, camera's, sensoren,
 trainerbewaking, grafiek, checkpointopslag en bevestigde SIM-vrijgave als de
-dernytraining. Bij meetuitval wordt gestopt en lokaal opgeslagen. De historie
+dernytraining. Bij meetuitval wordt na overbrugging gepauzeerd, met behoud van de sessie. De historie
 opent per trainingssoort het juiste resultaat; de bestaande Strava-knop gebruikt
 de bijbehorende titel en beschrijving en vermeldt de virtuele rolsnelheid en
 PC-proefrit wanneer toepasselijk. Er is geen import/export van deze sessies.
@@ -425,3 +428,26 @@ rondetijden worden lokaal bewaard, met de bestaande Strava-optie na stoppen.
 `test_free_training.gd` controleert lapinterpolatie, onbeperkte duur, pacertempo's,
 willekeurige startposities, werkelijke trui-materialen, slipstream, de HUD-tabel,
 opslag/herladen, de vier overzichtstegels en beide vliegende-starttabellen.
+
+
+## Traineruitval: dezelfde instellingen als wedstrijden
+
+`trainer_signal.gd` deelt de bestaande wedstrijdtijden (1 s detectie, maximaal
+10 s laatste vermogen vasthouden, 0,5 s tolerantie voor een lopende trainerlease).
+ERG, derny en alle pistesessies eindigen niet door één tijdelijk ongeldig pakket.
+Na de overbrugging pauzeren ze: klok, beweging, rondetijden en trainingsblokken
+blijven staan. De trainerbelasting wordt vrijgegeven en de bestaande bridge
+behoudt zijn eigen bewaking. Bij geldige data hervat dezelfde sessie, met controle
+op trainerbezit voordat opnieuw een belasting wordt gevraagd. Een andere
+controller wordt niet overgenomen.
+
+Alleen bij FTP geldt maximaal één minuut echte pauze, ná de tien seconden
+vasthouden. Daarna stopt de test met een duidelijke melding. De rampklok telt
+gepauzeerde tijd niet mee; bij hervatten begint een nieuw aaneengesloten meetvenster
+voor het beste minuutvermogen. Andere trainingen kunnen langer gepauzeerd blijven.
+De HUD en het ERG-scherm tonen of vermogen wordt vastgehouden of de sessie pauzeert.
+
+`test_training_signal_pause.gd` controleert de gedeelde tijden, bevriezen en
+hervatten van FTP/ERG/piste, behoud van voortgang en de FTP-pauzelimiet. De lokale
+UDP-tests onderbreken en herstellen de echte simulatorstroom ook gedurende meer
+dan tien seconden, voor zowel ERG als vrije pistetraining.

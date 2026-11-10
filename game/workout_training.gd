@@ -9,6 +9,7 @@ var edit_button: Button
 var confirmation_at := 0.0
 var desired_target := -1
 var previous_free := false
+var last_session_clock := 0.0
 var active_environment := false
 func _ready() -> void:
 	test = Run.new()
@@ -39,13 +40,15 @@ func load_workout(workout: Dictionary) -> void:
 func begin() -> void:
 	var now := now_s()
 	if test.running(): return
-	if not fresh(now): result.text = "Wacht op verse vermogensmetingen."; return
+	if not live(now): result.text = "Wacht op verse vermogensmetingen."; return
 	if not release_complete() or (menu != null and not menu.ftp_page.release_complete()): result.text = "Wacht op vrijgave van de vorige trainersessie."; return
 	test.ftp_w = roundi(ftp_input.value)
 	for block in test.blocks:
 		if block.kind != "FreeRide" and maxf(float(block.power_low),float(block.power_high))*test.ftp_w > 1300:
 			result.text = "Deze FTP levert een doel boven 1300 W op. Pas de workout of je FTP aan."; return
-	test.start(now)
+	reset_session(now,trainer)
+	last_session_clock = session_now(now)
+	test.start(last_session_clock)
 	desired_target = -1
 	confirmation_at = now
 	previous_free = test.target(now) <= 0
@@ -55,7 +58,9 @@ func begin() -> void:
 	stop_button.grab_focus()
 func _process(dt: float) -> void:
 	var now := now_s()
-	if test.running() and not fresh(now): finish("Vermogenssignaal verloren")
+	var clock := session_now(now)
+	var advancing := minf(dt,maxf(0,clock-last_session_clock))
+	last_session_clock = clock
 	var target: int = test.target(now)
 	var free: bool = target <= 0
 	if test.running() and free != previous_free:
@@ -64,21 +69,24 @@ func _process(dt: float) -> void:
 		test.phase = "CONNECTING"
 	if test.running() and target != desired_target:
 		desired_target = target
-		if not free and trainer.phase != "RELEASING" and trainer.error.is_empty(): trainer.arm()
-	if test.running() and not free and not trainer.armed and trainer.phase != "RELEASING" and trainer.error.is_empty(): trainer.arm()
-	trainer.tick(test.running() and not free,0,1,now,target if not free else 0)
-	if test.running():
+		if live(now) and not free and trainer.phase != "RELEASING" and trainer.error.is_empty(): trainer.arm()
+	if test.running() and live(now) and not free and not trainer.armed and trainer.phase != "RELEASING" and trainer.error.is_empty(): trainer.arm()
+	drive_trainer(trainer,test.running() and not free,0,1,now,target if not free else 0)
+	if test.running() and (not live(now) or resume_pending(trainer)):
+		confirmation_at = now
+		if fresh(now) and test.phase in ["ERG","FREE"]: test.advance(advancing)
+	elif test.running():
 		if not trainer.error.is_empty(): finish("Trainerfout: " + trainer.error)
-		elif not free and trainer.last_response >= 0 and now-trainer.last_response > 3: finish("Geen antwoord meer van trainerbridge")
+		elif not free and trainer.last_response >= 0 and now-control_response_at(trainer) > 3: finish("Geen antwoord meer van trainerbridge")
 		elif free:
-			if release_complete(): test.phase = "FREE"; test.advance(dt)
+			if release_complete(): test.phase = "FREE"; test.advance(advancing)
 			elif now-confirmation_at > 8: finish("Vrijgave voor vrij rijden niet bevestigd")
 		else:
 			var state: Dictionary = trainer.state
 			var owned_erg: bool = trainer.owned and state.get("mode") == "ERG" and state.get("desired_mode") == "ERG" and state.get("applied_revision",-1) == state.get("revision",-2)
 			var confirmed: bool = owned_erg and state.get("confirmed_target_w") == target
 			if confirmed: confirmation_at = now; test.phase = "ERG"
-			if test.phase == "ERG" and owned_erg: test.advance(dt)
+			if test.phase == "ERG" and owned_erg: test.advance(advancing)
 			if now-confirmation_at > 8: finish("ERG-doel niet bevestigd door trainer")
 		if not test.running(): finish(test.reason)
 	_refresh()
@@ -104,4 +112,6 @@ func _refresh() -> void:
 	back_button.disabled = running
 	if running:
 		result.text = "%d:%02d / %d:%02d\n%s · %.0f W gemeten\n%s" % [int(test.elapsed)/60,int(test.elapsed)%60,int(test.duration())/60,int(test.duration())%60,"Vrij rijden" if test.phase == "FREE" else "Doel %d W" % test.target(now_s()),measured,test.instruction()]
+		var status := signal_state.status(now_s())
+		if not status.is_empty(): result.text += "\n"+status
 	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.")

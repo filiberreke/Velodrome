@@ -69,7 +69,9 @@ func update_training(scene) -> void:
 	var progress: float = scene.session.runup_distance/250 if approach else scene.session.step_elapsed/60
 	dial.update_dial(scene.motor.speed_mps*3.6,progress,int(ceil(60-scene.session.step_elapsed)),approach)
 	phase_label.text = "Te dicht - snelheid begrensd"
-	status_panel.visible = scene.too_close
+	var status: String = scene.game.setup_panel.ftp_page.signal_state.status(scene.game._now_s()) if not scene.demo else ""
+	status_panel.visible = scene.too_close or not status.is_empty()
+	if not status.is_empty(): phase_label.text = status
 	_update_call(scene)
 func shout(message: String) -> void:
 	call_label.text = message

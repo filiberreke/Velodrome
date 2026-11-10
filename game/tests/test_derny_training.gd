@@ -175,7 +175,7 @@ func run_test() -> void:
 	check(scene.hud.heart_label.text == "152 bpm" and scene.hud.cadence_label.text == "85 rpm", "Race metrics panel displays actual sensor values")
 	menu.ftp_page.telemetry_ok = false
 	scene.advance(.1)
-	check(page.session.phase == "RESULT" and page.session.reason == "Vermogenssignaal verloren" and not game.trainer_control.enabled_before, "Lost power stops and releases trainer immediately")
+	check(page.session.running() and scene.active and not game.trainer_control.enabled_before, "Lost power keeps session available for pause/recovery and releases trainer")
 	page.leave()
 	game._process_bridge_packet({"type":"telemetry","valid":true,"power_w":160.0,"speed_kmh":26.0,"cadence_rpm":86.0,"sample_id":2,"power_sample_id":2,"power_age_s":0.0})
 	menu.show_derny()

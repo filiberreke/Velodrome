@@ -102,11 +102,13 @@ func run_test() -> void:
 	page.ftp_input.value = 250
 	page.telemetry_ok = true
 	page.last_sample = page.clock
+	page.signal_state.receive(true,page.clock)
 	page.begin()
 	check(page.test.running() and page.test.ftp_w == 250 and page.test.target(0) == 125,"Start uses only this workout's FTP override")
 	for i in range(6):
 		page.clock += 1
 		page.last_sample = page.clock
+		page.signal_state.receive(true,page.clock)
 		page._process(1)
 		if i == 0: check(page.test.target(0) == 188,"Ramp targets interpolate as a fraction of chosen FTP")
 		if i == 2: check(page.test.phase == "FREE" and not page.trainer.owned,"FreeRide releases trainer")
@@ -115,10 +117,12 @@ func run_test() -> void:
 	page.load_workout({"id":"test","name":"No proof","blocks":[blocks[2]]})
 	page.trainer.confirm = false
 	page.last_sample = page.clock
+	page.signal_state.receive(true,page.clock)
 	page.begin()
 	for i in range(10):
 		page.clock += 1
 		page.last_sample = page.clock
+		page.signal_state.receive(true,page.clock)
 		page._process(1)
 	check(page.test.elapsed == 0 and page.test.phase == "RESULT" and page.test.reason.contains("niet bevestigd"),"Unconfirmed hardware target cannot advance training and times out")
 	page.free()

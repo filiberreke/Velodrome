@@ -2,6 +2,7 @@ extends Node3D
 const MenuSkin := preload("res://menu_theme.gd")
 signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
+const TrainerSignal := preload("res://trainer_signal.gd")
 const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
 var training_environment
@@ -519,7 +520,7 @@ var last_telemetry := -100.0
 # beta.16.14: a short KICKR/Bluetooth dropout no longer freezes the race. For up to
 # DROPOUT_HOLD_SECONDS after the last valid sample the game keeps riding on the last
 # known power and cadence; only a longer outage pauses the race (as before).
-const DROPOUT_HOLD_SECONDS := 10.0
+const DROPOUT_HOLD_SECONDS := TrainerSignal.HOLD_SECONDS
 var last_good_watts := 0.0
 var last_good_cadence := -1.0
 var dropout_since := -1.0
@@ -657,7 +658,7 @@ func _physics_process(delta: float) -> void:
 		exit_menu.set_exit_visible(false)
 		training_environment.advance(delta)
 		return
-	if _now_s() - last_telemetry > 1.0:
+	if _now_s() - last_telemetry > TrainerSignal.LIVE_SECONDS:
 		trainer_ready = false
 		_begin_dropout(last_telemetry)
 		if connected:
@@ -1737,7 +1738,7 @@ func _update_trainer_control() -> void:
 	var live: bool = connected and trainer_ready
 	# Ignore very brief invalid samples only for an already active, owned session.
 	# The bridge retains its independent three-second safety watchdog.
-	var transient_gap: bool = racing and not live and trainer_control.owned and trainer_control.armed and last_telemetry >= 0.0 and _now_s() - last_telemetry <= 0.5
+	var transient_gap: bool = racing and not live and trainer_control.owned and trainer_control.armed and last_telemetry >= 0.0 and _now_s() - last_telemetry <= TrainerSignal.CONTROL_HOLD_SECONDS
 	var active: bool = racing and (live or transient_gap)
 	# Loss of the whole UDP stream releases our load. Remember only that
 	# release, so fresh telemetry can resume this race through the normal probe.
@@ -2745,7 +2746,7 @@ func _piste_start_blocker() -> String:
 	var ftp = setup_panel.ftp_page
 	if ftp.bridge_update_needed:
 		return "De bridge mist actuele vermogensgegevens. Werk de bridge bij en start die opnieuw."
-	if not ftp.fresh(_now_s()):
+	if not ftp.live(_now_s()):
 		return "Geen verse vermogensmetingen. Controleer de trainerverbinding."
 	if not ftp.release_complete() or not setup_panel.workout_play_page.release_complete() or trainer_control.phase == "RELEASING":
 		return "De trainerbediening is nog niet vrij. Wacht op bevestiging van de bridge."

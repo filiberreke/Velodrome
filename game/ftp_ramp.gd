@@ -1,7 +1,7 @@
 extends RefCounted
 ## Monotonic session clock and time-weighted, zero-order-held measured power.
 const WARMUP_SECONDS := 300.0
-const SIGNAL_TIMEOUT := 1.25
+const MAX_SAMPLE_GAP := preload("res://trainer_signal.gd").HOLD_SECONDS
 const START_W := 100
 const STEP_W := 20
 const STEP_SECONDS := 60.0
@@ -76,6 +76,8 @@ func _average(end: float) -> float:
 		duration += dt
 	return energy / 60.0 if duration >= 60.0 - 0.00001 else -1.0
 
+func interrupt_measurements() -> void:
+	segments.clear(); last_at = -1; low_seconds = 0; stall_seconds = 0
 func sample(now: float, power: float, cadence: float = -1.0) -> void:
 	if phase != "RAMP": return
 	if not is_finite(power) or power < 0.0:
@@ -84,8 +86,10 @@ func sample(now: float, power: float, cadence: float = -1.0) -> void:
 	if last_at >= 0.0:
 		var dt := now - last_at
 		if dt <= 0.0: return
-		if dt > SIGNAL_TIMEOUT:
-			stop("Vermogenssignaal verloren")
+		if dt > MAX_SAMPLE_GAP:
+			# Resume the test, but never fill missing measured seconds with held watts.
+			segments.clear(); low_seconds = 0; stall_seconds = 0
+			last_at = now; last_power = power
 			return
 		segments.append({"a": last_at, "b": now, "w": last_power})
 		# A rolling integral is piecewise linear. Its extrema occur at sample

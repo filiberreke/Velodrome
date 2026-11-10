@@ -47,7 +47,9 @@ func enter() -> void:
 	for bike in pack_bikes: bike.visible = page.kind == "take_lap"
 	if page.kind == "free_ride" and pacer_bikes.is_empty(): _build_pacers()
 	for bike in pacer_bikes: bike.visible = page.kind == "free_ride"
-	if not demo: game.trainer_control.arm()
+	if not demo:
+		game.setup_panel.ftp_page.reset_session(game._now_s(),game.trainer_control)
+		game.trainer_control.arm()
 	_enter_training_venue()
 	page.selected_activity = {}
 	_capture_sample(); _persist(false); hud.show(); _present(0)
@@ -117,7 +119,7 @@ func _place(bike: Node3D, at: float, lane: float, dt: float, power: float, caden
 	bike.rotation = Vector3(0,atan2(forward.x,forward.z),-game._bank_angle(game._track_s(at)))
 	bike.get_child(0).call("set_victory",false); bike.get_child(0).call("pedal",dt,cadence,power)
 func _present(dt: float) -> void:
-	_place(game.bikes[0],distance,player_lane_offset,dt,demo_power if demo else game.watts,85 if demo else maxf(0,game.cadence))
+	_place(game.bikes[0],distance,player_lane_offset,dt,demo_power if demo else game.setup_panel.ftp_page.measured,85 if demo else maxf(0,game.cadence))
 	if session.kind == "take_lap":
 		for i in range(pack_bikes.size()): _place(pack_bikes[i],float(pack_state.distances[i]),float(pack_state.lanes[i]),dt,180,85)
 		# Scratch's marker renderer expects front-wheel progress, whereas our
@@ -133,7 +135,7 @@ func _present(dt: float) -> void:
 func _capture_sample() -> void:
 	if not demo and not game.setup_panel.ftp_page.fresh(game._now_s()): return
 	if not samples.is_empty() and total_elapsed <= float(samples[-1].time_s): return
-	samples.append({"time_s":total_elapsed,"distance_m":total_distance,"game_speed_kmh":player_speed*3.6,"power_w":demo_power if demo else game.setup_panel.ftp_page.measured,"heart_rate_bpm":null if demo else game.trainer_heart_rate_bpm,"cadence_rpm":-1 if demo else game.cadence,"draft_pct":reduction*100,"lane_m":player_lane_offset,"height_m":game._at(distance,player_lane_offset).y,"gained_m":session.gained_m,"assisted":false})
+	samples.append({"time_s":total_elapsed,"distance_m":total_distance,"game_speed_kmh":player_speed*3.6,"power_w":demo_power if demo else game.setup_panel.ftp_page.measured,"heart_rate_bpm":null if demo else game.trainer_heart_rate_bpm,"cadence_rpm":-1 if demo else game.cadence,"draft_pct":reduction*100,"lane_m":player_lane_offset,"height_m":game._at(distance,player_lane_offset).y,"gained_m":session.gained_m,"assisted":false,"power_held":not demo and not game.setup_panel.ftp_page.live(game._now_s())})
 	last_sample = total_elapsed; hud.graph.set_samples(samples)
 func _persist(final: bool) -> void:
 	if activity.is_empty(): return

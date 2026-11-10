@@ -31,6 +31,18 @@ func run_test() -> void:
 				await create_timer(.02).timeout; game._read_bridge(); scene.advance(.02)
 				if scene.player_lane_target > 0: break
 			check(scene.player_lane_target > 0,"Actual simulator paddle controls flying-start lane height")
+		if kind == "free_ride":
+			print("VIRTUAL_BRIDGE_DROP")
+			var deadline := Time.get_ticks_msec()+12000
+			while Time.get_ticks_msec() < deadline:
+				await create_timer(.02).timeout; game._read_bridge(); scene.advance(.02)
+			var frozen: float = scene.total_elapsed
+			check(scene.active and menu.ftp_page.signal_state.paused_since >= 0 and not game.trainer_control.owned,"Actual UDP loss pauses piste training after ten seconds and releases load")
+			print("VIRTUAL_BRIDGE_RESTORE")
+			for i in range(200):
+				await create_timer(.02).timeout; game._read_bridge(); scene.advance(.02)
+				if game.trainer_control.owned and scene.total_elapsed > frozen+.1: break
+			check(scene.active and game.trainer_control.owned and scene.total_elapsed > frozen,"Actual UDP recovery resumes the existing piste session")
 		menu.exercise_page.finish("Integratietest voltooid")
 		for i in range(100):
 			await create_timer(.02).timeout; game._read_bridge(); game.trainer_control.tick(false,0,1,game._now_s())

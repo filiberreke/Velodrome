@@ -1,6 +1,11 @@
 extends VBoxContainer
 signal back_requested
 signal environment_requested(active: bool)
+const TrainerSignal := preload("res://trainer_signal.gd")
+const FTP_MAX_PAUSE_SECONDS := 60.0
+var signal_state := TrainerSignal.new()
+var interrupted_clients := {}
+var control_started_at := {}
 const Ramp := preload("res://ftp_ramp.gd")
 const Trainer := preload("res://trainer_control.gd")
 var test = Ramp.new()
@@ -11,6 +16,7 @@ var ftp_save_message := ""
 var last_sample := -100.0
 var sample_id := -1
 var measured := 0.0
+var last_speed_kmh := 0.0
 var gear := -1
 var telemetry_ok := false
 var bridge_update_needed := false
@@ -57,26 +63,51 @@ func now_s() -> float:
 	return Time.get_ticks_msec() / 1000.0
 
 func fresh(now: float) -> bool:
-	return telemetry_ok and now - last_sample <= Ramp.SIGNAL_TIMEOUT
-
+	return telemetry_ok and signal_state.usable(now)
+func live(now: float) -> bool:
+	return telemetry_ok and signal_state.live(now)
+func session_now(now: float) -> float: return signal_state.time(now)
+func reset_session(now: float, client) -> void:
+	signal_state.reset_clock(now); interrupted_clients.erase(client.get_instance_id()); control_started_at[client.get_instance_id()] = now
+func control_response_at(client) -> float: return maxf(client.last_response,float(control_started_at.get(client.get_instance_id(),-100.0)))
+func resume_pending(client) -> bool: return interrupted_clients.has(client.get_instance_id())
+func drive_trainer(client, active: bool, grade: float, aero: float, now: float, target: int = 0) -> void:
+	var id: int = client.get_instance_id()
+	var receiving := live(now)
+	var transient: bool = client.owned and client.armed and now-signal_state.last_valid <= TrainerSignal.CONTROL_HOLD_SECONDS
+	if not active: interrupted_clients.erase(id)
+	elif not receiving and not transient: interrupted_clients[id] = true
+	elif interrupted_clients.has(id):
+		if client.owned and client.armed: interrupted_clients.erase(id)
+		elif client.phase != "RELEASING" and (not client.state.get("udp_owned",false) or client.error == "Geen antwoord van bridge"):
+			client.arm(client.allow_released_session); interrupted_clients.erase(id); control_started_at[id] = now
+	client.tick(active and fresh(now) and (receiving or transient) and not resume_pending(client),grade,aero,now,target)
+func _ftp_pause_expired(now: float) -> bool:
+	return test is Ramp and test.running() and signal_state.paused_seconds(now) > FTP_MAX_PAUSE_SECONDS
 func receive(packet: Dictionary, now: float) -> void:
 	if packet.get("type") != "telemetry": return
 	var power: Variant = packet.get("power_w")
 	var id: Variant = packet.get("power_sample_id")
 	var age: Variant = packet.get("power_age_s")
 	bridge_update_needed = not packet.has("power_sample_id") or not packet.has("power_age_s")
-	var recent: bool = (age is int or age is float) and is_finite(float(age)) and float(age) >= 0.0 and float(age) <= Ramp.SIGNAL_TIMEOUT
-	var numeric: bool = (power is float or power is int) and is_finite(float(power)) and float(power) >= 0.0
-	telemetry_ok = packet.get("valid") == true and numeric and recent and (id is int or id is float) and is_finite(float(id)) and float(id) >= 0 and floor(float(id)) == float(id)
-	if not telemetry_ok:
-		if test.running(): finish("Vermogenssignaal ongeldig of verloren")
-		return
+	var valid_age: bool = (age is int or age is float) and is_finite(float(age)) and float(age) >= 0
+	var numeric: bool = (power is float or power is int) and is_finite(float(power)) and float(power) >= 0
+	var valid_id: bool = (id is int or id is float) and is_finite(float(id)) and float(id) >= 0 and floor(float(id)) == float(id)
+	if _ftp_pause_expired(now): finish("FTP-test gestopt: pauze langer dan 1 minuut")
+	var measured_ok: bool = packet.get("valid") == true and numeric and valid_age and valid_id
+	var recovering := not signal_state.live(now)
+	var was_paused: bool = signal_state.paused_since >= 0
+	signal_state.receive(measured_ok,now)
+	if was_paused and measured_ok and test is Ramp: test.interrupt_measurements()
+	if not measured_ok: return # Preserve the last good measurement through the same race hold/pause window.
+	telemetry_ok = true
+	var speed: Variant = packet.get("speed_kmh")
+	if (speed is int or speed is float) and is_finite(float(speed)) and float(speed) >= 0: last_speed_kmh = float(speed)
 	if int(id) == sample_id: return # Bridge repeats the last FTMS sample at 10 Hz.
 	if int(id) < sample_id:
-		if test.running(): finish("Bridge herstart of metingen uit volgorde")
-		sample_id = int(id)
-		last_sample = -100.0
-		return
+		if not recovering: return # Late UDP frame, not a new measurement.
+		if test is Ramp: test.interrupt_measurements()
+
 	sample_id = int(id)
 	last_sample = now - float(age)
 	measured = float(power)
@@ -84,15 +115,16 @@ func receive(packet: Dictionary, now: float) -> void:
 	gear = int(reported_gear) if (reported_gear is int or reported_gear is float) and is_finite(float(reported_gear)) and float(reported_gear) >= 1 and float(reported_gear) <= 12 else -1
 	var rpm: Variant = packet.get("cadence_rpm")
 	var cadence: float = float(rpm) if (rpm is int or rpm is float) and is_finite(float(rpm)) else -1.0
-	test.sample(last_sample, measured, cadence)
+	test.sample(session_now(maxf(last_sample,signal_state.resumed_at)), measured, cadence)
 	if test.phase == "RESULT": _release(now)
 
 func begin() -> void:
 	var now := now_s()
-	if test.running() or not fresh(now) or not release_complete(): return
+	if test.running() or not live(now) or not release_complete(): return
 	ftp_persisted = false
 	ftp_save_message = ""
-	test.start(now)
+	reset_session(now,trainer)
+	test.start(session_now(now))
 	confirmation_since = -1.0
 	confirmation_target = -1
 	trainer.arm()
@@ -119,44 +151,46 @@ func leave() -> void:
 
 func _process(_delta: float) -> void:
 	var now := now_s()
-	if test.running() and (not is_visible_in_tree() or not fresh(now)):
-		finish("Vermogenssignaal verloren" if is_visible_in_tree() else "Test verlaten")
-	var target := test.target(now)
-	trainer.tick(test.phase in ["CONNECTING", "RAMP"], 0.0, 1.0, now, target)
+	var clock := session_now(now)
+	var receiving := live(now)
+	if test.running() and not is_visible_in_tree(): finish("Test verlaten")
+	if _ftp_pause_expired(now): finish("FTP-test gestopt: pauze langer dan 1 minuut")
+	var target: int = test.target(clock)
+	drive_trainer(trainer,test.phase in ["CONNECTING","RAMP"],0,1,now,target)
 	if test.running():
-		if test.phase == "RAMP" and now - trainer.last_response > 3.0:
-			finish("Geen antwoord meer van trainerbridge")
-		elif not trainer.error.is_empty():
-			finish("Trainerfout: " + trainer.error)
-		else:
+		if not receiving or resume_pending(trainer):
+			confirmation_since = clock
+		elif test.phase == "RAMP" and now-control_response_at(trainer) > 3: finish("Geen antwoord meer van trainerbridge")
+		elif not trainer.error.is_empty(): finish("Trainerfout: "+trainer.error)
+		if test.running() and fresh(now):
 			var state: Dictionary = trainer.state
-			var confirmed: bool = trainer.owned and state.get("mode") == "ERG" and state.get("desired_mode") == "ERG" and state.get("confirmed_target_w") == target and state.get("applied_revision", -1) == state.get("revision", -2)
-			if confirmation_target != target:
-				confirmation_target = target
-				confirmation_since = now
-			if confirmed: confirmation_since = now
-			elif test.phase != "WARMUP" and now - confirmation_since > 8.0: finish("ERG-doel niet bevestigd door trainer")
-			test.tick(now, confirmed)
+			var confirmed: bool = receiving and trainer.owned and state.get("mode") == "ERG" and state.get("desired_mode") == "ERG" and state.get("confirmed_target_w") == target and state.get("applied_revision",-1) == state.get("revision",-2)
+			if confirmation_target != target: confirmation_target = target; confirmation_since = clock
+			if confirmed: confirmation_since = clock
+			elif receiving and not resume_pending(trainer) and test.phase != "WARMUP" and clock-confirmation_since > 8: finish("ERG-doel niet bevestigd door trainer")
+			test.tick(clock,confirmed)
 			if not test.running(): _release(now)
 	_refresh()
 
 func _refresh() -> void:
 	if start_button == null: return
 	start_button.visible = not test.running()
-	start_button.disabled = not fresh(now_s()) or not release_complete()
+	start_button.disabled = not live(now_s()) or not release_complete()
 	stop_button.visible = test.running()
 	back_button.disabled = test.running()
 	detail.visible = not test.running() and test.phase != "RESULT"
 	warmup_hint.visible = test.phase in ["IDLE", "WARMUP"]
 	if test.running():
-		var elapsed := maxf(0.0, now_s() - test.started_at)
-		var target_text := "Vrij vermogen" if test.phase == "WARMUP" else "Doel %d W" % test.target(now_s())
+		var elapsed := maxf(0.0, session_now(now_s()) - test.started_at)
+		var target_text := "Vrij vermogen" if test.phase == "WARMUP" else "Doel %d W" % test.target(session_now(now_s()))
 		var caption := {"WARMUP": "Vrije opwarming", "CONNECTING": "Wacht op ERG-bevestiging", "RAMP": "Ramp Test"}
 		result.text = "%s · %02d:%02d\n%s · gemeten %.0f W\nBeste 60 s: %.1f W" % [caption[test.phase], int(elapsed) / 60, int(elapsed) % 60, target_text, measured, test.best_60]
 		if test.phase == "WARMUP":
 			var remaining := int(ceil(maxf(0.0, Ramp.WARMUP_SECONDS - elapsed)))
 			result.text = "Start test over %02d:%02d\n%s · gemeten %.0f W\nSchakelen blijft beschikbaar. Daarna neemt ERG over op 100 W." % [remaining / 60, remaining % 60, target_text, measured]
 			if gear > 0: result.text += "\nVersnelling %d / 12" % gear
+		var connection_status := signal_state.status(now_s())
+		if not connection_status.is_empty(): result.text += "\n"+connection_status
 	elif test.phase == "RESULT":
 		if test.best_60 > 0 and not ftp_persisted:
 			ftp_persisted = true
@@ -166,7 +200,7 @@ func _refresh() -> void:
 		result.text += "\n" + ftp_save_message
 		result.text += "\nERG vrijgegeven." if release_complete() else "\nERG-vrijgave nog niet bevestigd. Bridge bewaakt ook de lease."
 	else:
-		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed." if fresh(now_s()) else "Wacht op verse trainergegevens."
+		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed." if live(now_s()) else "Wacht op verse trainergegevens."
 
 func shutdown() -> void:
 	finish("Spel gesloten")

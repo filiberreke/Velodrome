@@ -138,7 +138,7 @@ func advance(dt: float) -> void:
 	if not active: return
 	var page = training_page if training_page != null else game.setup_panel.ftp_page
 	var live: bool = page.test.running() and page.fresh(page.now_s())
-	var speed: float = clampf(game.trainer_speed_kmh / 3.6, 0.0, 35.0) if live else 0.0
+	var speed: float = clampf(page.last_speed_kmh / 3.6, 0.0, 35.0) if live else 0.0
 	distance += speed * dt / game._path_metric(distance, 1.18)
 	var bike: Node3D = game.bikes[0]
 	var point: Vector3 = game._at(distance, 1.18)

@@ -43,6 +43,23 @@ func run_test() -> void:
 	check(saw_erg and saw_free and saw_resume,"Actual UDP trainer confirms ERG, releases for FreeRide, then reacquires ramp control")
 	check(page.test.phase == "RESULT" and page.test.reason == "Workout voltooid" and page.release_complete(),"Workout completes and actual bridge confirms release")
 	check(not game.training_environment.active and menu.menu_margin.visible,"Result returns from piste to workout page")
+	page.load_workout({"id":"pause","name":"ERG pause recovery","blocks":[{"kind":"SteadyState","duration":120,"power_low":.7,"power_high":.7,"events":[]}]})
+	menu._show_section(14,"Workout",page); page.begin()
+	for i in range(150):
+		await create_timer(.02).timeout; game._read_bridge()
+		if page.test.phase == "ERG" and page.trainer.owned: break
+	print("VIRTUAL_BRIDGE_DROP")
+	var deadline := Time.get_ticks_msec()+12000
+	while Time.get_ticks_msec() < deadline:
+		await create_timer(.02).timeout; game._read_bridge()
+	var frozen: float = page.test.elapsed
+	check(page.test.running() and page.signal_state.paused_since >= 0 and not page.trainer.owned,"Actual ERG UDP loss pauses rather than ending the workout")
+	print("VIRTUAL_BRIDGE_RESTORE")
+	for i in range(200):
+		await create_timer(.02).timeout; game._read_bridge()
+		if page.trainer.owned and page.test.elapsed > frozen+.1: break
+	check(page.test.running() and page.trainer.owned and page.test.elapsed > frozen,"Actual ERG UDP recovery restores the previous workout target")
+	page.finish("Integratietest voltooid")
 	game.free()
 	print("WORKOUT_VIRTUAL_BRIDGE failures=",failures)
 	if failures == 0: print("VIRTUAL_BRIDGE_OK")

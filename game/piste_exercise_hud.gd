@@ -43,7 +43,9 @@ func update_training(scene) -> void:
 		var remaining := maxi(0,ceili(session.time_limit-session.elapsed))
 		mission_text.text = "Peloton %.0f km/u\n%.1f / 250 m gewonnen\nNog %d:%02d" % [session.target_kmh,session.gained_m,remaining/60,remaining%60]
 	mission_bar.value = clampf(session.gained_m,0,250)
-	status_panel.hide()
+	var connection_status: String = scene.game.setup_panel.ftp_page.signal_state.status(scene.game._now_s()) if not scene.demo else ""
+	status_panel.visible = not connection_status.is_empty()
+	phase_label.text = connection_status
 	var positions: Array[float] = [scene.distance]
 	if session.kind == "take_lap":
 		for at in scene.pack_state.distances: positions.append(float(at))

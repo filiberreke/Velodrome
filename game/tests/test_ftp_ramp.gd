@@ -46,8 +46,8 @@ func run_test() -> void:
 	check(session.segments.size() < 230, "Rolling history remains bounded")
 	session = ramp()
 	session.sample(301.0, 250.0)
-	session.sample(303.0, 250.0)
-	check(session.phase == "RESULT" and session.best_60 == 0.0, "Gap cannot be filled with held power")
+	session.sample(312.1, 250.0)
+	check(session.phase == "RAMP" and session.best_60 == 0.0 and session.segments.is_empty(), "Long measurement gap resets the window without inventing power or ending the test")
 	session = ramp()
 	for t in range(22): session.sample(301.0 + t, 50.0)
 	check(session.phase == "RESULT", "Sustained underpower stops after grace period")
@@ -65,7 +65,7 @@ func run_test() -> void:
 	old_bridge.receive({"type":"telemetry", "valid":true, "power_w":200, "sample_id":1}, 0.0)
 	check(not old_bridge.fresh(0.0) and old_bridge.bridge_update_needed, "Old bridge cannot masquerade as fresh measured power")
 	old_bridge.receive({"type":"telemetry", "valid":true, "power_w":200, "sample_id":2, "power_sample_id":1, "power_age_s":2.0}, 2.0)
-	check(not old_bridge.fresh(2.0), "Cadence/speed packets cannot hide stale power")
+	check(old_bridge.live(2.0) and old_bridge.last_sample == 0, "Connection uses the race validity flag while retaining the original power timestamp")
 	old_bridge.free()
 	# A Reset ACK only accepts the request. Continue status polling until the
 	# bridge confirms the actual FTMS release, even after the HUD is hidden.
@@ -97,6 +97,7 @@ func test_udp() -> void:
 	page._process(0.0)
 	check(not page.trainer.socket.is_bound(), "Warmup sends no trainer commands")
 	check(page.result.text.contains("05:00") and page.warmup_hint.visible, "Countdown and advisory power displayed")
+	for second in range(1,300): page.signal_state.receive(true,float(second))
 	page.clock = 299.9
 	feed(page, 2)
 	page._process(0.0)
@@ -137,11 +138,12 @@ func test_udp() -> void:
 	# The same FTMS sample replayed with valid=true must not refresh freshness.
 	var before: float = page.last_sample
 	page.clock += 0.5
-	feed(page, page.sample_id)
+	page.receive({"type":"telemetry","valid":false,"power_w":180,"power_sample_id":page.sample_id,"power_age_s":page.clock-before},page.clock)
 	check(page.last_sample == before, "Duplicate sample IDs never extend power validity")
-	page.clock += 1.0
+	page.clock += 11.0
 	page._process(0.0)
-	check(page.test.phase == "RESULT" and not page.trainer.owned, "Silent stale measurements end test and release lease")
+	check(page.test.phase == "RAMP" and page.signal_state.paused_since >= 0 and not page.trainer.owned, "Stale measurements pause test and release lease after the race hold window")
+	page.finish("Test stop")
 	await process_frame
 	var released := false
 	while server.get_available_packet_count() > 0:

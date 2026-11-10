@@ -86,7 +86,9 @@ func enter() -> void:
 	player_speed = session.target_kmh/3.6
 	motor.speed_mps = player_speed
 	motor.configure(game,session.start_speed_kmh,LOWEST_LANE)
-	if not demo: game.trainer_control.arm()
+	if not demo:
+		game.setup_panel.ftp_page.reset_session(game._now_s(),game.trainer_control)
+		game.trainer_control.arm()
 	super.enter()
 	_capture_sample()
 	_persist(false)
@@ -144,9 +146,10 @@ func advance(dt: float) -> void:
 	if not active or session == null: return
 	var now: float = game._now_s()
 	var live: bool = game.setup_panel.ftp_page.fresh(now)
-	if session.running() and not demo and not live: session.stop("Vermogenssignaal verloren")
+	var source = game.setup_panel.ftp_page
+	var paused: bool = not demo and not live
 	if session.running() and demo and game.trainer_seen: session.stop("Trainer verbonden · start opnieuw met trainer")
-	if session.running():
+	if session.running() and not paused:
 		# Small fixed-size steps keep the force model stable at slow frame rates.
 		var remaining := minf(maxf(dt, 0), .25)
 		while remaining > .00001:
@@ -155,14 +158,14 @@ func advance(dt: float) -> void:
 			remaining -= step
 			if not session.running(): break
 	var enabled: bool = session.running() and not demo and live
-	game.trainer_control.tick(enabled, road_grade, 1.0 - reduction, now)
-	if enabled and (not game.trainer_control.error.is_empty() or (now - control_started > 8 and game.trainer_control.last_response < control_started)):
+	source.drive_trainer(game.trainer_control,session.running() and not demo,road_grade,1.0-reduction,now)
+	if enabled and source.live(now) and not source.resume_pending(game.trainer_control) and (not game.trainer_control.error.is_empty() or (now - control_started > 8 and game.trainer_control.last_response < control_started)):
 		session.stop("Trainerbediening niet beschikbaar")
 		release_trainer()
 	if not session.running():
 		finish_session(session.reason)
 		return
-	_present(dt)
+	_present(0 if paused else dt)
 	if total_elapsed - last_sample >= 1.0: _capture_sample()
 	if total_elapsed - last_save >= 10.0: _persist(false)
 func _step(dt: float, power: float) -> void:
@@ -223,7 +226,7 @@ func _present(dt: float) -> void:
 	bike.position = point + Vector3.UP * .10
 	bike.rotation = Vector3(0, atan2(forward.x, forward.z), -game._bank_angle(game._track_s(distance)))
 	bike.get_child(0).call("set_victory", false)
-	bike.get_child(0).call("pedal", dt if session.running() else 0, 85.0 if demo else maxf(0, game.cadence), demo_power if demo else game.watts)
+	bike.get_child(0).call("pedal", dt if session.running() else 0, 85.0 if demo else maxf(0, game.cadence), demo_power if demo else game.setup_panel.ftp_page.measured)
 	pilot.animator.speed_scale = 1.0 if session.running() else 0.0
 	var pilot_forward: Vector3 = game._direction(session.derny_distance, derny_lane_offset)
 	pilot.position = game._at(session.derny_distance, derny_lane_offset)
@@ -236,7 +239,7 @@ func _present(dt: float) -> void:
 func _capture_sample() -> void:
 	if not demo and not game.setup_panel.ftp_page.fresh(game._now_s()): return
 	if not samples.is_empty() and total_elapsed <= float(samples[-1].time_s): return
-	samples.append({"time_s":total_elapsed,"distance_m":total_distance,"game_speed_kmh":player_speed*3.6,"power_w":demo_power if demo else game.setup_panel.ftp_page.measured,"heart_rate_bpm":null if demo else game.trainer_heart_rate_bpm,"cadence_rpm":-1.0 if demo else game.cadence,"draft_pct":reduction*100,"target_kmh":session.target_kmh,"derny_speed_kmh":motor.speed_mps*3.6,"derny_power_w":motor.power_w,"assisted":session.phase=="RUNUP"})
+	samples.append({"time_s":total_elapsed,"distance_m":total_distance,"game_speed_kmh":player_speed*3.6,"power_w":demo_power if demo else game.setup_panel.ftp_page.measured,"heart_rate_bpm":null if demo else game.trainer_heart_rate_bpm,"cadence_rpm":-1.0 if demo else game.cadence,"draft_pct":reduction*100,"target_kmh":session.target_kmh,"derny_speed_kmh":motor.speed_mps*3.6,"derny_power_w":motor.power_w,"assisted":session.phase=="RUNUP","power_held":not demo and not game.setup_panel.ftp_page.live(game._now_s())})
 	last_sample = total_elapsed
 	hud.graph.set_samples(samples)
 func _persist(final: bool) -> void:
