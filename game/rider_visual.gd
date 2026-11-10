@@ -84,7 +84,7 @@ func _ready() -> void:
 	animator.advance(0.0)
 	var rider_index: int = int(get_meta("rider_index", 0))
 	_apply_rider_profile(rider_index)
-	_apply_default_decals(rider_index)
+	_apply_default_decals(int(get_meta("appearance_profile", rider_index)))
 	body_mesh = rig_scene.find_child("Rider", true, false) as MeshInstance3D
 	if body_mesh != null:
 		for surface in range(body_mesh.mesh.get_surface_count()):
@@ -141,7 +141,8 @@ func _apply_rider_profile(index: int) -> void:
 		{"suit": Color("268cd3"), "accent": Color("8cd5ff"), "helmet": Color("187ec2"), "helmet2": Color("adddff"), "panel": Color("172a4b"), "glove": Color("18263e"), "shoe": Color("f3f4f6")},
 		{"suit": Color("df504b"), "accent": Color("ffc9a1"), "helmet": Color("d7433d"), "helmet2": Color("ffac8a"), "panel": Color("382629"), "glove": Color("30252a"), "shoe": Color("eeeeee")},
 	]
-	_apply_palette_to_mesh(body, palettes[index])
+	var appearance_index := clampi(int(get_meta("appearance_profile", index)), 0, 3)
+	_apply_palette_to_mesh(body, palettes[appearance_index])
 	print("Velodrome rider: profiel ", index, " morphs ", RIDER_SHAPES[index])
 
 func _apply_palette_to_mesh(mesh_node: MeshInstance3D, palette: Dictionary) -> void:

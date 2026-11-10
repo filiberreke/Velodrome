@@ -18,8 +18,14 @@ func capture() -> void:
 	game.set_physics_process(false)
 	await process_frame
 	game.setup_panel.select_mode(4)
-	game.setup_panel.madison_difficulty.select(1)
+	game.madison_progress.advanced_unlocked = false
+	game.setup_panel.refresh_madison_difficulty()
 	await snapshot("01_training_menu")
+	game.madison_progress.advanced_unlocked = true
+	game.setup_panel.refresh_madison_difficulty()
+	game.setup_panel.madison_difficulty.select(1)
+	game.setup_panel.madison_count.select(1)
+	await snapshot("04_unlocked_options")
 	game._confirm_start()
 	game.broadcast_intro.finish()
 	game._begin_riding()

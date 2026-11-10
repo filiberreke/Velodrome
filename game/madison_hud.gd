@@ -29,6 +29,8 @@ func update_state(value: Dictionary) -> void:
 	elif state.phase == "APPROACH": hint.text = "A: grijpen" if state.can_grab else "Nader binnen handbereik · ← → sturen"
 	elif state.phase in ["GRAB", "SLING"]: hint.text = "A loslaten: %d%%" % roundi(state.efficiency * 100) if state.advanced else "Automatische slinger · %d%%" % roundi(state.efficiency * 100)
 	else: hint.text = state.message
+	if state.has("progress"):
+		caption.text = "MADISON · %s · %s" % ["Advanced" if state.advanced else "Easy", state.progress]
 	queue_redraw()
 
 func _draw() -> void:

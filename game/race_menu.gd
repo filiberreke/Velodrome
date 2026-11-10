@@ -62,7 +62,9 @@ var laps_input: SpinBox
 var demo_power_input: SpinBox
 var madison_options: VBoxContainer
 var madison_difficulty: OptionButton
-var madison_laps: SpinBox
+var madison_count: OptionButton
+var madison_unlock_label: Label
+var madison_progress = preload("res://madison_progress.gd").new()
 var difficulty_slider: HSlider
 var difficulty_label: Label
 var race_settings: VBoxContainer
@@ -276,9 +278,16 @@ func _build_settings(layout: VBoxContainer) -> void:
 	madison_difficulty.add_item("Easy · automatisch loslaten · max 70%")
 	madison_difficulty.add_item("Advanced · A vasthouden en loslaten · max 100%")
 	madison_options.add_child(madison_difficulty)
+	madison_options.add_child(label("Aantal aflossingspogingen", 20))
+	madison_count = OptionButton.new()
+	madison_count.add_item("10 aflossingen", 10)
+	madison_count.add_item("20 aflossingen", 20)
+	madison_options.add_child(madison_count)
+	madison_unlock_label = label("", 18)
+	madison_options.add_child(madison_unlock_label)
+	refresh_madison_difficulty()
 	var madison_help := label("Snelle renner binnen, ploegmaat bij de blauwe lijn.\nA grijpt; ← → sturen. De groene zone bepaalt je maximum.", 20)
 	madison_options.add_child(madison_help)
-	madison_laps = _number(madison_options, "Oefenronden", 1, 120, 8)
 	pursuit_options = preload("res://pursuit_options.gd").new()
 	pursuit_options.library = library
 	options.add_child(pursuit_options)
@@ -370,6 +379,7 @@ func show_choices() -> void:
 		cards[selected].grab_focus.call_deferred()
 
 func select_mode(index: int) -> void:
+	refresh_madison_difficulty()
 	if page == 2 and selected in [0, 3, 5]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	footer_label.show()
 	page_title.add_theme_font_size_override("font_size",44)
@@ -435,6 +445,13 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 	if pursuit_flow != null and pursuit_flow.visible: pursuit_flow.update_bridge()
 	if startlist_page != null and startlist_page.visible: startlist_page.update_bridge()
+
+func refresh_madison_difficulty() -> void:
+	if madison_difficulty == null: return
+	var locked: bool = not madison_progress.advanced_unlocked
+	madison_difficulty.set_item_disabled(1, locked)
+	if locked and madison_difficulty.selected == 1: madison_difficulty.select(0)
+	madison_unlock_label.text = "Advanced vergrendeld · haal 7/10 of 14/20 in Easy." if locked else "Advanced vrijgespeeld · kies Easy of Advanced."
 
 func _pursuit_changed() -> void:
 	if selected not in [1, 2] or start_button == null:

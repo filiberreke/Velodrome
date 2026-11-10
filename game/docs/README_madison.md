@@ -1,8 +1,22 @@
 # Madison-aflossingstraining
 
 In **Ploegkoers** kan je met twee renners de aflossing oefenen. Kies Easy of
-Advanced en het aantal oefenronden. Dit is de aflossingstraining; ploegpunten,
+Advanced en een sessie van **10 of 20 aflossingspogingen**. Dit is de aflossingstraining; ploegpunten,
 ploegklassement en een volledig Madison-peloton zijn nog niet geïmplementeerd.
+
+Advanced blijft grijs totdat een volledige Easy-sessie minstens 70% geslaagde
+pogingen heeft: **7/10 of 14/20**. De vrijgave blijft bewaard in
+`user://config/madison_progress.cfg`. Een geldige greep gevolgd door release met
+positieve momentumoverdracht telt als geslaagd. Elke naderingskans telt eenmaal:
+een gemist venster of verloren contact telt als mislukking; meerdere ongeldige
+knopdrukken binnen dezelfde kans voegen geen extra pogingen toe. Stoppen of
+herstarten begint een nieuwe reeks. Na 10/20 beoordeelde kansen en de laatste
+scheidingsfase eindigt de sessie automatisch en toont het resultaat de score.
+
+De ploegmaat draagt dezelfde uitrusting als de speler: standaardkleuren,
+skinsuit/landentenue, helm, vizier en standaardopdrukken. Zijn eigen lichaamsbouw
+en rijprofiel blijven behouden. Outfitwissels in de instellingen gelden meteen
+voor beide renners en blijven ook bij een nieuwe start gelijk.
 
 ## Bediening
 
@@ -88,6 +102,8 @@ Met Godot 4.7.2, na het importeren van de bestaande GLB/textuur-assets:
 ```text
 Godot --headless --path game --script res://tests/test_madison.gd
 Godot --headless --path game --script res://tests/test_madison_integration.gd
+Godot --headless --path game --script res://tests/test_madison_progress.gd
+Godot --headless --path game --script res://tests/test_madison_kit.gd
 Godot --headless --path game --script res://tests/test_menu.gd
 Godot --headless --path game --script res://tests/test_hud.gd
 Godot --headless --path game --script res://tests/test_bridge_protocol.gd
