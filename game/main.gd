@@ -2125,7 +2125,7 @@ func _update_visuals(dt: float) -> void:
 			visual.call("pedal", dt, clampf(coast_speeds[i] * 5.5, 0.0, 110.0), 120.0)
 		else:
 			visual.call("set_victory", false)
-			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1, 3] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
+			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1, 2, 3] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
 	pursuit_start.update(self, dt)
 	team_race.update_badges(self)
 	_update_bunch_presentation()
