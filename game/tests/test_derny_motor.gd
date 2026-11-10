@@ -16,15 +16,9 @@ func run_test() -> void:
 		var motor := Motor.new()
 		var began := Time.get_ticks_msec()
 		motor.configure(track,target,lane)
-		print("MOTOR_CALIBRATION lane=",lane," ms=",Time.get_ticks_msec()-began," power=",motor.power_w," rider=",motor.rider_mean_power_w)
+		print("MOTOR_CALIBRATION lane=",lane," ms=",Time.get_ticks_msec()-began," power=",motor.power_w)
 		motor.speed_mps = target/3.6
 		var power := motor.power_w
-		var guide := preload("res://derny_session.gd").new()
-		guide.start(0,target)
-		guide.target_kmh = target
-		guide.guidance_power_w = motor.rider_mean_power_w
-		var guide_min := guide.guidance_power_w
-		var guide_max := guide.guidance_power_w
 		var distance := 0.0
 		var elapsed := 0.0
 		var physical := 0.0
@@ -39,9 +33,6 @@ func run_test() -> void:
 			var speed := motor.speed_mps
 			var before := track._at(distance,lane)
 			motor.advance_speed(track,distance,lane,lane,1.0/120)
-			guide.update_guidance(1.0/120,motor.rider_mean_power_w)
-			guide_min = minf(guide_min,guide.guidance_power_w)
-			guide_max = maxf(guide_max,guide.guidance_power_w)
 			distance += motor.speed_mps/120/track._path_metric(distance,lane)
 			elapsed += 1.0/120
 			physical += motor.speed_mps/120
@@ -57,7 +48,6 @@ func run_test() -> void:
 				if lap >= 3: check(absf(mean-target) < .3,"Fixed-power motor matches chosen mean: lane %s mean %s" % [lane,mean])
 				last_time = elapsed; last_physical = physical
 				if lap == 4: break
-		check(guide_max-guide_min < .001,"Guidance needle remains at round mean through hills and descents")
 		check(lap == 4,"Full four-lap pacing measurement completes")
 		check(is_equal_approx(motor.power_w,power),"Drive watts stay fixed through every bend")
 		check(slowed_uphill and sped_downhill and maximum-minimum > .1,"Pacer genuinely slows uphill and accelerates downhill at fixed watts")

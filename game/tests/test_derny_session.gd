@@ -51,13 +51,12 @@ func _initialize() -> void:
 	check(Session.lane_at_speed(30,30) == 1.18 and Session.lane_at_speed(34.9,30) == 1.18,"Pilot begins on lowest line")
 	check(is_equal_approx(Session.lane_at_speed(35,30),1.78) and is_equal_approx(Session.lane_at_speed(40,30),2.38),"Every extra 5 km/h raises one riding corridor")
 	check(Session.lane_at_speed(100,30) == 3.55,"Pilot never moves above blue line")
-	session.start(0,30)
+	session.phase = "PACE"
 	session.target_kmh = 30
-	for i in range(1000): session.update_guidance(.01)
-	var lap_power := session.guidance_power_w
-	check(is_equal_approx(lap_power,Session.required_power(30.0/3.6,.6)),"Needle is lap mean in the wheel")
-	session.target_kmh = 60
-	session.update_guidance(.1)
-	check(session.guidance_power_w-lap_power <= Session.GUIDANCE_MAX_W_PER_S*.1+.001,"Needle slews gradually after pacing changes")
+	session.step_elapsed = 45
+	session.change_tempo(1)
+	check(session.target_kmh == 31 and session.step_elapsed == 0 and signals[-1] == "speed_up","Manual increase changes one km/h and resets countdown")
+	session.change_tempo(-1)
+	check(session.target_kmh == 30 and signals[-1] == "slow_down","Manual decrease signals the slowing hand")
 	print("DERNY_SESSION failures=", failures)
 	quit(0 if failures == 0 else 1)

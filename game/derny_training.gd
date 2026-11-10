@@ -21,7 +21,7 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 14)
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	title = _label("Dernytraining", 34)
-	detail = _label("Kies je startsnelheid. Tijdens de aanloopronde word je automatisch meegenomen. De gekozen snelheid is een rondegemiddelde, elke minuut +1 km/u.\nDe derny rijdt met vast vermogen: trager bergop, sneller bergaf. Hij begint onderaan en gaat bij elke extra 5 km/u één rijlijn hoger. Jij volgt automatisch.\nIn het wiel remt het spel onbedoeld inhalen af; stuur bewust twee rijlijnen opzij om te passeren.\nMeer dan 15 meter achterstand gedurende 5 seconden beëindigt de training.\nElke training wordt lokaal bewaard. Na afloop kun je naar Strava uploaden.",22)
+	detail = _label("Kies je startsnelheid. Tijdens de aanloopronde word je automatisch meegenomen. De gekozen snelheid is een rondegemiddelde, elke minuut +1 km/u.\nDe derny rijdt met vast vermogen: trager bergop, sneller bergaf. Hij begint onderaan en gaat bij elke extra 5 km/u één rijlijn hoger. Jij volgt automatisch.\nIn het wiel remt het spel onbedoeld inhalen af; stuur bewust twee rijlijnen opzij om te passeren.\nTempo vragen: → sneller (+1 km/u), ← trager (−1 km/u), op trainer en simulator. De minuutklok begint dan opnieuw.\nMeer dan 15 meter achterstand gedurende 5 seconden beëindigt de training.\nElke training wordt lokaal bewaard. Na afloop kun je naar Strava uploaden.",22)
 	start_speed_row = HBoxContainer.new()
 	start_speed_row.add_theme_constant_override("separation",16)
 	add_child(start_speed_row)

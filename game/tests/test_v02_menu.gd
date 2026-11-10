@@ -36,7 +36,7 @@ func run_test() -> void:
 	check(menu.page == 0, "Controller returns from races to main menu")
 	menu.show_training()
 	check(menu.page == 6 and menu.training_page.visible, "Training category opens")
-	menu.training_page.get_child(0).pressed.emit()
+	menu.ftp_tile.pressed.emit()
 	await settle()
 	check(menu.page == 8 and menu.ftp_page.visible and menu.ftp_page.start_button.disabled, "FTP test requires real power signal")
 	for button in [menu.ftp_page.start_button, menu.ftp_page.back_button]:

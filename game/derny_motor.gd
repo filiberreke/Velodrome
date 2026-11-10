@@ -7,7 +7,6 @@ static var profiles := {}
 static var powers := {}
 var speed_mps := 0.0
 var power_w := 0.0
-var rider_mean_power_w := 0.0
 var mean_kmh := -1.0
 var planned_lane := -1.0
 
@@ -57,7 +56,6 @@ func configure(game, target_mean_kmh: float, target_lane: float) -> void:
 	mean_kmh = target_mean_kmh
 	planned_lane = target_lane
 	power_w = power_for_mean(game,mean_kmh,planned_lane)
-	rider_mean_power_w = power_for_mean(game,mean_kmh,planned_lane,Physics.MAX_DRAFT)
 
 func advance_speed(game, at: float, old_lane: float, lane: float, dt: float) -> void:
 	var previous: Vector3 = game._at(at,old_lane)

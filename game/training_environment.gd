@@ -4,6 +4,7 @@ const Kit := preload("res://crowd_kit.gd")
 const Themes := preload("res://rennersboxen/themes.gd")
 const CAMP := Vector3(-12.6, 0.0, -10.0)
 var game: Node3D
+var training_page: Control
 var active := false
 var distance := 0.0
 var start_distance := 0.0
@@ -132,7 +133,7 @@ func leave() -> void:
 
 func advance(dt: float) -> void:
 	if not active: return
-	var page = game.setup_panel.ftp_page
+	var page = training_page if training_page != null else game.setup_panel.ftp_page
 	var live: bool = page.test.running() and page.fresh(page.now_s())
 	var speed: float = clampf(game.trainer_speed_kmh / 3.6, 0.0, 35.0) if live else 0.0
 	distance += speed * dt / game._path_metric(distance, 1.18)

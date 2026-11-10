@@ -61,8 +61,9 @@ func run_test() -> void:
 	scene.demo_power = 1000
 	for i in range(20): scene.advance(.25)
 	check(scene.gap() >= 2.79 and scene.too_close and scene.player_speed <= scene.motor.speed_mps+.02, "Excess watts are capped behind derny with warning")
-	check(scene.hud.phase_label.text.contains("TE DICHT"), "Closing warning is visible")
-	check(scene.hud.power_meter.target_visible and scene.required_power() > 0, "Race power bar shows estimated watt target")
+	check(scene.hud.status_panel.visible and scene.hud.phase_label.text == "Te dicht - snelheid begrensd", "Closing warning is visible")
+	check(scene.hud.power_meter.fill_color == scene.hud.power_meter.zone_color(1000),"Power bar uses the common high-watt zone colour")
+	check(not scene.hud.power_meter.target_visible, "Power bar has no target needle")
 	check(scene.samples.size() > 20 and scene.store.load_activity(scene.activity.id).samples.size() > 1, "Time series is periodically persisted while riding")
 	scene.player_lane_target += 2
 	for i in range(28): scene.advance(.25)
@@ -82,27 +83,27 @@ func run_test() -> void:
 	game._process_steering(40)
 	check(scene.player_lane_target == lane + 1, "Controller steering changes lane during training")
 	game._process_steering(0)
-	game._ride_action("LEFT")
-	check(scene.player_lane_target == lane, "Mapped left steering returns to wheel")
+	scene.steer(-1)
+	check(scene.player_lane_target == lane, "Lane steering returns to wheel")
 	var key := InputEventKey.new()
-	key.keycode = KEY_RIGHT
+	key.keycode = KEY_D
 	key.pressed = true
 	root.push_input(key)
 	check(scene.player_lane_target == lane + 1, "Keyboard steering works while Stop button has focus")
-	game._ride_action("LEFT")
+	scene.steer(-1)
 	game._ride_action("B","SHIFT_UP_RIGHT")
 	check(page.session.running(), "Physical gear paddle cannot stop training")
 	scene.session.phase = "PACE"
 	var initial_gestures: int = scene.pilot.gesture_count.speed_up
-	scene.session.elapsed = 58.45
+	scene.session.step_elapsed = 58.45
 	for i in range(4): scene.advance(.25)
 	var gestures: int = scene.pilot.gesture_count.speed_up
 	check(gestures == initial_gestures + 1, "One thumbs-up anticipates next minute")
 	scene.advance(.25)
 	check(scene.pilot.gesture_count.speed_up == gestures, "Thumb is not retriggered each frame")
-	scene.session.elapsed = 59.99
+	scene.session.step_elapsed = 59.99
 	scene.advance(.03)
-	check(scene.session.target_kmh == 31 and scene.popup.text == "DERNY  ·  gemiddeld 31 km/u", "New speed appears centrally at minute boundary")
+	check(scene.session.target_kmh == 31 and not scene.popup.visible and scene.hud.dial.kmh > 0, "Minute boundary updates the separate derny dial")
 	await settle()
 	await shot("speed_31")
 	scene.pilot.gesture("speed_up")
@@ -144,11 +145,14 @@ func run_test() -> void:
 	for i in range(16): scene.advance(.25)
 	check(absf(scene.derny_lane_offset-1.78) < .001 and absf(scene.player_lane_offset-scene.derny_lane_offset) < .001,"Pilot rises smoothly after extra 5 km/h and rider follows automatically")
 	check(scene.hud.slipstream_bar.max_value == 60 and scene.reduction <= .60,"HUD and physical wake share sixty percent maximum")
-	scene.session.guidance_power_w = scene.Session.required_power(40.0/3.6,.60)
-	var guide: float = scene.required_power()
-	scene.road_grade = 12
-	scene.session.update_guidance(.1)
-	check(is_equal_approx(scene.required_power(),guide) and scene.road_grade == 12,"Lap-average needle ignores local hill while actual trainer grade is retained")
+	game._ride_action("RIGHT")
+	check(scene.hud.call_label.text == "ALLEZ" and scene.session.target_kmh == 40,"Simulator right calls ALLEZ before pilot responds")
+	for i in range(5): scene.advance(.25)
+	check(scene.session.target_kmh == 41 and scene.pilot.last_gesture == "speed_up","Pilot acknowledges manual increase with arm gesture")
+	game._ride_action("LEFT")
+	check(scene.hud.call_label.text == "HOW","Simulator left calls HOW")
+	for i in range(5): scene.advance(.25)
+	check(scene.session.target_kmh == 40 and scene.pilot.last_gesture == "slow_down","Pilot acknowledges manual decrease")
 	page.finish("Instelbaarheidstest")
 	check(page.selected_activity.start_speed_kmh == 35 and menu.training_store.load_activity(scene.activity.id).start_speed_kmh == 35,"Chosen starting speed is archived and shown in result")
 	page.start_speed.value = 30
@@ -161,7 +165,12 @@ func run_test() -> void:
 	game._process_bridge_packet({"type":"telemetry","valid":true,"power_w":150.0,"speed_kmh":25.0,"cadence_rpm":85.0,"sample_id":1,"power_sample_id":1,"power_age_s":0.0,"heart_rate_bpm":152})
 	page.begin()
 	check(scene.active and not scene.demo, "Fresh validated power starts real trainer mode")
+	scene.session.phase = "PACE"
+	var initial_tempo: float = scene.session.target_kmh
+	game._ride_action("RIGHT")
+	check(scene.hud.call_label.text == "ALLEZ","Real trainer right requests a tempo increase")
 	for i in range(5): scene.advance(.25)
+	check(scene.session.target_kmh == initial_tempo+1,"Real trainer request changes exactly one km/h")
 	check(scene.samples[-1].power_w == 150 and scene.samples[-1].heart_rate_bpm == 152 and scene.samples[-1].cadence_rpm == 85, "Real power, heart rate and cadence reach graph and recording")
 	check(scene.hud.heart_label.text == "152 bpm" and scene.hud.cadence_label.text == "85 rpm", "Race metrics panel displays actual sensor values")
 	menu.ftp_page.telemetry_ok = false

@@ -1,10 +1,10 @@
 extends Node3D
 ## User-provided GLB. Ride loops; signals play once then return to riding.
 const MODEL := preload("res://assets/derny/derny_pilot.glb")
-const CLIPS := {"ride":"DP_DernyRide", "look_back":"DP_DernyLookBack", "speed_up":"DP_DernySpeedUp"}
+const CLIPS := {"ride":"DP_DernyRide", "look_back":"DP_DernyLookBack", "speed_up":"DP_DernySpeedUp", "slow_down":"DP_DernySlowDown"}
 var animator: AnimationPlayer
 var last_gesture := "ride"
-var gesture_count := {"look_back":0, "speed_up":0}
+var gesture_count := {"look_back":0, "speed_up":0, "slow_down":0}
 func _ready() -> void:
 	var model := MODEL.instantiate()
 	# Blender forward -Y becomes glTF +Z, matching the game rider rigs.
@@ -21,7 +21,7 @@ func _ready() -> void:
 func gesture(action: String) -> void:
 	if animator == null or not CLIPS.has(action): return
 	# A speed signal has priority over a look over the shoulder.
-	if action == "look_back" and last_gesture == "speed_up" and animator.is_playing(): return
+	if action == "look_back" and last_gesture in ["speed_up","slow_down"] and animator.is_playing(): return
 	last_gesture = action
 	gesture_count[action] += 1
 	animator.play(CLIPS[action], .18)

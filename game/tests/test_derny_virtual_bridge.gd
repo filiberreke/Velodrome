@@ -33,6 +33,14 @@ func run_test() -> void:
 			if game.trainer_control.phase == "ACTIVE": break
 		check(game.trainer_control.phase == "ACTIVE" and game.trainer_control.owned, "Real UDP handshake reactivates released simulator into SIM")
 		check(menu.derny_page.session.running(), "Stationary zero-power readings remain fresh during assisted approach")
+		game.piste_training.session.phase = "PACE"
+		for virtual in [true,false]:
+			game.trainer_virtual = virtual
+			for button in ["RIGHT","LEFT"]:
+				game._process_bridge_packet({"type":"controller_button","source_button":button,"pressed":true,"mapped_action":""})
+				check(game.piste_training.hud.call_label.text == ("ALLEZ" if button == "RIGHT" else "HOW"),"Physical direction requests tempo for simulator and real trainer")
+				game._process_bridge_packet({"type":"controller_button","source_button":button,"pressed":false})
+				game.piste_training.tempo_requests.clear()
 		menu.derny_page.finish("Integratietest voltooid")
 		for i in range(60):
 			await create_timer(.02).timeout

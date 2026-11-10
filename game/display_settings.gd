@@ -19,6 +19,7 @@ var scale_label: Label
 var fullscreen_check: CheckButton
 var rider_name_input: LineEdit
 var rider_weight_input: SpinBox
+var rider_ftp_input: SpinBox
 const Appearance = preload("res://player_appearance.gd")
 var appearance
 var controller_test: Control
@@ -95,6 +96,8 @@ func _save_rider_profile() -> void:
 	get_parent().set("player_display_name", name_text if not name_text.is_empty() else "JIJ")
 	get_parent().set("player_weight_kg", rider_weight_input.value)
 	var cfg := ConfigFile.new()
+	preload("res://config_paths.gd").load_user(cfg,"rider_profile.cfg")
+	if rider_ftp_input != null: cfg.set_value("rider","ftp_w",roundi(rider_ftp_input.value))
 	cfg.set_value("rider", "name", get_parent().get("player_display_name"))
 	cfg.set_value("rider", "weight_kg", get_parent().get("player_weight_kg"))
 	cfg.save(preload("res://config_paths.gd").user_path("rider_profile.cfg"))
@@ -184,6 +187,15 @@ func _build_menu() -> void:
 	rider_weight_input.step = 0.5
 	rider_weight_input.value = float(get_parent().get("player_weight_kg"))
 	box.add_child(rider_weight_input)
+	var ftp_label := Label.new()
+	ftp_label.text = "FTP (W)"
+	box.add_child(ftp_label)
+	rider_ftp_input = SpinBox.new()
+	rider_ftp_input.min_value = 20
+	rider_ftp_input.max_value = 1000
+	rider_ftp_input.step = 1
+	rider_ftp_input.value = preload("res://player_profile.gd").new().ftp()
+	box.add_child(rider_ftp_input)
 	_build_appearance_controls(box, player_tab)
 	box = VBoxContainer.new()
 	box.name = "Beeld"
@@ -344,6 +356,7 @@ func _select_id(choice: OptionButton, id: String) -> void:
 	choice.select(0)
 
 func _sync_appearance_controls() -> void:
+	rider_ftp_input.value = preload("res://player_profile.gd").new().ftp()
 	rider_name_input.text = str(get_parent().get("player_display_name"))
 	rider_weight_input.value = float(get_parent().get("player_weight_kg"))
 	_select_id(suit_choice, appearance.suit_id)

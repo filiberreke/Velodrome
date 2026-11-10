@@ -17,6 +17,7 @@ func run_test() -> void:
 	root.content_scale_size = Vector2i(1920, 1080)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	var menu := Menu.new()
+	menu.workout_library.folder = "user://test_workout_editor_library"
 	root.add_child(menu)
 	await settle()
 	var upper_row = menu.hub_page.get_child(0)
@@ -90,6 +91,8 @@ func run_test() -> void:
 	editor._add("FreeRide")
 	check(editor.selected == 0 and editor.block_buttons.size() == 1, "Empty workout can be rebuilt")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://workout_editor_ui.zwo"))
+	for item in menu.workout_library.all_workouts():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(menu.workout_library._path(item.id)))
 	menu.free()
 	print("WORKOUT_EDITOR_UI failures=", failures)
 	quit(0 if failures == 0 else 1)

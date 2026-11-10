@@ -55,6 +55,7 @@ class VirtualBridge:
         self.owner = None
         self.lease = 0.
         self.target = 0
+        self.revision = 0
         self.grade = 0.
         self.aero = 1.
         self.released = False
@@ -183,7 +184,8 @@ class VirtualBridge:
             "reconnect_ready": False, "release_confirmed": self.released,
             "mode": self.mode, "desired_mode": self.desired_mode,
             "sim_backend": self.backend, "desired_sim_backend": self.backend,
-            "simulation_supported": True, "aero_scale_supported": True,
+            "simulation_supported": True, "aero_scale_supported": True, "power_supported": True,
+            "revision": self.revision, "applied_revision": self.revision,
             "udp_owned": self.owner is not None, "lease_remaining_s": max(0., self.lease-now) if self.owner else 0.,
             "grade_pct": self.grade, "aero_scale": self.aero,
             "target_w": self.target, "confirmed_target_w": self.target,
@@ -253,6 +255,8 @@ class VirtualBridge:
                     self.owner = address
                     self.lease = now+5.
                     self.target = watts
+                    self.mode = "ERG"
+                    self.released = False
             elif action == "heartbeat":
                 if self.owner != address:
                     raise ValueError("no_lease")
@@ -264,6 +268,8 @@ class VirtualBridge:
                 self.released = True
             else:
                 raise ValueError("unknown_command")
+            if action in ("set_mode", "set_grade", "set_target_power", "stop"):
+                self.revision += 1
             reply = {"type": "ack", "v": 1, "id": request_id, "ok": True, "state": self.snapshot()}
             if action != "status" and action != "heartbeat":
                 self.write(f"Godot -> bridge: {action} {obj}")
@@ -290,7 +296,7 @@ class VirtualBridge:
         self.steering.set(max(0, round(self.right_paddle.get())) - max(0, -round(self.left_paddle.get())))
         self.transmit({'type': 'steering', 'value': round(self.steering.get())})
         if not self.packet_drop.get():
-            self.transmit({"type": "telemetry", "valid": self.connected.get(),
+            self.transmit({"type": "telemetry", "virtual": True, "valid": self.connected.get(),
                            "power_w": round(self.power.get()), "speed_kmh": self.speed.get(),
                            "cadence_rpm": round(self.cadence.get()), "heart_rate_bpm": round(self.hr.get()),
                            "sample_id": self.sample,

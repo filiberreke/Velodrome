@@ -3,8 +3,11 @@ signal back_requested
 signal environment_requested(active: bool)
 const Ramp := preload("res://ftp_ramp.gd")
 const Trainer := preload("res://trainer_control.gd")
-var test := Ramp.new()
+var test = Ramp.new()
 var trainer := Trainer.new()
+var player_profile = preload("res://player_profile.gd").new()
+var ftp_persisted := false
+var ftp_save_message := ""
 var last_sample := -100.0
 var sample_id := -1
 var measured := 0.0
@@ -87,6 +90,8 @@ func receive(packet: Dictionary, now: float) -> void:
 func begin() -> void:
 	var now := now_s()
 	if test.running() or not fresh(now) or not release_complete(): return
+	ftp_persisted = false
+	ftp_save_message = ""
 	test.start(now)
 	confirmation_since = -1.0
 	confirmation_target = -1
@@ -153,8 +158,12 @@ func _refresh() -> void:
 			result.text = "Start test over %02d:%02d\n%s · gemeten %.0f W\nSchakelen blijft beschikbaar. Daarna neemt ERG over op 100 W." % [remaining / 60, remaining % 60, target_text, measured]
 			if gear > 0: result.text += "\nVersnelling %d / 12" % gear
 	elif test.phase == "RESULT":
+		if test.best_60 > 0 and not ftp_persisted:
+			ftp_persisted = true
+			ftp_save_message = "FTP opgeslagen in je spelersprofiel." if player_profile.set_ftp(test.ftp(),"ramp_test") == OK else "FTP kon niet worden opgeslagen."
 		result.text = "%s\n" % test.reason
 		result.text += "Geschatte FTP: %.0f W · beste 60 s: %.1f W" % [test.ftp(), test.best_60] if test.best_60 > 0.0 else "Geen FTP: minder dan 60 seconden aaneengesloten rampmetingen."
+		result.text += "\n" + ftp_save_message
 		result.text += "\nERG vrijgegeven." if release_complete() else "\nERG-vrijgave nog niet bevestigd. Bridge bewaakt ook de lease."
 	else:
 		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed." if fresh(now_s()) else "Wacht op verse trainergegevens."

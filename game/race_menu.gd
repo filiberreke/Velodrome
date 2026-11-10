@@ -2,6 +2,7 @@ extends Control
 signal start_requested
 signal difficulty_changed(value: float)
 signal training_environment_requested(active: bool)
+signal workout_environment_requested(active: bool)
 signal piste_environment_requested(active: bool)
 signal training_upload_requested(activity: Dictionary)
 const MenuStyle := preload("res://menu_theme.gd")
@@ -76,6 +77,12 @@ var training_store = preload("res://training_store.gd").new()
 var tournament_page: VBoxContainer
 var ftp_page
 var workout_editor_page: VBoxContainer
+var workout_play_page: VBoxContainer
+var workout_library = preload("res://workout_library.gd").new()
+var workout_grid: GridContainer
+var ftp_tile: Button
+var editor_tile: Button
+var saved_workout_tiles: Array[Button] = []
 var hub_button: Button
 var races_back: Button
 var menu_margin: MarginContainer
@@ -319,9 +326,16 @@ func _build_hub(layout: VBoxContainer) -> void:
 	training_page = VBoxContainer.new()
 	training_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(training_page)
-	_hub_button(training_page, "FTP Ramp Test  →", show_ftp)
-	_hub_button(training_page, "Workout-editor  →", show_workout_editor)
-	_hub_button(training_page, "← Hoofdmenu", show_hub)
+	var workout_scroll := ScrollContainer.new()
+	workout_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	training_page.add_child(workout_scroll)
+	workout_grid = GridContainer.new()
+	workout_grid.columns = 3
+	workout_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	workout_grid.add_theme_constant_override("h_separation",16)
+	workout_grid.add_theme_constant_override("v_separation",16)
+	workout_scroll.add_child(workout_grid)
+	_hub_button(training_page,"← Hoofdmenu",show_hub)
 	piste_page = VBoxContainer.new()
 	piste_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(piste_page)
@@ -343,12 +357,21 @@ func _build_hub(layout: VBoxContainer) -> void:
 	tournament_page.add_child(label("Toernooien worden later toegevoegd.", 28))
 	_hub_button(tournament_page, "← Hoofdmenu", show_hub)
 	workout_editor_page = preload("res://workout_editor.gd").new()
+	workout_editor_page.library = workout_library
 	layout.add_child(workout_editor_page)
+	workout_editor_page.workout_saved.connect(func(_id): refresh_workout_tiles())
 	workout_editor_page.back_requested.connect(show_training)
 	ftp_page = preload("res://ftp_training.gd").new()
 	layout.add_child(ftp_page)
 	ftp_page.back_requested.connect(show_training)
 	ftp_page.environment_requested.connect(_training_environment)
+	workout_play_page = preload("res://workout_training.gd").new()
+	workout_play_page.menu = self
+	layout.add_child(workout_play_page)
+	workout_play_page.back_requested.connect(show_training)
+	workout_play_page.edit_requested.connect(edit_workout)
+	workout_play_page.environment_requested.connect(_workout_environment)
+	refresh_workout_tiles()
 	session_panel = PanelContainer.new()
 	session_panel.position = Vector2(30, 30)
 	session_panel.custom_minimum_size = Vector2(600, 0)
@@ -372,10 +395,11 @@ func _training_environment(active: bool) -> void:
 
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
-	for node in [hub_page, training_page, piste_page, derny_page, training_history_page, tournament_page, ftp_page, workout_editor_page]: node.hide()
+	for node in [hub_page, training_page, piste_page, derny_page, training_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
 	if derny_page.scene != null and derny_page.scene.active: _piste_environment(false)
+	if workout_play_page.test.running(): workout_play_page.finish("Training verlaten")
 	if ftp_page.test.running(): ftp_page.finish("Test verlaten")
 	_hide_hub_pages()
 	for child in [choice_page, settings_page, records_page, pursuit_flow, startlist_page]: child.hide()
@@ -386,9 +410,11 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	node.show()
 	var focus: Control = node.get_child(0)
 	if node == hub_page: focus = hub_button
+	if node == training_page: focus = ftp_tile
 	if node == derny_page: focus = derny_page.start_button
 	if node == training_history_page: focus = training_history_page.get_child(1)
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
+	if node == workout_play_page: focus = workout_play_page.start_button
 	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
 	focus.grab_focus.call_deferred()
 
@@ -396,6 +422,7 @@ func show_hub() -> void:
 	_show_section(0, "Welkom in Velodrome", hub_page)
 
 func show_training() -> void:
+	refresh_workout_tiles()
 	_show_section(6, "ERG-training", training_page)
 
 func show_piste_training() -> void:
@@ -424,7 +451,60 @@ func show_tournaments() -> void:
 	_show_section(7, "Toernooien", tournament_page)
 	tournament_page.get_child(1).grab_focus.call_deferred()
 
+func _workout_tile(caption: String, description: String, action: Callable, workout_blocks: Array = []) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(0,210)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.tooltip_text = caption
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for state in ["normal","hover","pressed"]: button.add_theme_stylebox_override(state,MenuStyle.panel(MenuStyle.PAPER if state == "normal" else MenuStyle.PALE,MenuStyle.LINE if state == "normal" else MenuStyle.BLUE,0,12))
+	workout_grid.add_child(button)
+	var content := VBoxContainer.new()
+	button.add_child(content)
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 18; content.offset_right = -18; content.offset_top = 14; content.offset_bottom = -14
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var art := preload("res://training_tile_art.gd").new()
+	if not workout_blocks.is_empty(): art.set_workout(workout_blocks)
+	art.custom_minimum_size.y = 64
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(art)
+	var title := label(caption,26)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_override("font",MenuStyle.heading())
+	content.add_child(title)
+	var detail := label(description,18,MUTED)
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(detail)
+	button.pressed.connect(action)
+	return button
+func refresh_workout_tiles() -> void:
+	for child in workout_grid.get_children(): workout_grid.remove_child(child); child.queue_free()
+	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp)
+	editor_tile = _workout_tile("Workout-editor","Nieuwe workout maken of bestaande bewerken.",show_workout_editor)
+	saved_workout_tiles.clear()
+	for item in workout_library.all_workouts():
+		var seconds: float = workout_library.total_seconds(item.blocks)
+		saved_workout_tiles.append(_workout_tile(item.name,"%d blokken · %d minuten" % [item.blocks.size(),int(ceil(seconds/60))],show_workout.bind(str(item.id)),item.blocks))
+func show_workout(id: String) -> void:
+	var item: Dictionary = workout_library.get_workout(id)
+	if item.is_empty(): return
+	workout_play_page.load_workout(item)
+	_show_section(14,str(item.name),workout_play_page)
+func edit_workout(id: String) -> void:
+	show_workout_editor()
+	workout_editor_page.load_workout(id)
+func _workout_environment(active: bool) -> void:
+	if active:
+		if workout_play_page.get_parent() != session_panel: workout_play_page.reparent(session_panel)
+		menu_margin.hide(); menu_tint.hide(); session_panel.show()
+	else:
+		if workout_play_page.get_parent() != menu_layout: workout_play_page.reparent(menu_layout)
+		session_panel.hide(); menu_margin.show(); menu_tint.show()
+	workout_environment_requested.emit(active)
+
 func show_workout_editor() -> void:
+	workout_editor_page.refresh_workout_choices()
 	_show_section(10, "Workout-editor", workout_editor_page)
 
 func show_ftp() -> void:
@@ -660,7 +740,7 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8, 10, 11, 12, 13]:
+	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14]:
 		bridge_action("B")
 		get_viewport().set_input_as_handled()
 		return
@@ -689,6 +769,7 @@ func bridge_action(button: String) -> void:
 		elif page == 10: show_training()
 		elif page == 12: derny_page.leave()
 		elif page == 13: show_piste_training()
+		elif page == 14: workout_play_page.leave()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return
@@ -698,7 +779,8 @@ func bridge_action(button: String) -> void:
 		elif page == 0: hub_button.grab_focus()
 		elif page == 11: piste_page.get_child(0).grab_focus()
 		elif page == 12: derny_page.stop_button.grab_focus() if derny_page.session.running() else derny_page.start_button.grab_focus()
-		elif page == 6: training_page.get_child(0).grab_focus()
+		elif page == 6: ftp_tile.grab_focus()
+		elif page == 14: workout_play_page.start_button.grab_focus()
 		elif page == 7: tournament_page.get_child(1).grab_focus()
 		elif page == 8:
 			if ftp_page.test.running(): ftp_page.stop_button.grab_focus()

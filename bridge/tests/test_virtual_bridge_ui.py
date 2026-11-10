@@ -71,7 +71,7 @@ class VirtualBridgeTests(unittest.TestCase):
 
     def test_startup_transmits_valid_stationary_telemetry_and_schedules_next_frame(self):
         packet = self.receive()
-        self.assertEqual(packet, dict(type='telemetry', valid=True, power_w=0,
+        self.assertEqual(packet, dict(type='telemetry', virtual=True, valid=True, power_w=0,
             speed_kmh=0, cadence_rpm=0, heart_rate_bpm=140, sample_id=1, power_sample_id=1, power_age_s=0.0, gear=4))
         self.bridge.root.after.assert_called_once_with(100, self.bridge.loop)
         self.bridge.loop()
@@ -240,6 +240,13 @@ class VirtualBridgeTests(unittest.TestCase):
         self.bridge.desired_mode = 'ERG'
         self.bridge.released = True
         self.run_integration('test_team_bridge.gd')
+
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_saved_workout_erg_free_and_ramp(self):
+        self.bridge.mode = 'RELEASED'
+        self.bridge.desired_mode = 'ERG'
+        self.bridge.released = True
+        self.run_integration('test_workout_virtual_bridge.gd')
 
     def run_integration(self, script, require_commands=True):
         # Bind the game on the receiver's ephemeral port, avoiding any running game.

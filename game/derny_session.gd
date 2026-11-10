@@ -6,23 +6,22 @@ const LAP := 250.0
 const DEFAULT_START_KMH := 30
 const MIN_START_KMH := 10
 const MAX_START_KMH := 60
-const GUIDANCE_MAX_W_PER_S := 20.0
 const STEP_SECONDS := 60.0
 const MAX_DRAFT := 0.60
 const LOSS_GAP_M := 15.0
 const LOSS_SECONDS := 5.0
 var start_speed_kmh := DEFAULT_START_KMH
 var runup_start_kmh := 20.0
-var guidance_power_w := 0.0
 var phase := "IDLE"
 var derny_distance := 0.0
 var runup_distance := 0.0
 var elapsed := 0.0
+var step_elapsed := 0.0
 var target_kmh := 20.0
 var completed_kmh := 0
 var loss_seconds := 0.0
 var reason := ""
-var announced_step := -1
+var announced_step := false
 var look_cooldown := 10.0
 
 func running() -> bool: return phase in ["RUNUP", "PACE"]
@@ -33,12 +32,12 @@ func start(at: float, chosen_start_kmh: float = DEFAULT_START_KMH) -> void:
 	derny_distance = at + 3.0
 	runup_distance = 0.0
 	elapsed = 0.0
+	step_elapsed = 0.0
 	target_kmh = runup_start_kmh
-	guidance_power_w = required_power(target_kmh/3.6,MAX_DRAFT)
 	completed_kmh = 0
 	loss_seconds = 0.0
 	reason = ""
-	announced_step = -1
+	announced_step = false
 	look_cooldown = 10.0
 
 func stop(message: String) -> void:
@@ -70,21 +69,23 @@ func advance(dt: float, metric: float, player_distance: float, player_metric: fl
 		if runup_distance >= LAP:
 			phase = "PACE"
 			elapsed = 0.0
+			step_elapsed = 0.0
 			target_kmh = start_speed_kmh
 			gesture_requested.emit("speed_up")
 			speed_changed.emit(start_speed_kmh)
 	else:
-		var previous_step := int((elapsed + .000001) / STEP_SECONDS)
 		elapsed += dt
-		var step := int((elapsed + .000001) / STEP_SECONDS)
-		if step > previous_step:
-			completed_kmh = start_speed_kmh + step - 1
-			target_kmh = start_speed_kmh + step
+		step_elapsed += dt
+		if step_elapsed + .000001 >= STEP_SECONDS:
+			completed_kmh = maxi(completed_kmh,roundi(target_kmh))
+			step_elapsed = maxf(0,step_elapsed-STEP_SECONDS)
+			target_kmh += 1
+			announced_step = false
 			speed_changed.emit(int(target_kmh))
-		if elapsed - step * STEP_SECONDS >= STEP_SECONDS - 1.5 and announced_step != step:
-			announced_step = step
+		if step_elapsed >= STEP_SECONDS-1.5 and not announced_step:
+			announced_step = true
 			gesture_requested.emit("speed_up")
-			look_cooldown = maxf(look_cooldown, 3.0)
+			look_cooldown = maxf(look_cooldown,3)
 		loss_seconds = loss_seconds + dt if gap > LOSS_GAP_M else 0.0
 		if loss_seconds >= LOSS_SECONDS: stop("Aansluiting verloren")
 	if running() and look_cooldown <= 0.0:
@@ -96,13 +97,16 @@ static func required_power(speed_mps: float, reduction: float, grade_pct: float 
 	var aero := .5 * 1.20 * .334 * v * v * (1-clampf(reduction,0,MAX_DRAFT))
 	return maxf(0, (aero + .004 * 80 * 9.81 + 80 * 9.81 * grade_pct / 100) * v / .975)
 
-func update_guidance(dt: float, lap_mean_power: float = -1.0) -> void:
-	# A closed lap returns to the same height: signed gravitational work sums to zero.
-	# Show mean power at pacing speed in the wheel, not the instantaneous hill demand.
-	# Actual physics and trainer grade still use the unchanged road_grade path.
-	if dt <= 0: return
-	var desired := lap_mean_power if lap_mean_power >= 0 else required_power(target_kmh/3.6,MAX_DRAFT)
-	guidance_power_w = move_toward(guidance_power_w,desired,GUIDANCE_MAX_W_PER_S*dt)
+func change_tempo(direction: int) -> bool:
+	if phase != "PACE" or direction == 0: return false
+	var changed := maxf(MIN_START_KMH,target_kmh+(1 if direction > 0 else -1))
+	if changed == target_kmh: return false
+	target_kmh = changed
+	step_elapsed = 0
+	announced_step = false
+	gesture_requested.emit("speed_up" if direction > 0 else "slow_down")
+	speed_changed.emit(roundi(target_kmh))
+	return true
 
 static func lane_at_speed(speed_kmh: float, initial_kmh: float) -> float:
 	# Existing track: lowest riding corridor 1.18 m; blue line painted 3.53–3.58 m.

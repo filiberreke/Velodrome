@@ -495,6 +495,7 @@ func _reset_pc_energy() -> void:
 	pc_power_limit_watts = -1.0
 var trainer_speed_kmh := -1.0
 var trainer_ready := false
+var trainer_virtual := false
 var trainer_seen := false
 var zero_stable := 0.0
 const ZERO_CONFIRM_SECONDS := 1.0
@@ -829,10 +830,16 @@ func _input(event: InputEvent) -> void:
 		return
 	if piste_training != null and piste_training.active and _ride_context() == "piste" and event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
-			KEY_LEFT, KEY_A: piste_training.steer(-1)
-			KEY_RIGHT, KEY_D: piste_training.steer(1)
-			KEY_UP: piste_training.demo_power = minf(1000, piste_training.demo_power + 25)
-			KEY_DOWN: piste_training.demo_power = maxf(0, piste_training.demo_power - 25)
+			KEY_LEFT: piste_training.request_tempo(-1)
+			KEY_RIGHT: piste_training.request_tempo(1)
+			KEY_A: piste_training.steer(-1)
+			KEY_D: piste_training.steer(1)
+			KEY_UP:
+				if piste_training.using_simulator(): piste_training.demo_power = minf(1000,piste_training.demo_power+25)
+				else: _cycle_camera(-1)
+			KEY_DOWN:
+				if piste_training.using_simulator(): piste_training.demo_power = maxf(0,piste_training.demo_power-25)
+				else: _cycle_camera(1)
 			KEY_ESCAPE: setup_panel.derny_page.finish("Handmatig gestopt")
 			KEY_C: _cycle_camera(1)
 			KEY_V: _cycle_rider_names()
@@ -877,6 +884,7 @@ func _resume_race() -> void:
 	exit_menu.hide_pause()
 
 func _quit_application() -> void:
+	if setup_panel != null and setup_panel.workout_play_page != null: setup_panel.workout_play_page.shutdown()
 	if piste_training != null and piste_training.active: piste_training.finish_session("Spel gesloten",false)
 	if setup_panel != null and setup_panel.ftp_page != null: setup_panel.ftp_page.shutdown()
 	trainer_control.close()
@@ -978,8 +986,7 @@ func _ride_context() -> String:
 func _ride_action(key: String, source: String = "B") -> void:
 	if piste_training != null and piste_training.active and _ride_context() == "piste":
 		if source.begins_with("SHIFT_"): return
-		if key == "LEFT": piste_training.steer(-1)
-		elif key == "RIGHT": piste_training.steer(1)
+		if key in ["LEFT","RIGHT"]: piste_training.request_tempo(1 if key == "RIGHT" else -1)
 		elif key == "Y": _cycle_rider_names()
 		elif key == "UP": _cycle_camera(-1)
 		elif key == "DOWN": _cycle_camera(1)
@@ -991,7 +998,7 @@ func _ride_action(key: String, source: String = "B") -> void:
 		return
 	# Physical gears stay owned by the bridge during training, including when
 	# a user mapped their shift paddles to menu confirmation/back actions.
-	if setup_panel != null and setup_panel.visible and setup_panel.page == 8 and source.begins_with("SHIFT_"):
+	if setup_panel != null and setup_panel.visible and setup_panel.page in [8,14] and source.begins_with("SHIFT_"):
 		return
 	var preferences := get_node_or_null("GameSettings")
 	# The diagnostic page consumes every gameplay action. Z explicitly exits it.
@@ -1046,10 +1053,14 @@ func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
 		var trigger := "press"
 		if not action.is_empty(): trigger = ride_mapping.profiles[_ride_profile()][action].trigger
 		var key: String = ride_mapping.KEYS.get(action, "")
+		if key.is_empty() and piste_training != null and piste_training.active and source in ["LEFT","RIGHT","UP","DOWN"]: key = source
 		# Older/custom bridge files remain authoritative until a UI mapping is saved.
 		if not ride_mapping.customized and packet.has("mapped_action"):
 			key = str(packet.mapped_action) if not source.begins_with("SHIFT_") else ""
 			trigger = "hold" if key == "B" and _ride_profile() == "race" else "press"
+		if piste_training != null and piste_training.active and source in ["LEFT","RIGHT"]:
+			key = source
+			trigger = "press"
 		ride_buttons[source] = {"context":_ride_context(), "key":key, "trigger":trigger, "testing":testing}
 		if testing:
 			var preferences := get_node("GameSettings")
@@ -1124,6 +1135,8 @@ func _process_bridge_json(raw: String) -> void:
 func _process_bridge_packet(packet: Dictionary) -> void:
 	if setup_panel != null and setup_panel.ftp_page != null:
 		setup_panel.ftp_page.receive(packet, _now_s())
+	if setup_panel != null and setup_panel.workout_play_page != null:
+		setup_panel.workout_play_page.receive(packet,_now_s())
 	var preferences: Node = get_node_or_null("GameSettings")
 	var testing: bool = preferences != null and preferences.call("controller_test_active")
 	if packet.get("type", "") in ["controller_button", "controller_connection"]:
@@ -1149,6 +1162,7 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	elif packet.get("type", "") == "telemetry":
 		if not trainer_seen and _riding() and not testing and _ride_context() == "race":
 			_reset() # Avoid attaching a live trainer mid-demo with a flying start.
+		trainer_virtual = packet.get("virtual",false) == true
 		_apply_bridge_optional_fields(packet)
 		trainer_seen = true
 		trainer_ready = bool(packet.get("valid", false))
@@ -2426,6 +2440,7 @@ func _build_hud() -> void:
 	menu.difficulty_changed.connect(_difficulty_changed)
 	menu.start_requested.connect(_confirm_start)
 	menu.training_environment_requested.connect(_training_environment_requested)
+	menu.workout_environment_requested.connect(_workout_environment_requested)
 	menu.piste_environment_requested.connect(_piste_environment_requested)
 	menu.training_upload_requested.connect(_upload_training)
 	strava_client.status_changed.connect(func(message):
@@ -2697,6 +2712,19 @@ func _training_environment_requested(active: bool) -> void:
 		training_environment.enter()
 	elif training_environment != null:
 		training_environment.leave()
+		exit_menu.set_exit_visible(true)
+
+func _workout_environment_requested(active: bool) -> void:
+	if active:
+		if training_environment == null:
+			training_environment = preload("res://training_environment.gd").new()
+			add_child(training_environment)
+		broadcast_intro.cancel()
+		training_environment.training_page = setup_panel.workout_play_page
+		training_environment.enter()
+	elif training_environment != null:
+		training_environment.leave()
+		training_environment.training_page = null
 		exit_menu.set_exit_visible(true)
 
 func _piste_start_blocker() -> String:
@@ -2988,6 +3016,7 @@ func _notification(what: int) -> void:
 		_clear_look_back()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
 		if what == NOTIFICATION_WM_CLOSE_REQUEST and piste_training != null and piste_training.active: piste_training.finish_session("Spel gesloten",false)
+		if what == NOTIFICATION_WM_CLOSE_REQUEST and setup_panel != null and setup_panel.workout_play_page != null: setup_panel.workout_play_page.shutdown()
 		if what == NOTIFICATION_WM_CLOSE_REQUEST and setup_panel != null and setup_panel.ftp_page != null:
 			setup_panel.ftp_page.shutdown()
 		trainer_control.close()

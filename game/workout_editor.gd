@@ -1,6 +1,10 @@
 extends VBoxContainer
 ## Standalone ZWO workout editor, embedded in the training menu.
 signal back_requested
+signal workout_saved(id: String)
+var library = preload("res://workout_library.gd").new()
+var current_id := ""
+var workout_choice: OptionButton
 const Workout := preload("res://zwo_workout.gd")
 const MenuStyle := preload("res://menu_theme.gd")
 const PANEL := MenuStyle.PAPER
@@ -25,6 +29,18 @@ var save_dialog: FileDialog
 func _ready() -> void:
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 12)
+	var selection := HBoxContainer.new()
+	add_child(selection)
+	workout_choice = OptionButton.new()
+	workout_choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection.add_child(workout_choice)
+	workout_choice.item_selected.connect(func(index):
+		var id := str(workout_choice.get_item_metadata(index))
+		if id.is_empty(): new_workout()
+		else: load_workout(id)
+	)
+	_button(selection,"Nieuwe workout",new_workout)
+	_button(selection,"Opslaan",save_workout)
 	var toolbar := HBoxContainer.new()
 	add_child(toolbar)
 	name_edit = LineEdit.new()
@@ -80,11 +96,41 @@ func _ready() -> void:
 	save_dialog = _dialog(FileDialog.FILE_MODE_SAVE_FILE)
 	open_dialog.file_selected.connect(_load_file)
 	save_dialog.file_selected.connect(_save_file)
-	_add("Warmup")
-	_add("SteadyState")
-	_add("Recovery")
-	_add("Cooldown")
+	new_workout()
+
+func refresh_workout_choices() -> void:
+	workout_choice.clear()
+	workout_choice.add_item("Nieuwe workout")
+	workout_choice.set_item_metadata(0,"")
+	for item in library.all_workouts():
+		workout_choice.add_item(item.name)
+		workout_choice.set_item_metadata(workout_choice.item_count-1,item.id)
+		if item.id == current_id: workout_choice.select(workout_choice.item_count-1)
+func new_workout() -> void:
+	current_id = ""
+	name_edit.text = "Nieuwe training"
+	blocks.clear()
+	for kind in ["Warmup","SteadyState","Recovery","Cooldown"]: blocks.append(_new_block(kind))
 	_select(0)
+	refresh_workout_choices()
+	status.text = "Nieuwe workout"
+func load_workout(id: String) -> void:
+	var item: Dictionary = library.get_workout(id)
+	if item.is_empty(): status.text = "Workout niet gevonden"; return
+	current_id = id
+	name_edit.text = item.name
+	blocks.clear()
+	for block in item.blocks: blocks.append(block.duplicate(true))
+	_select(0)
+	refresh_workout_choices()
+	status.text = "Workout geopend"
+func save_workout() -> void:
+	var id: String = library.save_workout(current_id,name_edit.text,blocks)
+	if id.is_empty(): status.text = library.error; return
+	current_id = id
+	refresh_workout_choices()
+	status.text = "Workout opgeslagen"
+	workout_saved.emit(id)
 
 func _panel(parent: Node, min_width: float) -> VBoxContainer:
 	var panel := PanelContainer.new()
@@ -339,9 +385,11 @@ func _load_file(path: String) -> void:
 	if not workout.parse(file.get_as_text()):
 		status.text = workout.error
 		return
+	current_id = ""
 	name_edit.text = workout.name
 	blocks = workout.blocks.duplicate(true)
 	_select(0)
+	refresh_workout_choices()
 	status.text = "ZWO geïmporteerd"
 
 func _escape(value: String) -> String:
@@ -373,4 +421,5 @@ func _save_file(path: String) -> void:
 		file.store_line("</%s>" % kind)
 	file.store_line("</workout></workout_file>")
 	file.close()
-	status.text = "Opgeslagen: " + path.get_file()
+	save_workout()
+	if not current_id.is_empty(): status.text = "Opgeslagen: " + path.get_file()

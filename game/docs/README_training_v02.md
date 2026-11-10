@@ -190,7 +190,8 @@ Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
   hetzelfde profiel en dezelfde camera-opstelling als wedstrijden. C wisselt
   de camera op het toetsenbord, V/Y wisselt de naamlabels.
 - Zonder aangesloten trainer is een expliciet gemarkeerde PC-proefrit beschikbaar:
-  links/rechts sturen en omhoog/omlaag het proefvermogen aanpassen. Fysieke
+  met A/D sturen en omhoog/omlaag het proefvermogen aanpassen. Links/rechts
+  roept HOW/ALLEZ voor een tempowijziging. Fysieke
   versnellingsknoppen blijven versnellingsknoppen en kunnen de training niet stoppen.
 
 Het aangeleverde `derny_pilot.glb` staat in `game/assets/derny/`, met de vier
@@ -214,12 +215,8 @@ De fysieke gevoelssterkte op een KICKR/Zwift Ride moet nog op hardware worden ge
 ## HUD, grafiek, archief en Strava
 
 Tijdens de dernytraining vervangt een afgeleide van de bestaande wedstrijd-HUD
-het oude tekstkader. De vermogensbalk bovenaan gebruikt het bestaande doelpijltje.
-Het richtvermogen is een geschat rondegemiddelde in het wiel van de derny,
-bij maximaal 60% beschutting. Het wordt vooraf berekend over de volledige
-baan, niet uit de helling van de huidige meter. Het is geen ERG-doel en bevat
-geen extra vermogen om opnieuw aan te sluiten. Veranderingen tussen de
-snelheidsstappen bewegen het pijltje geleidelijk (maximaal 20 W per seconde).
+het oude tekstkader. De vermogensbalk bovenaan wisselt van kleur met het geleverde vermogen,
+zoals in de wedstrijd-HUD. Er staat geen richtvermogen of doelpijltje meer.
 De werkelijke trainerhelling en de zwaartekracht in de rennersfysica blijven actief.
 Snelheid, hartslag, cadans, versnelling en de horizontale slipstreambalk staan in
 het bekende wedstrijdpaneel. Ontbrekende sensormetingen blijven zichtbaar als onbekend.
@@ -256,7 +253,7 @@ automatisch bewaren en de Strava-overdracht via een testclient zonder netwerk.
 ## Vermogen, snelheid en rijlijn van de derny
 
 De startsnelheid wordt vóór elke start gekozen. Aanloop, tempoblokken, centrale
-meldingen, resultaten, trainingsarchief en Strava-beschrijving gebruiken die keuze.
+de aftelklok, resultaten, trainingsarchief en Strava-beschrijving gebruiken die keuze.
 Oudere opgeslagen trainingen zonder startsnelheidsveld blijven als 30 km/u zichtbaar.
 
 De derny wordt niet op een vaste snelheid vastgezet. Hij krijgt per tempoblok
@@ -265,8 +262,9 @@ hellingsinvloed als de renner. Daardoor vertraagt hij bergop en versnelt hij
 bergaf. Het vermogen wordt vooraf afgestemd op de gewenste gemiddelde snelheid
 over een volledige ronde op de geplande rijlijn. Na een versnelling of een
 rijlijnwissel is er een natuurlijke overgang naar dat nieuwe gemiddelde.
-De HUD toont de actuele dernysnelheid naast het gemiddelde; de centrale melding
-bij een nieuwe stap vermeldt expliciet dat het om het gemiddelde gaat.
+De HUD toont links een apart Derny-kader: de actuele snelheid midden in een
+cirkel die gedurende de minuut volloopt, met resterende seconden. Centraal
+verschijnt uitsluitend “Te dicht - snelheid begrensd” zolang die begrenzing actief is.
 De geleverde watts van de speler worden altijd afzonderlijk opgenomen.
 
 Vanaf de gekozen startsnelheid rijdt de derny op de laagste rijlijn (1,18 m).
@@ -278,6 +276,46 @@ Het gevolgde terrein blijft zowel voor de speler als de trainer voelbaar.
 
 `test_derny_motor.gd` meet met de echte pistegeometrie meerdere rondes: constant
 aandrijfvermogen, vertragen/versnellen op hellingen, een gemiddelde rondesnelheid
-binnen 0,3 km/u van het doel en een stabiel richtpijltje. De sessie- en UI-tests
+binnen 0,3 km/u van het doel. De sessie- en UI-tests
 controleren de startsnelheidskeuze, +1 km/u-stappen, 60%-limiet, automatische
 rijlijnwissels en bewaren/herladen van de gekozen startsnelheid.
+
+
+## Eigen workouts en profiel-FTP
+
+De ERG-keuze bevat FTP-ramp test, Workout-editor en een aparte tegel per eigen
+opgeslagen workout, met een miniatuurgrafiek uit de echte blokduur en FTP-fracties
+(inclusief alle herhalingen). Een workouttegel opent een trainingsscherm met Start en
+Bewerken. In de editor begint Nieuwe workout met een eigen identiteit; opslaan
+van een geopende workout werkt alleen die workout bij. De dropdown bevat alleen
+eigen workouts, nooit ingebouwde FTP-tests. De bibliotheek staat in
+`user://workouts`, naast de bestaande ZWO-import/export.
+
+FTP staat in `user://config/rider_profile.cfg`, samen met naam en gewicht.
+Handmatig wijzigen kan via Instellingen → spelersprofiel → FTP (W).
+Een FTP-test met een volledige gemeten rampminuut bewaart zijn uitkomst eenmaal
+automatisch; een onvolledige test overschrijft de eerdere FTP niet. Het bereik
+is 20–1000 W; een nieuw profiel begint op 200 W.
+
+Elk eigen workoutscherm toont vóór Start een instelbare FTP. Het scherm leest
+bij openen de actuele profielwaarde. Een afwijking geldt alleen voor die sessie.
+Constante blokken, herstel en intervallen gebruiken hun FTP-fractie; opwarming
+en afkoeling interpoleren tussen de opgegeven fracties. Een vrij blok geeft de
+trainer vrij. Klok en ERG starten pas na bevestiging door de bridge; de overgang
+van vrij rijden naar ERG wacht opnieuw op bevestiging. Voltooien, stoppen,
+meetuitval en sluiten geven de eigen trainerbediening vrij.
+
+`test_workout_library.gd` controleert meerdere workouts, bewerken/herladen,
+FTP-opslag zonder verlies van profielvelden, testresultaten, sessie-overrides,
+blokken en trainerbevestiging. `test_workout_virtual_bridge.gd` doorloopt via
+echte lokale UDP-pakketten een workout met ERG, vrij rijden en opnieuw ERG.
+
+## Tempo vragen tijdens dernytraining
+
+Na de aanloop vraagt rechts/links +1/−1 km/u, zowel op de echte trainer als
+in de simulator. Het kader toont + en − met de overeenkomstige pijl eronder. De virtuele bridge markeert zijn telemetrie met `virtual`.
+De renner roept ALLEZ of HOW; de tekst beweegt van de renner naar de gangmaker
+en vervaagt. Na een korte reactietijd bevestigt de gangmaker met respectievelijk
+de duim of de vlakke hand. De minuutklok begint opnieuw bij die tempowijziging;
+de automatische verhogingen blijven actief. Stuurpaddles en camera blijven
+beschikbaar; op het toetsenbord sturen A/D en wisselt C de camera.
