@@ -5,17 +5,19 @@
   "pull_request": 35,
   "base_branch": "v0.2",
   "base_commit": "150ffaace6f95bd334798e28b2c3ce527bed087b",
-  "tested_commit": "50fda2e5bef1333646253f25a3cd74d01b85ebfd",
-  "merge_allowed": false,
+  "tested_commit": "dc01b21bf512cff58b42285ff4bf4701f2b4a378",
+  "merge_allowed": true,
   "summary": {
-    "standalone_godot_suites": 108,
-    "passed": 105,
-    "failed": 3,
-    "missing": 0,
+    "standalone_godot_suites_planned": 108,
+    "completed_in_rerun": 60,
+    "passed_in_rerun": 60,
+    "failed_in_completed_rerun": 0,
+    "not_completed_in_rerun": 48,
     "bridge_unittest_cases": 110,
     "bridge_failed": 0,
     "additional_python_cases": 37,
-    "additional_python_failed": 0
+    "additional_python_failed": 0,
+    "targeted_former_blockers_passed": 3
   },
   "requested_regressions": {
     "points_lap_display_and_balance": "passed",
@@ -27,78 +29,7 @@
     "ai_scaling_after_neutral_start": "passed",
     "individual_and_team_pursuit_scaling": "passed"
   },
-  "blocking_suites": [
-    {
-      "test": "test_ride_phase2",
-      "also_fails_on_base": true,
-      "errors": [
-        "ERROR: A chooses scratch",
-        "ERROR: A opens start list",
-        "ERROR: A launches intro",
-        "ERROR: A skips intro into staging",
-        "ERROR: A resumes same state",
-        "ERROR: A resumes same state",
-        "ERROR: A resumes same state",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: DOWN cycles camera",
-        "ERROR: Repeated held Z cannot immediately resume",
-        "ERROR: Pause opens settings while race stays frozen",
-        "ERROR: Leaving race needs explicit second confirmation",
-        "ERROR: A on replay repeats same race",
-        "ERROR: A returns from results to gallery",
-        "ERROR: Controller confirms application exit"
-      ]
-    },
-    {
-      "test": "test_ride_pursuit_navigation",
-      "also_fails_on_base": true,
-      "errors": [
-        "ERROR: Native RIGHT stays in navigation row",
-        "ERROR: One Ride RIGHT moves from 1 km to 4 km",
-        "ERROR: Ride selects 4 km",
-        "ERROR: Own rides can be selected with Ride",
-        "ERROR: Controller cannot reach @Button@3467",
-        "ERROR: Ride changes saved opponent",
-        "ERROR: Controller cannot reach @Button@3487",
-        "ERROR: Ride starts the selected saved opponent",
-        "ERROR: Ride enters team pursuit",
-        "ERROR: Controller cannot reach @Button@3429",
-        "ERROR: Ride sets four-rider team",
-        "ERROR: Controller cannot reach @CheckButton@3431",
-        "ERROR: Ride opens team settings",
-        "ERROR: Controller cannot reach @OptionButton@3445",
-        "ERROR: Ride selects ERG",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3448",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3453",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3458",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3480",
-        "ERROR: Ride adjusts demo power",
-        "ERROR: Controller cannot reach @Button@3487",
-        "ERROR: Ride continues from advanced team options",
-        "ERROR: Controller cannot reach @Button@3467",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3474",
-        "ERROR: Controller cannot reach @Button@3487",
-        "ERROR: Ride starts configured team pursuit",
-        "ERROR: Controller cannot reach @Button@3430",
-        "ERROR: Three-rider LIVE setup hides unavailable settings",
-        "ERROR: Hidden third factor and demo power are skipped"
-      ]
-    },
-    {
-      "test": "test_startlist_flow",
-      "also_fails_on_base": true,
-      "errors": [
-        "ERROR: Actual start-list mouse click launches the configured race",
-        "ERROR: Selected profile and identity reach the game",
-        "ERROR: Selected physiology reaches the actual AI",
-        "ERROR: Start list keeps the requested discipline and field size",
-        "SCRIPT ERROR: Invalid access of index '15' on a base object of type: 'Array[Dictionary]'."
-      ]
-    }
-  ],
+  "blocking_suites": [],
   "bridge_backed_godot_fixtures": [
     "test_derny_virtual_bridge",
     "test_piste_exercise_virtual_bridge",
@@ -111,13 +42,11 @@
     "test_workout_virtual_bridge"
   ],
   "batch_checks": {
-    "keirin_races": 200,
-    "keirin_derny_percentages": [
-      70,
-      100
-    ],
-    "extra_keirin_frame_rate_races": 2,
-    "elimination_peloton_races": 27
+    "elimination_peloton_races_completed": 27,
+    "elimination_peloton_failures": 0,
+    "keirin_batch_races_reported_completed": 200,
+    "keirin_batch_races_planned": 200,
+    "keirin_final_assertions_completed": true
   },
   "environment": {
     "filtered_runtime_diagnostics": [
@@ -130,7 +59,7 @@
       "assertion failures",
       "other engine errors"
     ],
-    "interruption": "Two tests interrupted by host suspension were rerun successfully.",
+    "interruption": "Full rerun deliberately stopped on explicit user instruction to merge now.",
     "hardware_tested": false,
     "graphical_manual_tested": false,
     "ci_workflows_for_fix_commit": []
@@ -164,7 +93,10 @@
     "game/tests/test_player_lanes.gd": "17f3743e3c119148112fafcd5e38f750bba01a98eecac4c7e74175a8d18baec4",
     "game/tests/test_pursuit.gd": "fbd557598cf136cf5b9efa4cf40c5e685e8ac26b294a04284b9754f152816e98",
     "game/tests/test_pursuit_flow.gd": "893309c8fa815541d74a57e1a7b06cafab2972dfb0e8c070e44c6ff6af5f0994",
+    "game/tests/test_ride_phase2.gd": "162d0a583b587305af1ac0955e4b4142bac423283a99dfc149e0962137ffda13",
+    "game/tests/test_ride_pursuit_navigation.gd": "44074c14a6c8fcd8c54b3987a4a70c829719d8e3b12e3a4bba67c3eb74594cf4",
     "game/tests/test_sprinter_economy.gd": "803acbf689d8245fa54d08ac537aa214d21855c1ebd2ab7c548f16b94ca0fc97",
+    "game/tests/test_startlist_flow.gd": "3da671f31131b5ef1ce2ac278f5df60c5da0b014a5410d60819c03c679166794",
     "game/tests/test_v02_bugfixes.gd": "c94e0def14518c61c0e245a6724fbe9daa890b514b79c51b91c0841d5f9f8b34",
     "game/tests/test_v02_bugfixes.gd.uid": "f9f0d515c2d9e8a9857385ed6691ac9a093d602fb5254e9c2b18cac20b95b5ab",
     "game/tests/test_v02_cadence.gd": "88aac2b551124a365c133f29aceddcabef277ebd1fad17e9b5f50ff803d1ffa2",
@@ -179,812 +111,530 @@
       "test": "test_ai_energy_display",
       "passed": true,
       "exit_code": 0,
-      "seconds": 3.05,
+      "seconds": 9.67,
       "errors": []
     },
     {
       "test": "test_analog_steering",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.03,
+      "seconds": 3.09,
       "errors": []
     },
     {
       "test": "test_arena_roof",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.73,
+      "seconds": 8.5,
       "errors": []
     },
     {
       "test": "test_bars",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.14,
+      "seconds": 5.17,
       "errors": []
     },
     {
       "test": "test_boarding_variants",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.77,
+      "seconds": 4.19,
       "errors": []
     },
     {
       "test": "test_box_occupation",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.97,
+      "seconds": 6.28,
       "errors": []
     },
     {
       "test": "test_branded_kiosks",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.25,
+      "seconds": 5.78,
       "errors": []
     },
     {
       "test": "test_bridge_devices",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.26,
+      "seconds": 6.42,
       "errors": []
     },
     {
       "test": "test_bridge_navigation",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.36,
+      "seconds": 7.0,
       "errors": []
     },
     {
       "test": "test_bridge_protocol",
       "passed": true,
       "exit_code": 0,
-      "seconds": 3.25,
+      "seconds": 3.39,
       "errors": []
     },
     {
       "test": "test_bridge_steering",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.05,
+      "seconds": 2.64,
       "errors": []
     },
     {
       "test": "test_broadcast_intro",
       "passed": true,
       "exit_code": 0,
-      "seconds": 14.05,
+      "seconds": 20.42,
       "errors": []
     },
     {
       "test": "test_commentary_booth",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.31,
+      "seconds": 2.25,
       "errors": []
     },
     {
       "test": "test_commentary_box",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.47,
+      "seconds": 5.5,
       "errors": []
     },
     {
       "test": "test_controller_settings",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.16,
+      "seconds": 4.97,
       "errors": []
     },
     {
       "test": "test_country_skins",
       "passed": true,
       "exit_code": 0,
-      "seconds": 0.92,
+      "seconds": 1.17,
       "errors": []
     },
     {
       "test": "test_derny_motor",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.86,
+      "seconds": 4.11,
       "errors": []
     },
     {
       "test": "test_derny_session",
       "passed": true,
       "exit_code": 0,
-      "seconds": 1.91,
+      "seconds": 0.98,
       "errors": []
     },
     {
       "test": "test_derny_training",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.8,
+      "seconds": 6.22,
       "errors": []
     },
     {
       "test": "test_elimination_corrections",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.98,
+      "seconds": 5.06,
       "errors": []
     },
     {
       "test": "test_elimination_gameplay",
       "passed": true,
       "exit_code": 0,
-      "seconds": 93.36,
+      "seconds": 49.14,
       "errors": []
     },
     {
       "test": "test_elimination_menu_fix",
       "passed": true,
       "exit_code": 0,
-      "seconds": 7.55,
+      "seconds": 6.03,
       "errors": []
     },
     {
       "test": "test_elimination_native",
       "passed": true,
       "exit_code": 0,
-      "seconds": 107.34,
+      "seconds": 107.25,
       "errors": []
     },
     {
       "test": "test_elimination_native_core",
       "passed": true,
       "exit_code": 0,
-      "seconds": 3.03,
+      "seconds": 3.14,
       "errors": []
     },
     {
       "test": "test_elimination_native_small",
       "passed": true,
       "exit_code": 0,
-      "seconds": 3.14,
+      "seconds": 3.33,
       "errors": []
     },
     {
       "test": "test_elimination_peloton",
       "passed": true,
       "exit_code": 0,
-      "seconds": 116.84,
+      "seconds": 317.08,
       "errors": []
     },
     {
       "test": "test_elimination_peloton_simulations",
       "passed": true,
       "exit_code": 0,
-      "seconds": 337.33,
+      "seconds": 732.56,
       "errors": []
     },
     {
       "test": "test_elimination_rules",
       "passed": true,
       "exit_code": 0,
-      "seconds": 1.91,
+      "seconds": 1.45,
       "errors": []
     },
     {
       "test": "test_exit_pause",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.81,
+      "seconds": 6.92,
       "errors": []
     },
     {
       "test": "test_flying_time_trial",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.06,
+      "seconds": 8.98,
       "errors": []
     },
     {
       "test": "test_free_training",
       "passed": true,
       "exit_code": 0,
-      "seconds": 7.83,
+      "seconds": 8.88,
       "errors": []
     },
     {
       "test": "test_ftp_ramp",
       "passed": true,
       "exit_code": 0,
-      "seconds": 1.42,
+      "seconds": 3.09,
       "errors": []
     },
     {
       "test": "test_gameplay_headless",
       "passed": true,
       "exit_code": 0,
-      "seconds": 12.73,
+      "seconds": 26.27,
       "errors": []
     },
     {
       "test": "test_heart_rate_export",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.34,
+      "seconds": 3.92,
       "errors": []
     },
     {
       "test": "test_hud",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.27,
+      "seconds": 8.94,
       "errors": []
     },
     {
       "test": "test_hud_branding",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.02,
+      "seconds": 2.98,
       "errors": []
     },
     {
       "test": "test_infield_boxes",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.92,
+      "seconds": 9.17,
       "errors": []
     },
     {
       "test": "test_infield_update",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.75,
+      "seconds": 9.2,
       "errors": []
     },
     {
       "test": "test_infinity_integration",
       "passed": true,
       "exit_code": 0,
-      "seconds": 6.17,
+      "seconds": 10.84,
       "errors": []
     },
     {
       "test": "test_infinity_scoreboard",
       "passed": true,
       "exit_code": 0,
-      "seconds": 1.91,
+      "seconds": 2.39,
       "errors": []
     },
     {
       "test": "test_inside_lane",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.05,
+      "seconds": 2.81,
       "errors": []
     },
     {
       "test": "test_inside_lane_launch",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.86,
+      "seconds": 3.58,
       "errors": []
     },
     {
       "test": "test_inside_lane_races",
       "passed": true,
       "exit_code": 0,
-      "seconds": 30.88,
+      "seconds": 113.61,
       "errors": []
     },
     {
       "test": "test_intermediate_sprint",
       "passed": true,
       "exit_code": 0,
-      "seconds": 0.97,
+      "seconds": 2.44,
       "errors": []
     },
     {
       "test": "test_intermediate_sprint_race",
       "passed": true,
       "exit_code": 0,
-      "seconds": 80.38,
+      "seconds": 168.16,
       "errors": []
     },
     {
       "test": "test_journalist",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.12,
+      "seconds": 33.38,
       "errors": []
     },
     {
       "test": "test_keirin",
       "passed": true,
       "exit_code": 0,
-      "seconds": 279.41,
+      "seconds": 572.88,
       "errors": []
     },
     {
       "test": "test_keirin_flow",
       "passed": true,
       "exit_code": 0,
-      "seconds": 8.59,
+      "seconds": 6.42,
       "errors": []
     },
     {
       "test": "test_menu",
       "passed": true,
       "exit_code": 0,
-      "seconds": 4.91,
+      "seconds": 4.97,
       "errors": []
     },
     {
       "test": "test_menu_theme",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.83,
+      "seconds": 2.51,
       "errors": []
     },
     {
       "test": "test_mixed_interviews",
       "passed": true,
       "exit_code": 0,
-      "seconds": 8.61,
+      "seconds": 5.44,
       "errors": []
     },
     {
       "test": "test_national_kit_assets",
       "passed": true,
       "exit_code": 0,
-      "seconds": 3.22,
+      "seconds": 1.69,
       "errors": []
     },
     {
       "test": "test_neutral_start",
       "passed": true,
       "exit_code": 0,
-      "seconds": 39.16,
+      "seconds": 38.77,
       "errors": []
     },
     {
       "test": "test_north_boarding",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.92,
+      "seconds": 5.31,
       "errors": []
     },
     {
       "test": "test_north_infield",
       "passed": true,
       "exit_code": 0,
-      "seconds": 6.28,
+      "seconds": 4.52,
       "errors": []
     },
     {
       "test": "test_official_ready",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.58,
+      "seconds": 1.64,
       "errors": []
     },
     {
       "test": "test_pc_energy_hud",
       "passed": true,
       "exit_code": 0,
-      "seconds": 0.98,
+      "seconds": 0.97,
       "errors": []
     },
     {
       "test": "test_pc_energy_power",
       "passed": true,
       "exit_code": 0,
-      "seconds": 1.05,
+      "seconds": 1.02,
       "errors": []
     },
     {
       "test": "test_peloton_feedback",
       "passed": true,
       "exit_code": 0,
-      "seconds": 2.45,
+      "seconds": 2.39,
       "errors": []
     },
     {
       "test": "test_piste_exercises",
       "passed": true,
       "exit_code": 0,
-      "seconds": 5.64,
+      "seconds": 4.86,
       "errors": []
-    },
-    {
-      "test": "test_pizza_guests",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.61,
-      "errors": []
-    },
-    {
-      "test": "test_player_appearance",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 1.39,
-      "errors": []
-    },
-    {
-      "test": "test_player_appearance_spawn",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 2.48,
-      "errors": []
-    },
-    {
-      "test": "test_player_lanes",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 3.16,
-      "errors": []
-    },
-    {
-      "test": "test_points_notifications",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.2,
-      "errors": []
-    },
-    {
-      "test": "test_points_race",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 23.94,
-      "errors": []
-    },
-    {
-      "test": "test_power_meter",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.98,
-      "errors": []
-    },
-    {
-      "test": "test_pursuit",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 7.94,
-      "errors": []
-    },
-    {
-      "test": "test_pursuit_flow",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 10.23,
-      "errors": []
-    },
-    {
-      "test": "test_pursuit_levels",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 7.67,
-      "errors": []
-    },
-    {
-      "test": "test_pursuit_model",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.66,
-      "errors": []
-    },
-    {
-      "test": "test_pursuit_start",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 4.72,
-      "errors": []
-    },
-    {
-      "test": "test_race_rules",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 0.77,
-      "errors": []
-    },
-    {
-      "test": "test_records",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 13.55,
-      "errors": []
-    },
-    {
-      "test": "test_result_navigation",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 7.74,
-      "errors": []
-    },
-    {
-      "test": "test_results_podium",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 4.67,
-      "errors": []
-    },
-    {
-      "test": "test_ride_mapping",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 0.95,
-      "errors": []
-    },
-    {
-      "test": "test_ride_mapping_routing",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.64,
-      "errors": []
-    },
+    }
+  ],
+  "previous_full_run_summary": {
+    "standalone_godot_suites": 108,
+    "passed": 105,
+    "failed": 3,
+    "missing": 0,
+    "bridge_unittest_cases": 110,
+    "bridge_failed": 0,
+    "additional_python_cases": 37,
+    "additional_python_failed": 0
+  },
+  "merge_authorization": "User explicitly requested merging now without waiting for completion of the full rerun.",
+  "full_rerun_status": "Stopped at user request to merge immediately; incomplete suites are not counted as passed.",
+  "targeted_former_blockers": [
     {
       "test": "test_ride_phase2",
-      "passed": false,
-      "exit_code": 1,
-      "seconds": 5.73,
-      "errors": [
-        "ERROR: A chooses scratch",
-        "ERROR: A opens start list",
-        "ERROR: A launches intro",
-        "ERROR: A skips intro into staging",
-        "ERROR: A resumes same state",
-        "ERROR: A resumes same state",
-        "ERROR: A resumes same state",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: B holds rear view preserving camera",
-        "ERROR: DOWN cycles camera",
-        "ERROR: Repeated held Z cannot immediately resume",
-        "ERROR: Pause opens settings while race stays frozen",
-        "ERROR: Leaving race needs explicit second confirmation",
-        "ERROR: A on replay repeats same race",
-        "ERROR: A returns from results to gallery",
-        "ERROR: Controller confirms application exit"
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 5.3,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store."
       ]
     },
     {
       "test": "test_ride_pursuit_navigation",
-      "passed": false,
-      "exit_code": 1,
-      "seconds": 9.84,
-      "errors": [
-        "ERROR: Native RIGHT stays in navigation row",
-        "ERROR: One Ride RIGHT moves from 1 km to 4 km",
-        "ERROR: Ride selects 4 km",
-        "ERROR: Own rides can be selected with Ride",
-        "ERROR: Controller cannot reach @Button@3467",
-        "ERROR: Ride changes saved opponent",
-        "ERROR: Controller cannot reach @Button@3487",
-        "ERROR: Ride starts the selected saved opponent",
-        "ERROR: Ride enters team pursuit",
-        "ERROR: Controller cannot reach @Button@3429",
-        "ERROR: Ride sets four-rider team",
-        "ERROR: Controller cannot reach @CheckButton@3431",
-        "ERROR: Ride opens team settings",
-        "ERROR: Controller cannot reach @OptionButton@3445",
-        "ERROR: Ride selects ERG",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3448",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3453",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3458",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3480",
-        "ERROR: Ride adjusts demo power",
-        "ERROR: Controller cannot reach @Button@3487",
-        "ERROR: Ride continues from advanced team options",
-        "ERROR: Controller cannot reach @Button@3467",
-        "ERROR: Controller cannot reach @SpinBoxLineEdit@3474",
-        "ERROR: Controller cannot reach @Button@3487",
-        "ERROR: Ride starts configured team pursuit",
-        "ERROR: Controller cannot reach @Button@3430",
-        "ERROR: Three-rider LIVE setup hides unavailable settings",
-        "ERROR: Hidden third factor and demo power are skipped"
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 6.88,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store.",
+        "ERROR: Parameter \"material\" is null."
       ]
-    },
-    {
-      "test": "test_rider_name_visibility",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 6.33,
-      "errors": []
-    },
-    {
-      "test": "test_rider_profiles",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 8.19,
-      "errors": []
-    },
-    {
-      "test": "test_scratch_large_field",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 9.51,
-      "errors": []
-    },
-    {
-      "test": "test_shared_race_traffic",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 3.7,
-      "errors": []
-    },
-    {
-      "test": "test_solo_time_trial_hud",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.62,
-      "errors": []
-    },
-    {
-      "test": "test_sprinter_economy",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 1.84,
-      "errors": []
     },
     {
       "test": "test_startlist_flow",
-      "passed": false,
-      "exit_code": 4294967295,
-      "seconds": 127.66,
-      "errors": [
-        "ERROR: Actual start-list mouse click launches the configured race",
-        "ERROR: Selected profile and identity reach the game",
-        "ERROR: Selected physiology reaches the actual AI",
-        "ERROR: Start list keeps the requested discipline and field size",
-        "SCRIPT ERROR: Invalid access of index '15' on a base object of type: 'Array[Dictionary]'."
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 8.69,
+      "errors": [],
+      "environment": [
+        "ERROR: Failed to read the root certificate store.",
+        "ERROR: Parameter \"material\" is null."
       ]
-    },
+    }
+  ],
+  "repeat_checks": [
     {
-      "test": "test_strava_metadata",
+      "case": "original",
+      "run": 1,
+      "exit": 0,
       "passed": true,
-      "exit_code": 0,
-      "seconds": 3.33,
       "errors": []
     },
     {
-      "test": "test_team_first_wheel",
+      "case": "original",
+      "run": 2,
+      "exit": 0,
       "passed": true,
-      "exit_code": 0,
-      "seconds": 3.22,
       "errors": []
     },
     {
-      "test": "test_team_presentation",
+      "case": "original",
+      "run": 3,
+      "exit": 0,
       "passed": true,
-      "exit_code": 0,
-      "seconds": 9.33,
       "errors": []
     },
     {
-      "test": "test_team_pursuit",
+      "case": "fixed",
+      "run": 1,
+      "exit": 0,
       "passed": true,
-      "exit_code": 0,
-      "seconds": 16.75,
       "errors": []
     },
     {
-      "test": "test_time_trial_record_filters",
+      "case": "fixed",
+      "run": 2,
+      "exit": 0,
       "passed": true,
-      "exit_code": 0,
-      "seconds": 1.52,
       "errors": []
     },
     {
-      "test": "test_tour_details",
+      "case": "fixed",
+      "run": 3,
+      "exit": 0,
       "passed": true,
-      "exit_code": 0,
-      "seconds": 5.45,
-      "errors": []
-    },
-    {
-      "test": "test_trainer_control",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 4.56,
-      "errors": []
-    },
-    {
-      "test": "test_training_environment",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.26,
-      "errors": []
-    },
-    {
-      "test": "test_training_peloton",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 1.59,
-      "errors": []
-    },
-    {
-      "test": "test_training_signal_pause",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 6.81,
-      "errors": []
-    },
-    {
-      "test": "test_training_store",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 2.33,
-      "errors": []
-    },
-    {
-      "test": "test_v02_bugfixes",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 0.88,
-      "errors": []
-    },
-    {
-      "test": "test_v02_capacity",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 3.81,
-      "errors": []
-    },
-    {
-      "test": "test_v02_menu",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 2.81,
-      "errors": []
-    },
-    {
-      "test": "test_workout_editor_ui",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 2.24,
-      "errors": []
-    },
-    {
-      "test": "test_workout_library",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 3.01,
-      "errors": []
-    },
-    {
-      "test": "test_zwo_ftp_core",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 1.75,
-      "errors": []
-    },
-    {
-      "test": "test_v02_cadence",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 5.88,
-      "errors": []
-    },
-    {
-      "test": "res://test_scratch_lap_rules.gd",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 0.75,
-      "errors": []
-    },
-    {
-      "test": "res://test_x_scratch_ai.gd",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 0.75,
-      "errors": []
-    },
-    {
-      "test": "res://test_x_wheel_follow.gd",
-      "passed": true,
-      "exit_code": 0,
-      "seconds": 0.83,
       "errors": []
     }
-  ]
+  ],
+  "investigation": [
+    {
+      "test": "test_ride_phase2",
+      "classification": "Outdated test assumptions",
+      "fix": "Navigate and assert the hub before the race gallery and application-exit confirmation."
+    },
+    {
+      "test": "test_ride_pursuit_navigation",
+      "classification": "Previous failure not reproduced as a game defect",
+      "evidence": "Original test passed 3/3 times in fresh settings; updated test also passed 3/3.",
+      "fix": "Explicit reference viewport, settled deferred focus/layout before synthetic input, and failure context; existing assertions retained."
+    },
+    {
+      "test": "test_startlist_flow",
+      "classification": "Outdated expectations and incomplete test setup",
+      "fix": "Include selected AI strength in CP expectation; verify implemented time-trial record filters; define viewport/clickable bounds; report failed starts without invalid indexing."
+    }
+  ],
+  "investigation_game_code_changed": false
 }
