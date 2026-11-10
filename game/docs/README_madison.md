@@ -78,22 +78,48 @@ Signalen:
 bewaart per model `madison_state`, voegt `role` en `hand` toe en stuurt het
 signaal `madison_parameters_changed`. Gever gebruikt rechts, ontvanger links.
 
-De bestaande trapanimaties worden ongewijzigd aangestuurd. Er is geen preload
-of verplicht bestand voor Madison-assets. Zodra `madison_anims.glb` beschikbaar
-is, kan een bovenlichaamfilter de clips
-`madison_{giver,receiver}_{approach,sling,release}` op deze parameters aansluiten.
-GRAB gebruikt de uitgestoken contactpose; SEPARATE bouwt terug naar fietsen.
+De Blender-levering is aangesloten via `madison_animation.gd` en de tijdelijke
+`MadisonRiderRig`/`MadisonTwoBoneIK`-componenten uit `game/madison/`.
+Alleen de twee deelnemers krijgen een AnimationTree met een filter op de twaalf
+bovenlichaambotten. De bestaande trapcyclus blijft op dezelfde crankfase lopen.
+De zes clips `madison_{giver,receiver}_{approach,sling,release}` komen uit
+`assets/riders/madison/madison_anims.glb`; de oorspronkelijke rennermodellen
+en hun animaties zijn niet gewijzigd. GRAB mengt de uitgestoken pose naar
+handcontact; SEPARATE bouwt terug naar fietsen.
+
+Eerst worden beide modellen op de werkelijke piste geplaatst, daarna worden
+hun gedeelde wereldankers bijgewerkt, en pas dan beide trap-/bovenlichaamposes.
+De adapter corrigeert een resterende visuele gap tot 1,00–1,40 m, met maximaal
+4° extra modellean en begrensde veranderingssnelheid. Dit vangt ook het krappe
+0,60 m-geval op. Gameplayposities en stuurkeuze blijven ongemoeid.
 
 De pose-strip wordt opgezocht op `sling_t`, met de piek op **0,6** en afbouw tot
 1,0. `efficiency` blijft daarvan gescheiden en volgt de HUD. Standaardtijden:
 GRAB 0,15 s, volledige SLING-strip 2,0 s (Easy lost op 1,2 s los), RELEASE
-0,30 s, SEPARATE 0,80 s. APPROACH volgt de fysieke afstand, niet een vaste klok.
+1,15 s, SEPARATE 0,30 s. RELEASE bevriest de bereikte slingpose, mengt in
+0,20–0,40 s naar de loslaatclip en zoekt die vervolgens in 0,75 s op.
+APPROACH volgt de fysieke afstand, niet een vaste klok.
 Tijden, bereik, piek en convergentiesnelheid zijn controllerparameters.
 
-**Wacht op Blender:** bovenlichaamclips, mengen met de trapcyclus, definitieve
-handankers en IK die beide handen op hetzelfde wereldcontact houdt. Het huidige
-`contact_point` is een voorlopig gedeeld anker op handhoogte. Nog geen zichtbare
-handgreep of slingerpose: de bestaande renners blijven voorlopig doortrappen.
+IK richt de echte grijphandankers op hetzelfde wereldcontactpunt. Bij twee
+opeenvolgende frames boven 94% armstrekking volgt een gecontroleerde vroege
+RELEASE met reden `reach`. Na afloop, herstart en verlaten van de race worden
+trees, IK-modifiers en tijdelijke animatiebibliotheken verwijderd, offsets
+hersteld en de oorspronkelijke modifierinstelling teruggezet.
+
+De meegeleverde zelfstandige animatiedemo blijft beschikbaar als
+`res://madison/madison_demo.tscn`. Zijn prototypecontroller heet nu
+`MadisonDemoExchange` om verwarring met de speelbare controller te voorkomen.
+Die demo heeft eigen automatische Easy-grepen en een eigen voorbeeldcurve.
+De game behoudt uitdrukkelijk A om te grijpen, precisie, de 70%/100%-limieten,
+de bestaande momentumcurve en de sessie-/vrijgaveregels. Animatie en HUD lezen
+dezelfde `sling_t`, met dezelfde piek op 0,6; de animatieclip schrijft geen
+gameplaysnelheden of score.
+
+Beperkingen uit de levering blijven relevant: eenvoudige wanten zonder
+vingergreep, kleine afwijking van de niet-grijpende hand bij lean, en validatie
+op Windows/Godot 4.7.2. Zie `docs/madison/README.md` voor de oorspronkelijke
+prototypeproeven; die vervangen de echte spelintegratietest niet.
 
 ## Validatie
 
@@ -104,6 +130,7 @@ Godot --headless --path game --script res://tests/test_madison.gd
 Godot --headless --path game --script res://tests/test_madison_integration.gd
 Godot --headless --path game --script res://tests/test_madison_progress.gd
 Godot --headless --path game --script res://tests/test_madison_kit.gd
+Godot --headless --path game --script res://tests/test_madison_game_animation.gd
 Godot --headless --path game --script res://tests/test_menu.gd
 Godot --headless --path game --script res://tests/test_hud.gd
 Godot --headless --path game --script res://tests/test_bridge_protocol.gd
@@ -116,6 +143,15 @@ precieze grepen, vroege release, overhold, bereik, gemiste grepen, contactverlie
 geleidelijke offsets, momentumoverdracht, vijf fasen in de echte racefysica,
 banking/rondeovergang en onafhankelijke gelijktijdige invoerbronnen. De bestaande
 scratchsimulaties van 8 renners/10 ronden en 12 renners/50 ronden slagen ook.
+
+De vijf meegeleverde testsets (`clips`, `contact`, `release`, `flow`,
+`baseline`) slagen op de geïntegreerde code. Hun test-scenes worden expliciet
+opgeruimd. De nieuwe `test_madison_game_animation.gd` gebruikt echte renners en
+`main.gd`-plaatsing: maximaal 2,21 mm tussen beide handen in de beproefde
+stilstaande rechte/bochtposes, en 2,14 mm tijdens de beproefde bewegende
+aflossing. Dit zijn metingen van die scenario's, geen garantie voor elke
+mogelijke stuurbeweging. De test controleert ook crankfase, gedeelde
+`sling_t`, vroege release, de derde onaangetaste renner en opruimen.
 
 `capture_madison.gd` maakt met rendering schermafbeeldingen van menu en HUD in
 `verification/madison/`. Bij lokale tests zijn bestaande asset-UID-waarschuwingen

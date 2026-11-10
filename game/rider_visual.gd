@@ -53,6 +53,8 @@ var stopped: bool = false
 var victory_started: bool = false
 var victory_left: float = 0.0
 var body_mesh: MeshInstance3D
+## Only attached for the two Madison participants.
+var exchange_overlay: Node = null
 
 func _ready() -> void:
 	rig_scene = (PURSUIT_SCENE if bool(get_meta("pursuit_mode", false)) else RIDER_SCENE).instantiate()
@@ -404,6 +406,10 @@ func pedal(delta: float, cadence_rpm: float, power_w: float = 0.0) -> void:
 		_play_pose(target)
 	var cadence_value: float = maxf(0.0, cadence_rpm)
 	cadence_phase = fposmod(cadence_phase + cadence_value * TAU / 60.0 * delta, TAU)
+	if exchange_overlay != null and is_instance_valid(exchange_overlay):
+		exchange_overlay.call("drive", cadence_phase, resolved_poses[current_pose])
+		standing_amount = move_toward(standing_amount, 1.0 if standing_active else 0.0, delta * 4.0)
+		return
 	# Evaluate animated bones each physics frame in MANUAL mode.
 	animator.advance(delta * cadence_value / BASE_CADENCE)
 	# Keep crank angle phase continuous across animation switches.

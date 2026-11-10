@@ -9,6 +9,7 @@ var trainer_telemetry_resume := false
 var trainer_control_was_active := false
 const MadisonExchange := preload("res://madison_exchange.gd")
 var madison = MadisonExchange.new()
+var madison_animation: Node
 var madison_advanced := false
 var madison_session_count := 10
 var madison_trial_pending := false
@@ -181,6 +182,7 @@ func _madison_button(source: String, pressed: bool) -> void:
 	if race_mode == 6: madison.button(not madison_input_sources.is_empty())
 
 func _madison_prepare() -> void:
+	if is_instance_valid(madison_animation): madison_animation.clear()
 	madison.reset()
 	madison.advanced = madison_advanced
 	madison_input_sources.clear()
@@ -2120,6 +2122,13 @@ func _update_visuals(dt: float) -> void:
 			var head: Vector3 = Vector3(exit_state["heading"])
 			bikes[i].rotation.y = atan2(head.x, head.z)
 			bikes[i].rotation.z = 0.0
+	if race_mode == 6:
+		if not is_instance_valid(madison_animation):
+			madison_animation = preload("res://madison_animation.gd").new()
+			add_child(madison_animation)
+			madison_animation.reach_limit.connect(madison.release_for_reach)
+		madison_animation.update_pair(self, dt)
+	for i in range(rider_count):
 		var visual: Node = bikes[i].get_child(0)
 		visual.set_madison_state(madison.parameters() if race_mode == 6 else {}, i)
 		var cadence_visual: float = cadence if i == 0 and connected and cadence >= 0.0 else clampf(speeds[i] * 6.0, 0.0, 120.0)

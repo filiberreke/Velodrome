@@ -14,8 +14,8 @@ var visual_reach := 1.4
 var grab_seconds := 0.15
 var sling_seconds := 2.0
 var peak_t := 0.6
-var release_seconds := 0.3
-var separate_seconds := 0.8
+var release_seconds := 1.15
+var separate_seconds := 0.3
 var convergence_mps := 0.65
 var max_impulse_mps := 3.0
 var impulse_speed_fraction := 0.18
@@ -37,6 +37,7 @@ var visual_offsets: Array[float] = [0.0, 0.0]
 var contact_point := Vector3.ZERO
 var last_result := "Zoek je ploegmaat op bij de blauwe lijn"
 var _impulse := 0.0
+var release_reason := ""
 
 func reset() -> void:
 	phase = Phase.SEPARATE
@@ -46,6 +47,7 @@ func reset() -> void:
 	sling_t = 0.0; efficiency = 0.0; held = false; can_grab = false
 	visual_offsets.assign([0.0, 0.0])
 	_impulse = 0.0
+	release_reason = ""
 	last_result = "Zoek je ploegmaat op bij de blauwe lijn"
 
 func _change(next: int) -> void:
@@ -69,12 +71,16 @@ func button(pressed: bool) -> void:
 	efficiency = 0.0
 	_change(Phase.GRAB)
 
-func _release() -> void:
+func _release(reason: String = "player") -> void:
+	release_reason = reason
 	efficiency = precision * envelope(sling_t) * (1.0 if advanced else 0.7)
 	last_result = "Aflossing: %d%% momentum" % roundi(efficiency * 100.0)
 	active_rider = receiver
 	_change(Phase.RELEASE)
 	released.emit(giver, receiver, efficiency)
+
+func release_for_reach() -> void:
+	if active and phase in [Phase.GRAB, Phase.SLING]: _release("reach")
 
 func envelope(t: float) -> float:
 	# A smooth peak, shared by HUD and future animation sampling.
@@ -101,6 +107,7 @@ func step(game, dt: float) -> void:
 		if gap >= -1.5 and gap <= approach_distance and game.speeds[giver] > game.speeds[receiver] + 0.1:
 			active = true
 			precision = 0.0; efficiency = 0.0; sling_t = 0.0
+			release_reason = ""
 			_impulse = 0.0
 			_change(Phase.APPROACH)
 	elapsed += dt
@@ -128,8 +135,10 @@ func step(game, dt: float) -> void:
 				marker = clampf((approach_distance - gap) / (approach_distance + 2.5), 0.0, 1.0)
 				if gap < -2.5 or gap > approach_distance + 3.0: cancel("Greep gemist — probeer de volgende ronde")
 			Phase.GRAB, Phase.SLING:
-				if not ordered or not receiver_in_zone or physical_span > max_reach + 0.05:
+				if not ordered or not receiver_in_zone:
 					cancel("Handcontact verloren")
+				elif physical_span > max_reach + 0.05:
+					_release("reach")
 				else:
 					# Compliant contact: equal and opposite impulses, no position snaps.
 					var dv: float = clampf((game.speeds[giver] - game.speeds[receiver]) * 0.5, -contact_acceleration * dt, contact_acceleration * dt)
@@ -144,7 +153,7 @@ func step(game, dt: float) -> void:
 						efficiency = precision * envelope(sling_t) * (1.0 if advanced else 0.7)
 						if (not advanced and sling_t >= peak_t) or sling_t >= 1.0:
 							if not advanced: sling_t = peak_t
-							_release()
+							_release("auto" if not advanced else "max_hold")
 			Phase.RELEASE:
 				if elapsed >= release_seconds: _change(Phase.SEPARATE)
 			Phase.SEPARATE:
@@ -166,4 +175,5 @@ func parameters() -> Dictionary:
 		"hand_contact":active and phase in [Phase.GRAB, Phase.SLING], "contact_point":contact_point,
 		"visual_offsets":visual_offsets.duplicate(), "can_grab":can_grab, "advanced":advanced,
 		"phase_t":clampf(elapsed / maxf(0.001, duration), 0.0, 1.0),
+		"phase_seconds":elapsed, "release_seconds":release_seconds, "release_reason":release_reason,
 		"message":last_result}

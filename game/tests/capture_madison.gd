@@ -40,7 +40,16 @@ func capture() -> void:
 	game._update_visuals(1.0)
 	game._update_hud()
 	await snapshot("02_advanced_peak")
+	var centre: Vector3 = (game.bikes[0].global_position + game.bikes[1].global_position) * 0.5
+	var forward: Vector3 = game.bikes[0].global_basis.z.normalized()
+	var side: Vector3 = (game.bikes[1].global_position - game.bikes[0].global_position).normalized()
+	game.camera.global_position = centre + forward * 3.0 + side * 3.0 + Vector3.UP * 2.0
+	game.camera.look_at(centre + Vector3.UP * 1.0, Vector3.UP)
+	game.camera.fov = 45.0
+	await snapshot("05_animated_hand_contact")
 	game._madison_button("capture", false)
+	game.madison.step(game, 0.7)
+	game._update_visuals(1.0 / 60.0)
 	game._update_hud()
 	await snapshot("03_release")
 	game.free()

@@ -88,5 +88,11 @@ func _initialize() -> void:
 	check(not m.can_grab, "Reachable pair must converge before grabbing")
 	for tick in range(100): m.step(p, 0.01)
 	check(m.can_grab and m.visual_offsets[0] <= 0.2, "Convergence reaches 1.4 m without extending arms")
+	setup = prepared(); m = setup[0]; p = setup[1]
+	m.button(true); m.step(p, m.grab_seconds)
+	m.step(p, m.sling_seconds * 0.2)
+	p.distances[1] += 2.0
+	m.step(p, 0.01)
+	check(m.phase == Exchange.Phase.RELEASE and m.release_reason == "reach", "Physical drift releases smoothly before arm overextension")
 	print("MADISON_OK" if failures == 0 else "MADISON_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
