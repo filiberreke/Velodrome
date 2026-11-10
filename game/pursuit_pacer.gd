@@ -4,7 +4,7 @@ const WPRIME_J := 20000.0
 const BUDGET_FRACTION := 0.98
 var wprime_j := WPRIME_J
 var max_power_w := INF
-var difficulty_percent := 80.0
+var difficulty_percent := 100.0
 var cp_w := 250.0
 var target_w := 250.0
 var reserve_j := WPRIME_J
@@ -35,7 +35,10 @@ static func duration(game: Node3D, distance: float, power: float, origin: float,
 	return INF
 
 func prepare(game: Node3D, distance: float, cp: float, origin: float, lane: float) -> void:
-	cp_w = clampf(cp, 50.0, 800.0)
+	var scale: float = clampf(difficulty_percent / 100.0, 0.0, 1.0)
+	cp_w = clampf(cp * scale, 1.0, 800.0)
+	wprime_j *= scale
+	if is_finite(max_power_w): max_power_w *= scale
 	reserve_j = wprime_j
 	var low: float = cp_w
 	var high: float = minf(cp_w + 550.0, maxf(cp_w, max_power_w))
@@ -51,7 +54,7 @@ func prepare(game: Node3D, distance: float, cp: float, origin: float, lane: floa
 
 func power(dt: float) -> float:
 	# Preserve the game's existing requested-power percentage / 80 convention.
-	var demand := minf(max_power_w, target_w * difficulty_percent / 80.0)
+	var demand := minf(max_power_w, target_w)
 	if dt <= 0.0: return demand
 	if demand <= cp_w: return demand
 	var expenditure: float = minf(reserve_j, (demand - cp_w) * dt)
