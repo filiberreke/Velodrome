@@ -89,7 +89,7 @@ func run() -> void:
 		for i in range(60): game._physics_process(.02)
 		check(game.start_state == "COUNTDOWN", "Normal countdown did not start")
 		for i in range(170): game._physics_process(.02)
-		check(game.start_state == "RACING" and game.running, "Countdown failed to start racing")
+		check(game.start_state == ("NEUTRAL" if choice == 0 else "RACING") and game.running, "Countdown enters the discipline's start phase")
 		game._reset()
 		game.setup_panel.select_mode((choice + 1) % 3)
 		if game.setup_panel.pursuit_flow.visible: game.setup_panel.pursuit_flow.next_step()
@@ -98,7 +98,7 @@ func run() -> void:
 		game.trainer_seen = true; game.connected = true; game.trainer_ready = true
 		game.trainer_speed_kmh = 12.0; game.watts = 150.0; game.last_telemetry = game._now_s()
 		for i in range(30): game._physics_process(.02)
-		check(game.start_state == "WAIT_STOP" and not game.running, "Session skip bypassed trainer gate")
+		check(game.start_state == ("WAIT_STOP" if game._start_requires_standstill() else "COUNTDOWN") and not game.running, "Session skip preserves standstill or rolling trainer gate")
 		game._reset(); game.free()
 		await process_frame
 	var game := IntroGame.new()

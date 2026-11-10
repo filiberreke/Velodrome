@@ -381,7 +381,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			var budget: float = cp[i] + 0.88 * wprime[i] / maxf(6.0, seconds)
 			target = maxf(target, minf(effort, budget))
 			sprint_started[i] = true
-		var actual: float = _phys_power(i, target * (difficulty / 80.0), dt)
+		var actual: float = _phys_power(i, target, dt)
 		power_w[i] = actual
 		output[i] = actual
 	return output

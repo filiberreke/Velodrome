@@ -15,7 +15,7 @@ func run() -> void:
 	var board = screen.scoreboard
 	board.set_process(false)
 	check(board.viewport.disable_3d and board.viewport.size == Vector2i(1536, 512), "One bounded 2D viewport")
-	var cameras: int = game.find_children("*", "Camera3D", true, false).size()
+	var cameras: Array[Node] = game.find_children("*", "Camera3D", true, false)
 	check(board.find_children("*", "Camera3D", true, false).is_empty(), "No scoreboard cameras")
 	for mat in screen.display_materials: check(mat.get_shader_parameter("content_texture") == board.viewport.get_texture(), "Same dynamic texture on both faces")
 	for surface in ["OuterLED", "InnerLED"]:
@@ -48,7 +48,9 @@ func run() -> void:
 	for selection in [0, 3, 1, 2]:
 		game._reset()
 		game.setup_panel.select_mode(selection)
+		if game.setup_panel.pursuit_flow.visible: game.setup_panel.pursuit_flow.next_step()
 		game._confirm_start()
+		check(game.race_mode == {0:0,3:1,1:4,2:5}[selection],"Scoreboard fixture starts the requested discipline")
 		board.data.clear(); board.poll_elapsed = .1
 		board._process(.11)
 		check(board.model.state == "INTRO" and board.model.view().title == feed.sample(game).discipline, "Actual menu intro discipline")
@@ -77,10 +79,15 @@ func run() -> void:
 			var before: Array = game.points_rules.points.duplicate()
 			for i in 20: board._process(.05)
 			check(game.points_rules.points == before, "Integrated display leaves scoring unchanged")
-	check(game.find_children("*", "Camera3D", true, false).size() == cameras, "Discipline switches introduce no cameras")
+	await process_frame # Finish disposal of the pursuit intro's temporary portrait viewports.
+	for camera in game.find_children("*", "Camera3D", true, false):
+		check(cameras.has(camera) or game.setup_panel.is_ancestor_of(camera),"Additional cameras belong only to opponent menu portraits")
+	check(board.find_children("*", "Camera3D", true, false).is_empty(),"Scoreboard still adds no 3D cameras after discipline switches")
 	board.model.reset(); board.data = feed.sample(game); board.data.phase = "RACING"; board.data.winner = -1
 	board.data.positions = [0.0, 0.0]
 	board.model.update(board.data, .1); board.model.age = 20.; board.canvas.fade = 1.
+	# Start the quiet interval with its current content already fully presented.
+	board.canvas.present(board.model.view(),20.,1.)
 	board.poll_elapsed = -100.
 	board.render_elapsed = 0.0
 	var before_render: int = board.render_count

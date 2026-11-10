@@ -161,7 +161,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			if clock<14.0 and speeds[i]<11.0 and distances[i]<170.0:
 				var weight: float=clampf((14.0-clock)/7.0,0.0,1.0)*clampf((11.0-speeds[i])/3.0,0.0,1.0)
 				target=maxf(target,lerpf(cp[i]*(0.76 if drafts[i]>0.12 else 0.91),minf(450.0,maxf(350.0,cp[i]*1.65)),weight))
-			requested_power_w[i]=maxf(0.0,target*difficulty/80.0)
+			requested_power_w[i]=maxf(0.0,target)
 	_deliver_motion(active,distances,speeds,lanes,drafts,dt,output)
 	motion_ready=true
 	return output

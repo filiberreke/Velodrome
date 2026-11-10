@@ -16,6 +16,7 @@ var ftp_save_message := ""
 var last_sample := -100.0
 var sample_id := -1
 var measured := 0.0
+var cadence_rpm := -1.0
 var last_speed_kmh := 0.0
 var gear := -1
 var telemetry_ok := false
@@ -114,8 +115,8 @@ func receive(packet: Dictionary, now: float) -> void:
 	var reported_gear: Variant = packet.get("gear")
 	gear = int(reported_gear) if (reported_gear is int or reported_gear is float) and is_finite(float(reported_gear)) and float(reported_gear) >= 1 and float(reported_gear) <= 12 else -1
 	var rpm: Variant = packet.get("cadence_rpm")
-	var cadence: float = float(rpm) if (rpm is int or rpm is float) and is_finite(float(rpm)) else -1.0
-	test.sample(session_now(maxf(last_sample,signal_state.resumed_at)), measured, cadence)
+	cadence_rpm = float(rpm) if (rpm is int or rpm is float) and is_finite(float(rpm)) and float(rpm) >= 0.0 else -1.0
+	test.sample(session_now(maxf(last_sample,signal_state.resumed_at)), measured, cadence_rpm)
 	if test.phase == "RESULT": _release(now)
 
 func begin() -> void:
@@ -172,6 +173,9 @@ func _process(_delta: float) -> void:
 			if not test.running(): _release(now)
 	_refresh()
 
+func cadence_text() -> String:
+	return "%d rpm" % roundi(cadence_rpm) if live(now_s()) and cadence_rpm >= 0.0 else "— rpm"
+
 func _refresh() -> void:
 	if start_button == null: return
 	start_button.visible = not test.running()
@@ -189,6 +193,7 @@ func _refresh() -> void:
 			var remaining := int(ceil(maxf(0.0, Ramp.WARMUP_SECONDS - elapsed)))
 			result.text = "Start test over %02d:%02d\n%s · gemeten %.0f W\nSchakelen blijft beschikbaar. Daarna neemt ERG over op 100 W." % [remaining / 60, remaining % 60, target_text, measured]
 			if gear > 0: result.text += "\nVersnelling %d / 12" % gear
+		result.text += "\nCadans · " + cadence_text()
 		var connection_status := signal_state.status(now_s())
 		if not connection_status.is_empty(): result.text += "\n"+connection_status
 	elif test.phase == "RESULT":

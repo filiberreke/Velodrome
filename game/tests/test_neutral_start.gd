@@ -27,6 +27,9 @@ func make_game(mode: int, count: int = 16) -> Game:
 	g.rider_count = count
 	g.race_laps = 10 if mode == 1 else 4
 	g._configure_peloton()
+	if mode == 2:
+		g.elimination_notice = Label.new()
+		g.add_child(g.elimination_notice)
 	g._begin_riding()
 	return g
 func run_test() -> void:

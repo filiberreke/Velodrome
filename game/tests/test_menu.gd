@@ -88,7 +88,7 @@ func run_test() -> void:
 	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Repeat-intro test setting applies to the second event")
 	game.broadcast_intro.finish()
 	check(game.race_mode == 1 and game.rider_count == 16 and game.race_laps == 40, "Points mode starts with its own settings")
-	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0), "Points CP configuration is passed through")
+	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0*game.ai_difficulty/100.) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0*game.ai_difficulty/100.), "Points CP configuration includes the selected AI strength")
 	game.start_state = "RACING"
 	game._update_hud()
 	check(game.race_overlay.visible and not game.race_overlay.status_panel.visible, "Points race uses compact HUD without the retired persistent sprint banner")

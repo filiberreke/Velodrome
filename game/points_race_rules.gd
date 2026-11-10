@@ -12,6 +12,7 @@ var laps := 40
 var finish_clock := -1.0
 var last_sprint_clock := -1.0
 var main_ids: Array[int] = []
+var pending_gains: Dictionary = {} # Hold gains until a protected sprint-line crossing
 var peloton = preload("res://peloton_state.gd").new()
 
 func reset(count: int, race_laps: int = 40) -> void:
@@ -20,7 +21,7 @@ func reset(count: int, race_laps: int = 40) -> void:
 	for values in [points, credits, gains, losses]:
 		values.resize(count)
 		values.fill(0)
-	sprints.clear(); events.clear(); main_ids.clear()
+	sprints.clear(); events.clear(); main_ids.clear(); pending_gains.clear()
 	peloton.reset()
 	finish_clock = -1.0
 	last_sprint_clock = -1.0
@@ -58,12 +59,23 @@ func _judge_laps(distances: Array[float], seconds: float) -> void:
 		var change := 0
 		if positions[i] - float(bunch.tail) >= LAP - 0.00000001: change = 1
 		elif float(bunch.front) - positions[i] >= LAP - 0.00000001: change = -1
-		if change == 0: continue
-		credits[i] += change
-		points[i] += 20 * change
-		if change > 0: gains[i] += 1
-		else: losses[i] += 1
-		events.append({"rider": i, "delta": change, "points": 20 * change, "seconds": seconds})
+		if change == 0 or pending_gains.has(i): continue
+		# Preserve sprint eligibility when the bunch is caught inside the last 100 m.
+		# At the line, judging runs before scoring that very crossing.
+		var physical_lap: int = ceili(distances[i] / LAP)
+		var upcoming_lap: int = physical_lap - credits[i]
+		var metres_to_line: float = physical_lap * LAP - distances[i]
+		if change > 0 and metres_to_line <= 100.0 and upcoming_lap == next_sprint_lap():
+			pending_gains[i] = physical_lap
+			continue
+		_award_lap(i, change, seconds)
+
+func _award_lap(i: int, change: int, seconds: float) -> void:
+	credits[i] += change
+	points[i] += 20 * change
+	if change > 0: gains[i] += 1
+	else: losses[i] += 1
+	events.append({"rider": i, "delta": change, "points": 20 * change, "seconds": seconds})
 
 func advance(previous: Array[float], current: Array[float], seconds: float, dt: float, finish_times: Array[float]) -> void:
 	var crossings: Array[Dictionary] = []
@@ -95,6 +107,10 @@ func advance(previous: Array[float], current: Array[float], seconds: float, dt: 
 			sprint.awards.append(award)
 			points[crossing.rider] += award
 			if sprint.lap == laps: finish_times[crossing.rider] = crossing.seconds
+		# Sprint points are awarded before this rider's provisional lap bonus.
+		if pending_gains.get(int(crossing.rider), -1) == int(crossing.lap):
+			pending_gains.erase(int(crossing.rider))
+			_award_lap(int(crossing.rider), 1, crossing.seconds)
 
 	if finish_clock < 0.0: _judge_laps(current, seconds)
 

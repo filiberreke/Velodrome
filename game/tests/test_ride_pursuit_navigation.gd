@@ -7,16 +7,21 @@ var flow
 var failures:=0
 func _initialize()->void: call_deferred("run_test")
 func check(ok:bool,message:String)->void:
-	if not ok: failures+=1;push_error(message)
+	if not ok:
+		failures+=1;push_error(message)
+		print("NAV_FAILURE ",JSON.stringify({"message":message,"focus":str(focus().get_path()) if focus()!=null else "none","step":flow.step,"page":g.setup_panel.page,"context":g._ride_context()}))
 func press(key:String)->void:
 	g._process_bridge_packet({"type":"controller_button","source_button":key,"pressed":true})
 	g._process_bridge_packet({"type":"button","button":key,"source_button":key})
 	g._process_bridge_packet({"type":"controller_button","source_button":key,"pressed":false})
-	await process_frame
+	await settle()
 func native_press(key:Key)->void:
 	for down in [true,false]:
 		var event:=InputEventKey.new();event.keycode=key;event.pressed=down;root.push_input(event)
-	await process_frame
+	await settle()
+func settle()->void:
+	# Let deferred focus changes and container layout finish before the next tap.
+	for i in range(3):await process_frame
 func focus()->Control: return root.gui_get_focus_owner()
 func seek(target:Control)->void:
 	for i in range(20):
@@ -30,9 +35,10 @@ func clean_replays()->void:
 	for filename in folder.get_files():DirAccess.remove_absolute(ProjectSettings.globalize_path(directory.path_join(filename)))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(directory))
 func run_test()->void:
+	root.size=Vector2i(1920,1080)
 	clean_replays()
 	g=Game.new();root.add_child(g);g.set_physics_process(false)
-	await process_frame;await process_frame
+	await settle()
 	g.get_node("GameSettings").always_show_intro=true
 	var menu=g.setup_panel
 	flow=menu.pursuit_flow

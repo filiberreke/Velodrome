@@ -46,10 +46,10 @@ func run_test() -> void:
 		game.finished = true; game._steer_player(-1); press(game, -1)
 		check(game.player_lane == 10, "Finished races ignore keyboard and paddle steering")
 		game.finished = false
-	# Original six-abreast start grid must not shrink to half-width corridors.
+	# The neutral opening uses two riders per row on the lower straight.
 	for mode in [0, 1]:
 		game.race_mode = mode; game.rider_count = 12; game._configure_peloton()
-		check(is_equal_approx(game.lane_offsets[5], 7.18) and is_equal_approx(game.distances[6], -2.4), "Original start grid preserved")
+		check(is_equal_approx(game.lane_offsets[5], 2.38) and is_equal_approx(game.distances[6], game.NEUTRAL_DEPARTURE_M-7.2), "Two-abreast neutral start grid preserved")
 		for i in range(12):
 			for j in range(i):
 				check(absf(game.lane_offsets[i] - game.lane_offsets[j]) >= 0.88 or absf(game.distances[i] - game.distances[j]) >= 2.0, "Starting bicycles do not overlap")

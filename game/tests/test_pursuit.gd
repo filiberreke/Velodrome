@@ -35,6 +35,7 @@ func ride(distance: int, replay: Dictionary = {}, dt: float = 0.05) -> Dictionar
 	var game = Model.new()
 	root.add_child(game)
 	game.race_mode = 4
+	game.pursuit_opponent_percent = 100.0 # This suite compares unscaled baseline CP values.
 	game.race_laps = distance / 250
 	game._configure_peloton()
 	game._prepare_pursuit(replay, 250.0)

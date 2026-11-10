@@ -1,6 +1,5 @@
 extends "res://race_hud.gd"
 ## Reuses the race power meter, metrics panel, palette and slipstream bar.
-var cadence_label: Label
 var phase_label: Label
 var graph: Control
 var stop_button: Button
@@ -13,7 +12,6 @@ func _ready() -> void:
 	super._ready()
 	for node in [map_panel,nearby_panel,points_panel,team_laps_panel,solo_panel,bottom_bar,developer_panel,signals]: node.hide()
 	left_stack.offset_top = 112
-	cadence_label = _metric(power_panel.get_child(0), "CADANS", "— rpm")
 	energy_panel.hide()
 	dial = preload("res://derny_dial.gd").new()
 	left_stack.add_child(dial)
@@ -59,7 +57,7 @@ func update_training(scene) -> void:
 	speed_label.text = "%.1f" % (scene.player_speed * 3.6)
 	var heart: Variant = scene.game.trainer_heart_rate_bpm if not scene.demo else null
 	heart_label.text = "%d bpm" % int(heart) if heart is float or heart is int else "— bpm"
-	cadence_label.text = "%.0f rpm" % scene.game.cadence if not scene.demo and scene.game.cadence >= 0 else "— rpm"
+	cadence_label.text = "%.0f rpm" % scene.game.cadence if not scene.demo and scene.game.setup_panel.ftp_page.live(scene.game._now_s()) and scene.game.cadence >= 0 else "— rpm"
 	gear_label.text = str(scene.game.trainer_gear) if not scene.demo else "PC-proefrit"
 	gear_label.get_parent().get_child(0).text = "VERSNELLING" if not scene.demo else "BEDIENING"
 	slipstream_bar.max_value = scene.session.MAX_DRAFT * 100

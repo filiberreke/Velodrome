@@ -17,6 +17,7 @@ func press(key: String) -> void:
 	await process_frame
 func _initialize() -> void: call_deferred("run_test")
 func run_test() -> void:
+	root.size = Vector2i(1920, 1080)
 	g = Game.new()
 	root.add_child(g)
 	g.set_physics_process(false)
@@ -57,6 +58,10 @@ func run_test() -> void:
 	check(not settings.controller_test_active() and settings.panel_root.visible, "Z leaves diagnostics without closing settings")
 	await press("B")
 	check(not settings.panel_root.visible, "B closes settings")
+	# The current app opens on the hub; enter the race gallery before choosing a card.
+	menu.hub_button.grab_focus()
+	await press("A")
+	check(menu.page == 1, "A opens the race gallery from the hub")
 	menu.cards[0].grab_focus()
 	await press("A")
 	check(menu.page == 2, "A chooses scratch")
@@ -146,6 +151,9 @@ func run_test() -> void:
 	check(not g.look_back_held, "Keyboard release restores view")
 	g._reset(); await process_frame
 	await press("B")
+	check(menu.page == 0 and not g.exit_menu.quitting_application, "B returns from race gallery to hub")
+	await press("B")
+	check(g.exit_menu.quitting_application, "B on hub asks before application exit")
 	await press("DOWN")
 	await press("A")
 	check(g.quit_requested, "Controller confirms application exit")
