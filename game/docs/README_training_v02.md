@@ -343,13 +343,14 @@ geen slipstream. Het resultaat bij terugkomst op dezelfde lijn wordt binnen
 de laatste fysicastap geïnterpoleerd, zodat snelheid en tijd niet afhangen van
 een overschietend beeldframe.
 
-Het doel is hoge passagesnelheid met laag piekvermogen. Een instelbaar
-vermogensplafond (standaard 150% van profiel-FTP) is alleen een vergelijkingsdoel;
-het begrenst de trainer of de speler niet. Resultaat en historie tonen zowel
-passagesnelheid als het hoogste geleverde vermogen, zodat pogingen met een
-vergelijkbaar plafond naast elkaar kunnen worden beoordeeld. Een afgebroken
-poging krijgt geen fictieve passagesnelheid. Na tien minuten stopt een niet
-voltooide poging. Dit is een techniekoefening, geen automatische tijdritstart.
+Het doel is hoge passagesnelheid met laag piekvermogen. Er is geen richtvermogen
+of vermogensplafond meer. Resultaat en HUD tonen het werkelijk gemiddelde en
+maximale vermogen. De samenstelpagina en het resultaat tonen dezelfde bewaarde
+top 10, gesorteerd op hoogste passagesnelheid, met datum, gemiddeld vermogen en
+maximaal vermogen per poging. Alleen voltooide passages tellen mee. De tabel leest
+alle opgeslagen trainingen; PC-proefritten zijn herkenbaar gemarkeerd. Een
+onderbroken poging krijgt geen fictieve passagesnelheid. Na tien minuten stopt
+een niet voltooide poging. Dit is een techniekoefening, geen automatische tijdritstart.
 
 ## Neem een ronde — eerste speelbare versie
 
@@ -395,3 +396,32 @@ koprijders, constante beweging van het groepscentrum, compacte meerrijige vorm,
 kleine vloeiende onderlinge verplaatsingen en geen rondewinst door kopwissels.
 De integratiecontrole vergelijkt de lijn- en minimapgrenzen met de actuele
 formatie en controleert dat hoog vermogen ook zonder rijlijnwissel kan passeren.
+
+
+## Vrije training en piste-overzicht
+
+Het piste-overzicht toont vier eigen tegels met spelbeelden: Vrije training,
+Dernytraining, Vliegende start en Neem een ronde. De vrije training begint vanuit
+stilstand aan de finishlijn, heeft geen tijdslimiet en stopt wanneer de speler dat
+kiest. Tijd en werkelijk gereden afstand staan links, onder het standaardpaneel
+met snelheid, hartslag, cadans en slipstream. Daaronder verschijnt een scrollbare
+tabel met iedere voltooide rondetijd. Lijntijden worden binnen de fysicastap
+geïnterpoleerd, ook als meerdere lijnen in één stap worden gepasseerd. De eerste
+ronde bevat het optrekken; buitenom rijden kost ook werkelijk extra afstand.
+
+Vier losse pacers beginnen verspreid op willekeurige plekken en rijlijnen.
+Ze rijden elk op vaste fysieke snelheid, onafhankelijk van elkaar:
+
+- **30km/u Pacer**: blauw.
+- **35km/u Pacer**: groen.
+- **40km/u Pacer**: oranje.
+- **45km/u Pacer**: rood.
+
+Hun eigen truien, naamlabels en minimapkleuren stemmen overeen. De speler kan
+achter iedere pacer beschutting zoeken; naast of voor de renner valt die weg.
+Er zijn geen botsings- of wielafstandsbegrenzingen. Tijd, afstand, meetgrafiek en
+rondetijden worden lokaal bewaard, met de bestaande Strava-optie na stoppen.
+
+`test_free_training.gd` controleert lapinterpolatie, onbeperkte duur, pacertempo's,
+willekeurige startposities, werkelijke trui-materialen, slipstream, de HUD-tabel,
+opslag/herladen, de vier overzichtstegels en beide vliegende-starttabellen.

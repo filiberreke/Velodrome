@@ -21,19 +21,19 @@ func shot(name: String) -> void:
 func run_test() -> void:
 	root.size = Vector2i(1920,1080)
 	var session := Exercise.new()
-	session.start("flying_start",1000,300,30,600)
-	session.elapsed = 10
+	session.start("flying_start",1000,30,600)
+	session.elapsed = 10; session.energy_j = 2000
 	session.observe(.2,1249,1251,10,12,350,0,0)
 	check(session.successful and is_equal_approx(session.elapsed,10.1) and is_equal_approx(session.entry_kmh,39.6),"Flying result interpolates the exact pursuit-line crossing")
-	check(session.peak_w == 350 and not session.result().within_budget,"Peak records actual watts even above the comparison budget")
-	session.start("take_lap",76,300,30,600)
+	check(session.peak_w == 350 and is_equal_approx(session.result().mean_power_w,(2000+350*.1)/10.1),"Result keeps actual maximum and average power")
+	session.start("take_lap",76,30,600)
 	session.observe(1,76,126,8,8,150,100,150)
 	check(session.gained_m == 0 and not session.successful,"Moving with the pack earns no lap even across visual wrap")
 	session.observe(1,126,151,8,10,400,150,150)
 	check(session.gained_m == 25 and session.running(),"Passing the pack front is not a whole lap")
 	session.observe(.2,375,377,10,12,400,150,150)
 	check(session.successful and is_equal_approx(session.gained_m,250),"Win only after gaining a full unwrapped lap and catching the rear wheel")
-	session.start("take_lap",76,300,30,.1)
+	session.start("take_lap",76,30,.1)
 	session.observe(.2,76,326,8,8,500,100,100)
 	check(not session.successful and session.reason == "Tijdslimiet bereikt","A crossing after the time limit cannot count as success")
 	var server := PacketPeerUDP.new(); server.bind(0,"127.0.0.1")
@@ -43,10 +43,9 @@ func run_test() -> void:
 	var menu = game.setup_panel; var page = menu.exercise_page
 	menu.training_store.folder = "user://test_piste_exercises"
 	menu.show_piste_training()
-	check(menu.piste_page.get_child(1).text.contains("Vliegende") and menu.piste_page.get_child(2).text.contains("ronde"),"Both fixed exercises are selectable under piste training")
+	check(menu.piste_tiles.has("flying_start") and menu.piste_tiles.has("take_lap") and menu.piste_tiles.has("free_ride"),"Both fixed exercises are selectable under piste training")
 	await shot("piste_training_choices")
-	menu.piste_page.get_child(1).pressed.emit()
-	page.budget_input.value = 250
+	menu.piste_tiles["flying_start"].pressed.emit()
 	await shot("flying_training_setup")
 	page.begin()
 	var scene = game.piste_training
@@ -66,7 +65,7 @@ func run_test() -> void:
 		if i == 45: await shot("flying_training_ride")
 	check(climbed and descended and peak_height > 1,"Rider can climb and descend the actual banked piste")
 	check(page.selected_activity.get("exercise_success",false) and page.selected_activity.entry_speed_kmh > 0 and page.selected_activity.peak_power_w == 300,"Completed flying attempt records entry speed and true peak power")
-	check(not page.selected_activity.within_budget and scene.samples.size() > 3,"Exceeding the budget is reported without capping physics or erasing measurements")
+	check(not page.selected_activity.has("power_budget_w") and scene.samples.size() > 3,"Flying result has actual measurements and no target-power guidance")
 	var flying_id: String = page.selected_activity.id
 	check(menu.training_store.load_activity(flying_id).get("final",false) and not scene.active and menu.menu_margin.visible,"Flying result is locally persisted and restores menu")
 	await shot("flying_training_result")

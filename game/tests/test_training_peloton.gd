@@ -7,7 +7,7 @@ func check(ok: bool,message: String) -> void:
 func _initialize() -> void:
 	var leaders := {}
 	var previous := Formation.sample(1000,0)
-	var session := Exercise.new(); session.start("take_lap",0,300,30,600)
+	var session := Exercise.new(); session.start("take_lap",0,30,600)
 	var initial_progress := session.progress(Exercise.pack_tail(1000)-3,1000)
 	var velocity := 30.0/3.6
 	for tick in range(1,1121):

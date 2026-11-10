@@ -4056,6 +4056,7 @@ func _upload_training(activity: Dictionary) -> void:
 	if activity.get("kind","derny") != "derny":
 		strava_desired_description = "%s · %s. Begonnen met virtuele rolsnelheid %.0f km/u. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("title","Pistetraining"),activity.get("reason",""),activity.get("initial_speed_kmh",30)]
 		if activity.get("kind") == "flying_start": strava_desired_description += " Passage %.2f km/u · piek %.0f W." % [activity.get("entry_speed_kmh",0),activity.get("peak_power_w",0)]
+		elif activity.get("kind") == "free_ride": strava_desired_description += " Vrij rijden · %.2f km · %d voltooide rondes." % [float(activity.get("distance_m",0))/1000,activity.get("laps",[]).size()]
 		else: strava_desired_description += " Peloton %.0f km/u · %.1f m gewonnen." % [activity.get("peloton_kmh",30),activity.get("gained_m",0)]
 	if activity.get("demo",false): strava_desired_description = "GESIMULEERDE PC-PROEFRIT. " + strava_desired_description
 	strava_save_screenshot = false

@@ -16,7 +16,7 @@ func run_test() -> void:
 		await create_timer(.02).timeout; game._read_bridge()
 		if menu.ftp_page.fresh(game._now_s()): break
 	check(menu.ftp_page.fresh(game._now_s()) and game.trainer_virtual,"Actual virtual bridge supplies fresh exercise power")
-	for kind in ["flying_start","take_lap"]:
+	for kind in ["flying_start","take_lap","free_ride"]:
 		menu.show_piste_exercise(kind); menu.exercise_page.begin()
 		var scene = game.piste_training
 		check(scene != null and scene.active and not scene.demo,"Real trainer route starts "+kind)

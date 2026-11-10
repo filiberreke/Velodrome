@@ -15,7 +15,9 @@ func _draw() -> void:
 	var skin := preload("res://menu_theme.gd").panel(Color(.04,.10,.17,.64), Color(.65,.75,.85,.45), 0, 12)
 	draw_style_box(skin, Rect2(Vector2.ZERO, size))
 	var font := get_theme_default_font()
-	var area := Rect2(16, 36, maxf(1,size.x - 32), maxf(1,size.y - 60))
+	var columns := 2 if size.x < 1100 else 4
+	var top := 56.0 if columns == 2 else 36.0
+	var area := Rect2(16, top, maxf(1,size.x - 32), maxf(1,size.y - top-24))
 	for fraction in [.25,.5,.75]:
 		var y: float = area.end.y - float(fraction) * area.size.y
 		draw_line(Vector2(area.position.x,y), Vector2(area.end.x,y), Color(1,1,1,.12))
@@ -29,7 +31,7 @@ func _draw() -> void:
 			if valid(value): maximum = maxf(maximum, ceil(float(value) / 20) * 20)
 			latest = value
 		var label := "%s %s %s · schaal 0–%.0f" % [series[1], "%.0f" % float(latest) if valid(latest) else "—", series[2], maximum]
-		draw_string(font, Vector2(16 + index * (size.x-32)/4, 24), label, HORIZONTAL_ALIGNMENT_LEFT, (size.x-32)/4-8, 15, series[4])
+		draw_string(font, Vector2(16 + (index%columns) * (size.x-32)/columns, 24+(index/columns)*20), label, HORIZONTAL_ALIGNMENT_LEFT, (size.x-32)/columns-8, 15, series[4])
 		var points := PackedVector2Array()
 		var stride := maxi(1, int(ceil(float(samples.size()) / maxf(200, area.size.x))))
 		for i in range(samples.size()):

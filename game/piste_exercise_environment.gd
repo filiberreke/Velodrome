@@ -1,5 +1,8 @@
 extends "res://derny_environment.gd"
 const Exercise := preload("res://piste_exercise_session.gd")
+const Pacers := preload("res://free_training_pacers.gd")
+var pacers := Pacers.new()
+var pacer_bikes: Array[Node3D] = []
 const Formation := preload("res://training_peloton.gd")
 var pack_distance := 0.0 # Fixed lap-progress reference; pack_state holds the visible bounds.
 var pack_lane := Formation.CENTER_LANE
@@ -22,24 +25,28 @@ func enter() -> void:
 	if active: leave()
 	saved_camera = {"transform":game.camera.transform,"fov":game.camera.fov}
 	demo = not game.trainer_seen; demo_power = 180; control_started = game._now_s()
-	player_lane_offset = LOWEST_LANE if page.kind == "flying_start" else pack_lane
+	player_lane_offset = LOWEST_LANE if page.kind != "take_lap" else pack_lane
 	player_lane_target = game.LANES.find(player_lane_offset)
 	reduction = 0; road_grade = 0; total_elapsed = 0; total_distance = 0; assisted_seconds = 0
 	samples = []; last_sample = -1; last_save = 0; saved_final = false; too_close = false
 	var line := Exercise.pursuit_line(game)
 	pack_distance = line
-	start_distance = line if page.kind == "flying_start" else Exercise.pack_tail(pack_distance)-Exercise.FOLLOW_GAP
-	player_speed = Exercise.START_KMH/3.6 if page.kind == "flying_start" else page.tempo_input.value/3.6
-	session.start(page.kind,start_distance,page.budget_input.value,page.tempo_input.value,page.limit_input.value*60 if page.kind == "take_lap" else 600)
+	start_distance = 0.0 if page.kind == "free_ride" else line if page.kind == "flying_start" else Exercise.pack_tail(pack_distance)-Exercise.FOLLOW_GAP
+	player_speed = 0.0 if page.kind == "free_ride" else Exercise.START_KMH/3.6 if page.kind == "flying_start" else page.tempo_input.value/3.6
+	session.start(page.kind,start_distance,page.tempo_input.value,0 if page.kind == "free_ride" else page.limit_input.value*60 if page.kind == "take_lap" else 600)
+	if page.kind == "free_ride":
+		var rng := RandomNumberGenerator.new(); rng.randomize(); pacers.reset(rng,start_distance)
 	_update_pack_state()
 	reduction = _draft_at(start_distance)
 	last_power_sample_id = game.setup_panel.ftp_page.sample_id
 	session.peak_w = demo_power if demo else game.setup_panel.ftp_page.measured
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
-	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":page.kind,"title":Exercise.title(page.kind),"started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"initial_speed_kmh":player_speed*3.6,"line_distance":line}
+	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":page.kind,"title":Exercise.title(page.kind),"started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"initial_speed_kmh":player_speed*3.6,"line_distance":start_distance if page.kind == "free_ride" else line}
 	line_marker.position = game._at(line,8.8)+Vector3.UP*1.5; line_marker.visible = page.kind == "flying_start"
 	if page.kind == "take_lap" and pack_bikes.is_empty(): _build_pack()
 	for bike in pack_bikes: bike.visible = page.kind == "take_lap"
+	if page.kind == "free_ride" and pacer_bikes.is_empty(): _build_pacers()
+	for bike in pacer_bikes: bike.visible = page.kind == "free_ride"
 	if not demo: game.trainer_control.arm()
 	_enter_training_venue()
 	page.selected_activity = {}
@@ -56,15 +63,22 @@ func _build_pack() -> void:
 		var bike := Node3D.new(); bike.name = "TrainingPeloton%d" % i; add_child(bike)
 		var rider := preload("res://rider_visual.gd").new(); rider.set_meta("rider_index",1+i%3); rider.set_meta("country_kit",["netherlands","france","belgium","germany"][i%4]); bike.add_child(rider)
 		pack_bikes.append(bike)
+func _build_pacers() -> void:
+	for i in range(4):
+		var bike := Node3D.new(); bike.name = Pacers.rider_name(i); add_child(bike)
+		var rider := preload("res://rider_visual.gd").new(); rider.set_meta("rider_index",1+i%3); bike.add_child(rider)
+		rider.set_training_colour(Pacers.COLOURS[i])
+		var tag := Label3D.new(); tag.text = Pacers.rider_name(i); tag.position.y = 2.6; tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED; tag.font_size = 42; tag.pixel_size = .005; tag.outline_size = 10; tag.modulate = Pacers.COLOURS[i].lightened(.2); tag.no_depth_test = true; tag.layers = 2; bike.add_child(tag)
+		pacer_bikes.append(bike)
 func steer(direction: int) -> void:
 	if session.running(): player_lane_target = clampi(player_lane_target+direction,0,game.LANES.size()-1)
 func request_tempo(direction: int) -> void: steer(direction)
 func _update_pack_state() -> void:
-	pack_state = Formation.sample(pack_distance,session.elapsed) if session.kind == "take_lap" else {}
+	pack_state = Formation.sample(pack_distance,session.elapsed) if session.kind == "take_lap" else {"distances":pacers.distances,"lanes":pacers.lanes} if session.kind == "free_ride" else {}
 func _draft_at(player: float) -> float:
 	if pack_state.is_empty(): return 0
 	var best := 0.0
-	for i in range(Exercise.PACK_COUNT):
+	for i in range(pack_state.distances.size()):
 		var lateral: float = absf(player_lane_offset-float(pack_state.lanes[i]))
 		if lateral >= 1: continue
 		var gap: float = fposmod(float(pack_state.distances[i])-player,Exercise.LAP)*game._path_metric(player,player_lane_offset)
@@ -86,6 +100,7 @@ func _step(dt: float, power: float) -> void:
 		# Pace the bunch centre, not one changing leader. Riders are non-solid,
 		# exactly as in scratch: the human is never capped behind another bike.
 		pack_distance += session.target_kmh/3.6*dt/game._path_metric(Formation.center_distance(pack_distance),pack_lane)
+	if session.kind == "free_ride": pacers.advance(game,dt)
 	session.observe(dt,before,distance,old_speed,player_speed,power,pack_before,pack_distance)
 	var fraction: float = session.last_fraction
 	distance = lerpf(before,distance,fraction); player_lane_offset = lerpf(old_lane,player_lane_offset,fraction)
@@ -109,6 +124,8 @@ func _present(dt: float) -> void:
 		# training poses use bike roots. Convert once so the strips align.
 		pack_markers.update_bunch(game,{"front":float(pack_state.front)+game.FRONT_WHEEL_TIP_M,"tail":float(pack_state.tail)+game.FRONT_WHEEL_TIP_M},true)
 	else: pack_markers.update_bunch(game,{},false)
+	if session.kind == "free_ride":
+		for i in range(4): _place(pacer_bikes[i],pacers.distances[i],pacers.lanes[i],dt,180+i*70,85)
 	game.visual_rolls[0] = game.bikes[0].rotation.z
 	game._follow_rider_camera(distance,player_lane_offset,dt,false,game.bikes[0].position)
 	game.bikes[0].visible = game.look_back_held or game.camera_mode != 2

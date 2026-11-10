@@ -174,6 +174,13 @@ func set_country_kit(country: String) -> bool:
 	skinsuit_png = ""
 	return true
 
+## Plain per-instance training kit; leaves skin and bicycle materials untouched.
+func set_training_colour(colour: Color) -> void:
+	if body_mesh == null: return
+	set_country_kit("")
+	_apply_palette_to_mesh(body_mesh,{"suit":colour,"accent":colour.lightened(.3),"helmet":colour,"helmet2":colour.lightened(.3)})
+	for slot in DECAL_SLOTS: set_decal(slot,null)
+
 ## Optional atlas path per rider. Empty or invalid paths restore original colors.
 ## Relative paths are relative to res://; user:// and absolute PNG paths also work.
 func set_skinsuit_png(png_path: String) -> bool:

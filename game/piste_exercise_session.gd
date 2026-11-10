@@ -14,21 +14,23 @@ var peak_w := 0.0
 var energy_j := 0.0
 var entry_kmh := 0.0
 var gained_m := 0.0
-var power_budget := 400.0
 var target_kmh := 30.0
 var time_limit := 600.0
 var successful := false
 var last_fraction := 1.0
+var laps: Array[Dictionary] = []
+var lap_started_s := 0.0
 func running() -> bool: return phase == "RIDE"
 static func title(mode: String) -> String:
-	return "Vliegende start" if mode == "flying_start" else "Neem een ronde"
+	return {"flying_start":"Vliegende start","take_lap":"Neem een ronde","free_ride":"Vrije training"}.get(mode,"Pistetraining")
 static func pursuit_line(game) -> float:
 	# The same reference coordinate as the painted pursuit line in main.gd.
 	return fposmod(game.LAP-game.STRAIGHT*.5,game.LAP)
-func start(mode: String, at: float, budget: float, pack_kmh: float, seconds: float) -> void:
-	kind = mode; origin = at; power_budget = budget; target_kmh = pack_kmh; time_limit = seconds
+func start(mode: String, at: float, pack_kmh: float, seconds: float) -> void:
+	kind = mode; origin = at; target_kmh = pack_kmh; time_limit = seconds
 	phase = "RIDE"; reason = ""; elapsed = 0; peak_w = 0; energy_j = 0
 	entry_kmh = 0; gained_m = 0; successful = false; last_fraction = 1
+	laps.clear(); lap_started_s = 0
 func stop(message: String) -> void:
 	if not running(): return
 	phase = "RESULT"; reason = message
@@ -37,6 +39,17 @@ func progress(player: float, pack: float) -> float:
 	return player-origin if kind == "flying_start" else player-pack_tail(pack)+FOLLOW_GAP
 func observe(dt: float, before: float, after: float, speed_before: float, speed_after: float, power: float, pack_before: float, pack_after: float) -> void:
 	if not running() or dt <= 0: return
+	if kind == "free_ride":
+		last_fraction = 1
+		var previous_elapsed := elapsed
+		elapsed += dt; peak_w = maxf(peak_w,maxf(0,power)); energy_j += maxf(0,power)*dt
+		gained_m = after-origin
+		if after > before:
+			for number in range(maxi(1,floori((before-origin)/LAP)+1),floori((after-origin)/LAP)+1):
+				var crossing := previous_elapsed+dt*(origin+number*LAP-before)/(after-before)
+				laps.append({"lap":number,"seconds":crossing-lap_started_s,"elapsed_s":crossing})
+				lap_started_s = crossing
+		return
 	var previous := progress(before,pack_before)
 	var current := progress(after,pack_after)
 	last_fraction = 1.0
@@ -55,4 +68,4 @@ func observe(dt: float, before: float, after: float, speed_before: float, speed_
 	if successful: stop("Startlijn gepasseerd" if kind == "flying_start" else "Ronde gewonnen")
 	elif elapsed >= time_limit-.000001: stop("Tijdslimiet bereikt")
 func result() -> Dictionary:
-	return {"kind":kind,"title":title(kind),"exercise_success":successful,"entry_speed_kmh":entry_kmh,"peak_power_w":peak_w,"mean_power_w":energy_j/maxf(.001,elapsed),"power_budget_w":power_budget,"within_budget":peak_w <= power_budget,"gained_m":gained_m,"peloton_kmh":target_kmh,"time_limit_s":time_limit}
+	return {"kind":kind,"title":title(kind),"exercise_success":successful,"entry_speed_kmh":entry_kmh,"peak_power_w":peak_w,"mean_power_w":energy_j/maxf(.001,elapsed),"gained_m":gained_m,"peloton_kmh":target_kmh,"time_limit_s":time_limit,"laps":laps.duplicate(true)}

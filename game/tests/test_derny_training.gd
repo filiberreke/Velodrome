@@ -32,7 +32,7 @@ func run_test() -> void:
 	await shot("main_menu")
 	check(menu.hub_page.get_child(0).get_child_count() == 2 and menu.hub_page.get_child(1).get_child_count() == 2, "Four main tiles in two rows")
 	menu.show_piste_training()
-	menu.piste_page.get_child(0).pressed.emit()
+	menu.piste_tiles["derny"].pressed.emit()
 	check(menu.page == 12, "Derny opens under piste training")
 	await shot("derny_setup")
 	menu.derny_page.begin()

@@ -72,6 +72,7 @@ var race_settings: VBoxContainer
 var hub_page: VBoxContainer
 var training_page: VBoxContainer
 var piste_page: VBoxContainer
+var piste_tiles := {}
 var derny_page: VBoxContainer
 var exercise_page: VBoxContainer
 var training_history_page: VBoxContainer
@@ -242,7 +243,7 @@ func _ready() -> void:
 	_build_hub(layout)
 	show_hub()
 
-func _hub_button(parent: VBoxContainer, caption: String, action: Callable) -> Button:
+func _hub_button(parent: Container, caption: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size.y = 90
@@ -250,7 +251,7 @@ func _hub_button(parent: VBoxContainer, caption: String, action: Callable) -> Bu
 	parent.add_child(button)
 	return button
 
-func _hub_tile(parent: Container, caption: String, description: String, preview_indices: Array[int], action: Callable) -> Button:
+func _hub_tile(parent: Container, caption: String, description: String, preview_indices: Array[int], action: Callable, custom_preview: Texture2D = null) -> Button:
 	var button := Button.new()
 	button.name = caption
 	button.custom_minimum_size.y = 200
@@ -286,15 +287,16 @@ func _hub_tile(parent: Container, caption: String, description: String, preview_
 	images.add_theme_constant_override("separation", 10)
 	images.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(images)
-	if preview_indices.is_empty():
+	if preview_indices.is_empty() and custom_preview == null:
 		var chart := preload("res://training_tile_art.gd").new()
 		chart.custom_minimum_size.x = 280
 		chart.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		images.add_child(chart)
-	for index in preview_indices:
-		var image := TextureRect.new()
-		image.name = MODES[index]["key"]
-		image.texture = previews[index].get_texture()
+	var textures: Array[Texture2D] = []
+	if custom_preview != null: textures.append(custom_preview)
+	for index in preview_indices: textures.append(previews[index].get_texture())
+	for texture in textures:
+		var image := TextureRect.new(); image.texture = texture
 		image.custom_minimum_size.x = 260
 		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -321,7 +323,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	second_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(second_row)
 	_hub_tile(second_row, "ERG-training", "Workouts op vermogen en FTP-tests.", [], show_training)
-	_hub_tile(second_row, "Pistetraining", "Derny, vliegende start en een ronde winnen.", [7], show_piste_training)
+	_hub_tile(second_row, "Pistetraining", "Vrij rijden, derny en specifieke pistesessies.", [7], show_piste_training)
 	races_back = _hub_button(choice_page, "← Hoofdmenu", show_hub)
 	races_back.custom_minimum_size.y = 46
 	training_page = VBoxContainer.new()
@@ -340,18 +342,23 @@ func _build_hub(layout: VBoxContainer) -> void:
 	piste_page = VBoxContainer.new()
 	piste_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(piste_page)
-	_hub_button(piste_page, "Dernytraining  →", show_derny)
-	_hub_button(piste_page, "Vliegende start  →", show_piste_exercise.bind("flying_start"))
-	_hub_button(piste_page, "Neem een ronde  →", show_piste_exercise.bind("take_lap"))
-	piste_page.add_child(label("Vaste pistesessies, door ons voorbereid. Geen import of export.", 22, MUTED))
-	_hub_button(piste_page, "Opgeslagen trainingen  →", show_training_history)
-	_hub_button(piste_page, "← Hoofdmenu", show_hub)
+	var top_row := HBoxContainer.new(); top_row.size_flags_vertical = Control.SIZE_EXPAND_FILL; top_row.add_theme_constant_override("separation",16); piste_page.add_child(top_row)
+	var bottom_row := HBoxContainer.new(); bottom_row.size_flags_vertical = Control.SIZE_EXPAND_FILL; bottom_row.add_theme_constant_override("separation",16); piste_page.add_child(bottom_row)
+	piste_tiles["free_ride"] = _hub_tile(top_row,"Vrije training","Vrij rondfietsen, rondetijden en vier gekleurde pacers.",[],show_piste_exercise.bind("free_ride"),Preview.make(self,"free_training").get_texture())
+	piste_tiles["derny"] = _hub_tile(top_row,"Dernytraining","Volg de gangmaker en verhoog samen het tempo.",[],show_derny,Preview.make(self,"derny_training").get_texture())
+	piste_tiles["flying_start"] = _hub_tile(bottom_row,"Vliegende start","Gebruik de hoogte en verbeter je snelheid op de lijn.",[],show_piste_exercise.bind("flying_start"),Preview.make(self,"flying_training").get_texture())
+	piste_tiles["take_lap"] = _hub_tile(bottom_row,"Neem een ronde","Win een ronde op een peloton met vast tempo.",[0],show_piste_exercise.bind("take_lap"))
+	var links := HBoxContainer.new(); links.add_theme_constant_override("separation",16); piste_page.add_child(links)
+	_hub_button(links,"Opgeslagen trainingen  →",show_training_history)
+	_hub_button(links,"← Hoofdmenu",show_hub)
+	for button in links.get_children(): button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	derny_page = preload("res://derny_training.gd").new()
 	layout.add_child(derny_page)
 	derny_page.back_requested.connect(show_piste_training)
 	derny_page.environment_requested.connect(_piste_environment)
 	derny_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	exercise_page = preload("res://piste_exercise_page.gd").new()
+	exercise_page.records_store = training_store
 	layout.add_child(exercise_page)
 	exercise_page.back_requested.connect(show_piste_training)
 	exercise_page.environment_requested.connect(_exercise_environment)
@@ -421,6 +428,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	var focus: Control = node.get_child(0)
 	if node == hub_page: focus = hub_button
 	if node == training_page: focus = ftp_tile
+	if node == piste_page: focus = piste_tiles["free_ride"]
 	if node == derny_page: focus = derny_page.start_button
 	if node == exercise_page: focus = exercise_page.start_button
 	if node == training_history_page: focus = training_history_page.get_child(1)
@@ -799,7 +807,7 @@ func bridge_action(button: String) -> void:
 	if focused == null or not is_ancestor_of(focused):
 		if page == 1: cards[selected].grab_focus()
 		elif page == 0: hub_button.grab_focus()
-		elif page == 11: piste_page.get_child(0).grab_focus()
+		elif page == 11: piste_tiles["free_ride"].grab_focus()
 		elif page == 12: derny_page.stop_button.grab_focus() if derny_page.session.running() else derny_page.start_button.grab_focus()
 		elif page == 6: ftp_tile.grab_focus()
 		elif page == 14: workout_play_page.start_button.grab_focus()
