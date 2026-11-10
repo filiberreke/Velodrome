@@ -272,6 +272,7 @@ func _configure_peloton() -> void:
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 		x_ai.configure_riders(rider_identities, rider_forms)
+		x_ai.apply_ai_strength(ai_difficulty)
 	if race_mode == 2:
 		var rear_positions: Array[float] = []
 		_elimination_clock_ready = false; _elimination_accumulator = 0.0; _elimination_ticks = 0
