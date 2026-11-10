@@ -1912,7 +1912,7 @@ func _advance_race(dt: float) -> void:
 	if race_mode == 1:
 		var old_finishes: Array[float] = finish_times.duplicate()
 		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
-		for message in points_notifications.collect(points_rules, _race_positions().max()):
+		for message in points_notifications.collect(points_rules, float(peloton_info.get("center", _race_positions().max()))):
 			if race_overlay != null: race_overlay.popup.enqueue(message)
 		for i in range(rider_count):
 			if old_finishes[i] < 0.0 and finish_times[i] >= 0.0:
