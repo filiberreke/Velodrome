@@ -70,6 +70,6 @@ func step_keirin(dt: float, clock: float, finish_m: float, positions: Array[floa
 				var safe_accel := clampf((safe_speed - speeds[i]) / maxf(dt, 0.001), -2.2, 1.4)
 				var safe_power := maxf(0.0, (road_power(speeds[i], aero) + MASS * maxf(speeds[i],5.0) * safe_accel) / DRIVETRAIN)
 				wanted = minf(wanted, safe_power)
-		output[i] = _phys_power(i, wanted * difficulty / 80.0, dt)
+		output[i] = _phys_power(i, wanted, dt)
 		power_w[i] = output[i]
 	return output
