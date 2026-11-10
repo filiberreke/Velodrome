@@ -14,6 +14,7 @@ var slipstream_heading: HBoxContainer
 var left_stack: VBoxContainer
 var map_panel: Control
 var heart_label: Label
+var cadence_label: Label
 var gear_label: Label
 var energy_panel: VBoxContainer
 var energy_bar: ProgressBar
@@ -170,6 +171,7 @@ func _build_power() -> void:
 	speed_unit.size_flags_vertical = Control.SIZE_SHRINK_END
 	speed_row.add_child(speed_unit)
 	heart_label = _metric(column, "HARTSLAG", "— bpm")
+	cadence_label = _metric(column, "CADANS", "— rpm")
 	heart_label.tooltip_text = "Hartslag is voorlopig een placeholder"
 	gear_label = _metric(column, "VERSNELLING", "—")
 	gear_label.custom_minimum_size.x = 100
@@ -680,6 +682,8 @@ func update_race(data: Dictionary) -> void:
 	slipstream_bar.tooltip_text = "%.0f%% minder luchtweerstand · maximaal %.0f%%" % [reduction, maximum]
 	var bpm: Variant = data.get("heart_rate_bpm", null)
 	heart_label.text = "%d bpm" % int(bpm) if (bpm is int or bpm is float) and int(bpm) > 0 else "— bpm"
+	var rpm: Variant = data.get("cadence_rpm", null)
+	cadence_label.text = "%d rpm" % roundi(float(rpm)) if (rpm is int or rpm is float) and is_finite(float(rpm)) and float(rpm) >= 0.0 else "— rpm"
 	# Selection alone never means ERG is active. Future bridge integration supplies
 	# these two fields only after confirming the actual trainer state.
 	var erg_watts: Variant = data.get("erg_target_w", null)
@@ -688,7 +692,8 @@ func update_race(data: Dictionary) -> void:
 		erg_active = is_finite(float(erg_watts)) and float(erg_watts) >= 0.0
 	gear_label.text = "ERG %.0f W" % float(erg_watts) if erg_active else str(data["gear"])
 	gear_label.get_parent().get_child(0).text = "WEERSTAND" if erg_active else "VERSNELLING"
-	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else "%d/%d" % [data["lap"], data["laps"]]
+	var lap_suffix: int = int(data.get("lap_credit", 0))
+	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if bool(data.get("points_race", false)) and lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]
