@@ -102,6 +102,17 @@ func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float
 		last_role_change[i] = 0.0
 	initialized = true
 
+# Scale physical capacity once, after identity/form modifiers have been applied.
+# Player index 0 is deliberately excluded.
+func apply_ai_strength(percent: float) -> void:
+	var scale: float = clampf(percent / 100.0, 0.0, 1.0)
+	for i in range(1, cp.size()):
+		cp[i] *= scale
+		pmax[i] *= scale
+		wmax[i] *= scale
+		wprime[i] = wmax[i]
+
+
 func power_limit(i: int, dt: float) -> float:
 	# Read-only ceiling for the same step as _phys_power, before reserve changes.
 	var adjusted_cp: float = cp[i] * (1.0 - 0.10 * fatigue[i])
@@ -542,7 +553,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 		# An attack is short; solo pace or group work only after establishing a gap.
 		var cap_duration: float = (18.0 if m == MODE_ATTACK else (25.0 if m in [MODE_PULL, MODE_BREAK_PULL, MODE_CHASE] else 12.0))
 		target = minf(target, pcurve(cap_duration, cp[i], wmax[i], pmax[i])) if not sprint_started[i] else target
-		var actual: float = _phys_power(i, target * (difficulty / 80.0), dt)
+		var actual: float = _phys_power(i, target, dt)
 		power_w[i] = actual
 		output[i] = actual
 	return output
