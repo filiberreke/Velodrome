@@ -1,6 +1,5 @@
 extends "res://race_hud.gd"
 ## Reuses the race power meter, metrics panel, palette and slipstream bar.
-var cadence_label: Label
 var phase_label: Label
 var graph: Control
 var stop_button: Button
@@ -13,7 +12,6 @@ func _ready() -> void:
 	super._ready()
 	for node in [map_panel,nearby_panel,points_panel,team_laps_panel,solo_panel,bottom_bar,developer_panel,signals]: node.hide()
 	left_stack.offset_top = 112
-	cadence_label = _metric(power_panel.get_child(0), "CADANS", "— rpm")
 	energy_panel.hide()
 	dial = preload("res://derny_dial.gd").new()
 	left_stack.add_child(dial)
