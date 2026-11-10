@@ -22,6 +22,16 @@ func get_workout(id: String) -> Dictionary:
 	if path.is_empty() or not FileAccess.file_exists(path): return {}
 	var value: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	return value if value is Dictionary and value.get("version") == 1 and value.get("blocks") is Array else {}
+func delete_workout(id: String) -> bool:
+	error = ""
+	var path := _path(id)
+	if path.is_empty() or get_workout(id).is_empty():
+		error = "Workout niet gevonden."
+		return false
+	if DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) != OK:
+		error = "Workout kon niet worden verwijderd."
+		return false
+	return true
 func all_workouts() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	var directory := DirAccess.open(folder)

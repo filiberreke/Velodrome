@@ -319,3 +319,14 @@ en vervaagt. Na een korte reactietijd bevestigt de gangmaker met respectievelijk
 de duim of de vlakke hand. De minuutklok begint opnieuw bij die tempowijziging;
 de automatische verhogingen blijven actief. Stuurpaddles en camera blijven
 beschikbaar; op het toetsenbord sturen A/D en wisselt C de camera.
+
+
+De FTP-ramptegel tekent het echte testprotocol: 300 seconden vrij opwarmen,
+gevolgd door stappen van 60 seconden vanaf 100 W, met telkens 20 W erbij tot
+de veiligheidslimiet van 1300 W. De test kan eerder stoppen wanneer de renner
+niet meer kan. De miniatuur en de test gebruiken dezelfde protocolconstanten.
+
+Bij een geopende eigen workout toont de editor **Workout verwijderen**. De knop
+opent een bevestigingsvenster met de opgeslagen naam. Annuleren bewaart de
+workout; bevestigen verwijdert alleen die workout en vernieuwt de tegels en
+de keuzelijst. Daarna staat de editor klaar voor een nieuwe workout.

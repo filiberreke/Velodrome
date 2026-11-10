@@ -359,6 +359,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	workout_editor_page.library = workout_library
 	layout.add_child(workout_editor_page)
 	workout_editor_page.workout_saved.connect(func(_id): refresh_workout_tiles())
+	workout_editor_page.workout_deleted.connect(func(_id): refresh_workout_tiles())
 	workout_editor_page.back_requested.connect(show_training)
 	ftp_page = preload("res://ftp_training.gd").new()
 	layout.add_child(ftp_page)
@@ -479,7 +480,7 @@ func _workout_tile(caption: String, description: String, action: Callable, worko
 	return button
 func refresh_workout_tiles() -> void:
 	for child in workout_grid.get_children(): workout_grid.remove_child(child); child.queue_free()
-	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp)
+	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()))
 	editor_tile = _workout_tile("Workout-editor","Nieuwe workout maken of bestaande bewerken.",show_workout_editor)
 	saved_workout_tiles.clear()
 	for item in workout_library.all_workouts():

@@ -39,7 +39,14 @@ func run_test() -> void:
 	menu.workout_library.folder = "user://test_workout_library"
 	root.add_child(menu)
 	await process_frame
+	var ftp_blocks: Array = menu.ftp_tile.get_child(0).get_child(0).workout_blocks
+	check(ftp_blocks.size() == 62 and ftp_blocks[0].kind == "FreeRide" and ftp_blocks[0].duration == 300,"FTP tile starts with five minutes free warmup and includes every ramp step")
+	for i in range(2,ftp_blocks.size()):
+		check(ftp_blocks[i].kind == "SteadyState" and ftp_blocks[i].duration == 60 and ftp_blocks[i].power_low > ftp_blocks[i-1].power_low,"FTP thumbnail increases every minute without interval recoveries")
+	var protocol_preview := preload("res://ftp_ramp.gd").preview_blocks(200)
+	check(protocol_preview[1].power_low*200 == 100 and protocol_preview[2].power_low*200 == 120 and protocol_preview[-1].power_low*200 == 1300,"FTP preview matches the actual 100 W start, 20 W steps and safety limit")
 	var editor = menu.workout_editor_page
+	check(not editor.delete_workout_button.visible,"New unsaved workout has no delete button")
 	editor.name_edit.text = "Tempo"
 	editor.save_workout()
 	var first: String = editor.current_id
@@ -115,6 +122,20 @@ func run_test() -> void:
 		page._process(1)
 	check(page.test.elapsed == 0 and page.test.phase == "RESULT" and page.test.reason.contains("niet bevestigd"),"Unconfirmed hardware target cannot advance training and times out")
 	page.free()
+	menu.edit_workout(first)
+	check(editor.delete_workout_button.visible,"Existing custom workout offers deletion while editing")
+	editor.delete_workout_button.pressed.emit()
+	await process_frame
+	check(editor.delete_dialog.visible and not reload.get_workout(first).is_empty(),"Clicking delete only opens confirmation and keeps the saved workout")
+	await shot("workout_delete_confirmation")
+	editor.delete_dialog.get_cancel_button().pressed.emit()
+	await process_frame
+	check(not editor.delete_dialog.visible and not reload.get_workout(first).is_empty() and menu.saved_workout_tiles.size() == 2,"Cancelling deletion keeps file and menu tiles")
+	editor.delete_workout_button.pressed.emit()
+	editor.delete_dialog.get_ok_button().pressed.emit()
+	check(reload.get_workout(first).is_empty() and not reload.get_workout(second).is_empty(),"Confirming removes only the selected custom workout")
+	check(editor.current_id.is_empty() and not editor.delete_workout_button.visible and editor.workout_choice.item_count == 2 and menu.saved_workout_tiles.size() == 1,"Deletion refreshes tiles and dropdown and returns editor to a new workout")
+	check(not reload.delete_workout("../ftp_ramp") and not reload.get_workout(second).is_empty(),"Invalid deletion cannot touch files outside the library")
 	for item in reload.all_workouts(): DirAccess.remove_absolute(ProjectSettings.globalize_path(reload._path(item.id)))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(profile.path))
 	menu.free()

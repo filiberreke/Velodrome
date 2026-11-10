@@ -2,9 +2,13 @@ extends VBoxContainer
 ## Standalone ZWO workout editor, embedded in the training menu.
 signal back_requested
 signal workout_saved(id: String)
+signal workout_deleted(id: String)
 var library = preload("res://workout_library.gd").new()
 var current_id := ""
 var workout_choice: OptionButton
+var delete_workout_button: Button
+var delete_dialog: ConfirmationDialog
+var pending_delete_id := ""
 const Workout := preload("res://zwo_workout.gd")
 const MenuStyle := preload("res://menu_theme.gd")
 const PANEL := MenuStyle.PAPER
@@ -41,6 +45,14 @@ func _ready() -> void:
 	)
 	_button(selection,"Nieuwe workout",new_workout)
 	_button(selection,"Opslaan",save_workout)
+	delete_workout_button = _button(selection,"Workout verwijderen",request_delete_workout)
+	delete_dialog = ConfirmationDialog.new()
+	delete_dialog.title = "Workout verwijderen?"
+	delete_dialog.get_ok_button().text = "Verwijderen"
+	delete_dialog.get_cancel_button().text = "Annuleren"
+	delete_dialog.confirmed.connect(_confirm_delete_workout)
+	delete_dialog.canceled.connect(func(): pending_delete_id = "")
+	add_child(delete_dialog)
 	var toolbar := HBoxContainer.new()
 	add_child(toolbar)
 	name_edit = LineEdit.new()
@@ -99,6 +111,7 @@ func _ready() -> void:
 	new_workout()
 
 func refresh_workout_choices() -> void:
+	delete_workout_button.visible = not current_id.is_empty()
 	workout_choice.clear()
 	workout_choice.add_item("Nieuwe workout")
 	workout_choice.set_item_metadata(0,"")
@@ -107,6 +120,8 @@ func refresh_workout_choices() -> void:
 		workout_choice.set_item_metadata(workout_choice.item_count-1,item.id)
 		if item.id == current_id: workout_choice.select(workout_choice.item_count-1)
 func new_workout() -> void:
+	pending_delete_id = ""
+	delete_dialog.hide()
 	current_id = ""
 	name_edit.text = "Nieuwe training"
 	blocks.clear()
@@ -131,6 +146,22 @@ func save_workout() -> void:
 	refresh_workout_choices()
 	status.text = "Workout opgeslagen"
 	workout_saved.emit(id)
+
+func request_delete_workout() -> void:
+	var item: Dictionary = library.get_workout(current_id)
+	if item.is_empty(): return
+	pending_delete_id = current_id
+	delete_dialog.dialog_text = 'Wil je "%s" definitief verwijderen?\nDit kan niet ongedaan worden gemaakt.' % str(item.name)
+	delete_dialog.popup_centered(Vector2i(540,180))
+	delete_dialog.get_cancel_button().grab_focus.call_deferred()
+func _confirm_delete_workout() -> void:
+	var id := pending_delete_id
+	pending_delete_id = ""
+	if id.is_empty() or id != current_id: return
+	if not library.delete_workout(id): status.text = library.error; return
+	new_workout()
+	status.text = "Workout verwijderd"
+	workout_deleted.emit(id)
 
 func _panel(parent: Node, min_width: float) -> VBoxContainer:
 	var panel := PanelContainer.new()

@@ -2,6 +2,10 @@ extends RefCounted
 ## Monotonic session clock and time-weighted, zero-order-held measured power.
 const WARMUP_SECONDS := 300.0
 const SIGNAL_TIMEOUT := 1.25
+const START_W := 100
+const STEP_W := 20
+const STEP_SECONDS := 60.0
+const MAX_W := 1300
 var phase := "IDLE"
 var reason := ""
 var started_at := 0.0
@@ -31,8 +35,16 @@ func start(now: float) -> void:
 
 func target(now: float) -> int:
 	if phase == "WARMUP": return 0
-	if phase != "RAMP": return 100
-	return 100 + 20 * int(maxf(0.0, now - ramp_at) / 60.0)
+	if phase != "RAMP": return START_W
+	return START_W + STEP_W * int(maxf(0.0, now - ramp_at) / STEP_SECONDS)
+
+static func preview_blocks(ftp_w: float) -> Array[Dictionary]:
+	# Show the full protocol up to its safety limit; the rider can stop earlier.
+	var blocks: Array[Dictionary] = [{"kind":"FreeRide","duration":WARMUP_SECONDS,"power_low":0,"power_high":0}]
+	for watts in range(START_W,MAX_W+1,STEP_W):
+		var fraction := watts/maxf(20,ftp_w)
+		blocks.append({"kind":"SteadyState","duration":STEP_SECONDS,"power_low":fraction,"power_high":fraction})
+	return blocks
 
 func tick(now: float, confirmed: bool) -> void:
 	if phase == "CONNECTING":
@@ -44,7 +56,7 @@ func tick(now: float, confirmed: bool) -> void:
 	elif phase == "WARMUP" and now - started_at >= WARMUP_SECONDS:
 		phase = "CONNECTING"
 		started_at = now
-	elif phase == "RAMP" and target(now) > 1300:
+	elif phase == "RAMP" and target(now) > MAX_W:
 		stop("Veiligheidslimiet van 1300 W bereikt")
 
 func stop(message: String) -> void:
