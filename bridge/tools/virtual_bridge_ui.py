@@ -13,10 +13,20 @@ from tkinter import ttk, messagebox
 # Use the same validation and phase-1 mapping migration as the real bridge.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from button_mapping import ButtonMapper
+from device_registry import DeviceRegistry, FTMS_SERVICE, HR_SERVICE
+from hr_bridge import HeartRateState
+from udp_commands import CommandProtocol
+from types import SimpleNamespace
 
 HOST = "127.0.0.1"
 TELEMETRY_PORT = 51723
 COMMAND_PORT = 51725
+SELECTION_PATH = Path(__file__).resolve().parents[1] / 'virtual_device_selections.json'
+FIXTURES = (
+    ('virtual:wahoo-kickr', 'Wahoo KICKR', 'trainer'),
+    ('virtual:zwift-ride', 'Zwift Ride (links)', 'controller'),
+    ('virtual:heart-rate', 'Virtuele BLE-hartslagmeter', 'heart_rate'),
+)
 
 class VirtualBridge:
     def __init__(self, root):
@@ -49,6 +59,17 @@ class VirtualBridge:
         self.connected = tk.BooleanVar(value=True)
         self.send_gear = tk.BooleanVar(value=True)
         self.packet_drop = tk.BooleanVar(value=False)
+        self.bridge_online = tk.BooleanVar(value=True)
+        self.two_devices = tk.BooleanVar(value=False)
+        self.device_present = {address: tk.BooleanVar(value=True) for address, _, _ in FIXTURES}
+        self.devices = DeviceRegistry(None, HeartRateState(), SELECTION_PATH)
+        # Deterministic simulator defaults; explicit saved disable/selection wins.
+        for address, _, role in FIXTURES:
+            if self.devices.selected[role] is None:
+                self.devices.selected[role] = address
+        self.device_protocol = CommandProtocol(SimpleNamespace(status=self.snapshot), devices=self.devices)
+        self.device_protocol.connection_made(SimpleNamespace(sendto=self._device_reply))
+        self.device_status = tk.StringVar()
         self.mode = "SIM"
         self.desired_mode = "SIM"
         self.backend = "resistance"
@@ -67,6 +88,15 @@ class VirtualBridge:
         frm.pack(fill="both", expand=True)
         ttk.Label(frm, text="Virtuele bridge - start Godot en rijd in testmodus", font=("", 12, "bold")).pack(anchor="w")
         ttk.Label(frm, text="Geen Zwift Ride of KICKR vereist. Sluit de echte bridge vooraf.").pack(anchor="w")
+        devices_box = ttk.LabelFrame(frm, text="Apparaatselectie testen", padding=6)
+        devices_box.pack(fill="x", pady=6)
+        ttk.Checkbutton(devices_box, text="Precies 2 apparaten: Wahoo KICKR + Zwift Ride", variable=self.two_devices).pack(anchor="w")
+        row = ttk.Frame(devices_box)
+        row.pack(fill="x")
+        for address, name, _ in FIXTURES:
+            ttk.Checkbutton(row, text=name + " gevonden", variable=self.device_present[address]).pack(side="left", padx=3)
+        ttk.Checkbutton(devices_box, text="Bridge bereikbaar (uit = geen commando-antwoorden of telemetrie)", variable=self.bridge_online).pack(anchor="w")
+        ttk.Label(devices_box, textvariable=self.device_status, wraplength=650).pack(anchor="w")
         for name, var, lo, hi in (("Vermogen (W)", self.power, 0, 900),
                                   ("Snelheid (km/u)", self.speed, 0, 70),
                                   ("Cadans (rpm)", self.cadence, 0, 140),
@@ -134,8 +164,61 @@ class VirtualBridge:
         self.right_paddle.set(0)
 
     def transmit(self, obj):
-        if not self.packet_drop.get():
+        if self.bridge_online.get() and not self.packet_drop.get():
             self.send_udp(self.tx, obj, (HOST, TELEMETRY_PORT))
+
+    def _device_reply(self, raw, address):
+        try:
+            self.rx.sendto(raw, address)
+        except (ConnectionResetError, ConnectionRefusedError):
+            pass
+
+    def refresh_devices(self):
+        records = []
+        for address, name, role in FIXTURES:
+            visible = self.device_present[address].get() and not (self.two_devices.get() and role == 'heart_rate')
+            if visible:
+                device = SimpleNamespace(address=address, name=name)
+                adv = SimpleNamespace(local_name=name,
+                    service_uuids=[FTMS_SERVICE] if role == 'trainer' else ([HR_SERVICE] if role == 'heart_rate' else []),
+                    manufacturer_data={0x094A: b'\x08'} if role == 'controller' else {})
+                records.append((device, adv))
+            elif self.two_devices.get() and role == 'heart_rate':
+                self.devices.inventory.pop(address, None)
+            elif address in self.devices.inventory:
+                self.devices.inventory[address]['seen'] = -float('inf')
+        self.devices.observe(records)
+        available = {str(device.address) for device, _ in records}
+        for role, address in self.devices.selected.items():
+            ready = address in available and (role != 'controller' or self.ride_connected.get())
+            self.devices.connected[role] = address if ready else ''
+        self.device_status.set(' | '.join(f'{role}: {address or "geen"}' for role, address in self.devices.selected.items()))
+
+    def role_ready(self, role):
+        return bool(self.devices.connected[role])
+
+    def release_trainer(self):
+        self.owner = None
+        self.lease = 0.
+        self.mode = 'RELEASED'
+        self.desired_mode = 'ERG'
+        self.target = 0
+        self.grade = 0.
+        self.aero = 1.
+        self.released = True
+
+    def device_command(self, data, address):
+        self.refresh_devices()
+        previous = dict(self.devices.selected)
+        self.device_protocol.datagram_received(data, address)
+        if previous != self.devices.selected:
+            if previous['trainer'] != self.devices.selected['trainer']:
+                self.release_trainer()
+            if previous['controller'] != self.devices.selected['controller']:
+                for button in sorted(self.held_buttons): self.release_button(button)
+                self.release_paddles()
+            self.refresh_devices()
+            self.write('Apparaatselectie: ' + str(self.devices.selected))
 
     @staticmethod
     def send_udp(sock, obj, address):
@@ -146,7 +229,8 @@ class VirtualBridge:
             pass
 
     def press_button(self, button):
-        if not self.ride_connected.get() or button in self.held_buttons:
+        self.refresh_devices()
+        if not self.role_ready('controller') or button in self.held_buttons:
             return
         self.held_buttons.add(button)
         # Match VirtualShifter: either left key shifts down, either right key up.
@@ -193,6 +277,8 @@ class VirtualBridge:
         }
 
     def command(self, data, address):
+        if not self.bridge_online.get():
+            return
         request_id = None
         try:
             obj = json.loads(data.decode("utf-8"))
@@ -202,6 +288,10 @@ class VirtualBridge:
             if obj.get("type") != "command" or obj.get("v") != 1:
                 raise ValueError("invalid_envelope")
             action = obj.get("command")
+            if action in ('devices', 'select_device'):
+                self.device_command(data, address)
+                self.counter += 1
+                return
             now = time.monotonic()
             if self.owner and now > self.lease:
                 self.owner = None
@@ -213,6 +303,7 @@ class VirtualBridge:
             if action == "status":
                 pass
             elif action == "set_mode":
+                if not self.role_ready('trainer'): raise ValueError('not_active')
                 mode = obj.get("mode")
                 if mode not in ("SIM", "ERG"):
                     raise ValueError("invalid_mode")
@@ -224,6 +315,7 @@ class VirtualBridge:
                 self.owner = None
                 self.released = False
             elif action == "set_grade":
+                if not self.role_ready('trainer'): raise ValueError('not_active')
                 if self.desired_mode != "SIM":
                     raise ValueError("wrong_mode")
                 if self.owner and self.owner != address:
@@ -248,6 +340,7 @@ class VirtualBridge:
                     self.target = 0
                     self.released = True
                 else:
+                    if not self.role_ready('trainer'): raise ValueError('not_active')
                     if self.desired_mode != "ERG":
                         raise ValueError("wrong_mode")
                     if self.owner and self.owner != address:
@@ -284,7 +377,11 @@ class VirtualBridge:
         if not self.running:
             return
         self.sample += 1
-        ride_ready = bool(self.ride_connected.get())
+        had_trainer = self.role_ready('trainer')
+        self.refresh_devices()
+        if had_trainer and not self.role_ready('trainer'):
+            self.release_trainer()
+        ride_ready = self.role_ready('controller')
         if ride_ready != self.last_ride_connection:
             if not ride_ready:
                 for button in sorted(self.held_buttons):
@@ -294,16 +391,17 @@ class VirtualBridge:
         self.transmit({"type": "controller_connection", "connected": ride_ready,
                        "buttons": sorted(self.held_buttons)})
         self.steering.set(max(0, round(self.right_paddle.get())) - max(0, -round(self.left_paddle.get())))
+        if not ride_ready: self.steering.set(0)
         self.transmit({'type': 'steering', 'value': round(self.steering.get())})
         if not self.packet_drop.get():
-            self.transmit({"type": "telemetry", "virtual": True, "valid": self.connected.get(),
+            self.transmit({"type": "telemetry", "virtual": True, "valid": self.connected.get() and self.role_ready('trainer'),
                            "power_w": round(self.power.get()), "speed_kmh": self.speed.get(),
-                           "cadence_rpm": round(self.cadence.get()), "heart_rate_bpm": round(self.hr.get()),
+                           "cadence_rpm": round(self.cadence.get()), "heart_rate_bpm": round(self.hr.get()) if self.role_ready('heart_rate') else None,
                            "sample_id": self.sample,
                            # Each simulator tick is a new power measurement, also at 0 W.
                            "power_sample_id": self.sample,
-                           "power_age_s": 0.0 if self.connected.get() else None,
-                           "gear": self.gear if self.send_gear.get() and self.mode == self.desired_mode == "SIM" else None})
+                           "power_age_s": 0.0 if self.connected.get() and self.role_ready('trainer') else None,
+                           "gear": self.gear if self.role_ready('trainer') and self.send_gear.get() and self.mode == self.desired_mode == "SIM" else None})
         try:
             while True:
                 data, address = self.rx.recvfrom(4096)

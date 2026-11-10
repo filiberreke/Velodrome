@@ -13,8 +13,9 @@ CACHE_SECONDS, CACHE_SIZE = 60.0, 2048
 log = logging.getLogger(__name__)
 SCHEMA = {'set_mode': {'mode'}, 'set_target_power': {'watts', 'ramp_w_per_s'},
           'set_grade': {'grade_pct', 'ramp_pct_per_s', 'aero_scale'},
-          'stop': set(), 'status': set(), 'heartbeat': set()}
-REQUIRED = {'set_mode': {'mode'}, 'set_target_power': {'watts'}, 'set_grade': {'grade_pct'}}
+          'stop': set(), 'status': set(), 'heartbeat': set(),
+          'devices': set(), 'select_device': {'role', 'address'}}
+REQUIRED = {'select_device': {'role', 'address'}, 'set_mode': {'mode'}, 'set_target_power': {'watts'}, 'set_grade': {'grade_pct'}}
 
 def pairs_unique(pairs):
     result = {}
@@ -50,8 +51,9 @@ def decode_command(data):
     return obj, command, params
 
 class CommandProtocol(asyncio.DatagramProtocol):
-    def __init__(self, combined, clock=time.monotonic):
+    def __init__(self, combined, clock=time.monotonic, devices=None):
         self.combined = combined
+        self.devices = devices
         self.clock = clock
         self.transport = None
         self.cache = OrderedDict()
@@ -94,9 +96,14 @@ class CommandProtocol(asyncio.DatagramProtocol):
             if len(self.cache) >= CACHE_SIZE and command != 'stop':
                 raise CommandError('server_busy', 'Deduplicatiecache vol; probeer later met nieuw id')
             try:
-                state = self.combined.accept(command, params, source=addr)
+                if command in ('devices', 'select_device'):
+                    if self.devices is None:
+                        raise CommandError('unsupported', 'Werk de bridge bij voor apparaatselectie')
+                    state = self.devices.accept(command, params)
+                else:
+                    state = self.combined.accept(command, params, source=addr)
                 packet = {'type': 'ack', 'v': 1, 'id': obj['id'], 'ok': True,
-                          'result': 'snapshot' if command == 'status' else 'accepted', 'state': state}
+                          'result': 'snapshot' if command in ('status', 'devices') else 'accepted', 'state': state}
             except CommandError as exc:
                 packet = self.error(obj['id'], exc)
             raw = self.reply(packet, addr)

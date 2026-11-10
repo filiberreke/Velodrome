@@ -22,7 +22,7 @@ var time_trial_settings: VBoxContainer
 var time_trial_start: OptionButton
 var time_trial_distance: OptionButton
 var time_trial_reference: OptionButton
-var bridge_label: Label
+var bridge_status_text := "Demo beschikbaar"
 var bridge_seen := false
 var bridge_live := false
 var bridge_unavailable := false
@@ -132,15 +132,14 @@ func _ready() -> void:
 	outer.add_child(brand_row)
 	brand_row.add_child(MenuStyle.logo())
 	brand_row.add_spacer(false)
-	bridge_label = label("Demo beschikbaar", 18, MUTED)
-	bridge_label.custom_minimum_size.x = 360
-	bridge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bridge_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	bridge_label.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 12, 10))
-	bridge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	brand_row.add_child(bridge_label)
+	# Reserve the shared status/setup button's space in the header. The button
+	# lives above the pause layer, so the same control remains usable in a race.
+	var bridge_space := Control.new()
+	bridge_space.custom_minimum_size = Vector2(475, 52)
+	bridge_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	brand_row.add_child(bridge_space)
 	var settings_space := Control.new()
-	settings_space.custom_minimum_size.x = 275
+	settings_space.custom_minimum_size.x = 224
 	brand_row.add_child(settings_space)
 	var shell := PanelContainer.new()
 	shell.name = "IvoryMenuSheet"
@@ -722,9 +721,9 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_seen = seen
 	bridge_live = live
 	bridge_unavailable = unavailable
-	bridge_label.text = "●  Trainer verbonden" if live else ("Trainer gevonden · wacht op gegevens" if seen else "Demo beschikbaar · geen trainer")
+	bridge_status_text = "●  Trainer verbonden" if live else ("Trainer gevonden · wacht op gegevens" if seen else "Demo beschikbaar · geen trainer")
 	if unavailable:
-		bridge_label.text = "Verbinding bezet · sluit de andere spelinstantie"
+		bridge_status_text = "Verbinding bezet · sluit de andere spelinstantie"
 	demo_settings.visible = selected in [0, 1, 2, 3, 5, 6, 7] and not seen and not unavailable
 	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5, 6, 7]
 	if selected in [1, 2]:

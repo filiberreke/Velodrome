@@ -178,3 +178,7 @@ geen BLE/USB-pakketten of hardware nodig. Zie [VALIDATION.md](VALIDATION.md).
 Bronnen: [Bluetooth SIG FTMS 1.0.1](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0-1/)
 en [GATT Specification Supplement](https://btprodspecificationrefs.blob.core.windows.net/gatt-specification-supplement/GATT_Specification_Supplement.pdf).
 
+
+## Apparaten kiezen in Godot
+
+Zie [apparaatselectie, protocol en beperkingen](DEVICE_SELECTION.md). Werk spel en bridge samen bij.

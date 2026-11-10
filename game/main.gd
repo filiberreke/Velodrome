@@ -568,6 +568,7 @@ var ride_look_source := "B"
 var ride_buttons: Dictionary = {}
 var ride_mapping := preload("res://ride_mapping.gd").new()
 var last_controller_signal := -1.0
+var bridge_devices: CanvasLayer
 var ride_navigation: CanvasLayer
 # Visual-only lean; race physics remains untouched.
 var visual_rolls: Array[float] = [0.0, 0.0, 0.0, 0.0]
@@ -625,6 +626,8 @@ func _ready() -> void:
 	exit_menu.setup(self)
 	_reset()
 	setup_panel.show_hub()
+	bridge_devices = preload("res://bridge_devices.gd").new()
+	add_child(bridge_devices)
 
 func _bind_bridge(port: int = UDP_PORT) -> Error:
 	bridge_bind_error = udp.bind(port, "127.0.0.1")
@@ -857,6 +860,8 @@ func _input(event: InputEvent) -> void:
 			pass
 		elif preferences != null and preferences.panel_root.visible:
 			preferences._close_settings()
+		elif bridge_devices != null and bridge_devices.panel_root.visible:
+			bridge_devices.close_page()
 		elif exit_menu != null and exit_menu.quitting_application:
 			exit_menu.cancel_or_resume()
 		elif race_paused:
@@ -976,6 +981,7 @@ func _clear_look_back() -> void:
 func _ride_context() -> String:
 	var preferences := get_node_or_null("GameSettings")
 	if preferences != null and preferences.panel_root.visible: return "settings"
+	if bridge_devices != null and bridge_devices.panel_root.visible: return "devices"
 	if race_paused or (exit_menu != null and exit_menu.quitting_application): return "pause"
 	if piste_training != null and piste_training.active: return "piste"
 	if setup_panel != null and setup_panel.visible: return "setup"
@@ -1003,10 +1009,11 @@ func _ride_action(key: String, source: String = "B") -> void:
 	var preferences := get_node_or_null("GameSettings")
 	# The diagnostic page consumes every gameplay action. Z explicitly exits it.
 	if preferences != null and preferences.controller_test_active():
-		if key == "Z": preferences.bridge_action(key)
+		if key == "Z" or (key == "B" and preferences.return_to_devices): preferences.bridge_action(key)
 		return
 	if ride_navigation != null and ride_navigation.keyboard_action(key): return
 	match _ride_context():
+		"devices": bridge_devices.bridge_action(key)
 		"settings": preferences.bridge_action(key)
 		"pause":
 			if key in ["B", "Z"]: exit_menu.cancel_or_resume()

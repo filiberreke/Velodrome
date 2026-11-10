@@ -164,6 +164,9 @@ func _action() -> String:
     return str(Mapping.ACTIONS[_context()].keys()[action_choice.selected])
 
 func _build_editor() -> void:
+    var heading := Label.new()
+    heading.text = "Knoptoewijzing"
+    add_child(heading)
     var row := HBoxContainer.new()
     add_child(row)
     context_choice = OptionButton.new()

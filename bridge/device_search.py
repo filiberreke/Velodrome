@@ -10,6 +10,7 @@ class Discovery:
         self.clock = clock
         self.lock = asyncio.Lock()
         self.cached = []
+        self.error = ''
         self.scanned_at = -float('inf')
 
     async def records(self):
@@ -18,8 +19,10 @@ class Discovery:
             if self.clock() - self.scanned_at >= 2.0:
                 try:
                     self.cached = await self.scan()
+                    self.error = ''
                 except Exception as exc:
                     self.cached = []
+                    self.error = str(exc)
                     print('Bluetooth-scan niet beschikbaar:', type(exc).__name__, str(exc), flush=True)
                 self.scanned_at = self.clock()
             return self.cached

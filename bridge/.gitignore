@@ -4,3 +4,9 @@ __pycache__/
 *.py[cod]
 bridge.log
 bridge.log.*
+
+device_selections.json
+device_selections.tmp
+
+virtual_device_selections.json
+virtual_device_selections.tmp
