@@ -5,6 +5,7 @@ const MenuStyle := preload("res://menu_theme.gd")
 const INK := MenuStyle.INK
 const MUTED := MenuStyle.MUTED
 const ACCENT := MenuStyle.BLUE
+var madison_hud: Control
 var signals: Control
 var power_label: Label
 var speed_label: Label
@@ -95,6 +96,9 @@ func panel(parent_node: Node, position_preset: int, left: float, top: float, rig
 	return node
 
 func _ready() -> void:
+	madison_hud = preload("res://madison_hud.gd").new()
+	add_child(madison_hud)
+	madison_hud.hide()
 	theme = MenuStyle.create()
 	var brand := MenuStyle.logo()
 	brand.custom_minimum_size = Vector2.ZERO
@@ -649,6 +653,7 @@ static func nearby_ids(order: Array[int], player: int = 0) -> Array[int]:
 	return result
 
 func update_race(data: Dictionary) -> void:
+	madison_hud.update_state(data.get("madison", {}))
 	_update_energy(data)
 	_update_pursuit_bar(data)
 	_update_team_laps(data)

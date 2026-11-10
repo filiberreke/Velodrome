@@ -36,7 +36,7 @@ func run_test() -> void:
 	check(people.size() > 0, "Stadium crowd is available for race restoration")
 	for person in people:
 		check(not person.visible, "Stadium empty in menus")
-	for index in [4, 6, 7, 8]:
+	for index in [6, 8]:
 		menu.cards[index].pressed.emit()
 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")
@@ -44,6 +44,13 @@ func run_test() -> void:
 		check(game.start_state == "SETUP", "Unsupported mode does not start a scratch by mistake")
 		menu.back_button.pressed.emit()
 		check(menu.page == 1, "Back returns to gallery")
+	menu.cards[4].pressed.emit()
+	check(menu.madison_options.visible and not menu.start_button.disabled, "Madison training options are playable")
+	menu.madison_difficulty.select(1)
+	menu.start_button.pressed.emit()
+	game.broadcast_intro.finish()
+	check(game.race_mode == 6 and game.rider_count == 2 and game.madison.advanced, "Madison starts a duo with Advanced controls")
+	game._reset()
 	menu.cards[0].pressed.emit()
 	check(menu.race_settings.visible and not menu.start_button.disabled, "Scratch settings available")
 	menu.count_input.value = 10

@@ -27,7 +27,7 @@ const MODES := [
 	{"key": "pursuit", "title": "Achtervolging", "hint": "Jij, je tegenstander en de klok.", "detail": "Twee renners starten tegenover elkaar. Jaag op de beste tijd of haal je tegenstander in.", "race_id": 4},
 	{"key": "team_pursuit", "title": "Ploegenachtervolging", "hint": "Samen op jacht naar de snelste tijd.", "detail": "Jij bepaalt het tempo. Stuur op kop naar rechts voor een automatische wissel; volg daarna het wattagedoel.", "race_id": 5},
 	{"key": "points", "title": "Puntenkoers", "hint": "Elke sprint een nieuwe kans.", "detail": "Start met één geneutraliseerde ronde. Elke 10 ronden: 5–3–2–1 punten. Dubbele punten aan de finish. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 1},
-	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
+	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Oefen de handaflossing met een ploegmaat. A: grijpen. Advanced: vasthouden en op het juiste moment loslaten. Ploegpunten volgen later.", "race_id": 6},
 	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Start met één geneutraliseerde ronde. Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Bouw snelheid op achter de gangmaker en kies je moment zodra de finale begint.", "race_id": 3},
 	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "500 m of 1 km met staande of vliegende start en vergelijking elke 125 meter.", "race_id": 7},
@@ -38,7 +38,7 @@ const INK := MenuStyle.INK
 const MUTED := MenuStyle.MUTED
 const ACCENT := MenuStyle.BLUE
 const RECORDS_INDEX := 9
-const PLAYABLE := [0, 1, 2, 3, 5, 7]
+const PLAYABLE := [0, 1, 2, 3, 4, 5, 7]
 const DISPLAY_ORDER := [0, 1, 2, 3, 5, 4, 6, 7, 8, 9]
 var gallery_grid: GridContainer
 var page := 1
@@ -60,6 +60,9 @@ var count_input: SpinBox
 var elimination_count_picker: OptionButton
 var laps_input: SpinBox
 var demo_power_input: SpinBox
+var madison_options: VBoxContainer
+var madison_difficulty: OptionButton
+var madison_laps: SpinBox
 var difficulty_slider: HSlider
 var difficulty_label: Label
 var race_settings: VBoxContainer
@@ -266,6 +269,16 @@ func _build_settings(layout: VBoxContainer) -> void:
 	difficulty_slider.value_changed.connect(func(value: float) -> void:
 		difficulty_label.text = "AI-sterkte · %d%%" % int(value)
 		difficulty_changed.emit(value))
+	madison_options = VBoxContainer.new()
+	options.add_child(madison_options)
+	madison_options.add_child(label("Madison · aflossingstraining", 26))
+	madison_difficulty = OptionButton.new()
+	madison_difficulty.add_item("Easy · automatisch loslaten · max 70%")
+	madison_difficulty.add_item("Advanced · A vasthouden en loslaten · max 100%")
+	madison_options.add_child(madison_difficulty)
+	var madison_help := label("Snelle renner binnen, ploegmaat bij de blauwe lijn.\nA grijpt; ← → sturen. De groene zone bepaalt je maximum.", 20)
+	madison_options.add_child(madison_help)
+	madison_laps = _number(madison_options, "Oefenronden", 1, 120, 8)
 	pursuit_options = preload("res://pursuit_options.gd").new()
 	pursuit_options.library = library
 	options.add_child(pursuit_options)
@@ -320,7 +333,7 @@ func _build_settings(layout: VBoxContainer) -> void:
 	start_button.add_theme_stylebox_override("hover", panel_style(MenuStyle.BLUE.lightened(.10)))
 	MenuStyle.primary(start_button)
 	start_button.pressed.connect(func() -> void:
-		if not start_button.disabled and (selected in [0, 3, 5, 7] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
+		if not start_button.disabled and (selected in [0, 3, 4, 5, 7] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
 			if selected in [0, 3, 5]: show_startlist()
 			else: start_requested.emit())
 	navigation.add_child(start_button)
@@ -392,13 +405,14 @@ func select_mode(index: int) -> void:
 	if selected == 5:
 		for idx in range(elimination_count_picker.item_count):
 			if elimination_count_picker.get_item_id(idx) == field_settings[5][0]: elimination_count_picker.select(idx)
+	madison_options.visible = selected == 4
 	pursuit_options.visible = selected == 1
 	team_options.visible = selected == 2
 	team_scroll.visible = selected == 2
-	demo_settings.visible = selected in [0, 1, 2, 3, 5, 7] and not bridge_seen and not bridge_unavailable
-	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5, 7] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
-	start_button.disabled = selected not in [0, 1, 2, 3, 5, 7]
-	start_button.text = "Startlijst →" if selected in [0, 3, 5] else "Start wedstrijd →" if selected in [1, 2, 7] else "Binnenkort"
+	demo_settings.visible = selected in [0, 1, 2, 3, 4, 5, 7] and not bridge_seen and not bridge_unavailable
+	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 4, 5, 7] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+	start_button.disabled = selected not in [0, 1, 2, 3, 4, 5, 7]
+	start_button.text = "Startlijst →" if selected in [0, 3, 5] else "Start wedstrijd →" if selected in [1, 2, 4, 7] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
@@ -415,8 +429,8 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_label.text = "●  Trainer verbonden" if live else ("Trainer gevonden · wacht op gegevens" if seen else "Demo beschikbaar · geen trainer")
 	if unavailable:
 		bridge_label.text = "Verbinding bezet · sluit de andere spelinstantie"
-	demo_settings.visible = selected in [0, 1, 2, 3, 5, 7] and not seen and not unavailable
-	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5, 7]
+	demo_settings.visible = selected in [0, 1, 2, 3, 4, 5, 7] and not seen and not unavailable
+	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 4, 5, 7]
 	if selected in [1, 2]:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 	if pursuit_flow != null and pursuit_flow.visible: pursuit_flow.update_bridge()

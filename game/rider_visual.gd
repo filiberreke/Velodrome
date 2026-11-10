@@ -28,6 +28,20 @@ const RIDER_SHAPES: Array = [
 ]
 
 
+signal madison_parameters_changed(parameters: Dictionary)
+var madison_state: Dictionary = {}
+
+func set_madison_state(parameters: Dictionary, rider: int) -> void:
+	if parameters.is_empty() or not parameters.get("active", false):
+		if not madison_state.is_empty():
+			madison_state.clear()
+			madison_parameters_changed.emit({})
+		return
+	madison_state = parameters.duplicate(true)
+	madison_state["role"] = "giver" if rider == int(parameters.giver) else "receiver"
+	madison_state["hand"] = "right" if madison_state.role == "giver" else "left"
+	madison_parameters_changed.emit(madison_state)
+
 var rig_scene: Node3D
 var animator: AnimationPlayer
 var resolved_poses: Array[StringName] = []

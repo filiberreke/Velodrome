@@ -7,6 +7,10 @@ var trainer_control = TrainerControl.new()
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
+const MadisonExchange := preload("res://madison_exchange.gd")
+var madison = MadisonExchange.new()
+var madison_advanced := false
+var madison_input_sources: Dictionary = {}
 const LAP := 250.0
 const ScratchRules := preload("res://scratch_lap_rules.gd")
 var scratch_rules = ScratchRules.new()
@@ -167,10 +171,49 @@ func _profile(i: int) -> int:
 func _form(i: int) -> float:
 	return rider_forms[i] if i < rider_forms.size() else 1.0
 
+func _madison_button(source: String, pressed: bool) -> void:
+	if not pressed: madison_input_sources.erase(source)
+	elif race_mode == 6 and running and not finished and not race_paused and start_state == "RACING" and _ride_context() == "race": madison_input_sources[source] = true
+	else: return
+	if race_mode == 6: madison.button(not madison_input_sources.is_empty())
+
+func _madison_prepare() -> void:
+	madison.reset()
+	madison.advanced = madison_advanced
+	madison_input_sources.clear()
+	if not madison.released.is_connected(_madison_release): madison.released.connect(_madison_release)
+	if race_mode != 6: return
+	player_lane = 2 # 2.38 m: fast rider inside the blue-line partner.
+	lane_offsets.assign([2.38, 3.58])
+	ai_lane_targets.assign([2.38, 3.58])
+	distances[1] = 12.0
+
+func _madison_release(giver: int, receiver: int, efficiency: float) -> void:
+	madison.apply_release(self, giver, receiver, efficiency)
+
+func _madison_ai_lane() -> float:
+	var outgoing: bool = (madison.active and madison.phase in [MadisonExchange.Phase.RELEASE, MadisonExchange.Phase.SEPARATE] and madison.giver == 1) or (madison.cooldown > 0.0 and madison.active_rider == 0)
+	if outgoing:
+		# Cross the player's corridor only after the bicycles have cleared.
+		var clearance: float = absf(wrapf(distances[0] - distances[1], -LAP * 0.5, LAP * 0.5))
+		if lane_offsets[1] < lane_offsets[0] and clearance < 2.2: return lane_offsets[1]
+		return 4.78
+	return clampf(lane_offsets[0] - 1.2, LANES[0], 2.38) if madison.active_rider == 1 else 3.58
+
+func _madison_ai_power() -> float:
+	var contact: bool = madison.active and madison.phase in [MadisonExchange.Phase.GRAB, MadisonExchange.Phase.SLING]
+	var target: float = speeds[0] if contact else (minf(17.0, speeds[0] + 2.0) if madison.active_rider == 1 else 7.5)
+	if madison.active and madison.giver == 1 and madison.phase in [MadisonExchange.Phase.RELEASE, MadisonExchange.Phase.SEPARATE]: target = 6.5
+	var power: float = clampf(240.0 + (target - speeds[1]) * 190.0, 0.0, 850.0)
+	ai_power_w[1] = power
+	return power
+
 func _configure_peloton() -> void:
 	neutral_start.reset()
 	flying_start.reset()
-	if race_mode == 5:
+	if race_mode == 6:
+		rider_count = 2
+	elif race_mode == 5:
 		rider_count = team_size * 2
 	elif race_mode == 4:
 		rider_count = 2
@@ -273,6 +316,7 @@ func _configure_peloton() -> void:
 	for node in bikes: node.queue_free()
 	bikes.clear()
 	crowded_labels.clear()
+	_madison_prepare()
 	_spawn_peloton()
 	if race_mode in [0, 1, 2]:
 		for i in range(bikes.size()):
@@ -800,6 +844,17 @@ func _final_start_speed_ok() -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
+	if race_mode == 6:
+		if event is InputEventJoypadButton and event.button_index == JOY_BUTTON_A:
+			_madison_button("joy:%d" % event.device, event.pressed)
+			if _ride_context() == "race":
+				get_viewport().set_input_as_handled()
+				return
+		if event is InputEventKey and event.keycode == KEY_A and not event.echo:
+			_madison_button("keyboard", event.pressed)
+			if _ride_context() == "race":
+				get_viewport().set_input_as_handled()
+				return
 	if event is InputEventKey and event.keycode == KEY_B and not event.pressed:
 		keyboard_look_back = false
 		_refresh_look_back()
@@ -823,6 +878,8 @@ func _input(event: InputEvent) -> void:
 func _pause_race() -> void:
 	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
 	race_paused = true
+	madison.cancel("Aflossing afgebroken door pauze")
+	madison_input_sources.clear()
 	_clear_look_back()
 	trainer_telemetry_resume = false
 	trainer_pause_resume = false
@@ -979,6 +1036,10 @@ func _ride_profile() -> String:
 
 func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
 	var source := ride_mapping.physical(str(packet.get("source_button", "")))
+	# Madison needs both edges of physical A, independent of menu mappings.
+	if race_mode == 6 and source == "A" and packet.get("pressed") is bool and not testing and _ride_context() == "race":
+		_madison_button("ride:A", packet.pressed)
+		return
 	if source not in ride_mapping.BUTTONS or not packet.get("pressed") is bool: return
 	if packet.pressed:
 		if ride_buttons.has(source): return
@@ -1059,9 +1120,11 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 		last_controller_signal = _now_s()
 		if packet.get("type") == "controller_connection":
 			if not bool(packet.get("connected", false)):
+				_madison_button("ride:A", false)
 				ride_buttons.clear()
 				ride_look_back = false
 			elif packet.get("buttons") is Array:
+				if "A" not in packet.buttons: _madison_button("ride:A", false)
 				for held in ride_buttons.keys():
 					if held not in packet.buttons: ride_buttons.erase(held)
 				if ride_look_source not in packet.buttons: ride_look_back = false
@@ -1111,6 +1174,9 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	elif packet.get("type", "") == "button":
 		var key := str(packet.get("button", ""))
 		var source: String = ride_mapping.physical(str(packet.get("source_button", key)))
+		if race_mode == 6 and source == "A" and not testing and _ride_context() == "race":
+			_madison_button("ride:A", bool(packet.get("pressed", true)))
+			return
 		# Raw edges already routed this press; suppress the bridge's legacy copy.
 		if ride_buttons.has(source): return
 		if packet.get("pressed", true) != true: return
@@ -1149,6 +1215,7 @@ func _apply_bridge_optional_fields(packet: Dictionary) -> void:
 
 func _expire_bridge_optional_fields(now: float) -> void:
 	if last_controller_signal >= 0.0 and now - last_controller_signal > 2.0:
+		_madison_button("ride:A", false)
 		ride_look_back = false
 		ride_buttons.clear()
 		last_controller_signal = -1.0
@@ -1163,7 +1230,7 @@ func _expire_bridge_optional_fields(now: float) -> void:
 
 func _restart_same_race() -> void:
 	if replay_setup.is_empty(): return
-	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+	for key in ["madison_advanced", "race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		set(key, replay_setup[key])
 	_restarting_event = true
 	_reset()
@@ -1179,6 +1246,8 @@ func _restart_same_race() -> void:
 	start_state = "WAIT_STOP"
 
 func _reset() -> void:
+	madison.reset()
+	madison_input_sources.clear()
 	_clear_look_back()
 	pursuit_start.clear()
 	race_paused = false
@@ -1554,7 +1623,9 @@ func _move_lanes(dt: float) -> Array[float]:
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
 	var previous_lanes: Array[float] = []
 	if race_mode == 2: previous_lanes = lane_offsets.duplicate()
-	if race_mode not in [0, 1, 2]:
+	if race_mode == 6:
+		ai_lane_targets[1] = _madison_ai_lane()
+	elif race_mode not in [0, 1, 2]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
@@ -1699,6 +1770,7 @@ func _advance_race(dt: float) -> void:
 		boost_left = 0.0
 		recovery_left = 0.0
 	var boost_active: bool = race_mode not in [1, 2] and not trainer_seen and boost_left > 0.0
+	if race_mode == 6: madison.step(self, dt)
 	var previous_distances: Array[float] = distances.duplicate()
 	var prior_lanes: Array[float] = lane_offsets.duplicate()
 	var lateral_height_changes: Array[float] = _move_lanes(dt)
@@ -1731,7 +1803,7 @@ func _advance_race(dt: float) -> void:
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
 			continue
-		var power: float = player_actual_power if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
+		var power: float = player_actual_power if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else (_madison_ai_power() if race_mode == 6 else _ai_choose_power(i, dt)))
 		if race_mode in [0, 1, 2] and i > 0:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
@@ -1985,7 +2057,7 @@ func _update_visuals(dt: float) -> void:
 		camera.rotation.z = 0.0
 		return
 	for i in range(rider_count):
-		var lateral: float = lane_offsets[i]
+		var lateral: float = lane_offsets[i] + (madison.visual_offsets[i] if race_mode == 6 else 0.0)
 		var display_distance: float = coast_distances[i] if finish_times[i] >= 0.0 else distances[i]
 		var starting_grid: float = float(i / 4) * 2.4 if start_state != "RACING" and not finished and race_mode not in [0, 1, 2, 4, 5] else 0.0
 		display_distance = _rider_distance(i, display_distance)
@@ -2007,6 +2079,7 @@ func _update_visuals(dt: float) -> void:
 			bikes[i].rotation.y = atan2(head.x, head.z)
 			bikes[i].rotation.z = 0.0
 		var visual: Node = bikes[i].get_child(0)
+		visual.set_madison_state(madison.parameters() if race_mode == 6 else {}, i)
 		var cadence_visual: float = cadence if i == 0 and connected and cadence >= 0.0 else clampf(speeds[i] * 6.0, 0.0, 120.0)
 		if race_mode == 5 and i == 0 and team_race.ours.player_is_out() and watts <= 0.0:
 			cadence_visual = 0.0
@@ -2606,7 +2679,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2, 3, 5, 7]:
+	if choice not in [0, 1, 2, 3, 4, 5, 7]:
 		return
 	if choice in [1,2] and setup_panel.page != 4: return
 	var replay: Dictionary = {}
@@ -2628,8 +2701,10 @@ func _confirm_start() -> void:
 		if not replay.is_empty(): replay = PursuitRecords.scaled_replay(replay, pursuit_opponent_percent)
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0))))
+	madison_advanced = choice == 4 and setup_panel.madison_difficulty.selected == 1
+	race_mode = 6 if choice == 4 else (7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))))
 	race_laps = int(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))))
+	if choice == 4: race_laps = int(setup_panel.madison_laps.value)
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
@@ -2660,7 +2735,7 @@ func _confirm_start() -> void:
 	else:
 		_tt_prepare_event()
 	replay_setup = {"riders": rider_identities.duplicate(true), "forms": rider_forms.duplicate(), "replay": replay.duplicate(true), "cp": options.configured_cp() if options != null else 0.0, "team_factors": team_race.ours.position_factors.duplicate()}
-	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+	for key in ["madison_advanced", "race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		replay_setup[key] = get(key)
 	trainer_control.arm()
 	zero_stable = 0.0
@@ -3097,7 +3172,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"madison": madison.parameters() if race_mode == 6 and start_state == "RACING" and not finished else {}, "run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3132,9 +3207,9 @@ func _refresh_fullscreen_results() -> void:
 	for n in range(rider_count): ordered.append(n)
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
-	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
+	finish_heading.text = "MADISON · AFLOSSINGSTRAINING" if race_mode == 6 else "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
 	if finish_subtitle != null:
-		finish_subtitle.text = ("VLIEGENDE START · 125 M TUSSENTIJDEN" if time_trial_start_type == "flying" else "STAANDE START · 125 M TUSSENTIJDEN") if race_mode == 7 else "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
+		finish_subtitle.text = "OEFENSESSIE · TWEE RENNERS" if race_mode == 6 else ("VLIEGENDE START · 125 M TUSSENTIJDEN" if time_trial_start_type == "flying" else "STAANDE START · 125 M TUSSENTIJDEN") if race_mode == 7 else "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
 	if pursuit_save_box != null:
 		pursuit_save_box.visible = race_mode == 4 and finish_times[0] >= 0.0
 	finish_badge.text = "#%d / %d" % [player_place, rider_count]
