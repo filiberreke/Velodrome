@@ -16,7 +16,7 @@ func run_test() -> void:
 	check(beer.position.is_equal_approx(Vector3(0,0,41.5)), "Beer tent occupies old podium position")
 	check(float(beer.get_meta("floor_area_m2")) == 2.0 * float(beer.get_meta("previous_floor_area_m2")), "Beer tent has double the floor area")
 	check(mixed.get_meta("branding_faces") == 2, "Mixed-zone wall branded on both sides")
-	check(mixed.has_node("RennerInterview") and mixed.has_node("BlauweLoper"), "Interview cyclist and through-route present")
+	check(mixed.has_node("RennerEuropeesKampioen") and mixed.has_node("RensterEuropeesKampioen") and mixed.has_node("BlauweLoper"), "Both interview cyclists and through-route present")
 	check(infield.has_node("MixedZoneCamera"), "Interview camera present")
 	var route_start: Vector3 = mixed.get_meta("route_start")
 	var route_end: Vector3 = mixed.get_meta("route_end")
@@ -80,7 +80,7 @@ func run_test() -> void:
 		if not node.get_meta("terrace_table",false): continue
 		tables += 1
 		for child in node.get_children(): chairs += int(child.get_meta("terrace_chair",false))
-	check(tables == 3 and chairs == 9, "Pizza terrace has three tables and nine chairs")
+	check(tables == 2 and chairs == 6 and pizza.has_node("PizzaVriendenStatafel"), "Pizza terrace has two seated tables and the standing duo")
 	check(infield.has_node("ChassePatate") and infield.has_node("Kopwerk"), "Existing south kiosks retained")
 	# Export the actual north plaza for a geometry render, including people, carpet,
 	# original bar, lights and podium so spatial conflicts are visible.
