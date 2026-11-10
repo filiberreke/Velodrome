@@ -32,12 +32,11 @@ func update_training(scene) -> void:
 		var remaining := maxi(0,ceili(session.time_limit-session.elapsed))
 		mission_text.text = "Peloton %.0f km/u\n%.1f / 250 m gewonnen\nNog %d:%02d" % [session.target_kmh,session.gained_m,remaining/60,remaining%60]
 	mission_bar.value = clampf(session.gained_m,0,250)
-	status_panel.visible = scene.too_close
-	phase_label.text = "Peloton te dicht · stuur opzij om aan te vallen"
+	status_panel.hide()
 	var positions: Array[float] = [scene.distance]
 	if session.kind == "take_lap":
-		for i in range(session.PACK_COUNT): positions.append(scene.pack_distance-i*session.PACK_SPACING)
-		map.set_peloton({"front":scene.pack_distance,"tail":session.pack_tail(scene.pack_distance)})
+		for at in scene.pack_state.distances: positions.append(float(at))
+		map.set_peloton({"front":scene.pack_state.front,"tail":scene.pack_state.tail})
 	else: map.set_peloton({})
 	var lines: Array[float] = []
 	if session.kind == "flying_start": lines.append(float(session.origin))

@@ -78,16 +78,27 @@ func run_test() -> void:
 	await shot("take_lap_setup")
 	page.begin(); scene = game.piste_training
 	check(scene.pack_bikes.size() == 8 and scene.active and scene.session.kind == "take_lap","Lap exercise creates an independent eight-rider peloton")
+	check(scene.pack_markers.visible and scene.pack_markers.strips.size() == 2,"Training uses the same front and rear marker strips as scratch")
+	if "--capture" in OS.get_cmdline_user_args():
+		game.camera_mode = 1
+		scene._present(1)
+		await shot("take_lap_bunch")
+	var draft: float = scene.reduction
+	check(draft > .4 and draft <= .5,"Ordinary peloton wake is weaker than derny shelter")
 	scene.demo_power = 1000
+	var initial_lane: int = scene.player_lane_target
 	for i in range(24): scene.advance(.25)
-	check(scene.session.running() and scene.too_close and scene.session.gained_m < 2,"High power in the same corridor cannot ride through the peloton")
-	check(scene.reduction > .45 and scene.reduction <= .5,"Ordinary peloton wake is weaker than derny shelter")
-	game._ride_action("RIGHT"); game._ride_action("RIGHT")
+	check(scene.session.running() and not scene.too_close and scene.session.gained_m > 3 and scene.player_speed > scene.session.target_kmh/3.6,"High power can pass riders in the same corridor, as in scratch")
+	check(scene.player_lane_target == initial_lane,"Passing does not require a lane change")
+	check(not scene.hud.status_panel.visible,"No wheel-distance limiter warning appears during lap training")
+	var state = scene.pack_state
+	check(is_equal_approx(float(scene.hud.map.peloton.front),float(state.front)) and is_equal_approx(float(scene.hud.map.peloton.tail),float(state.tail)),"Minimap bounds follow the actual multi-row bunch")
+	check(scene.pack_markers.captions[0].position.distance_to(game._at(float(state.front),8.5)+Vector3.UP*2.8) < .001,"Scratch's front strip is aligned with the training rider poses")
 	for i in range(480):
 		if not scene.active: break
 		scene.advance(.25)
 		if i == 40: await shot("take_lap_attack")
-	check(page.selected_activity.get("exercise_success",false) and is_equal_approx(float(page.selected_activity.get("gained_m",0)),250),"A deliberate attack completes only after gaining one full lap")
+	check(page.selected_activity.get("exercise_success",false) and is_equal_approx(float(page.selected_activity.get("gained_m",0)),250),"An attack through the non-solid peloton still needs one full relative lap")
 	check(page.selected_activity.duration_s > 10 and scene.samples.size() > 10 and not scene.active,"Lap effort has a full time series and ends in results")
 	await shot("take_lap_result")
 	var uploader := UploadCapture.new(); game.add_child(uploader); game.strava_client = uploader

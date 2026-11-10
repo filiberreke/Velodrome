@@ -1,7 +1,10 @@
 extends "res://derny_environment.gd"
 const Exercise := preload("res://piste_exercise_session.gd")
-var pack_distance := 0.0
-var pack_lane := 1.78
+const Formation := preload("res://training_peloton.gd")
+var pack_distance := 0.0 # Fixed lap-progress reference; pack_state holds the visible bounds.
+var pack_lane := Formation.CENTER_LANE
+var pack_state := {}
+var pack_markers: Node3D
 var pack_bikes: Array[Node3D] = []
 var line_marker: Label3D
 var last_power_sample_id := -1
@@ -13,6 +16,7 @@ func _setup_session() -> void:
 	hud = preload("res://piste_exercise_hud.gd").new(); game.setup_panel.add_child(hud)
 	hud.stop_button.pressed.connect(func(): finish_session("Handmatig gestopt"))
 	hud.leave_button.pressed.connect(page.leave); hud.hide()
+	pack_markers = preload("res://peloton_markers.gd").new(); add_child(pack_markers)
 	line_marker = Label3D.new(); line_marker.text = "START · ACHTERVOLGINGSLIJN"; line_marker.font_size = 48; line_marker.pixel_size = .008; line_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED; add_child(line_marker)
 func enter() -> void:
 	if active: leave()
@@ -27,6 +31,8 @@ func enter() -> void:
 	start_distance = line if page.kind == "flying_start" else Exercise.pack_tail(pack_distance)-Exercise.FOLLOW_GAP
 	player_speed = Exercise.START_KMH/3.6 if page.kind == "flying_start" else page.tempo_input.value/3.6
 	session.start(page.kind,start_distance,page.budget_input.value,page.tempo_input.value,page.limit_input.value*60 if page.kind == "take_lap" else 600)
+	_update_pack_state()
+	reduction = _draft_at(start_distance)
 	last_power_sample_id = game.setup_panel.ftp_page.sample_id
 	session.peak_w = demo_power if demo else game.setup_panel.ftp_page.measured
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
@@ -53,19 +59,23 @@ func _build_pack() -> void:
 func steer(direction: int) -> void:
 	if session.running(): player_lane_target = clampi(player_lane_target+direction,0,game.LANES.size()-1)
 func request_tempo(direction: int) -> void: steer(direction)
-func _draft_at(player: float, front: float) -> float:
-	if session.kind != "take_lap" or absf(player_lane_offset-pack_lane) >= 1.0: return 0
+func _update_pack_state() -> void:
+	pack_state = Formation.sample(pack_distance,session.elapsed) if session.kind == "take_lap" else {}
+func _draft_at(player: float) -> float:
+	if pack_state.is_empty(): return 0
 	var best := 0.0
 	for i in range(Exercise.PACK_COUNT):
-		var gap: float = fposmod(front-i*Exercise.PACK_SPACING-player,Exercise.LAP)*game._path_metric(player,pack_lane)
+		var lateral: float = absf(player_lane_offset-float(pack_state.lanes[i]))
+		if lateral >= 1: continue
+		var gap: float = fposmod(float(pack_state.distances[i])-player,Exercise.LAP)*game._path_metric(player,player_lane_offset)
 		if gap > 1.5 and gap < 14:
-			best = maxf(best,.5*minf(1,(14-gap)/10)*pow(1-absf(player_lane_offset-pack_lane),2))
+			best = maxf(best,.5*minf(1,(14-gap)/10)*pow(1-lateral,2))
 	return best
 func _step(dt: float, power: float) -> void:
 	var before := distance; var old_speed := player_speed; var old_lane := player_lane_offset; var pack_before := pack_distance
 	var previous: Vector3 = game._at(before,old_lane)
 	player_lane_offset = move_toward(player_lane_offset,float(game.LANES[player_lane_target]),game.LANE_CHANGE_MPS*dt)
-	reduction = _draft_at(before,pack_before)
+	reduction = _draft_at(before)
 	player_speed = Session.next_speed(player_speed,power,reduction,dt)
 	var next: Vector3 = game._at(before+player_speed*dt/game._path_metric(before,player_lane_offset),player_lane_offset)
 	var side: Vector3 = game._at(before,player_lane_offset)
@@ -73,20 +83,17 @@ func _step(dt: float, power: float) -> void:
 	distance += player_speed*dt/game._path_metric(before,player_lane_offset)
 	too_close = false
 	if session.kind == "take_lap":
-		pack_distance += session.target_kmh/3.6*dt/game._path_metric(pack_distance,pack_lane)
-		if absf(player_lane_offset-pack_lane) < PASS_LATERAL:
-			for i in range(Exercise.PACK_COUNT):
-				var ahead := fposmod(pack_before-i*Exercise.PACK_SPACING-before,Exercise.LAP)
-				var limit: float = before+ahead+(pack_distance-pack_before)-FOLLOW_GAP/game._path_metric(before,pack_lane)
-				if ahead > 0 and ahead < 14 and distance > limit:
-					distance = maxf(before,limit); player_speed = minf(player_speed,session.target_kmh/3.6); too_close = true
+		# Pace the bunch centre, not one changing leader. Riders are non-solid,
+		# exactly as in scratch: the human is never capped behind another bike.
+		pack_distance += session.target_kmh/3.6*dt/game._path_metric(Formation.center_distance(pack_distance),pack_lane)
 	session.observe(dt,before,distance,old_speed,player_speed,power,pack_before,pack_distance)
 	var fraction: float = session.last_fraction
 	distance = lerpf(before,distance,fraction); player_lane_offset = lerpf(old_lane,player_lane_offset,fraction)
 	pack_distance = lerpf(pack_before,pack_distance,fraction); player_speed = lerpf(old_speed,player_speed,fraction)
 	var current: Vector3 = game._at(distance,player_lane_offset)
 	road_grade = lerpf(road_grade,game.TrainerControl.route_grade(previous,current),1-exp(-8*dt*fraction))
-	reduction = _draft_at(distance,pack_distance)
+	_update_pack_state()
+	reduction = _draft_at(distance)
 	total_elapsed = session.elapsed
 	total_distance += maxf(0,distance-before)*game._path_metric(distance,player_lane_offset)
 func _place(bike: Node3D, at: float, lane: float, dt: float, power: float, cadence: float) -> void:
@@ -97,7 +104,11 @@ func _place(bike: Node3D, at: float, lane: float, dt: float, power: float, caden
 func _present(dt: float) -> void:
 	_place(game.bikes[0],distance,player_lane_offset,dt,demo_power if demo else game.watts,85 if demo else maxf(0,game.cadence))
 	if session.kind == "take_lap":
-		for i in range(pack_bikes.size()): _place(pack_bikes[i],pack_distance-i*Exercise.PACK_SPACING,pack_lane,dt,180,85)
+		for i in range(pack_bikes.size()): _place(pack_bikes[i],float(pack_state.distances[i]),float(pack_state.lanes[i]),dt,180,85)
+		# Scratch's marker renderer expects front-wheel progress, whereas our
+		# training poses use bike roots. Convert once so the strips align.
+		pack_markers.update_bunch(game,{"front":float(pack_state.front)+game.FRONT_WHEEL_TIP_M,"tail":float(pack_state.tail)+game.FRONT_WHEEL_TIP_M},true)
+	else: pack_markers.update_bunch(game,{},false)
 	game.visual_rolls[0] = game.bikes[0].rotation.z
 	game._follow_rider_camera(distance,player_lane_offset,dt,false,game.bikes[0].position)
 	game.bikes[0].visible = game.look_back_held or game.camera_mode != 2

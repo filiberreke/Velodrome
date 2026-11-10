@@ -355,11 +355,20 @@ voltooide poging. Dit is een techniekoefening, geen automatische tijdritstart.
 
 Een eigen groep van acht renners rijdt met constant gekozen tempo (standaard
 30 km/u, instelbaar 15–60). De speler begint drie meter achter de staart, met
-dezelfde virtuele rolsnelheid. De groep blijft op dezelfde rijlijn; er zijn geen
-aanvallen, versnellingen of wedstrijd-AI. In het wiel is maximaal 50% vermindering
-van luchtweerstand beschikbaar, met dezelfde beschutting in spel en SIM-bridge.
-In dezelfde rijcorridor voorkomt een wielafstand van 2,8 m dat de speler door
-renners heen rijdt. Twee stappen opzij laten een bewuste aanval toe.
+dezelfde virtuele rolsnelheid. De groep rouleert compact in twee tot drie rijen,
+binnen een lengte van 9 m en rijlijnen tussen 1,18 en 3,58 m. De koprijder wisselt
+ongeveer elke zeven seconden; de volledige roulatie duurt 56 seconden. Kleine
+onderlinge snelheids- en rijlijnwissels blijven begrensd binnen de groep. Het
+groepscentrum houdt het ingestelde tempo, zonder aanvallen of ontsnappingen.
+In het wiel is maximaal 50% vermindering van luchtweerstand beschikbaar, gebaseerd
+op de werkelijke posities en rijlijnen van de renners. Spel en SIM-bridge gebruiken
+dezelfde beschutting. De speler kan zoals in scratch door andere renners rijden;
+er is geen wielafstands- of snelheidsbegrenzing achter het peloton.
+
+Kop en staart krijgen dezelfde gekleurde lijnen en labels als scratch, met de
+bestaande `peloton_markers.gd`. Lijnen en minimap volgen de actuele voorste en
+achterste renner, terwijl de ononderbroken meetreferentie voor rondewinst met het
+vaste groepstempo blijft bewegen. Een kopwissel geeft dus geen gratis afstand.
 
 Voortgang is ononderbroken relatieve afstand tot de pelotonstaart, niet de
 zichtbare positie modulo 250 m. Voorbij de kop rijden levert dus nog geen ronde
@@ -376,6 +385,13 @@ de bijbehorende titel en beschrijving en vermeldt de virtuele rolsnelheid en
 PC-proefrit wanneer toepasselijk. Er is geen import/export van deze sessies.
 
 `test_piste_exercises.gd` controleert de exacte passage, relatieve rondewinst,
-hellingen en rijlijnen, wielafstand, opgeslagen resultaten, historie, Strava en
+hellingen en rijlijnen, vrij passeren van renners, opgeslagen resultaten, historie, Strava en
 meetuitval. `test_piste_exercise_virtual_bridge.gd` controleert via echte lokale
 UDP-pakketten beide starts, SIM-bediening, sturen en vrijgave.
+
+
+`test_training_peloton.gd` controleert een volledige roulatie: acht wisselende
+koprijders, constante beweging van het groepscentrum, compacte meerrijige vorm,
+kleine vloeiende onderlinge verplaatsingen en geen rondewinst door kopwissels.
+De integratiecontrole vergelijkt de lijn- en minimapgrenzen met de actuele
+formatie en controleert dat hoog vermogen ook zonder rijlijnwissel kan passeren.
