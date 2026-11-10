@@ -107,6 +107,9 @@ func _hide(node: Node3D) -> void:
 	node.hide()
 
 func enter() -> void:
+	_enter_training_venue()
+
+func _enter_training_venue() -> void:
 	if active:
 		distance = start_distance
 		advance(0.0)

@@ -3,7 +3,7 @@ signal back_requested
 signal environment_requested(active: bool)
 signal upload_requested(activity: Dictionary)
 const Session := preload("res://derny_session.gd")
-var session := Session.new()
+var session = Session.new()
 var scene: Node3D
 var title: Label
 var detail: Label

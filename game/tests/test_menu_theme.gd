@@ -41,6 +41,8 @@ func run_test() -> void:
 	menu.records_store.path = "user://menu_theme_layout_test.json"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(menu.records_store.path))
 	menu.show_records()
+	menu.records_page.mode_buttons[0].pressed.emit()
+	menu.records_page.distance_buttons[0].pressed.emit()
 	for i in range(10):
 		menu.records_store.add({"id":"layout_%d"%i,"mode":4,"distance_m":1000,"team_size":0,"seconds":60.0+i,"player_name":"Een lange voorbeeldnaam","finished_at":1793520000.0+i,"finished_local":"01/11/2026 10:24"})
 	menu.records_page.refresh()

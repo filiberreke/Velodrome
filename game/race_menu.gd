@@ -4,6 +4,7 @@ signal difficulty_changed(value: float)
 signal training_environment_requested(active: bool)
 signal workout_environment_requested(active: bool)
 signal piste_environment_requested(active: bool)
+signal exercise_environment_requested(active: bool)
 signal training_upload_requested(activity: Dictionary)
 const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
@@ -72,6 +73,7 @@ var hub_page: VBoxContainer
 var training_page: VBoxContainer
 var piste_page: VBoxContainer
 var derny_page: VBoxContainer
+var exercise_page: VBoxContainer
 var training_history_page: VBoxContainer
 var training_store = preload("res://training_store.gd").new()
 var tournament_page: VBoxContainer
@@ -319,7 +321,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	second_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(second_row)
 	_hub_tile(second_row, "ERG-training", "Workouts op vermogen en FTP-tests.", [], show_training)
-	_hub_tile(second_row, "Pistetraining", "Oefen achter de derny op de echte piste.", [7], show_piste_training)
+	_hub_tile(second_row, "Pistetraining", "Derny, vliegende start en een ronde winnen.", [7], show_piste_training)
 	races_back = _hub_button(choice_page, "← Hoofdmenu", show_hub)
 	races_back.custom_minimum_size.y = 46
 	training_page = VBoxContainer.new()
@@ -339,6 +341,8 @@ func _build_hub(layout: VBoxContainer) -> void:
 	piste_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(piste_page)
 	_hub_button(piste_page, "Dernytraining  →", show_derny)
+	_hub_button(piste_page, "Vliegende start  →", show_piste_exercise.bind("flying_start"))
+	_hub_button(piste_page, "Neem een ronde  →", show_piste_exercise.bind("take_lap"))
 	piste_page.add_child(label("Vaste pistesessies, door ons voorbereid. Geen import of export.", 22, MUTED))
 	_hub_button(piste_page, "Opgeslagen trainingen  →", show_training_history)
 	_hub_button(piste_page, "← Hoofdmenu", show_hub)
@@ -347,6 +351,11 @@ func _build_hub(layout: VBoxContainer) -> void:
 	derny_page.back_requested.connect(show_piste_training)
 	derny_page.environment_requested.connect(_piste_environment)
 	derny_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
+	exercise_page = preload("res://piste_exercise_page.gd").new()
+	layout.add_child(exercise_page)
+	exercise_page.back_requested.connect(show_piste_training)
+	exercise_page.environment_requested.connect(_exercise_environment)
+	exercise_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	training_history_page = preload("res://training_history.gd").new()
 	training_history_page.menu = self
 	layout.add_child(training_history_page)
@@ -395,10 +404,11 @@ func _training_environment(active: bool) -> void:
 
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
-	for node in [hub_page, training_page, piste_page, derny_page, training_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
+	for node in [hub_page, training_page, piste_page, derny_page, exercise_page, training_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
 	if derny_page.scene != null and derny_page.scene.active: _piste_environment(false)
+	if exercise_page.scene != null and exercise_page.scene.active: _exercise_environment(false)
 	if workout_play_page.test.running(): workout_play_page.finish("Training verlaten")
 	if ftp_page.test.running(): ftp_page.finish("Test verlaten")
 	_hide_hub_pages()
@@ -412,6 +422,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	if node == hub_page: focus = hub_button
 	if node == training_page: focus = ftp_tile
 	if node == derny_page: focus = derny_page.start_button
+	if node == exercise_page: focus = exercise_page.start_button
 	if node == training_history_page: focus = training_history_page.get_child(1)
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == workout_play_page: focus = workout_play_page.start_button
@@ -430,6 +441,16 @@ func show_piste_training() -> void:
 
 func show_derny() -> void:
 	_show_section(12, "Dernytraining", derny_page)
+
+func show_piste_exercise(kind: String) -> void:
+	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
+	exercise_page.configure(kind)
+func _exercise_environment(active: bool) -> void:
+	exercise_environment_requested.emit(active)
+	if active and not exercise_page.session.running(): return
+	session_panel.hide()
+	menu_margin.visible = not active
+	menu_tint.visible = not active
 
 func show_training_history() -> void:
 	training_history_page.refresh()
@@ -770,6 +791,7 @@ func bridge_action(button: String) -> void:
 		elif page == 12: derny_page.leave()
 		elif page == 13: show_piste_training()
 		elif page == 14: workout_play_page.leave()
+		elif page == 15: exercise_page.leave()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return
@@ -781,6 +803,7 @@ func bridge_action(button: String) -> void:
 		elif page == 12: derny_page.stop_button.grab_focus() if derny_page.session.running() else derny_page.start_button.grab_focus()
 		elif page == 6: ftp_tile.grab_focus()
 		elif page == 14: workout_play_page.start_button.grab_focus()
+		elif page == 15: exercise_page.start_button.grab_focus()
 		elif page == 7: tournament_page.get_child(1).grab_focus()
 		elif page == 8:
 			if ftp_page.test.running(): ftp_page.stop_button.grab_focus()

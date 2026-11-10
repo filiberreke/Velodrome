@@ -26,7 +26,13 @@ func refresh() -> void:
 		var button := Button.new()
 		var duration: int = int(activity.get("duration_s",0))
 		button.text = "%s · Derny · %d:%02d · start %d km/u · beste %d km/u%s" % [activity.get("started_local",""),duration/60,duration%60,int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0))," · PC-proefrit" if activity.get("demo",false) else ""]
+		if activity.get("kind","derny") != "derny":
+			button.text = "%s · %s · %d:%02d · %s%s" % [activity.get("started_local",""),activity.get("title","Pistetraining"),duration/60,duration%60,activity.get("reason","Tussentijds bewaard")," · PC-proefrit" if activity.get("demo",false) else ""]
+		if activity.get("kind") == "flying_start" and activity.get("exercise_success",false): button.text += " · %.1f km/u · piek %.0f W" % [activity.get("entry_speed_kmh",0),activity.get("peak_power_w",0)]
 		if not activity.get("final",false): button.text += " · tussentijds bewaard"
 		button.custom_minimum_size.y = 64
-		button.pressed.connect(func(): menu.show_derny(); menu.derny_page.show_activity(activity))
+		button.pressed.connect(func():
+			if activity.get("kind","derny") == "derny": menu.show_derny(); menu.derny_page.show_activity(activity)
+			else: menu.show_piste_exercise(str(activity.kind)); menu.exercise_page.show_activity(activity)
+		)
 		rows.add_child(button)

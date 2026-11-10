@@ -343,6 +343,13 @@ class VirtualBridgeTests(unittest.TestCase):
         self.bridge.released = True
         self.run_integration('test_workout_virtual_bridge.gd')
 
+    @unittest.skipUnless(os.environ.get('GODOT_BIN'), 'Set GODOT_BIN for actual Godot integration')
+    def test_piste_flying_and_take_lap_start_and_release(self):
+        self.bridge.mode = 'RELEASED'
+        self.bridge.desired_mode = 'ERG'
+        self.bridge.released = True
+        self.run_integration('test_piste_exercise_virtual_bridge.gd')
+
     def run_integration(self, script, require_commands=True):
         # Bind the game on the receiver's ephemeral port, avoiding any running game.
         port = self.receiver.getsockname()[1]

@@ -330,3 +330,52 @@ Bij een geopende eigen workout toont de editor **Workout verwijderen**. De knop
 opent een bevestigingsvenster met de opgeslagen naam. Annuleren bewaart de
 workout; bevestigen verwijdert alleen die workout en vernieuwt de tegels en
 de keuzelijst. Daarna staat de editor klaar voor een nieuwe workout.
+
+
+## Vliegende start — eerste speelbare versie
+
+Onder Pistetraining start een poging op de bestaande rode achtervolgingslijn,
+op de laagste rijlijn en steeds met 30 km/u virtuele rolsnelheid. Daarna rijdt
+de speler één volledige voorbereidingsronde op werkelijk geleverd vermogen.
+Links/rechts en de stuurpaddles kiezen vrij de rijlijn. De bestaande pistegeometrie,
+extra afstand buitenom, hellingsweerstand en dalingshulp blijven actief; er is
+geen slipstream. Het resultaat bij terugkomst op dezelfde lijn wordt binnen
+de laatste fysicastap geïnterpoleerd, zodat snelheid en tijd niet afhangen van
+een overschietend beeldframe.
+
+Het doel is hoge passagesnelheid met laag piekvermogen. Een instelbaar
+vermogensplafond (standaard 150% van profiel-FTP) is alleen een vergelijkingsdoel;
+het begrenst de trainer of de speler niet. Resultaat en historie tonen zowel
+passagesnelheid als het hoogste geleverde vermogen, zodat pogingen met een
+vergelijkbaar plafond naast elkaar kunnen worden beoordeeld. Een afgebroken
+poging krijgt geen fictieve passagesnelheid. Na tien minuten stopt een niet
+voltooide poging. Dit is een techniekoefening, geen automatische tijdritstart.
+
+## Neem een ronde — eerste speelbare versie
+
+Een eigen groep van acht renners rijdt met constant gekozen tempo (standaard
+30 km/u, instelbaar 15–60). De speler begint drie meter achter de staart, met
+dezelfde virtuele rolsnelheid. De groep blijft op dezelfde rijlijn; er zijn geen
+aanvallen, versnellingen of wedstrijd-AI. In het wiel is maximaal 50% vermindering
+van luchtweerstand beschikbaar, met dezelfde beschutting in spel en SIM-bridge.
+In dezelfde rijcorridor voorkomt een wielafstand van 2,8 m dat de speler door
+renners heen rijdt. Twee stappen opzij laten een bewuste aanval toe.
+
+Voortgang is ononderbroken relatieve afstand tot de pelotonstaart, niet de
+zichtbare positie modulo 250 m. Voorbij de kop rijden levert dus nog geen ronde
+op. Pas na 250 m relatieve winst is de speler opnieuw bij de staart en is de
+opdracht geslaagd. De tijdslimiet is vooraf instelbaar van 1 tot 30 minuten,
+standaard 10. Een passage na de limiet telt niet meer. Het resultaat bewaart
+tijd, pelotontempo, relatieve winst, gemiddeld vermogen en piekvermogen.
+
+Beide vaste sessies gebruiken dezelfde trainingsomgeving, camera's, sensoren,
+trainerbewaking, grafiek, checkpointopslag en bevestigde SIM-vrijgave als de
+dernytraining. Bij meetuitval wordt gestopt en lokaal opgeslagen. De historie
+opent per trainingssoort het juiste resultaat; de bestaande Strava-knop gebruikt
+de bijbehorende titel en beschrijving en vermeldt de virtuele rolsnelheid en
+PC-proefrit wanneer toepasselijk. Er is geen import/export van deze sessies.
+
+`test_piste_exercises.gd` controleert de exacte passage, relatieve rondewinst,
+hellingen en rijlijnen, wielafstand, opgeslagen resultaten, historie, Strava en
+meetuitval. `test_piste_exercise_virtual_bridge.gd` controleert via echte lokale
+UDP-pakketten beide starts, SIM-bediening, sturen en vrijgave.

@@ -6,6 +6,8 @@ const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
 var training_environment
 var piste_training
+var derny_training_environment
+var exercise_training_environment
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
@@ -843,7 +845,7 @@ func _input(event: InputEvent) -> void:
 			KEY_DOWN:
 				if piste_training.using_simulator(): piste_training.demo_power = maxf(0,piste_training.demo_power-25)
 				else: _cycle_camera(1)
-			KEY_ESCAPE: setup_panel.derny_page.finish("Handmatig gestopt")
+			KEY_ESCAPE: piste_training.page.finish("Handmatig gestopt")
 			KEY_C: _cycle_camera(1)
 			KEY_V: _cycle_rider_names()
 			KEY_P: piste_training._persist(false)
@@ -1000,7 +1002,7 @@ func _ride_action(key: String, source: String = "B") -> void:
 			ride_look_source = source
 			ride_look_back = true
 			_refresh_look_back()
-		elif key == "Z": setup_panel.derny_page.finish("Handmatig gestopt")
+		elif key == "Z": piste_training.page.finish("Handmatig gestopt")
 		return
 	# Physical gears stay owned by the bridge during training, including when
 	# a user mapped their shift paddles to menu confirmation/back actions.
@@ -1144,6 +1146,8 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 		setup_panel.ftp_page.receive(packet, _now_s())
 	if setup_panel != null and setup_panel.workout_play_page != null:
 		setup_panel.workout_play_page.receive(packet,_now_s())
+	if packet.get("type") == "telemetry" and exercise_training_environment != null and exercise_training_environment.active:
+		exercise_training_environment.receive_power_sample(_now_s())
 	var preferences: Node = get_node_or_null("GameSettings")
 	var testing: bool = preferences != null and preferences.call("controller_test_active")
 	if packet.get("type", "") in ["controller_button", "controller_connection"]:
@@ -1275,7 +1279,7 @@ func _restart_same_race() -> void:
 func _reset() -> void:
 	if piste_training != null and piste_training.active:
 		piste_training.finish_session("Training verlaten",false)
-		setup_panel._piste_environment(false)
+		piste_training.page.environment_requested.emit(false)
 	_clear_look_back()
 	pursuit_start.clear()
 	race_paused = false
@@ -2449,9 +2453,11 @@ func _build_hud() -> void:
 	menu.training_environment_requested.connect(_training_environment_requested)
 	menu.workout_environment_requested.connect(_workout_environment_requested)
 	menu.piste_environment_requested.connect(_piste_environment_requested)
+	menu.exercise_environment_requested.connect(_exercise_environment_requested)
 	menu.training_upload_requested.connect(_upload_training)
 	strava_client.status_changed.connect(func(message):
 		menu.derny_page.upload_status = message
+		menu.exercise_page.upload_status = message
 	)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(24, 255)
@@ -2741,7 +2747,7 @@ func _piste_start_blocker() -> String:
 		return "De bridge mist actuele vermogensgegevens. Werk de bridge bij en start die opnieuw."
 	if not ftp.fresh(_now_s()):
 		return "Geen verse vermogensmetingen. Controleer de trainerverbinding."
-	if not ftp.release_complete() or trainer_control.phase == "RELEASING":
+	if not ftp.release_complete() or not setup_panel.workout_play_page.release_complete() or trainer_control.phase == "RELEASING":
 		return "De trainerbediening is nog niet vrij. Wacht op bevestiging van de bridge."
 	return ""
 
@@ -2753,9 +2759,27 @@ func _piste_environment_requested(active: bool) -> void:
 			page.session.phase = "RESULT"
 			page.session.reason = blocker
 			return
-		if piste_training == null:
-			piste_training = preload("res://derny_environment.gd").new()
-			add_child(piste_training)
+		if derny_training_environment == null:
+			derny_training_environment = preload("res://derny_environment.gd").new()
+			add_child(derny_training_environment)
+		piste_training = derny_training_environment
+		broadcast_intro.cancel()
+		piste_training.enter()
+	elif piste_training != null:
+		piste_training.leave()
+		exit_menu.set_exit_visible(true)
+
+func _exercise_environment_requested(active: bool) -> void:
+	if active:
+		var blocker := _piste_start_blocker()
+		if not blocker.is_empty():
+			setup_panel.exercise_page.session.phase = "RESULT"
+			setup_panel.exercise_page.session.reason = blocker
+			return
+		if exercise_training_environment == null:
+			exercise_training_environment = preload("res://piste_exercise_environment.gd").new()
+			add_child(exercise_training_environment)
+		piste_training = exercise_training_environment
 		broadcast_intro.cancel()
 		piste_training.enter()
 	elif piste_training != null:
@@ -4013,21 +4037,26 @@ func available_startlist_riders() -> Array[Dictionary]:
 	return result
 
 func _upload_training(activity: Dictionary) -> void:
+	var page = setup_panel.derny_page if activity.get("kind","derny") == "derny" else setup_panel.exercise_page
 	if strava_client.working:
-		setup_panel.derny_page.upload_status = "Er is al een Strava-upload bezig."
+		page.upload_status = "Er is al een Strava-upload bezig."
 		return
 	var payload := preload("res://training_store.gd").fit_payload(activity)
 	if payload.is_empty():
-		setup_panel.derny_page.upload_status = "Minstens twee ritmetingen nodig voor Strava."
+		page.upload_status = "Minstens twee ritmetingen nodig voor Strava."
 		return
 	var file := FileAccess.open("user://training_upload.fit",FileAccess.WRITE)
 	if file == null:
-		setup_panel.derny_page.upload_status = "Strava-bestand kon niet worden gemaakt."
+		page.upload_status = "Strava-bestand kon niet worden gemaakt."
 		return
 	file.store_buffer(payload)
 	file.close()
-	strava_desired_title = "Velodrome - Dernytraining" + (" (PC-proefrit)" if activity.get("demo",false) else "")
+	strava_desired_title = "Velodrome - " + str(activity.get("title","Dernytraining")) + (" (PC-proefrit)" if activity.get("demo",false) else "")
 	strava_desired_description = "Dernytraining · gemiddelde startsnelheid %d km/u · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
+	if activity.get("kind","derny") != "derny":
+		strava_desired_description = "%s · %s. Begonnen met virtuele rolsnelheid %.0f km/u. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("title","Pistetraining"),activity.get("reason",""),activity.get("initial_speed_kmh",30)]
+		if activity.get("kind") == "flying_start": strava_desired_description += " Passage %.2f km/u · piek %.0f W." % [activity.get("entry_speed_kmh",0),activity.get("peak_power_w",0)]
+		else: strava_desired_description += " Peloton %.0f km/u · %.1f m gewonnen." % [activity.get("peloton_kmh",30),activity.get("gained_m",0)]
 	if activity.get("demo",false): strava_desired_description = "GESIMULEERDE PC-PROEFRIT. " + strava_desired_description
 	strava_save_screenshot = false
 	strava_screenshot_path = ""

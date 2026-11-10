@@ -39,6 +39,8 @@ const FOLLOW_GAP := 2.8
 const PASS_LATERAL := 1.1
 func _ready() -> void:
 	super._ready()
+	_setup_session()
+func _setup_session() -> void:
 	name = "DernyTrainingEnvironment"
 	page = game.setup_panel.derny_page
 	session = page.session
