@@ -1,7 +1,14 @@
 extends SceneTree
 class Game extends "res://main.gd":
+	var signal_clock := -1.0
+	func _now_s() -> float: return signal_clock if signal_clock >= 0 else super._now_s()
 	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 	func _save_recording(_reason: String) -> void: pass
+class FakeTrainer extends "res://trainer_control.gd":
+	func tick(enabled: bool,_grade: float,_aero: float,now: float,target: int = 0) -> void:
+		if enabled_before and not enabled: armed = false; may_resume = true
+		enabled_before = enabled; owned = enabled; last_response = now; phase = "ACTIVE" if enabled else "IDLE"
+		state = {"mode":"ERG" if enabled and target > 0 else "SIM" if enabled else "RELEASED","desired_mode":"ERG" if target > 0 else "SIM","confirmed_target_w":target,"revision":1,"applied_revision":1,"udp_owned":enabled,"release_confirmed":not enabled}
 class UploadCapture extends Node:
 	var working := false
 	var path := ""
@@ -159,6 +166,10 @@ func run_test() -> void:
 	page.start_speed.value = 30
 	page.leave()
 	# A real trainer with invalid/stale power must not start or silently become a demo.
+	# Keep synthetic trainer packets fresh regardless of headless rendering speed.
+	game.signal_clock = game._now_s()
+	game.trainer_control.close()
+	game.trainer_control = FakeTrainer.new()
 	game.trainer_seen = true
 	menu.show_derny()
 	page.begin()
