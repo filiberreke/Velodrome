@@ -145,10 +145,16 @@ func run_test() -> void:
 	for i in range(16): scene.advance(.25)
 	check(absf(scene.derny_lane_offset-1.78) < .001 and absf(scene.player_lane_offset-scene.derny_lane_offset) < .001,"Pilot rises smoothly after extra 5 km/h and rider follows automatically")
 	check(scene.hud.slipstream_bar.max_value == 60 and scene.reduction <= .60,"HUD and physical wake share sixty percent maximum")
+	scene.session.step_elapsed = 59.99
 	game._ride_action("RIGHT")
+	check(not scene.session.automatic_pacing,"Manual takeover disables automatic pacing immediately, before pilot response")
 	check(scene.hud.call_label.text == "ALLEZ" and scene.session.target_kmh == 40,"Simulator right calls ALLEZ before pilot responds")
 	for i in range(5): scene.advance(.25)
 	check(scene.session.target_kmh == 41 and scene.pilot.last_gesture == "speed_up","Pilot acknowledges manual increase with arm gesture")
+	check(scene.hud.dial.manual and scene.hud.dial.fraction == 0,"Manual dial hides the automatic increase countdown")
+	scene.session.step_elapsed = 59.99
+	scene.advance(.1)
+	check(scene.session.target_kmh == 41,"Manual tempo stays fixed through the next minute boundary")
 	game._ride_action("LEFT")
 	check(scene.hud.call_label.text == "HOW","Simulator left calls HOW")
 	for i in range(5): scene.advance(.25)

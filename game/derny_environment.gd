@@ -137,6 +137,7 @@ func using_simulator() -> bool:
 	return demo or game.trainer_virtual
 func request_tempo(direction: int) -> void:
 	if session.phase != "PACE" or direction == 0: return
+	session.take_manual_control()
 	if tempo_requests.is_empty():
 		call_elapsed = 0
 		hud.shout("ALLEZ" if direction > 0 else "HOW")
