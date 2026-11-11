@@ -31,6 +31,21 @@ jobs:
           mkdir -p "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
           cp -R /tmp/godot-templates/templates/. "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable/"
+      - name: Verify texture sources and clear import cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          for texture in game/assets/textures/velodrome_wood_pine.png game/assets/textures/velodrome_cote_azur.png; do
+            test -s "$texture"
+            file "$texture"
+            python3 - "$texture" <<'PY'
+          import pathlib, sys
+          p = pathlib.Path(sys.argv[1])
+          if p.read_bytes()[:8] != bytes.fromhex('89504e470d0a1a0a'):
+              raise SystemExit(f'Invalid PNG source (possible Git LFS pointer): {p}')
+          PY
+          done
+          rm -rf game/.godot
       - name: Import project
         run: '"$GODOT_BIN" --headless --path game --editor --import --quit'
       - name: Export macOS
