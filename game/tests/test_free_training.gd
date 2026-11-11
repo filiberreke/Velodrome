@@ -44,7 +44,7 @@ func run_test() -> void:
 	check(not page.detail.text.contains("plafond"),"Flying setup has no target-power control")
 	await shot("flying_best_setup")
 	menu.show_piste_training(); await shot("piste_tiles")
-	check(menu.piste_tiles.size() == 4,"All four piste sessions have their own image tile")
+	check(menu.piste_tiles.size() == 5,"Four existing piste sessions and Madison have their own image tile")
 	for size in [Vector2i(1280,720),Vector2i(1920,1080)]:
 		root.size = size
 		for i in range(3): await process_frame

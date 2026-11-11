@@ -73,6 +73,7 @@ func run_test() -> void:
 	scene.distance = scene._behind_derny(3)
 	scene.player_speed = 30.0/3.6
 	var mode: int = game.camera_mode
+	game.bridge_devices.close_page() # Exercise race controls after dismissing first-run device setup.
 	game._ride_action("DOWN")
 	check(game.camera_mode == (mode+1)%4 and game._ride_profile() == "race", "Mapped race camera buttons work during piste training")
 	game._ride_action("B")

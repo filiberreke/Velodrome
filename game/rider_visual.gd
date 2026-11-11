@@ -38,6 +38,7 @@ var cadence_phase: float = 0.0
 var stopped: bool = false
 var victory_started: bool = false
 var victory_left: float = 0.0
+var exchange_overlay: Node
 var body_mesh: MeshInstance3D
 
 func _ready() -> void:
@@ -70,7 +71,7 @@ func _ready() -> void:
 	animator.advance(0.0)
 	var rider_index: int = int(get_meta("rider_index", 0))
 	_apply_rider_profile(rider_index)
-	_apply_default_decals(rider_index)
+	_apply_default_decals(int(get_meta("appearance_profile",rider_index)))
 	body_mesh = rig_scene.find_child("Rider", true, false) as MeshInstance3D
 	if body_mesh != null:
 		for surface in range(body_mesh.mesh.get_surface_count()):
@@ -127,7 +128,7 @@ func _apply_rider_profile(index: int) -> void:
 		{"suit": Color("268cd3"), "accent": Color("8cd5ff"), "helmet": Color("187ec2"), "helmet2": Color("adddff"), "panel": Color("172a4b"), "glove": Color("18263e"), "shoe": Color("f3f4f6")},
 		{"suit": Color("df504b"), "accent": Color("ffc9a1"), "helmet": Color("d7433d"), "helmet2": Color("ffac8a"), "panel": Color("382629"), "glove": Color("30252a"), "shoe": Color("eeeeee")},
 	]
-	_apply_palette_to_mesh(body, palettes[index])
+	_apply_palette_to_mesh(body, palettes[clampi(int(get_meta("appearance_profile",index)),0,3)])
 	print("Velodrome rider: profiel ", index, " morphs ", RIDER_SHAPES[index])
 
 func _apply_palette_to_mesh(mesh_node: MeshInstance3D, palette: Dictionary) -> void:
@@ -396,6 +397,10 @@ func pedal(delta: float, cadence_rpm: float, power_w: float = 0.0) -> void:
 		_play_pose(target)
 	var cadence_value: float = maxf(0.0, cadence_rpm)
 	cadence_phase = fposmod(cadence_phase + cadence_value * TAU / 60.0 * delta, TAU)
+	if exchange_overlay != null and is_instance_valid(exchange_overlay):
+		exchange_overlay.call("drive",cadence_phase,resolved_poses[current_pose])
+		standing_amount = move_toward(standing_amount,1.0 if standing_active else 0.0,delta*4.0)
+		return
 	# Evaluate animated bones each physics frame in MANUAL mode.
 	animator.advance(delta * cadence_value / BASE_CADENCE)
 	# Keep crank angle phase continuous across animation switches.
