@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://0j22bnspmyp6"
 path.s3tc="res://.godot/imported/euromax_cycling_panel.png-499425fc71729a3b82abf757db10e39f.s3tc.ctex"
+path.etc2="res://.godot/imported/euromax_cycling_panel.png-499425fc71729a3b82abf757db10e39f.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/commentary/textures/euromax_cycling_panel.png"
-dest_files=["res://.godot/imported/euromax_cycling_panel.png-499425fc71729a3b82abf757db10e39f.s3tc.ctex"]
+dest_files=["res://.godot/imported/euromax_cycling_panel.png-499425fc71729a3b82abf757db10e39f.s3tc.ctex", "res://.godot/imported/euromax_cycling_panel.png-499425fc71729a3b82abf757db10e39f.etc2.ctex"]
 
 [params]
 
