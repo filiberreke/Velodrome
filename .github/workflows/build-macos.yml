@@ -46,6 +46,7 @@ jobs:
           PY
           done
           rm -rf game/.godot
+          rm -f game/assets/textures/velodrome_wood_pine.png.import game/assets/textures/velodrome_cote_azur.png.import
       - name: Import project
         shell: bash
         run: |
