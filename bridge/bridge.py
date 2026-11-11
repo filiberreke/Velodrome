@@ -16,6 +16,7 @@ from selection import select_device, select_left_ride
 from device_search import Discovery, DeviceSearch, RETRY_SECONDS
 from hr_bridge import HeartRateState, HeartRateUDPProtocol, HR_PORT
 from ant_worker import AntWorker
+from platform_support import console_input, bridge_log_path, install_shutdown_handler, check_platform_runtime
 
 BIKE_DATA = "00002ad2-0000-1000-8000-00805f9b34fb"
 FTMS_SERVICE = "00001826-0000-1000-8000-00805f9b34fb"
@@ -311,7 +312,7 @@ async def shift_input(queue, shifter):
     except ImportError:
         # Linux fallback, only a console helper; BLE remains in event loop.
         while shifter.enabled:
-            value = (await asyncio.to_thread(input, "Typ stop + ENTER > ")).strip().lower()
+            value = (await console_input("Typ stop + ENTER > ")).strip().lower()
             if value == 'stop':
                 shifter.enabled = False
                 await queue.put('stop')
@@ -330,7 +331,7 @@ async def shift_input(queue, shifter):
 async def resistance_input(queue):
     print('VEILIGHEID: stop met trappen bij onverwachte weerstand en typ reset of sluit bridge.')
     while True:
-        value = (await asyncio.to_thread(input, 'Weerstand 1..15, reset of stop > ')).strip().lower()
+        value = (await console_input('Weerstand 1..15, reset of stop > ')).strip().lower()
         if value in ('reset', 'stop'):
             await queue.put(value)
             if value == 'stop':
@@ -350,7 +351,7 @@ async def combined_console(combined):
     print('Start in SIM. ERG wordt pas actief na expliciet: erg')
     while not combined.disabled:
         try:
-            line = (await asyncio.to_thread(input, 'SIM/ERG > ')).strip().lower()
+            line = (await console_input('SIM/ERG > ')).strip().lower()
         except (EOFError, KeyboardInterrupt):
             combined.request_stop()
             return
@@ -364,6 +365,14 @@ async def combined_console(combined):
 
 
 async def main(args):
+    install_shutdown_handler()
+    if getattr(args, 'software_test', False):
+        print('SOFTWARETEST: geen Bluetooth, ANT+ of trainersturing gestart.', flush=True)
+        try:
+            await asyncio.Future()
+        finally:
+            print('SOFTWARETEST: bridge netjes afgesloten.', flush=True)
+        return
     if args.list:
         await discover_devices()
         return
@@ -425,9 +434,11 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description='Velodrome 250 v0.15: lokale UDP SIM/ERG + ANT+ hartslag')
     p.add_argument('--list', action='store_true', help='Alleen BLE-apparaten tonen (start ANT+ niet)')
     p.add_argument('--check-config', action='store_true', help='Controleer alle configuratiebestanden en sluit af zonder apparaten te starten')
+    p.add_argument('--check-runtime', action='store_true', help='Controleer macOS bindings en libusb zonder apparaten te starten')
+    p.add_argument('--software-test', action='store_true', help=argparse.SUPPRESS)
     p.add_argument('--no-ant', action='store_true', help='Start alleen KICKR en Zwift Ride, zonder ANT+ dongle')
     p.add_argument('--trainer', default='KICKR', help='Deel van trainernaam')
-    p.add_argument('--ride', default='', help='Optioneel BLE-adres van de LINKER Ride; standaard auto-detectie')
+    p.add_argument('--ride', default='', help='Optioneel BLE-adres of macOS UUID van de LINKER Ride; standaard auto-detectie')
     p.add_argument('--erg-ramp-w-per-s', type=float, default=300.0, help='ERG overgangssnelheid 1..10000 W/s, standaard 300')
     args = p.parse_args()
     from combined_mode import validate_rate
@@ -435,17 +446,19 @@ if __name__ == '__main__':
         validate_rate(args.erg_ramp_w_per_s)
     except ValueError as exc:
         p.error(str(exc))
-    if args.check_config:
+    if args.check_runtime:
+        check_platform_runtime()
+    if args.check_config or args.check_runtime:
         # Use the same loaders and module-relative paths as normal startup.
         CombinedMode(args.erg_ramp_w_per_s)
         ButtonMapper.load()
         print('Bridge configuration OK: gear_config.json, simulation_config.json, button_mapping.json')
         p.exit()
-    handler = RotatingFileHandler(Path(__file__).with_name('bridge.log'), maxBytes=1000000, backupCount=2, encoding='utf-8')
+    handler = RotatingFileHandler(bridge_log_path(), maxBytes=1000000, backupCount=2, encoding='utf-8')
     logging.basicConfig(level=logging.INFO, handlers=[handler, logging.StreamHandler()],
                         format='%(asctime)s %(levelname)s %(name)s %(message)s')
     try:
         asyncio.run(main(args))
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, asyncio.CancelledError):
         print('Bridge afgesloten.')
 

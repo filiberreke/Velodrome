@@ -1,6 +1,6 @@
 """Start ANT+ in dezelfde Python-bridge, onafhankelijk van de BLE-eventloop.
 
-ANT gebruikt het in v0.12.1 geteste legacy libusb0-pad en publiceert lokaal
+ANT gebruikt Windows libusb0 of macOS libusb 1.0 en publiceert lokaal
 naar UDP 51724, waar hr_bridge het in de Godot-telemetrie opneemt. De enige
 bedoeling van de thread is USB-blocking IO uit de asyncio BLE-loop houden.
 """
@@ -43,7 +43,7 @@ class AntWorker:
             raise RuntimeError('ANT+-ontvanger is al gestart')
         self._thread = threading.Thread(target=self._worker, name='ANT+ hartslag', daemon=True)
         self._thread.start()
-        print('ANT+ hartslagontvanger automatisch gestart (Dynastream/libusb0, geen driverwijziging).', flush=True)
+        print('ANT+ hartslagontvanger automatisch gestart (platform-eigen USB-backend).', flush=True)
 
     def stop(self):
         self._stop_requested.set()

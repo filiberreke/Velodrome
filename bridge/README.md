@@ -178,3 +178,9 @@ geen BLE/USB-pakketten of hardware nodig. Zie [VALIDATION.md](VALIDATION.md).
 Bronnen: [Bluetooth SIG FTMS 1.0.1](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0-1/)
 en [GATT Specification Supplement](https://btprodspecificationrefs.blob.core.windows.net/gatt-specification-supplement/GATT_Specification_Supplement.pdf).
 
+
+## macOS
+
+Voor spel en bridge samen: [macOS-bundel en startinstructies](../packaging/macos-bundled/README.md).
+Dezelfde trainer-, Ride- en UDP-code draait op beide platforms; macOS gebruikt
+CoreBluetooth en libusb 1.0. Windows blijft zijn bestaande libusb0-driver gebruiken.

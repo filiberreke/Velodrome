@@ -1,0 +1,145 @@
+name: macOS bundled game and bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'bridge/**'
+      - 'packaging/macos-bundled/**'
+      - '.github/workflows/macos-bundled.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  windows-regression:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r bridge/requirements.txt
+      - run: python -m unittest discover -s bridge/tests -v
+
+  bundled:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install bridge build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew list libusb >/dev/null 2>&1 || brew install libusb
+          python -m pip install -r bridge/requirements.txt 'pyinstaller>=6,<7'
+          echo "VELODROME_LIBUSB_PATH=$(brew --prefix libusb)/lib/libusb-1.0.dylib" >> "$GITHUB_ENV"
+      - name: Run shared bridge and launcher tests
+        run: |
+          python -m unittest discover -s bridge/tests -v
+          python -m unittest discover -s packaging/macos-bundled -p 'test_*.py' -v
+      - name: Download existing validated macOS game
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, subprocess
+          repo = os.environ["GH_REPO"]
+          def api(path):
+              return json.loads(subprocess.check_output(["gh", "api", path]))
+          runs = api(f"repos/{repo}/actions/workflows/build-macos.yml/runs?status=success&branch=main&per_page=50")
+          for run in runs["workflow_runs"]:
+              artifacts = api(f"repos/{repo}/actions/runs/{run['id']}/artifacts?per_page=100")
+              if any(a["name"] == "Velodrome-macOS-unsigned" and not a["expired"] for a in artifacts["artifacts"]):
+                  subprocess.run(["gh", "run", "download", str(run["id"]), "--repo", repo, "--name", "Velodrome-macOS-unsigned", "--dir", "game-export"], check=True)
+                  with open("game-build.json", "w") as target:
+                      json.dump({"run_id": run["id"], "commit": run["head_sha"], "url": run["html_url"]}, target, indent=2)
+                  break
+          else:
+              raise SystemExit("No successful macOS game artifact available; run Build macOS game first")
+          PY
+          ditto -x -k game-export/Velodrome.zip game-export/unpacked
+          mkdir -p bundle/bridge bundle/defaults
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          apps = list(Path("game-export/unpacked").glob("*.app"))
+          if len(apps) != 1:
+              raise SystemExit(f"Expected one game app: {apps}")
+          shutil.move(str(apps[0]), "bundle/VelodromeGame.app")
+          PY
+      - name: Package native bridge and launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m PyInstaller --noconfirm --clean --distpath .build/dist --workpath .build/bridge packaging/macos-bundled/bridge.spec
+          python -m PyInstaller --noconfirm --clean --onedir --console --name VelodromeLauncher --distpath .build/dist --workpath .build/launcher --specpath .build packaging/macos-bundled/launcher.py
+          ditto .build/dist/VelodromeBridge.app bundle/bridge/VelodromeBridge.app
+          ditto .build/dist/VelodromeLauncher bundle/runtime
+          cp packaging/macos-bundled/Start-Velodrome.command bundle/
+          cp packaging/macos-bundled/README.md bundle/README.md
+          cp packaging/windows-demo/defaults/*.cfg bundle/defaults/
+          cp game-build.json bundle/
+          chmod +x bundle/Start-Velodrome.command
+      - name: Verify native bindings, configs, signatures and startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          codesign --verify --deep --strict bundle/bridge/VelodromeBridge.app
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, plistlib
+          app = Path("bundle/bridge/VelodromeBridge.app")
+          info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+          assert info["NSBluetoothAlwaysUsageDescription"]
+          for source in Path("bridge").glob("*.json"):
+              matches = list((app / "Contents").rglob(source.name))
+              assert matches, f"Missing config: {source.name}"
+              assert all(p.read_bytes() == source.read_bytes() for p in matches), source
+          assert list((app / "Contents").rglob("libusb-1.0*.dylib")), "libusb missing"
+          PY
+          launcher="$GITHUB_WORKSPACE/bundle/runtime/VelodromeLauncher"
+          cd "$RUNNER_TEMP"
+          "$launcher" --check-config
+          "$launcher" --smoke-test > "$GITHUB_WORKSPACE/macos-startup.log" 2>&1
+          cat "$GITHUB_WORKSPACE/macos-startup.log"
+          grep -q 'SOFTWARETEST: bridge netjes afgesloten.' "$GITHUB_WORKSPACE/macos-startup.log"
+          grep -Eq 'Loading resource: res://main.gdc|Loading resource: res://main.gd' "$GITHUB_WORKSPACE/macos-startup.log"
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|ERROR:' "$GITHUB_WORKSPACE/macos-startup.log"; then
+            exit 1
+          fi
+      - name: Archive distribution preserving executable permissions
+        shell: bash
+        run: ditto -c -k --keepParent bundle Velodrome-Bundled-macOS-${{ matrix.arch }}.zip
+      - name: Upload combined macOS distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: Velodrome-Bundled-macOS-${{ matrix.arch }}
+          path: Velodrome-Bundled-macOS-${{ matrix.arch }}.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload startup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-bridge-diagnostics-${{ matrix.arch }}
+          path: |
+            macos-startup.log
+            game-build.json
+          if-no-files-found: ignore
+          retention-days: 14
