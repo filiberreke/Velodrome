@@ -21,6 +21,7 @@ var target_kmh := 20.0
 var completed_kmh := 0
 var loss_seconds := 0.0
 var reason := ""
+var automatic_pacing := true
 var announced_step := false
 var look_cooldown := 10.0
 
@@ -37,6 +38,7 @@ func start(at: float, chosen_start_kmh: float = DEFAULT_START_KMH) -> void:
 	completed_kmh = 0
 	loss_seconds = 0.0
 	reason = ""
+	automatic_pacing = true
 	announced_step = false
 	look_cooldown = 10.0
 
@@ -79,10 +81,11 @@ func advance(dt: float, metric: float, player_distance: float, player_metric: fl
 		if step_elapsed + .000001 >= STEP_SECONDS:
 			completed_kmh = maxi(completed_kmh,roundi(target_kmh))
 			step_elapsed = maxf(0,step_elapsed-STEP_SECONDS)
-			target_kmh += 1
-			announced_step = false
-			speed_changed.emit(int(target_kmh))
-		if step_elapsed >= STEP_SECONDS-1.5 and not announced_step:
+			if automatic_pacing:
+				target_kmh += 1
+				announced_step = false
+				speed_changed.emit(int(target_kmh))
+		if automatic_pacing and step_elapsed >= STEP_SECONDS-1.5 and not announced_step:
 			announced_step = true
 			gesture_requested.emit("speed_up")
 			look_cooldown = maxf(look_cooldown,3)
@@ -97,8 +100,15 @@ static func required_power(speed_mps: float, reduction: float, grade_pct: float 
 	var aero := .5 * 1.20 * .334 * v * v * (1-clampf(reduction,0,MAX_DRAFT))
 	return maxf(0, (aero + .004 * 80 * 9.81 + 80 * 9.81 * grade_pct / 100) * v / .975)
 
+func take_manual_control() -> void:
+	if phase != "PACE" or not automatic_pacing: return
+	automatic_pacing = false
+	step_elapsed = 0
+	announced_step = false
+
 func change_tempo(direction: int) -> bool:
 	if phase != "PACE" or direction == 0: return false
+	take_manual_control()
 	var changed := maxf(MIN_START_KMH,target_kmh+(1 if direction > 0 else -1))
 	if changed == target_kmh: return false
 	target_kmh = changed

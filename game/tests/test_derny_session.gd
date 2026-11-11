@@ -58,5 +58,23 @@ func _initialize() -> void:
 	check(session.target_kmh == 31 and session.step_elapsed == 0 and signals[-1] == "speed_up","Manual increase changes one km/h and resets countdown")
 	session.change_tempo(-1)
 	check(session.target_kmh == 30 and signals[-1] == "slow_down","Manual decrease signals the slowing hand")
+	for direction in [1,-1]:
+		session.start(0)
+		session.phase = "PACE"
+		session.target_kmh = 30
+		session.step_elapsed = 59.99
+		check(session.change_tempo(direction) and not session.automatic_pacing,"Either tempo button takes permanent manual control")
+		changes.clear()
+		signals.clear()
+		for i in range(18000): session.advance(.01,1,session.derny_distance-3,1)
+		check(session.target_kmh == 30+direction and changes.is_empty(),"Manual target stays fixed across three minute boundaries")
+		check(not signals.has("speed_up"),"Manual pacing never announces an automatic increase")
+		check(session.completed_kmh == 30+direction,"Held manual speed still counts as a completed minute")
+		session.start(0)
+		check(session.automatic_pacing,"New training restores automatic progression")
+	session.phase = "PACE"
+	session.target_kmh = Session.MIN_START_KMH
+	check(not session.change_tempo(-1) and not session.automatic_pacing,"Slower at minimum speed still takes manual control")
+	check(not session.change_tempo(0),"Empty direction does not change tempo")
 	print("DERNY_SESSION failures=", failures)
 	quit(0 if failures == 0 else 1)
