@@ -26,11 +26,11 @@ func run() -> void:
 		check(scene.madison.phase == scene.madison.Phase.APPROACH,"Bad positioning cannot start a grab")
 	scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([18.0,8.0]); scene.madison.reset()
 	scene.madison.step(scene,.02); scene._present(.1)
-	check(not hud.show_slider and hud.hint.text.contains("wegens je snelheid"),"Excessive incoming speed hides the timing bar and explains the speed problem")
+	check(not hud.show_slider and hud.hint.text.contains("wegens je snelheid"),"Excessive outgoing speed hides the timing bar and explains the speed problem")
 	scene.speeds.assign([12.0,8.0])
 	scene.lane_offsets.assign([2.38,3.58]); scene.player_lane_target = 2
 	scene.madison.reset(); scene.madison.step(scene,.02); scene._present(.1)
-	var incoming_mesh: Mesh = scene.exchange_zone.mesh
+	var giver_mesh: Mesh = scene.exchange_zone.mesh
 	check(hud.show_slider and hud.state.can_grab,"Green indicator uses actual accepted grab condition")
 	check(hud.hint.text.contains("Volg de gele lijn en rij sneller dan"),"Approach has explicit positioning guidance")
 	scene.grab_button("test",true); scene.grab_button("test",false)
@@ -50,17 +50,17 @@ func run() -> void:
 	scene.lane_offsets.assign([3.58,2.38]); scene.player_lane_target = 4
 	scene.speeds.assign([8.0,12.0]); scene.distances.assign([120.0,120.0])
 	scene.madison.step(scene,.02); scene._present(.1)
-	check(scene.exchange_zone.mesh != incoming_mesh and hud.hint.text.contains("Uitgaand"),"Yellow zone changes with the receiving role")
-	check(hud.show_slider,"Correct outgoing player position permits timing")
+	check(scene.exchange_zone.mesh != giver_mesh and hud.hint.text.contains("Inkomend"),"Yellow zone changes with the receiving role")
+	check(hud.show_slider,"Correct incoming player position permits timing")
 	scene.speeds.assign([51.0/3.6,16.0]); scene.madison.step(scene,.01); scene._present(.1)
-	check(not hud.show_slider and hud.hint.text.contains("50 km/u"),"Outgoing sprint warning names the maximum speed")
+	check(not hud.show_slider and hud.hint.text.contains("50 km/u"),"Incoming sprint warning names the maximum speed")
 	scene.speeds.assign([8.0,12.0])
 	scene.pending_trial = true
 	scene.lane_offsets[0] = 5.38
 	scene.madison.cancel("Ontvanger buiten de wisselzone")
 	scene._present(.1)
 	check(scene.exchange_results.size() == 2 and not scene.exchange_results[1].success,"Failed attempt receives its own result")
-	check(scene.exchange_results[1].role == "Uitgaand" and not scene.exchange_results[1].reason.is_empty() and scene.exchange_results[1].score == 0,"Failure records role, reason and zero score")
+	check(scene.exchange_results[1].role == "Inkomend" and not scene.exchange_results[1].reason.is_empty() and scene.exchange_results[1].score == 0,"Failure records role, reason and zero score")
 	check(not hud.show_slider,"No stale slider remains after cancellation")
 	for i in range(8):
 		scene.pending_trial = true; scene.attempt_giver = i%2
@@ -70,6 +70,7 @@ func run() -> void:
 	var saved: Dictionary = menu.training_store.load_activity(scene.activity.id)
 	check(saved.exchanges.size() == 10,"Archive retains every attempt")
 	check(page.results_scroll.visible and page.results_table.get_child_count() == 55,"Results table contains five columns and all ten rows")
+	check(page._display_exchange({"role":"Inkomend","reason":"Te traag als inkomende renner"}).role == "Uitgaand", "Archived legacy roles are corrected when reopened")
 	page.show_activity(saved)
 	check(page.results_table.get_child_count() == 55,"Reopening archived results reconstructs the same table")
 	for i in range(3): await process_frame

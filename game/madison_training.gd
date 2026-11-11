@@ -50,7 +50,7 @@ func _refresh() -> void:
 	if has_result:
 		result.text = "%s · %d/%d pogingen · %d geslaagd\n%s" % [selected_activity.get("reason",""),selected_activity.get("attempts",0),selected_activity.get("target",10),selected_activity.get("successes",0),upload_status]
 	elif session.phase == "RESULT": result.text = session.reason
-	else: result.text = "Volg de gele wisselzone. Inkomend: jij geeft aan de binnenkant. Uitgaand: jij ontvangt bij de blauwe lijn.\nScore: maximaal 100/100 in beide modi; Easy draagt maximaal 70% momentum over."
+	else: result.text = "Volg de gele wisselzone. Uitgaand: jij geeft aan de binnenkant. Inkomend: jij ontvangt bij de blauwe lijn.\nScore: maximaal 100/100 in beide modi; Easy draagt maximaal 70% momentum over."
 
 func show_activity(activity: Dictionary, message: String = "Training opgeslagen in het spel.") -> void:
 	super.show_activity(activity,message)
@@ -58,7 +58,8 @@ func show_activity(activity: Dictionary, message: String = "Training opgeslagen 
 		results_table.remove_child(child); child.queue_free()
 	for heading in ["Poging","Rol","Resultaat","Reden bij mislukken","Score /100"]:
 		_table_cell(heading,true)
-	for exchange in activity.get("exchanges",[]):
+	for stored in activity.get("exchanges",[]):
+		var exchange: Dictionary = _display_exchange(stored)
 		for text in [str(exchange.get("number","")),str(exchange.get("role","")),"Gelukt" if exchange.get("success",false) else "Mislukt",str(exchange.get("reason","")),str(exchange.get("score",0))]:
 			_table_cell(text)
 
@@ -69,3 +70,16 @@ func _table_cell(text: String, heading: bool = false) -> void:
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if heading: cell.add_theme_color_override("font_color",Color("d1a83c"))
 	results_table.add_child(cell)
+
+func _display_exchange(stored: Dictionary) -> Dictionary:
+	var exchange: Dictionary = stored.duplicate()
+	if exchange.has("player_role"):
+		exchange["role"] = "Uitgaand" if exchange.player_role == "giver" else "Inkomend"
+	else:
+		# Previously stored activities used the opposite Dutch role names.
+		exchange["role"] = "Uitgaand" if stored.get("role","") == "Inkomend" else "Inkomend" if stored.get("role","") == "Uitgaand" else str(stored.get("role",""))
+		var reason: String = str(stored.get("reason",""))
+		for pair in [["Inkomend","Uitgaand"],["inkomend","uitgaand"]]:
+			reason = reason.replace(pair[0],"__ROLE_SWAP__").replace(pair[1],pair[0]).replace("__ROLE_SWAP__",pair[1])
+		exchange["reason"] = reason
+	return exchange

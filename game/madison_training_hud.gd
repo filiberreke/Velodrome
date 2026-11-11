@@ -20,7 +20,7 @@ func update_training(scene) -> void:
 	state["speed_valid"] = pace.valid; state["speed_reason"] = pace.reason
 	state["instruction"] = "Volg de gele lijn en rij sneller dan %.1f km/u" % pace.minimum_kmh if (scene.madison.giver if scene.madison.active else scene.madison.active_rider) == 0 else "Volg de gele lijn. Rij maximaal %.0f km/u" % pace.receiver_max_kmh
 	state["partner_present"] = scene.partner_present
-	state["role"] = "Inkomend · jij geeft" if (scene.madison.giver if scene.madison.active else scene.madison.active_rider) == 0 else "Uitgaand · jij ontvangt"
+	state["role"] = "Uitgaand · jij geeft" if (scene.madison.giver if scene.madison.active else scene.madison.active_rider) == 0 else "Inkomend · jij ontvangt"
 	state["feedback"] = scene.feedback if scene.total_elapsed < scene.feedback_until else ""
 	if not scene.partner_present: state["message"] = "Volgende aflossing over %.0f m" % maxf(0,scene.next_spawn_player_distance-scene.distances[0])
 	exchange_hud.update_state(state)

@@ -24,16 +24,16 @@ voegt geen wedstrijdtactiek, ploegklassement of ploegpunten toe.
 ## Positionering, feedback en score
 
 Gedurende de hele training markeert een gele strook op de gebankte piste de
-aanbevolen rijlijn, ook tussen pogingen en tijdens de aflossing. Inkomend (speler geeft) ligt die aan de binnenkant, uitgaand (speler
+aanbevolen rijlijn, ook tussen pogingen en tijdens de aflossing. Uitgaand (speler geeft) ligt die aan de binnenkant, inkomend (speler
 ontvangt) bij de blauwe lijn. De ontvanger mag ook één lijn binnen de blauwe lijn
 rijden. De zone bestaat alleen in deze training. Voor de toekomstige wedstrijdmodus
 Ploegkoers is het de bedoeling deze hulp pas tijdens de laatste 50 m te tonen.
 De speler houdt altijd stuurcontrole.
 
-Het HUD toont inkomend: **Volg de gele lijn en rij sneller dan XX km/u**.
+Het HUD toont uitgaand: **Volg de gele lijn en rij sneller dan XX km/u**.
 Dit minimum volgt de actuele snelheid van de ploegmaat plus 0,1 m/s sluitingssnelheid
-(afgerond naar boven op 0,1 km/u). Uitgaand: **Volg de gele lijn. Rij maximaal
-50 km/u**. Boven 50 km/u kan de uitgaande renner niet grijpen of handcontact
+(afgerond naar boven op 0,1 km/u). Inkomend: **Volg de gele lijn. Rij maximaal
+50 km/u**. Boven 50 km/u kan de inkomende renner niet grijpen of handcontact
 behouden; `receiver_max_kmh` maakt deze grens instelbaar. Ook een te groot
 snelheidsverschil blokkeert de greep: beide renners moeten hun relatieve snelheid
 met de beschikbare contactversnelling kunnen afbouwen binnen het handbereik.
@@ -51,6 +51,10 @@ en resultaat/redengeving. De vaardigheidsscore is in beide modi op 100:
 perfect Easy = 100/100 en maximaal 70% momentum, perfect Advanced = 100/100 en
 maximaal 100% momentum. Een mislukking scoort 0. De rollen wisselen ook na een
 mislukte poging, zodat beide rollen aan bod komen.
+
+Nieuwe pogingen bewaren ook `player_role` (`giver` of `receiver`), zodat de
+rol ondubbelzinnig blijft. Eerder bewaarde activiteiten met omgekeerde Nederlandse
+benamingen worden bij het tonen gecorrigeerd.
 
 De activiteit bewaart `exchanges`: per poging het volgnummer, `role`, `success`,
 `reason`, `score` (0–100) en `momentum_percent`. Na afloop en bij heropenen via de

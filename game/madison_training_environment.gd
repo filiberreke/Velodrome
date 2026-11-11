@@ -105,8 +105,8 @@ func _score(success: bool) -> void:
 		var pace: Dictionary = madison.speed_guidance(self)
 		reason = str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else "Greep gemist — niet op tijd op A gedrukt"
 	var score: int = clampi(roundi(madison.score_percent()),1,100) if success else 0
-	var role: String = "Inkomend" if attempt_giver == 0 else "Uitgaand"
-	exchange_results.append({"number":exchange_results.size()+1,"role":role,"success":success,"reason":reason,"score":score,"momentum_percent":madison.efficiency*100.0 if success else 0.0})
+	var role: String = "Uitgaand" if attempt_giver == 0 else "Inkomend"
+	exchange_results.append({"number":exchange_results.size()+1,"role":role,"player_role":"giver" if attempt_giver == 0 else "receiver","success":success,"reason":reason,"score":score,"momentum_percent":madison.efficiency*100.0 if success else 0.0})
 	feedback = "%s · %d%% · %s" % [role,score,"Geslaagd" if success else "Mislukt: " + reason]
 	feedback_until = total_elapsed+5.0
 	page.progress.record(success,not madison.advanced)

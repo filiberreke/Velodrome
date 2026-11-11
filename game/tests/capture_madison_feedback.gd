@@ -18,12 +18,12 @@ func capture() -> void:
 	scene.madison.step(scene,.02); scene._present(1.0)
 	await shot("05_invalid_position")
 	scene.lane_offsets[0] = 2.38; scene.madison.step(scene,.1); scene._present(1.0)
-	await shot("06_incoming_zone")
+	await shot("06_outgoing_zone")
 	scene.madison.reset(); scene.madison.active_rider = 1; scene.attempt_giver = 1
 	scene.distances.assign([95.0,90.0]); scene.speeds.assign([8.0,12.0]); scene.lane_offsets.assign([3.58,2.38])
 	scene.madison.step(scene,.1); scene._present(1.0)
-	await shot("07_outgoing_zone")
-	scene.feedback = "Uitgaand · 100% · Geslaagd"; scene.feedback_until = 100
+	await shot("07_incoming_zone")
+	scene.feedback = "Inkomend · 100% · Geslaagd"; scene.feedback_until = 100
 	scene.partner_present = false; scene._present(1.0)
 	await shot("08_exchange_score")
 	# Visual fixture for a complete ten-row report, including failed attempts.
@@ -31,7 +31,7 @@ func capture() -> void:
 	for i in range(10):
 		scene.pending_trial = true; scene.attempt_giver = i%2
 		scene.madison.efficiency = .7 if i%3 else 0.0
-		scene.madison.failure_reason = ("Je reed te snel als uitgaande renner: 53 km/u (maximum 50 km/u)" if i%2 else "Te ver van je ploegmaat") if i%3 == 0 else ""
+		scene.madison.failure_reason = ("Je reed te snel als inkomende renner: 53 km/u (maximum 50 km/u)" if i%2 else "Te ver van je ploegmaat") if i%3 == 0 else ""
 		scene._score(i%3 != 0)
 	scene.finish_session("Training voltooid")
 	await shot("09_exchange_results")

@@ -133,11 +133,11 @@ func speed_guidance(game) -> Dictionary:
 	var minimum_kmh: float = ceilf((game.speeds[r]+minimum_closing_mps)*36.0)/10.0
 	var reason := ""
 	if game.speeds[r]*3.6 > receiver_max_kmh:
-		reason = "Je reed te snel als uitgaande renner: %.1f km/u (maximum %.0f km/u)" % [game.speeds[r]*3.6,receiver_max_kmh] if r == 0 else "Uitgaande ploegmaat reed boven %.0f km/u" % receiver_max_kmh
+		reason = "Je reed te snel als inkomende renner: %.1f km/u (maximum %.0f km/u)" % [game.speeds[r]*3.6,receiver_max_kmh] if r == 0 else "Inkomende ploegmaat reed boven %.0f km/u" % receiver_max_kmh
 	elif difference <= minimum_closing_mps:
-		reason = "Je reed te traag als inkomende renner: %.1f km/u (rij sneller dan %.1f km/u)" % [game.speeds[g]*3.6,minimum_kmh] if g == 0 else "Je reed te snel: de inkomende ploegmaat kon niet bijsluiten"
+		reason = "Je reed te traag als uitgaande renner: %.1f km/u (rij sneller dan %.1f km/u)" % [game.speeds[g]*3.6,minimum_kmh] if g == 0 else "Je reed te snel: de uitgaande ploegmaat kon niet bijsluiten"
 	elif difference > maximum_closing:
-		reason = "Je reed te snel: snelheidsverschil %.1f km/u (maximum %.1f km/u)" % [difference*3.6,maximum_closing*3.6] if g == 0 else "Snelheidsverschil met de inkomende ploegmaat te groot: %.1f km/u" % (difference*3.6)
+		reason = "Je reed te snel: snelheidsverschil %.1f km/u (maximum %.1f km/u)" % [difference*3.6,maximum_closing*3.6] if g == 0 else "Snelheidsverschil met de uitgaande ploegmaat te groot: %.1f km/u" % (difference*3.6)
 	return {"valid":reason.is_empty(),"reason":reason,"minimum_kmh":minimum_kmh,"maximum_closing_kmh":maximum_closing*3.6,"receiver_max_kmh":receiver_max_kmh}
 
 func step(game, dt: float) -> void:
