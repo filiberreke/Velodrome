@@ -104,6 +104,7 @@ jobs:
           ditto .build/dist/VelodromeLauncher bundle/runtime
           cp packaging/macos-bundled/Start-Velodrome.command bundle/
           cp packaging/macos-bundled/README.md bundle/README.md
+          cp packaging/macos-bundled/START-HIER.txt bundle/START-HIER.txt
           cp packaging/windows-demo/defaults/*.cfg bundle/defaults/
           cp game-build.json bundle/
           mkdir -p bundle/licenses

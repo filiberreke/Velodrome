@@ -1,5 +1,7 @@
 # Velodrome voor macOS: spel en bridge samen
 
+Voor installeren en starten: lees [START-HIER.txt](START-HIER.txt).
+
 ## Starten
 
 1. Download de bundel voor **arm64 (Apple Silicon)** of **x86_64 (Intel)**.
