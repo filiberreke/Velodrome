@@ -23,10 +23,11 @@ func run() -> void:
 		check(not hud.show_slider and hud.hint.text.contains("Aflossen niet mogelijk wegens slechte positionering"),"Bad position hides timing bar and explains why")
 		check(scene.exchange_zone.visible and not scene.madison.can_grab,"Training zone remains visible while correcting a bad position")
 		scene.grab_button("test",true); scene.grab_button("test",false)
-		check(scene.madison.phase == scene.madison.Phase.APPROACH,"Bad positioning cannot start a grab")
+		check(scene.madison.phase == scene.madison.Phase.SEPARATE,"Bad positioning fails the attempt")
 	scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([56.0/3.6,14.0]); scene.madison.reset()
 	scene.madison.step(scene,.02); scene._present(.1)
 	check(not hud.show_slider and hud.hint.text.contains("wegens je snelheid"),"Excessive outgoing speed hides the timing bar and explains the speed problem")
+	scene.exchange_results.clear(); scene.page.progress.reset_session(10); scene.pending_trial = true
 	scene.speeds.assign([12.0,8.0])
 	scene.lane_offsets.assign([2.38,3.58]); scene.player_lane_target = 2
 	scene.madison.reset(); scene.madison.step(scene,.02); scene._present(.1)

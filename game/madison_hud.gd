@@ -56,8 +56,11 @@ func _draw() -> void:
 	if not show_slider: return
 	var bar := Rect2(20,57,size.x-40,36)
 	draw_rect(bar,Color("c6cbd0"))
-	# Show the timing target throughout approach, before the rider can grab.
-	draw_rect(Rect2(bar.position+Vector2(bar.size.x*0.72,0),Vector2(bar.size.x*0.16,bar.size.y)),Color("8dc799"))
+	# The controller supplies the exact accepted interval, including its late edge.
+	if state.get("grab_window_valid",false):
+		var start: float = state.grab_left
+		var finish: float = state.grab_right
+		draw_rect(Rect2(bar.position+Vector2(bar.size.x*start,0),Vector2(bar.size.x*(finish-start),bar.size.y)),Color("8dc799"))
 	var centre: float = bar.position.x+bar.size.x*float(state.approach_t)
 	var width: float = maxf(4.0,bar.size.x*0.35*float(state.efficiency))
 	var left: float = clampf(centre-width*0.5,bar.position.x,bar.end.x-width)

@@ -46,10 +46,16 @@ de ontvanger. Meldingen en resultaattabel vermelden de gemeten snelheid en grens
 Bij verkeerde volgorde,
 verkeerde ontvangerslijn, te kleine of te grote zijafstand verdwijnt de slider en
 verschijnt **Aflossen niet mogelijk wegens slechte positionering**, met een
-concrete reden. De groene timingzone is vanaf het begin van de zichtbare slider aanwezig,
-zodat de speler de naderende marker op het doel kan timen. De melding A: grijpen
+concrete reden. De groene timingzone toont het door de controller berekende greepvenster,
+ook vóór de marker het bereikt. Linker- en rechterrand houden rekening met
+fysieke afstand, visuele handafstand en de uitloop bij het gelijkmaken van de
+snelheden. Dezelfde grenzen worden getekend en bij de klik gecontroleerd. De melding A: grijpen
 verschijnt zodra de controller de greep accepteert. De controller controleert ook of het snelheidsverschil
 binnen handbereik kan worden afgebouwd; een onhoudbare greep wordt geweigerd.
+
+Elke poging heeft maar één grijppoging: een te vroege, te late of ongeldige
+eerste klik beëindigt de poging met reden en score 0. Een tweede klik kan die
+poging niet herstellen; de volgende kans verschijnt in de volgende spelersronde.
 
 Iedere afgeronde poging toont vijf seconden feedback met rol, scorepercentage
 en resultaat/redengeving. De vaardigheidsscore is in beide modi op 100:
@@ -113,7 +119,7 @@ De eenvoudige wanten zonder vingeranimatie blijven een assetbeperking.
 Gebruik Godot 4.7.2 na de normale import:
 
 ```text
-python game/tests/run_v02_headless.py --godot PAD/NAAR/Godot.exe test_madison_feedback test_madison_v02_training test_madison_progress test_madison test_free_training test_derny_training test_piste_exercises test_training_environment test_v02_menu test_training_signal_pause test_ftp_ramp test_workout_library test_workout_editor_ui
+python game/tests/run_v02_headless.py --godot PAD/NAAR/Godot.exe test_madison_window_motion test_madison_feedback test_madison_v02_training test_madison_progress test_madison test_free_training test_derny_training test_piste_exercises test_training_environment test_v02_menu test_training_signal_pause test_ftp_ramp test_workout_library test_workout_editor_ui
 ```
 
 De Madison-integratietest controleert plaatsing in de hub, vergrendeling,

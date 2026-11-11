@@ -35,6 +35,10 @@ var sling_t := 0.0
 var efficiency := 0.0
 var held := false
 var can_grab := false
+var attempted := false
+var grab_left := 0.72
+var grab_right := 0.88
+var grab_window_valid := false
 var visual_offsets: Array[float] = [0.0, 0.0]
 var contact_point := Vector3.ZERO
 var last_result := "Zoek je ploegmaat op bij de blauwe lijn"
@@ -51,7 +55,7 @@ func reset() -> void:
 	active = false
 	giver = 0; receiver = 1; active_rider = 0
 	elapsed = 0.0; cooldown = 0.0; marker = 0.0; precision = 0.0
-	sling_t = 0.0; efficiency = 0.0; held = false; can_grab = false
+	sling_t = 0.0; efficiency = 0.0; held = false; can_grab = false; attempted = false; grab_window_valid = false
 	visual_offsets.assign([0.0, 0.0])
 	_impulse = 0.0
 	release_reason = ""
@@ -69,15 +73,24 @@ func button(pressed: bool) -> void:
 	if not pressed:
 		if advanced and active and phase in [Phase.GRAB, Phase.SLING]: _release()
 		return
-	if not active or phase != Phase.APPROACH: return
+	if not active or phase != Phase.APPROACH or attempted: return
 	if not can_grab:
-		last_result = position_reason if not position_valid else speed_reason if not speed_valid else "Te vroeg of te laat gegrepen: buiten handbereik"
-		missed.emit(last_result)
+		miss_attempt(position_reason if not position_valid else speed_reason if not speed_valid else "Te vroeg gedrukt — vóór de groene zone" if marker < grab_left else "Te laat gedrukt — voorbij de groene zone")
 		return
+	attempted = true
 	precision = clampf(1.0 - absf(marker - 0.8) / 0.2, 0.0, 1.0)
 	sling_t = 0.0
 	efficiency = 0.0
 	_change(Phase.GRAB)
+
+func miss_attempt(reason: String) -> void:
+	if attempted: return
+	attempted = true
+	if not active:
+		giver = active_rider; receiver = 1-giver; active = true
+	failure_reason = reason; last_result = reason; can_grab = false; held = false
+	missed.emit(reason)
+	_change(Phase.SEPARATE)
 
 func _release(reason: String = "player") -> void:
 	release_reason = reason
@@ -140,6 +153,37 @@ func speed_guidance(game) -> Dictionary:
 		reason = "De uitgaande gever moet sneller rijden dan de ontvanger" if g == 0 else "Je reed te snel: de uitgaande ploegmaat kon niet bijsluiten"
 	return {"valid":reason.is_empty(),"reason":reason,"minimum_kmh":minimum_kmh,"maximum_closing_kmh":maximum_closing*3.6,"giver_max_kmh":giver_max_kmh}
 
+func _gap_interval(offset: Vector3, tangent: Vector3, reach: float) -> Vector2:
+	var scale: float = maxf(tangent.length_squared(),0.000001)
+	var centre: float = -offset.dot(tangent)/scale
+	var radius_squared: float = (reach*reach-offset.length_squared())/scale+centre*centre
+	if radius_squared < 0.0: return Vector2(1,-1)
+	var radius: float = sqrt(radius_squared)
+	return Vector2(centre-radius,centre+radius)
+
+func _update_grab_window(game) -> void:
+	# Map every spatial constraint onto the same gap/marker interval used by HUD
+	# and button(). The late edge includes the drift while speeds equalise.
+	var d: float = game.distances[giver]
+	var g_lane: float = game.lane_offsets[giver]
+	var r_lane: float = game.lane_offsets[receiver]
+	var r_base: Vector3 = game._at(d,r_lane)
+	var tangent: Vector3 = game._at(d+.5,r_lane)-game._at(d-.5,r_lane)
+	var visual_r: float = r_lane+visual_offsets[receiver]
+	var visual_tangent: Vector3 = game._at(d+.5,visual_r)-game._at(d-.5,visual_r)
+	var relative_speed: float = game.speeds[giver]-game.speeds[receiver]
+	var drift: float = relative_speed*absf(relative_speed)/maxf(.001,4.0*contact_acceleration)
+	var interval := Vector2(-1.0,1.0) # Original 0.72–0.88 timing target.
+	var constraints := [
+		_gap_interval(r_base-game._at(d,g_lane),tangent,max_reach),
+		_gap_interval(game._at(d,visual_r)-game._at(d,g_lane+visual_offsets[giver]),visual_tangent,visual_reach+.04),
+		_gap_interval(r_base-game._at(d+drift,g_lane),tangent,max_reach)]
+	for allowed in constraints:
+		interval.x = maxf(interval.x,allowed.x); interval.y = minf(interval.y,allowed.y)
+	grab_window_valid = interval.x <= interval.y
+	grab_left = (approach_distance-interval.y)/(approach_distance+2.5)
+	grab_right = (approach_distance-interval.x)/(approach_distance+2.5)
+
 func step(game, dt: float) -> void:
 	if dt <= 0.0: return
 	cooldown = maxf(0.0, cooldown - dt)
@@ -151,7 +195,7 @@ func step(game, dt: float) -> void:
 		gap = wrapf(game.distances[receiver] - game.distances[giver], -125.0, 125.0)
 		if gap >= -1.5 and gap <= approach_distance and game.speeds[giver] > game.speeds[receiver] + minimum_closing_mps:
 			active = true
-			precision = 0.0; efficiency = 0.0; sling_t = 0.0
+			precision = 0.0; efficiency = 0.0; sling_t = 0.0; attempted = false
 			release_reason = ""; failure_reason = ""
 			_impulse = 0.0
 			_change(Phase.APPROACH)
@@ -174,13 +218,10 @@ func step(game, dt: float) -> void:
 	a = game._at(game.distances[giver], game.lane_offsets[giver] + visual_offsets[giver])
 	b = game._at(game.distances[receiver], game.lane_offsets[receiver] + visual_offsets[receiver])
 	contact_point = (a + b) * 0.5 + Vector3.UP
-	# A green grab must also leave room to equalise the relative speed without
-	# immediately losing hand contact. Both riders share the contact acceleration.
-	var relative_speed: float = game.speeds[giver]-game.speeds[receiver]
-	var closing_distance: float = relative_speed*absf(relative_speed)/maxf(0.001,4.0*contact_acceleration)
-	var settled_a: Vector3 = game._at(game.distances[giver]+closing_distance,game.lane_offsets[giver])
-	var stable_contact: bool = settled_a.distance_to(game._at(game.distances[receiver],game.lane_offsets[receiver])) <= max_reach+0.03
-	can_grab = speed_valid and stable_contact and active and phase == Phase.APPROACH and position_valid and physical_span <= max_reach + 0.0001 and a.distance_to(b) <= visual_reach + 0.05
+	if active and phase == Phase.APPROACH:
+		marker = clampf((approach_distance-gap)/(approach_distance+2.5),0.0,1.0)
+		_update_grab_window(game)
+	can_grab = active and phase == Phase.APPROACH and not attempted and position_valid and speed_valid and grab_window_valid and marker >= grab_left-0.000001 and marker <= grab_right+0.000001
 	if active:
 		match phase:
 			Phase.APPROACH:
@@ -228,7 +269,8 @@ func parameters() -> Dictionary:
 	return {"active":active, "phase":NAMES[phase], "giver":giver, "receiver":receiver,
 		"approach_t":marker, "sling_t":sling_t, "efficiency":efficiency, "precision":precision,
 		"hand_contact":active and phase in [Phase.GRAB, Phase.SLING], "contact_point":contact_point,
-		"visual_offsets":visual_offsets.duplicate(), "can_grab":can_grab, "advanced":advanced,
+		"visual_offsets":visual_offsets.duplicate(), "can_grab":can_grab,
+		"grab_left":grab_left,"grab_right":grab_right,"grab_window_valid":grab_window_valid, "advanced":advanced,
 		"phase_t":clampf(elapsed / maxf(0.001, duration), 0.0, 1.0),
 		"phase_seconds":elapsed, "release_seconds":release_seconds, "release_reason":release_reason,
 		"message":last_result, "position_valid":position_valid, "position_reason":position_reason,

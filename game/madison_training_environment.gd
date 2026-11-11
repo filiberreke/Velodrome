@@ -83,9 +83,14 @@ func leave() -> void:
 	partner_present = false; bikes[1].hide(); exchange_zone.hide()
 func _at(at: float, lane: float) -> Vector3: return game._at(at,lane)
 func grab_button(source: String, pressed: bool) -> void:
+	var was_held: bool = not input_sources.is_empty()
 	if pressed and active and session.running(): input_sources[source] = true
 	else: input_sources.erase(source)
-	madison.button(not input_sources.is_empty())
+	if pressed and not was_held and active and session.running() and partner_present and pending_trial and not madison.active:
+		var placement: Dictionary = madison.positioning(self)
+		var pace: Dictionary = madison.speed_guidance(self)
+		madison.miss_attempt(str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else "Te vroeg gedrukt — vóór de groene zone")
+	else: madison.button(not input_sources.is_empty())
 func steer(direction: int) -> void:
 	if session.running(): player_lane_target = clampi(player_lane_target+direction,0,game.LANES.size()-1)
 func request_tempo(direction: int) -> void: steer(direction)
@@ -194,6 +199,7 @@ func _spawn_partner() -> void:
 		distances[1] = distances[0]-madison.approach_distance
 		lane_offsets[1] = clampf(lane_offsets[0]-1.2,1.18,2.38)
 		speeds[1] = minf(17.0,maxf(10.0,speeds[0]+2.0))
+	madison.attempted = false
 	madison.cooldown = 0; madison.visual_offsets.assign([0.0,0.0])
 	partner_present = true; fade_in_remaining = PARTNER_FADE_SECONDS; pending_trial = true
 	# One opportunity for each player lap; no wait for an AI lap or full cooldown.

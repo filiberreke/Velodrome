@@ -66,7 +66,7 @@ func _initialize() -> void:
 	setup = prepared(); m = setup[0]; p = setup[1]
 	m.reset(); p.distances[1] += 8.0; m.step(p, 0.1)
 	m.button(true)
-	check(m.phase == Exchange.Phase.APPROACH and not m.can_grab, "Out of range press cannot grab")
+	check(m.phase == Exchange.Phase.SEPARATE and m.attempted and not m.can_grab, "Out of range press ends this attempt")
 	p.distances[1] = p.distances[0] - 3.0; m.step(p, 0.1)
 	check(m.phase == Exchange.Phase.SEPARATE, "Missed spatial window cancels")
 	for lanes in [[1.18, 2.98], [2.38, 3.58]]:
@@ -119,5 +119,21 @@ func _initialize() -> void:
 	setup = prepared(); m = setup[0]; p = setup[1]
 	m.reset(); m.active_rider = 1; p.lane_offsets.assign([3.58,2.38]); p.speeds.assign([53.0/3.6,55.0/3.6]); m.step(p,.01)
 	check(m.can_grab,"Receiver is not incorrectly blocked by the old 50 km/h cap")
+	for closing in [1.0,2.0,4.0]:
+		for fraction in [0.0,.5,1.0]:
+			setup = prepared(false); m = setup[0]; p = setup[1]
+			p.speeds.assign([10.0+closing,10.0]); m.step(p,.001)
+			var target: float = lerpf(m.grab_left,m.grab_right,fraction)
+			p.distances[1] = p.distances[0]+m.approach_distance-target*(m.approach_distance+2.5)
+			m.step(p,.001); m.button(true)
+			check(m.phase == Exchange.Phase.GRAB,"Both green edges and centre accept the first click, closing=%.1f fraction=%.1f" % [closing,fraction])
+	setup = prepared(); m = setup[0]; p = setup[1]
+	m.reset(); p.distances[1] = p.distances[0]+8; m.step(p,.01)
+	var misses: Array[String] = []
+	m.missed.connect(func(reason: String): misses.append(reason))
+	m.button(true); m.button(false)
+	p.distances[1] = p.distances[0]; m.step(p,.01)
+	m.button(true); m.button(false)
+	check(m.phase == Exchange.Phase.SEPARATE and misses.size() == 1,"An early press fails once and a second press cannot rescue the same attempt")
 	print("MADISON_OK" if failures == 0 else "MADISON_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
