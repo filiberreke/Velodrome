@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxg1tdvsw61mp"
 path.s3tc="res://.godot/imported/shirt_print_navy_dots.png-473c37ef8cb44e08f93b7bc516ad786b.s3tc.ctex"
+path.etc2="res://.godot/imported/shirt_print_navy_dots.png-473c37ef8cb44e08f93b7bc516ad786b.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/commentary/textures/shirt_print_navy_dots.png"
-dest_files=["res://.godot/imported/shirt_print_navy_dots.png-473c37ef8cb44e08f93b7bc516ad786b.s3tc.ctex"]
+dest_files=["res://.godot/imported/shirt_print_navy_dots.png-473c37ef8cb44e08f93b7bc516ad786b.s3tc.ctex", "res://.godot/imported/shirt_print_navy_dots.png-473c37ef8cb44e08f93b7bc516ad786b.etc2.ctex"]
 
 [params]
 

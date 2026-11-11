@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://crltglck5t88x"
 path.s3tc="res://.godot/imported/euromax_commentary_booth_euromax_cycling_panel.png-da937c3f5e7caf5b3f026c45624bf5f8.s3tc.ctex"
+path.etc2="res://.godot/imported/euromax_commentary_booth_euromax_cycling_panel.png-da937c3f5e7caf5b3f026c45624bf5f8.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/commentary/euromax_commentary_booth_euromax_cycling_panel.png"
-dest_files=["res://.godot/imported/euromax_commentary_booth_euromax_cycling_panel.png-da937c3f5e7caf5b3f026c45624bf5f8.s3tc.ctex"]
+dest_files=["res://.godot/imported/euromax_commentary_booth_euromax_cycling_panel.png-da937c3f5e7caf5b3f026c45624bf5f8.s3tc.ctex", "res://.godot/imported/euromax_commentary_booth_euromax_cycling_panel.png-da937c3f5e7caf5b3f026c45624bf5f8.etc2.ctex"]
 
 [params]
 
