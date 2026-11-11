@@ -24,7 +24,7 @@ func run() -> void:
 		check(scene.exchange_zone.visible and not scene.madison.can_grab,"Training zone remains visible while correcting a bad position")
 		scene.grab_button("test",true); scene.grab_button("test",false)
 		check(scene.madison.phase == scene.madison.Phase.APPROACH,"Bad positioning cannot start a grab")
-	scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([18.0,8.0]); scene.madison.reset()
+	scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([56.0/3.6,14.0]); scene.madison.reset()
 	scene.madison.step(scene,.02); scene._present(.1)
 	check(not hud.show_slider and hud.hint.text.contains("wegens je snelheid"),"Excessive outgoing speed hides the timing bar and explains the speed problem")
 	scene.speeds.assign([12.0,8.0])
@@ -32,7 +32,7 @@ func run() -> void:
 	scene.madison.reset(); scene.madison.step(scene,.02); scene._present(.1)
 	var giver_mesh: Mesh = scene.exchange_zone.mesh
 	check(hud.show_slider and hud.state.can_grab,"Green indicator uses actual accepted grab condition")
-	check(hud.hint.text.contains("Volg de gele lijn en rij sneller dan"),"Approach has explicit positioning guidance")
+	check(hud.hint.text.contains("Rij maximaal 55 km/u"),"Approach has explicit positioning guidance")
 	scene.grab_button("test",true); scene.grab_button("test",false)
 	for tick in range(190):
 		scene._step(1.0/120.0,300)
@@ -52,8 +52,8 @@ func run() -> void:
 	scene.madison.step(scene,.02); scene._present(.1)
 	check(scene.exchange_zone.mesh != giver_mesh and hud.hint.text.contains("Inkomend"),"Yellow zone changes with the receiving role")
 	check(hud.show_slider,"Correct incoming player position permits timing")
-	scene.speeds.assign([51.0/3.6,16.0]); scene.madison.step(scene,.01); scene._present(.1)
-	check(not hud.show_slider and hud.hint.text.contains("50 km/u"),"Incoming sprint warning names the maximum speed")
+	scene.speeds.assign([4.0,12.0]); scene.madison.step(scene,.01); scene._present(.1)
+	check(not hud.show_slider and hud.hint.text.contains("te traag"),"Incoming receiver warning explains the computed minimum")
 	scene.speeds.assign([8.0,12.0])
 	scene.pending_trial = true
 	scene.lane_offsets[0] = 5.38
@@ -86,10 +86,10 @@ func run() -> void:
 	scene.finish_session("Handmatig gestopt")
 	check(page.selected_activity.exchanges.size() == 1 and page.selected_activity.exchanges[0].reason == "Handmatig gestopt","Stopping during a grab preserves an interrupted attempt and its reason")
 	page.begin()
-	scene.distances.assign([90.0,90.0]); scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([18.0,8.0])
+	scene.distances.assign([90.0,90.0]); scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([14.0,5.0])
 	scene.madison.step(scene,.02); scene.distances[0] += 4.0; scene.madison.step(scene,.02)
 	scene.finish_session("Snelheidstest")
-	check(page.selected_activity.exchanges.size() == 1 and page.selected_activity.exchanges[0].reason.contains("snelheidsverschil"),"Actual failed speed attempt retains its cause in the report")
+	check(page.selected_activity.exchanges.size() == 1 and page.selected_activity.exchanges[0].reason.to_lower().contains("snelheidsverschil"),"Actual failed speed attempt retains its cause in the report")
 	game.queue_free(); await process_frame; await process_frame
 	print("MADISON_FEEDBACK_OK" if failures == 0 else "MADISON_FEEDBACK_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)

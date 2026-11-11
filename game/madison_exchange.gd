@@ -10,7 +10,7 @@ const NAMES := ["APPROACH", "GRAB", "SLING", "RELEASE", "SEPARATE"]
 var advanced := false
 var approach_distance := 10.0
 var max_reach := 1.8
-var receiver_max_kmh := 50.0
+var giver_max_kmh := 55.0
 var minimum_closing_mps := 0.1
 var visual_reach := 1.4
 var grab_seconds := 0.15
@@ -130,15 +130,15 @@ func speed_guidance(game) -> Dictionary:
 	var longitudinal_room: float = sqrt(maxf(0.0,max_reach*max_reach-lateral*lateral))
 	var maximum_closing: float = sqrt(4.0*maxf(0.0,contact_acceleration)*longitudinal_room)
 	var difference: float = game.speeds[g]-game.speeds[r]
-	var minimum_kmh: float = ceilf((game.speeds[r]+minimum_closing_mps)*36.0)/10.0
+	var minimum_kmh: float = ceilf(maxf(0.0,game.speeds[g]-maximum_closing)*36.0)/10.0
 	var reason := ""
-	if game.speeds[r]*3.6 > receiver_max_kmh:
-		reason = "Je reed te snel als inkomende renner: %.1f km/u (maximum %.0f km/u)" % [game.speeds[r]*3.6,receiver_max_kmh] if r == 0 else "Inkomende ploegmaat reed boven %.0f km/u" % receiver_max_kmh
+	if game.speeds[g]*3.6 > giver_max_kmh:
+		reason = "Je reed te snel als uitgaande renner: %.1f km/u (maximum %.0f km/u)" % [game.speeds[g]*3.6,giver_max_kmh] if g == 0 else "Uitgaande ploegmaat reed boven %.0f km/u" % giver_max_kmh
+	elif game.speeds[r]*3.6 < minimum_kmh:
+		reason = "Je reed te traag als inkomende renner: %.1f km/u (minimum %.1f km/u bij gever %.1f km/u)" % [game.speeds[r]*3.6,minimum_kmh,game.speeds[g]*3.6] if r == 0 else "Snelheidsverschil te groot: inkomende ploegmaat reed %.1f km/u (minimum %.1f km/u)" % [game.speeds[r]*3.6,minimum_kmh]
 	elif difference <= minimum_closing_mps:
-		reason = "Je reed te traag als uitgaande renner: %.1f km/u (rij sneller dan %.1f km/u)" % [game.speeds[g]*3.6,minimum_kmh] if g == 0 else "Je reed te snel: de uitgaande ploegmaat kon niet bijsluiten"
-	elif difference > maximum_closing:
-		reason = "Je reed te snel: snelheidsverschil %.1f km/u (maximum %.1f km/u)" % [difference*3.6,maximum_closing*3.6] if g == 0 else "Snelheidsverschil met de uitgaande ploegmaat te groot: %.1f km/u" % (difference*3.6)
-	return {"valid":reason.is_empty(),"reason":reason,"minimum_kmh":minimum_kmh,"maximum_closing_kmh":maximum_closing*3.6,"receiver_max_kmh":receiver_max_kmh}
+		reason = "De uitgaande gever moet sneller rijden dan de ontvanger" if g == 0 else "Je reed te snel: de uitgaande ploegmaat kon niet bijsluiten"
+	return {"valid":reason.is_empty(),"reason":reason,"minimum_kmh":minimum_kmh,"maximum_closing_kmh":maximum_closing*3.6,"giver_max_kmh":giver_max_kmh}
 
 func step(game, dt: float) -> void:
 	if dt <= 0.0: return
@@ -190,7 +190,7 @@ func step(game, dt: float) -> void:
 			Phase.GRAB, Phase.SLING:
 				if not position_valid:
 					cancel("Handcontact verloren — " + position_reason)
-				elif game.speeds[receiver]*3.6 > receiver_max_kmh:
+				elif game.speeds[giver]*3.6 > giver_max_kmh:
 					cancel(speed_guidance(game).reason)
 				elif physical_span > max_reach + 0.05:
 					_release("reach")

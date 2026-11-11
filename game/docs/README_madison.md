@@ -30,14 +30,19 @@ rijden. De zone bestaat alleen in deze training. Voor de toekomstige wedstrijdmo
 Ploegkoers is het de bedoeling deze hulp pas tijdens de laatste 50 m te tonen.
 De speler houdt altijd stuurcontrole.
 
-Het HUD toont uitgaand: **Volg de gele lijn en rij sneller dan XX km/u**.
-Dit minimum volgt de actuele snelheid van de ploegmaat plus 0,1 m/s sluitingssnelheid
-(afgerond naar boven op 0,1 km/u). Inkomend: **Volg de gele lijn. Rij maximaal
-50 km/u**. Boven 50 km/u kan de inkomende renner niet grijpen of handcontact
-behouden; `receiver_max_kmh` maakt deze grens instelbaar. Ook een te groot
-snelheidsverschil blokkeert de greep: beide renners moeten hun relatieve snelheid
-met de beschikbare contactversnelling kunnen afbouwen binnen het handbereik.
-Snelheidsfouten komen met de gemeten snelheid/grens in HUD en resultaattabel.
+Het HUD toont uitgaand (snelle gever): **Volg de gele lijn. Rij maximaal
+55 km/u**. Boven deze grens blokkeert de controller het grijpen en verbreekt hij
+een reeds begonnen greep. `giver_max_kmh` maakt de grens instelbaar.
+
+Inkomend (ontvanger): **Volg de gele lijn en rij minstens XX km/u**.
+De controller berekent dit minimum uit de snelheid van de snelle gever min het
+snelheidsverschil dat binnen het handbereik en de beschikbare contactversnelling
+kan worden afgebouwd. Het minimum wordt naar boven afgerond op 0,1 km/u; exact
+dezelfde waarde wordt getoond en bij de greep gecontroleerd. Snellere gever =
+hoger minimum voor de ontvanger. De ontvanger moet wel trager blijven dan de
+gever, zodat die kan bijsluiten. Er is geen afzonderlijke 50-km/u-limiet voor
+de ontvanger. Meldingen en resultaattabel vermelden de gemeten snelheid en grens.
+
 Bij verkeerde volgorde,
 verkeerde ontvangerslijn, te kleine of te grote zijafstand verdwijnt de slider en
 verschijnt **Aflossen niet mogelijk wegens slechte positionering**, met een

@@ -18,7 +18,7 @@ func update_training(scene) -> void:
 	state["position_valid"] = placement.valid; state["position_reason"] = placement.reason
 	var pace: Dictionary = scene.madison.speed_guidance(scene)
 	state["speed_valid"] = pace.valid; state["speed_reason"] = pace.reason
-	state["instruction"] = "Volg de gele lijn en rij sneller dan %.1f km/u" % pace.minimum_kmh if (scene.madison.giver if scene.madison.active else scene.madison.active_rider) == 0 else "Volg de gele lijn. Rij maximaal %.0f km/u" % pace.receiver_max_kmh
+	state["instruction"] = "Volg de gele lijn. Rij maximaal %.0f km/u" % pace.giver_max_kmh if (scene.madison.giver if scene.madison.active else scene.madison.active_rider) == 0 else "Volg de gele lijn en rij minstens %.1f km/u" % pace.minimum_kmh
 	state["partner_present"] = scene.partner_present
 	state["role"] = "Uitgaand · jij geeft" if (scene.madison.giver if scene.madison.active else scene.madison.active_rider) == 0 else "Inkomend · jij ontvangt"
 	state["feedback"] = scene.feedback if scene.total_elapsed < scene.feedback_until else ""

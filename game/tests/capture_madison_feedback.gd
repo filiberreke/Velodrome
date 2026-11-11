@@ -31,7 +31,7 @@ func capture() -> void:
 	for i in range(10):
 		scene.pending_trial = true; scene.attempt_giver = i%2
 		scene.madison.efficiency = .7 if i%3 else 0.0
-		scene.madison.failure_reason = ("Je reed te snel als inkomende renner: 53 km/u (maximum 50 km/u)" if i%2 else "Te ver van je ploegmaat") if i%3 == 0 else ""
+		scene.madison.failure_reason = ("Je reed te traag als inkomende renner: 20 km/u (minimum 35 km/u)" if i%2 else "Te ver van je ploegmaat") if i%3 == 0 else ""
 		scene._score(i%3 != 0)
 	scene.finish_session("Training voltooid")
 	await shot("09_exchange_results")
