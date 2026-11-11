@@ -48,6 +48,32 @@ jobs:
           rm -rf game/.godot
       - name: Import project
         run: '"$GODOT_BIN" --headless --path game --editor --import --quit'
+      - name: Validate imported textures and scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for name in ("velodrome_wood_pine", "velodrome_cote_azur"):
+              config = Path(f"game/assets/textures/{name}.png.import").read_text()
+              match = re.search(r'^path="res://([^"]+)"', config, re.M)
+              if not match:
+                  raise SystemExit(f"No imported texture path for {name}")
+              imported = Path("game") / match.group(1)
+              if not imported.is_file() or imported.stat().st_size < 64:
+                  raise SystemExit(f"Missing or suspiciously small imported texture: {imported}")
+              print(f"{imported}: {imported.stat().st_size} bytes, header={imported.read_bytes()[:16].hex()}")
+          PY
+          set +e
+          "$GODOT_BIN" --headless --path game --quit-after 3 --verbose > /tmp/velodrome-smoke.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/velodrome-smoke.log
+          if [ "$status" -ne 0 ] || grep -Eq 'SCRIPT ERROR:|ERROR:|Failed loading resource:|Parse Error:' /tmp/velodrome-smoke.log; then
+            echo "Godot smoke test failed; refusing to publish macOS artifact"
+            exit 1
+          fi
       - name: Export macOS
         run: |
           mkdir -p build
