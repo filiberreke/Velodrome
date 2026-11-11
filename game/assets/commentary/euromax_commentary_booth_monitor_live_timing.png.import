@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://fg4wnk1sbuw5"
 path.s3tc="res://.godot/imported/euromax_commentary_booth_monitor_live_timing.png-e2e01966e07f866f3e51154062124314.s3tc.ctex"
+path.etc2="res://.godot/imported/euromax_commentary_booth_monitor_live_timing.png-e2e01966e07f866f3e51154062124314.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/commentary/euromax_commentary_booth_monitor_live_timing.png"
-dest_files=["res://.godot/imported/euromax_commentary_booth_monitor_live_timing.png-e2e01966e07f866f3e51154062124314.s3tc.ctex"]
+dest_files=["res://.godot/imported/euromax_commentary_booth_monitor_live_timing.png-e2e01966e07f866f3e51154062124314.s3tc.ctex", "res://.godot/imported/euromax_commentary_booth_monitor_live_timing.png-e2e01966e07f866f3e51154062124314.etc2.ctex"]
 
 [params]
 

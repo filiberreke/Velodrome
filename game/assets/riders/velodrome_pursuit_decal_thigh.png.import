@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bta68xkeijy1b"
 path.s3tc="res://.godot/imported/velodrome_pursuit_decal_thigh.png-fca7bec2d02a1f98030cbeeec3097825.s3tc.ctex"
+path.etc2="res://.godot/imported/velodrome_pursuit_decal_thigh.png-fca7bec2d02a1f98030cbeeec3097825.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/riders/velodrome_pursuit_decal_thigh.png"
-dest_files=["res://.godot/imported/velodrome_pursuit_decal_thigh.png-fca7bec2d02a1f98030cbeeec3097825.s3tc.ctex"]
+dest_files=["res://.godot/imported/velodrome_pursuit_decal_thigh.png-fca7bec2d02a1f98030cbeeec3097825.s3tc.ctex", "res://.godot/imported/velodrome_pursuit_decal_thigh.png-fca7bec2d02a1f98030cbeeec3097825.etc2.ctex"]
 
 [params]
 
