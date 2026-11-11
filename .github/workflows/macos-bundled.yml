@@ -34,6 +34,8 @@ jobs:
           - runner: macos-15-intel
             arch: x86_64
     runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '12.0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,9 +45,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          brew list libusb >/dev/null 2>&1 || brew install libusb
-          python -m pip install -r bridge/requirements.txt 'pyinstaller>=6,<7'
-          echo "VELODROME_LIBUSB_PATH=$(brew --prefix libusb)/lib/libusb-1.0.dylib" >> "$GITHUB_ENV"
+          # Homebrew bottles target the runner OS; compile our own libusb for Monterey.
+          curl -fL --retry 3 -o "$RUNNER_TEMP/libusb.tar.bz2" https://github.com/libusb/libusb/releases/download/v1.0.29/libusb-1.0.29.tar.bz2
+          echo "5977fc950f8d1395ccea9bd48c06b3f808fd3c2c961b44b0c2e6e29fc3a70a85  $RUNNER_TEMP/libusb.tar.bz2" | shasum -a 256 -c -
+          tar -xjf "$RUNNER_TEMP/libusb.tar.bz2" -C "$RUNNER_TEMP"
+          (
+            cd "$RUNNER_TEMP/libusb-1.0.29"
+            CFLAGS="-mmacosx-version-min=12.0" LDFLAGS="-mmacosx-version-min=12.0" ./configure --prefix="$RUNNER_TEMP/libusb-monterey" --disable-static
+            make -j2
+            make install
+          )
+          python -m pip install -r bridge/requirements.txt -c packaging/macos-bundled/constraints.txt 'pyinstaller>=6,<7'
+          echo "VELODROME_LIBUSB_PATH=$RUNNER_TEMP/libusb-monterey/lib/libusb-1.0.dylib" >> "$GITHUB_ENV"
       - name: Run shared bridge and launcher tests
         run: |
           python -m unittest discover -s bridge/tests -v
@@ -95,7 +106,12 @@ jobs:
           cp packaging/macos-bundled/README.md bundle/README.md
           cp packaging/windows-demo/defaults/*.cfg bundle/defaults/
           cp game-build.json bundle/
+          mkdir -p bundle/licenses
+          cp "$RUNNER_TEMP/libusb-1.0.29/COPYING" bundle/licenses/libusb-COPYING.txt
           chmod +x bundle/Start-Velodrome.command
+      - name: Verify Monterey compatibility of every packaged binary
+        shell: bash
+        run: python packaging/macos-bundled/verify_macos_minimum.py bundle --maximum 12.0 --report macos-compatibility.json
       - name: Verify native bindings, configs, signatures and startup
         shell: bash
         run: |
@@ -125,12 +141,12 @@ jobs:
           fi
       - name: Archive distribution preserving executable permissions
         shell: bash
-        run: ditto -c -k --keepParent bundle Velodrome-Bundled-macOS-${{ matrix.arch }}.zip
+        run: ditto -c -k --keepParent bundle Velodrome-Bundled-macOS-Monterey-${{ matrix.arch }}.zip
       - name: Upload combined macOS distribution
         uses: actions/upload-artifact@v4
         with:
-          name: Velodrome-Bundled-macOS-${{ matrix.arch }}
-          path: Velodrome-Bundled-macOS-${{ matrix.arch }}.zip
+          name: Velodrome-Bundled-macOS-Monterey-${{ matrix.arch }}
+          path: Velodrome-Bundled-macOS-Monterey-${{ matrix.arch }}.zip
           if-no-files-found: error
           retention-days: 14
       - name: Upload startup diagnostics
@@ -141,5 +157,6 @@ jobs:
           path: |
             macos-startup.log
             game-build.json
+            macos-compatibility.json
           if-no-files-found: ignore
           retention-days: 14

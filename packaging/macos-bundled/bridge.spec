@@ -19,5 +19,5 @@ app = BUNDLE(coll, name="VelodromeBridge.app",
              info_plist={
                  "NSBluetoothAlwaysUsageDescription": "Velodrome gebruikt Bluetooth voor je KICKR en Zwift Ride.",
                  "NSBluetoothPeripheralUsageDescription": "Velodrome gebruikt Bluetooth voor je KICKR en Zwift Ride.",
-                 "LSMinimumSystemVersion": "13.0",
+                 "LSMinimumSystemVersion": "12.0",
              })

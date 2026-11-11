@@ -3,7 +3,8 @@
 ## Starten
 
 1. Download de bundel voor **arm64 (Apple Silicon)** of **x86_64 (Intel)**.
-   Deze builds vereisen macOS 15 of nieuwer.
+   Deze builds zijn gericht op macOS Monterey 12 en nieuwer. Gebruik bij
+   voorkeur de laatste Monterey-update (minstens 12.3 voor probleemloos BLE-scannen).
 2. Pak het artifact uit en pak daarna de meegeleverde distributie-ZIP uit.
    Bewaar de volledige uitgepakte map bij elkaar.
 3. Dubbelklik **Start-Velodrome.command**. Dit opent één Terminalvenster voor
@@ -61,7 +62,14 @@ Start desgewenst vanuit Terminal:
 
 ## Bouwen en controles
 
-De workflow **macOS bundled game and bridge** bouwt afzonderlijk voor
+De workflow **macOS bundled game and bridge** bouwt met deployment target 12.0.
+libusb wordt uit versie 1.0.29 gebouwd met ditzelfde minimum; Homebrew-binaries
+van de nieuwere runner worden niet meegeleverd. PyObjC-bindings zijn vastgezet
+op 10.3.2. Een aparte controle verifieert de echte minimumversie van ieder
+Mach-O-bestand (alle architecturen) en elke app-plist, inclusief het spel.
+Een component die nieuwer macOS vereist blokkeert publicatie.
+
+De workflow bouwt afzonderlijk voor
 Apple Silicon en Intel. Hij hergebruikt het nieuwste succesvolle beschikbare
 artifact van **Build macOS game** op main. game-build.json legt de gebruikte
 spelcommit en build vast. De bestaande zelfstandige gamebuild blijft beschikbaar.
@@ -72,6 +80,8 @@ apparaten, controle van bevroren JSON-configuratie vanuit een andere werkmap,
 app-signatuur, en headless spelstart met echte start/stop van de gebundelde
 bridge in expliciete softwaretestmodus.
 
+De build- en opstartcontroles draaien op macOS 15-runners. De minimumversiecontrole
+is geen uitvoeringstest op Monterey zelf: die praktijktest blijft nodig.
 Deze controles bewijzen geen fysieke Bluetooth- of ANT+-werking.
 Nog te testen op een Mac: toestemmingsdialoog, KICKR-telemetrie en
 SIM/ERG/helling, Ride-knoppen/sturen/schakelen, Garmin-hartslag,
