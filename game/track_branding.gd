@@ -7,7 +7,7 @@ const LIFT := 0.006
 
 static func build(game: Node3D) -> MeshInstance3D:
 	# The final bend before the home straight, in the actual riding direction.
-	var center: float = game.LAP - game.STRAIGHT - PI * game.RADIUS * 0.5
+	var center: float = game.FINISH_REFERENCE_S + game.LAP - game.STRAIGHT - PI * game.RADIUS * 0.5
 	var middle := (INNER + OUTER) * 0.5
 	# Preserve the source aspect on the physical banked surface, not its top view.
 	var height: float = (game._at(center, OUTER) - game._at(center, INNER)).length()

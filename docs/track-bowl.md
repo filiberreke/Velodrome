@@ -30,3 +30,25 @@ Dit is een verbetering van de bestaande spelpiste, geen exacte reconstructie of 
 `game/tests/capture_track_bowl.gd` rendert voor/na vanuit identieke camera's met de echte spelgeometrie. De referentie voor de oude geometrie staat in `game/tests/track_bowl_before.gd`.
 
 De bestanden in `game/` van het wijzigingspakket horen bij dezelfde paden in de game. `main.gd` is een volledige vervanging op basis van b2dac77; bij een andere bronversie moet de meegeleverde diff worden toegepast in plaats van het bestand blind te vervangen.
+
+## Correctie van de aankomstpositie
+
+Door de 36 m lange overgang lag de oude afstandsnul halverwege de nieuwe bochtinloop. De geometrische finishreferentie is daarom 20 m opgeschoven: afstand nul ligt nu op het rechte stuk, 2 m vóór het begin van de overgang in de rijrichting. Het volledige witte finishvlak blijft recht.
+
+De gezamenlijke transformatie `_track_s` koppelt de geschilderde finish, rijderposities, finishcamera, fotocamera, official, fotografen en commentaarcabine aan dezelfde fysieke plek. De wedstrijdafstand blijft nul aan de lijn; rondepassages, tussensprints, start na de neutralisatie en eindtijden behouden hun bestaande rekenregels. Ook de 200-meterlijn blijft relatief aan de finish liggen.
+
+Achtervolgingsmarkeringen en -starts, de geneutraliseerde vertrekplek, vliegende pisteoefeningen en de uitrijpoort worden afzonderlijk gecorrigeerd zodat ze fysiek in het midden van hun rechte stuk blijven. Het baanlogo blijft op dezelfde bochtplek.
+
+### Geïntegreerde wedstrijdcontrole
+
+`test_finish_line_race.gd` rijdt een volledige 20-rondenpuntenkoers met 16 renners via de normale spelstappen. Het gebruikt de echte neutralisatie, snelheidsfysica, jury, officialanimaties, finishfoto-aansturing en CSV-schrijver. Persoonlijke records, live apparatuur en de grafische presentatie worden geïsoleerd. De CSV bevat uitsluitend synthetische testmetingen in een afzonderlijke testmap.
+
+Gecontroleerd: één aanlooppassage, één volledige geneutraliseerde ronde zonder wedstrijdtijd of sprintpunten, één wedstrijdstart op de fysieke finish, sprint na 10 ronden met 5/3/2/1 punten, eindspurt na 20 ronden met 10/6/4/2 punten, alle 16 aankomsten, officialacties in volgorde, finishfoto op de verplaatste lijn en precies één opgeslagen aankomstopname. Sprinttijden worden vergeleken met de fysiek doorlopen lijnpassages vóór de jury een finisher op de lijn vastzet, ook bij renners die een ronde achterliggen. Opnametijd en -afstand blijven continu wanneer de neutrale ronde wordt afgetrokken.
+
+`capture_finish_line.gd` toont de nieuwe finish en official in de volledige spelarena.
+
+### Resultaat van de finishcorrectie
+
+Alle elf controles geslaagd: finish_line_race, track_bowl, official_ready, trainer_control, piste_exercises, pursuit, neutral_start, keirin_flow, flying_time_trial, team_pursuit en commentary_box. De geïntegreerde 16-rennerswedstrijd reed de neutrale ronde in 36,78 s en voltooide de 20 wedstrijd­ronden; beide sprints werden voor alle 16 renners beoordeeld. Eén aankomstopname werd opgeslagen. De test bevat 2597 controles inclusief continuïteit van de opnames. De GPU-opname van de volledige arena is visueel gecontroleerd.
+
+De keirincontroletest schakelt nu de live apparaatdetectie uit: een toevallig binnenkomend apparaatvenster mag de gesimuleerde besturingsacties niet onderscheppen. De spelbesturing zelf is daarvoor niet gewijzigd.

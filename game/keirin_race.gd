@@ -5,7 +5,7 @@ const STEP := 1.0 / 120.0
 const EXIT_M := 750.0
 const FINISH_M := 1500.0
 const SAFETY_LANE := -0.8
-const GATE_M := 90.8 # Real opening halfway along opposite straight in main._at().
+
 var percent := 100.0
 var phase := "IDLE"
 var distance := 0.0
@@ -184,7 +184,7 @@ func update_finish_exit(g, i: int, dt: float) -> void:
 			g.lane_offsets[i]=move_toward(g.lane_offsets[i],SAFETY_LANE,.65*dt)
 		g.coast_distances[i]+=(previous+g.coast_speeds[i])*.5*dt/g._path_metric(before,g.lane_offsets[i])
 		# Detect crossing, not a narrow proximity window that could be skipped.
-		var next_gate: float = before+fposmod(GATE_M-before,250.0)
+		var next_gate: float = before+fposmod(g.OPPOSITE_STRAIGHT_GATE_M-before,250.0)
 		if absf(g.lane_offsets[i]-SAFETY_LANE)<.01 and g.coast_distances[i]>=next_gate:
 			route.stage=1
 			route.position=g._at(next_gate-g.FRONT_WHEEL_TIP_M,SAFETY_LANE)

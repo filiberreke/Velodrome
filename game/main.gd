@@ -94,8 +94,12 @@ const TRACK_OUTER_EDGE := 9.03
 const FRONT_WHEEL_TIP_M := 1.110
 const RADIUS := 18.0
 const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
-const PURSUIT_START_M := LAP - STRAIGHT * 0.5
-const NEUTRAL_DEPARTURE_M := -STRAIGHT * 0.5
+# Finish is on the final straight, 2 m before the smooth bend entry.
+const FINISH_STRAIGHT_CLEARANCE_M := 2.0
+const FINISH_REFERENCE_S := preload("res://track_geometry.gd").TRANSITION * 0.5 + FINISH_STRAIGHT_CLEARANCE_M
+const PURSUIT_START_M := LAP + FINISH_REFERENCE_S - STRAIGHT * 0.5
+const NEUTRAL_DEPARTURE_M := FINISH_REFERENCE_S - STRAIGHT * 0.5
+const OPPOSITE_STRAIGHT_GATE_M := fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 const UDP_PORT := 51723
 # Player selection is finer than AI corridors; physical track geometry is unchanged.
 const PLAYER_LANE_STEP_M := 0.60
@@ -1972,10 +1976,10 @@ func _advance_race(dt: float) -> void:
 		_save_recording("finish")
 
 # ONE coordinate transform for both geometry and banking/lean lookup.
-# Start and finish share the same physical line, at the END of the right-hand straight
-# when travelling CCW, immediately before the curved section.
+# Race distance zero is the painted finish on the final straight.
+# Keep a 2 m margin before the geometric transition starts when travelling CCW.
 func _track_s(distance: float) -> float:
-	return fposmod(-distance, LAP)
+	return fposmod(FINISH_REFERENCE_S - distance, LAP)
 
 func _at(distance: float, offset: float) -> Vector3:
 	var s: float = _track_s(distance)
@@ -2316,8 +2320,8 @@ func _build_realistic_track() -> void:
 	# Discreet black distance ticks every 5 metres, slightly longer every 10.
 	_track_distance_ticks()
 	# Pursuit starting lines sit in the middle of the two straights.
-	var pursuit_a: float = fposmod(LAP - STRAIGHT * 0.5, LAP)
-	var pursuit_b: float = fposmod(LAP - (1.5 * STRAIGHT + PI * RADIUS), LAP)
+	var pursuit_a: float = fposmod(PURSUIT_START_M, LAP)
+	var pursuit_b: float = fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 	_track_band(TRACK_EDGE + 0.02, TRACK_OUTER_EDGE - 0.05, Color("bb262b"), pursuit_a, 0.10, 0.025)
 	_track_band(TRACK_EDGE + 0.02, TRACK_OUTER_EDGE - 0.05, Color("bb262b"), pursuit_b, 0.10, 0.025)
 	# A modest 4 cm white 200 m line, 50 m after the lap's finish reference.
@@ -3977,7 +3981,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var braking: float = 2.2 if travelled > 62.0 else 1.1
 		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
-		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - 90.8) <= 0.4:
+		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - OPPOSITE_STRAIGHT_GATE_M) <= 0.4:
 			route["stage"] = 1
 			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
 			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
