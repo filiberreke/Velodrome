@@ -17,7 +17,16 @@ def version(value):
 
 
 def deployment_versions(output):
-    return re.findall(r"^\s*(?:minos|version)\s+(\d+(?:\.\d+){1,2})\s*$", output, re.M)
+    versions = []
+    for block in re.split(r"^Load command \d+\s*$", output, flags=re.M):
+        if re.search(r"^\s*cmd LC_BUILD_VERSION\s*$", block, re.M):
+            field = "minos"
+        elif re.search(r"^\s*cmd LC_VERSION_MIN_MACOSX\s*$", block, re.M):
+            field = "version"
+        else:
+            continue
+        versions.extend(re.findall(r"^\s*" + field + r"\s+(\d+(?:\.\d+){1,2})\s*$", block, re.M))
+    return versions
 
 
 def verify(root, maximum):

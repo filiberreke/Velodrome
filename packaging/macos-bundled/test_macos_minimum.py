@@ -18,9 +18,15 @@ Load command 1
       cmd LC_BUILD_VERSION
     minos 11.0
       sdk 15.0
+    ntools 1
+      tool LD
+   version 1053.12
 Load command 2
       cmd LC_ID_DYLIB
   current version 2.3.4
+Load command 3
+      cmd LC_SOURCE_VERSION
+  version 711.0
 Load command 1
       cmd LC_VERSION_MIN_MACOSX
   version 10.13
@@ -33,7 +39,7 @@ Load command 1
             root = Path(directory)
             (root / "runtime").write_bytes(bytes.fromhex("cffaedfe"))
             (root / "Info.plist").write_bytes(plistlib.dumps({"LSMinimumSystemVersion": "12.0"}))
-            with patch.object(audit.subprocess, "check_output", return_value="    minos 15.0\n"):
+            with patch.object(audit.subprocess, "check_output", return_value="Load command 1\n      cmd LC_BUILD_VERSION\n    minos 15.0\n"):
                 result = audit.verify(root, "12.0")
             self.assertEqual(len(result["errors"]), 1)
             self.assertIn("binary minimum", result["errors"][0])
@@ -43,10 +49,10 @@ Load command 1
             root = Path(directory)
             (root / "runtime").write_bytes(bytes.fromhex("cffaedfe"))
             (root / "Info.plist").write_bytes(plistlib.dumps({"LSMinimumSystemVersion": "13.0"}))
-            with patch.object(audit.subprocess, "check_output", return_value="    minos 11.0\n"):
+            with patch.object(audit.subprocess, "check_output", return_value="Load command 1\n      cmd LC_BUILD_VERSION\n    minos 11.0\n"):
                 result = audit.verify(root, "12.0")
             self.assertEqual(len(result["errors"]), 1)
             self.assertIn("app minimum", result["errors"][0])
             (root / "Info.plist").write_bytes(plistlib.dumps({"LSMinimumSystemVersion": "12.0"}))
-            with patch.object(audit.subprocess, "check_output", return_value="    minos 11.0\n"):
+            with patch.object(audit.subprocess, "check_output", return_value="Load command 1\n      cmd LC_BUILD_VERSION\n    minos 11.0\n"):
                 self.assertEqual(audit.verify(root, "12.0")["errors"], [])
