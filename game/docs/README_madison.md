@@ -23,10 +23,11 @@ voegt geen wedstrijdtactiek, ploegklassement of ploegpunten toe.
 
 ## Positionering, feedback en score
 
-Tijdens het naderen markeert een gele strook op de gebankte piste de aanbevolen
-rijlijn. Inkomend (speler geeft) ligt die aan de binnenkant, uitgaand (speler
+Gedurende de hele training markeert een gele strook op de gebankte piste de
+aanbevolen rijlijn, ook tussen pogingen en tijdens de aflossing. Inkomend (speler geeft) ligt die aan de binnenkant, uitgaand (speler
 ontvangt) bij de blauwe lijn. De ontvanger mag ook één lijn binnen de blauwe lijn
-rijden. De zone bestaat alleen in deze training en verdwijnt bij de greep.
+rijden. De zone bestaat alleen in deze training. Voor de toekomstige wedstrijdmodus
+Ploegkoers is het de bedoeling deze hulp pas tijdens de laatste 50 m te tonen.
 De speler houdt altijd stuurcontrole.
 
 Het HUD toont inkomend: **Volg de gele lijn en rij sneller dan XX km/u**.
@@ -37,12 +38,13 @@ behouden; `receiver_max_kmh` maakt deze grens instelbaar. Ook een te groot
 snelheidsverschil blokkeert de greep: beide renners moeten hun relatieve snelheid
 met de beschikbare contactversnelling kunnen afbouwen binnen het handbereik.
 Snelheidsfouten komen met de gemeten snelheid/grens in HUD en resultaattabel.
- Bij verkeerde volgorde,
+Bij verkeerde volgorde,
 verkeerde ontvangerslijn, te kleine of te grote zijafstand verdwijnt de slider en
 verschijnt **Aflossen niet mogelijk wegens slechte positionering**, met een
-concrete reden. De timingzone kleurt alleen groen wanneer dezelfde controller
-de greep accepteert. De controller controleert ook of het snelheidsverschil
-binnen handbereik kan worden afgebouwd; een onhoudbare greep wordt niet groen.
+concrete reden. De groene timingzone is vanaf het begin van de zichtbare slider aanwezig,
+zodat de speler de naderende marker op het doel kan timen. De melding A: grijpen
+verschijnt zodra de controller de greep accepteert. De controller controleert ook of het snelheidsverschil
+binnen handbereik kan worden afgebouwd; een onhoudbare greep wordt geweigerd.
 
 Iedere afgeronde poging toont vijf seconden feedback met rol, scorepercentage
 en resultaat/redengeving. De vaardigheidsscore is in beide modi op 100:

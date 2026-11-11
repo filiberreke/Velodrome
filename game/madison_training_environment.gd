@@ -111,7 +111,7 @@ func _score(success: bool) -> void:
 	feedback_until = total_elapsed+5.0
 	page.progress.record(success,not madison.advanced)
 func _update_exchange_zone() -> void:
-	exchange_zone.visible = active and session.running() and partner_present and (not madison.active or madison.phase == madison.Phase.APPROACH)
+	exchange_zone.visible = active and session.running()
 	if not exchange_zone.visible: return
 	var incoming: bool = (madison.giver if madison.active else madison.active_rider) == 0
 	var lane: float = 2.38 if incoming else 3.58
