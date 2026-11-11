@@ -22,7 +22,9 @@ func update_training(scene) -> void:
 	state["partner_present"] = scene.partner_present
 	state["role"] = "Uitgaand · jij geeft" if (scene.madison.giver if scene.madison.active else scene.madison.active_rider) == 0 else "Inkomend · jij ontvangt"
 	state["feedback"] = scene.feedback if scene.total_elapsed < scene.feedback_until else ""
-	if not scene.partner_present: state["message"] = "Volgende aflossing over %.0f m" % maxf(0,scene.next_spawn_player_distance-scene.distances[0])
+	if not scene.partner_present:
+		var remaining: float = maxf(0,scene.next_spawn_player_distance-scene.distances[0])
+		state["message"] = ("Rustig wennen · eerste aflossing over %.0f m" if scene.exchange_results.is_empty() else "Volgende aflossing over %.0f m") % remaining
 	exchange_hud.update_state(state)
 	phase_label.text = "" if scene.demo else scene.game.setup_panel.ftp_page.signal_state.status(scene.game._now_s())
 	status_panel.visible = not phase_label.text.is_empty()

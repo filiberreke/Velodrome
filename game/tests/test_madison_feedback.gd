@@ -15,6 +15,7 @@ func run() -> void:
 	menu.training_store.folder = "user://test_madison_feedback"
 	menu.show_madison_training(); menu.madison_page.begin()
 	var scene = game.madison_training_environment
+	scene._spawn_partner() # Explicit exchange fixture after the normal settling-in start.
 	var hud = scene.hud.exchange_hud
 	scene.distances.assign([90.0,90.0]); scene.speeds.assign([12.0,8.0])
 	for lanes in [[4.78,3.58],[1.18,3.58],[3.28,3.58]]:
@@ -81,12 +82,12 @@ func run() -> void:
 	page.show_activity(twenty)
 	for i in range(3): await process_frame
 	check(page.results_table.get_child_count() == 105 and page.results_scroll.get_v_scroll_bar().max_value > page.results_scroll.size.y,"Twenty-row reports are scrollable")
-	page.begin()
+	page.begin(); scene._spawn_partner()
 	scene.distances.assign([90.0,90.0]); scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([12.0,10.0])
 	scene.madison.step(scene,.02); scene.grab_button("stop",true)
 	scene.finish_session("Handmatig gestopt")
 	check(page.selected_activity.exchanges.size() == 1 and page.selected_activity.exchanges[0].reason == "Handmatig gestopt","Stopping during a grab preserves an interrupted attempt and its reason")
-	page.begin()
+	page.begin(); scene._spawn_partner()
 	scene.distances.assign([90.0,90.0]); scene.lane_offsets.assign([2.38,3.58]); scene.speeds.assign([14.0,5.0])
 	scene.madison.step(scene,.02); scene.distances[0] += 4.0; scene.madison.step(scene,.02)
 	scene.finish_session("Snelheidstest")

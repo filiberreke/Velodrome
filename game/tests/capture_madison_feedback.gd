@@ -14,6 +14,9 @@ func capture() -> void:
 	var menu = game.setup_panel; menu.training_store.folder = "user://capture_madison_feedback"
 	menu.show_madison_training(); menu.madison_page.begin()
 	var scene = game.madison_training_environment
+	scene._present(1.0)
+	await shot("10_settling_in_half_lap")
+	scene._spawn_partner() # Explicit exchange fixture after the normal settling-in start.
 	scene.distances.assign([90.0,95.0]); scene.speeds.assign([12.0,8.0]); scene.lane_offsets.assign([4.78,3.58])
 	scene.madison.step(scene,.02); scene._present(1.0)
 	await shot("05_invalid_position")

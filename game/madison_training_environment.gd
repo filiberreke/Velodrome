@@ -58,10 +58,10 @@ func enter() -> void:
 	player_lane_target = 2; player_lane_offset = 2.38
 	distances.assign([start_distance,start_distance+10.0]); speeds.assign([12.0,8.0]); lane_offsets.assign([2.38,3.58])
 	finish_times.fill(-1.0); baseline_speed = 12.0; finished = false
-	madison.reset(); madison.advanced = page.difficulty.selected == 1; input_sources.clear(); pending_trial = true
+	madison.reset(); madison.advanced = page.difficulty.selected == 1; input_sources.clear(); pending_trial = false
 	exchange_results.clear(); attempt_giver = 0; feedback = ""; feedback_until = 0; _zone_key = ""
-	partner_present = true; respawn_remaining = 0; fade_in_remaining = PARTNER_FADE_SECONDS
-	next_spawn_player_distance = start_distance+game.LAP
+	partner_present = false; respawn_remaining = 0; fade_in_remaining = 0
+	next_spawn_player_distance = start_distance+game.LAP*0.5
 	page.progress.reset_session(page.count.get_selected_id())
 	session.start("madison",start_distance,0.0,0.0)
 	total_elapsed = 0; total_distance = 0; player_speed = speeds[0]; road_grade = 0; reduction = 0
@@ -203,7 +203,8 @@ func _spawn_partner() -> void:
 	madison.cooldown = 0; madison.visual_offsets.assign([0.0,0.0])
 	partner_present = true; fade_in_remaining = PARTNER_FADE_SECONDS; pending_trial = true
 	# One opportunity for each player lap; no wait for an AI lap or full cooldown.
-	next_spawn_player_distance = start_distance+(floorf((distances[0]-start_distance)/game.LAP)+1.0)*game.LAP
+	var first_exchange: float = start_distance+game.LAP*0.5
+	next_spawn_player_distance = first_exchange+(floorf((distances[0]-first_exchange)/game.LAP)+1.0)*game.LAP
 	# Keep the recycled model invisible until _present has placed it at spawn.
 	for mesh in partner_meshes: mesh.transparency = 1.0
 	partner_spawned.emit()

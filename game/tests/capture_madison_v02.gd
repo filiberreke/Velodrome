@@ -22,6 +22,7 @@ func capture() -> void:
 	await shot("02_training_settings")
 	menu.madison_page.begin()
 	var scene = game.madison_training_environment
+	scene._spawn_partner() # Explicit exchange fixture after the normal settling-in start.
 	scene.distances.assign([90.0,90.0]); scene.speeds.assign([12.0,10.0]); scene.lane_offsets.assign([2.38,3.58])
 	scene.madison.reset()
 	for i in range(60):

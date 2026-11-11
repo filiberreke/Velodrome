@@ -38,6 +38,11 @@ func run() -> void:
 	check(game.start_state == "SETUP" and not game.broadcast_intro.active,"Training has no race intro or countdown")
 	check(scene.bikes.size() == 2 and not game.bikes[0].visible,"Two dedicated training riders")
 	check(not game.arena.get_node("LevendigMiddenterrein").visible,"Quiet training venue retained")
+	check(not scene.partner_present and not scene.madison.active and scene.page.progress.attempts == 0,"Training starts with an unscored settling-in half-lap")
+	check(is_equal_approx(scene.next_spawn_player_distance-scene.start_distance,125.0),"First exchange is scheduled after 125 player metres")
+	scene.grab_button("warmup",true); scene.grab_button("warmup",false)
+	check(scene.page.progress.attempts == 0,"A during settling-in never scores a failed attempt")
+	scene._spawn_partner() # Start the separate input/IK fixture explicitly.
 	# An aligned fixture exercises the actual A routing, clips and world hand IK.
 	scene.distances[1] = scene.distances[0]
 	scene.speeds.assign([12.0,10.0])
@@ -57,11 +62,7 @@ func run() -> void:
 			max_hand_error = maxf(max_hand_error,scene.animation.rig_g.anchor_world().distance_to(scene.animation.rig_r.anchor_world()))
 	check(saw_sling and scene.madison.efficiency > .65 and max_hand_error < .005,"Training A input completes Easy sling with sub-5-mm hand contact")
 	print("V02_HAND_CONTACT max_mm=",max_hand_error*1000)
-	scene.madison.reset(); scene._present(0)
-	scene.page.progress.reset_session(10); scene.pending_trial = true
-	scene.distances.assign([scene.start_distance,scene.start_distance+10])
-	scene.speeds.assign([12.0,8.0]); scene.baseline_speed = 12.0
-	scene.next_spawn_player_distance = scene.start_distance+250
+	scene.enter() # Verify the real half-lap start and recurring 250 m schedule.
 	var spawns: Array[float] = []
 	var despawns: Array[float] = []
 	scene.partner_despawned.connect(func():
@@ -74,15 +75,17 @@ func run() -> void:
 	var previous_player: float = scene.distances[0]
 	for tick in range(9600):
 		scene._step(1.0/120.0,300)
+		if scene.distances[0] < scene.start_distance+125:
+			check(not scene.partner_present and scene.page.progress.attempts == 0,"No partner or attempt before half a player lap")
 		check(scene.distances[0] >= previous_player and scene.distances[0]-previous_player < .5,"Partner spawn never teleports the player")
 		previous_player = scene.distances[0]
 		if tick % 120 == 0:
 			scene._present(1.0/60.0)
 			await process_frame
 	check(spawns.size() >= 2 and despawns.size() >= 2,"Partner despawns and respawns between attempts")
-	check(absf(spawns[0]-(scene.start_distance+250)) < .5 if not spawns.is_empty() else false,"Respawn occurs on player lap boundary")
+	check(absf(spawns[0]-(scene.start_distance+125)) < .5 if not spawns.is_empty() else false,"First spawn occurs after half a player lap")
 	for i in range(1,spawns.size()): check(absf(spawns[i]-spawns[i-1]-250.0) < .5,"Exactly one partner spawn each player lap")
-	check(spawns.size() == floori((scene.distances[0]-scene.start_distance)/250.0),"Every completed player lap offers a fresh attempt")
+	check(spawns.size() == floori((scene.distances[0]-scene.start_distance+125.0)/250.0),"Every completed player lap offers a fresh attempt")
 	print("PARTNER_RESPAWNS at=",spawns," despawns=",despawns)
 	game.bridge_devices.close_page()
 	var lane: int = scene.player_lane_target

@@ -17,7 +17,7 @@ func run() -> void:
 	var scene = game.madison_training_environment
 	for role in [0,1]:
 		for at in [95.0,180.0]:
-			scene.enter()
+			scene.enter(); scene._spawn_partner()
 			var model = scene.madison
 			model.active_rider = role; scene.attempt_giver = role
 			scene.distances.assign([at,at]); scene.lane_offsets.assign([2.38,3.58] if role == 0 else [3.58,2.38])
@@ -37,7 +37,11 @@ func run() -> void:
 					scene._present(1.0/60.0); await process_frame
 			check(scene.exchange_results.size() == 1 and scene.exchange_results[0].success,"Late green click completes a moving exchange with IK, role=%d at=%.0f result=%s" % [role,at,str(scene.exchange_results)])
 	# The first early press is the only scored press until a fresh opportunity.
-	scene.enter(); scene.madison.step(scene,.01); scene._present(.01)
+	scene.enter()
+	scene.grab_button("warmup",true); scene.grab_button("warmup",false)
+	check(scene.exchange_results.is_empty() and not scene.partner_present,"A before the first half-lap does not start an attempt")
+	scene.distances[0] = scene.next_spawn_player_distance
+	scene._step(.01,300); scene._present(.01)
 	scene.grab_button("early",true); scene.grab_button("early",false)
 	var first_result: Array = scene.exchange_results.duplicate(true)
 	scene.grab_button("retry",true); scene.grab_button("retry",false)

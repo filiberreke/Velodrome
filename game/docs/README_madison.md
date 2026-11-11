@@ -74,8 +74,10 @@ zonder deze velden blijven gewoon leesbaar.
 
 ## Eén kans per spelersronde
 
-De eerste kans wordt bij de start klaargezet. Bij elke volgende gereden
-spelersronde van 250 m verschijnt een nieuwe ploegmaat op circa 10 m
+De training begint met een halve spelersronde (125 m) om te wennen, zonder
+ploegmaat of gescoorde poging. De gele lijn blijft wel zichtbaar en het HUD
+telt af tot de eerste kans. Daarna verschijnt om de 250 m een nieuwe ploegmaat
+(op 125, 375, 625 m enzovoort vanaf de trainingsstart) op circa 10 m
 naderingsafstand: vóór de speler als ontvanger, achter de speler als gever.
 De speler wordt daarvoor nooit verplaatst en behoudt stuurcontrole.
 
