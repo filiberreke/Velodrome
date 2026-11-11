@@ -25,7 +25,7 @@ static func title(mode: String) -> String:
 	return {"flying_start":"Vliegende start","take_lap":"Neem een ronde","free_ride":"Vrije training"}.get(mode,"Pistetraining")
 static func pursuit_line(game) -> float:
 	# The same reference coordinate as the painted pursuit line in main.gd.
-	return fposmod(game.LAP-game.STRAIGHT*.5,game.LAP)
+	return fposmod(game.PURSUIT_START_M,game.LAP)
 func start(mode: String, at: float, pack_kmh: float, seconds: float) -> void:
 	kind = mode; origin = at; target_kmh = pack_kmh; time_limit = seconds
 	phase = "RIDE"; reason = ""; elapsed = 0; peak_w = 0; energy_j = 0

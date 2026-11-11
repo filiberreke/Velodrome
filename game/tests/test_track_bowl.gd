@@ -33,7 +33,7 @@ func run() -> void:
 	check(max_tangent_step < 0.006,"Smooth heading and pitch across transitions")
 	for s in [0.0,125.0,250.0,game.STRAIGHT-18.0,game.STRAIGHT+18.0,game.STRAIGHT+PI*game.RADIUS-18.0,game.STRAIGHT+PI*game.RADIUS+18.0]:
 		for lane in [0.78,1.18,7.18,9.03]:
-			var d: float = -s
+			var d: float = game.FINISH_REFERENCE_S - s
 			var left: Vector3 = (game._at(d,lane)-game._at(d-0.01,lane))/0.01
 			var right: Vector3 = (game._at(d+0.01,lane)-game._at(d,lane))/0.01
 			check(left.distance_to(right)<0.003,"Continuous tangent at every transition and lap seam")

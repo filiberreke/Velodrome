@@ -1,5 +1,12 @@
 extends SceneTree
 class Game extends "res://main.gd":
+	func _ready() -> void:
+		super._ready()
+		# Live discovery can open a modal over this synthetic race and swallow
+		# steering. Keep device UI out of this isolated gameplay regression.
+		bridge_devices.set_process(false)
+		bridge_devices.socket.close()
+		bridge_devices.panel_root.hide()
 	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 	func _save_recording(_reason: String) -> void: pass
 	func _register_performance() -> void: pass

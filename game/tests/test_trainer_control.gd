@@ -57,7 +57,7 @@ func run_test() -> void:
 	check(Client.route_grade(Vector3.ZERO, Vector3(0, 1, 0)) == 0, "No forward path cannot divide by zero")
 	check(Client.route_grade(Vector3.ZERO, Vector3(1, 1, 0)) == 20, "Game grade limited to bridge domain")
 	var game := RouteGame.new(); root.add_child(game)
-	game.distances[0] = game.STRAIGHT + 25.0
+	game.distances[0] = game.FINISH_REFERENCE_S + game.STRAIGHT + 25.0
 	game.lane_offsets[0] = 4.78
 	var pos: Vector3 = game._at(game.distances[0], game.lane_offsets[0])
 	check(absf(Client.route_grade(pos, game._at(game.distances[0] + .1, game.lane_offsets[0]))) < .01, "42 degree bank is not 42% longitudinal grade")
