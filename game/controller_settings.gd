@@ -270,5 +270,8 @@ func _refresh_mapping() -> void:
         if not action.is_empty():
             var binding: Dictionary = mapping.profiles[_context()][action]
             caption = "%s (%s)" % [Mapping.ACTIONS[_context()][action], {"press":"indrukken", "release":"loslaten", "hold":"vasthouden"}[binding.trigger]]
+        if _context() == "race" and button == "A":
+            var madison := "Madison-aflossing: indrukken = grijpen. Easy: automatisch slingeren en loslaten. Advanced: vasthouden = slingeren, loslaten = aflossen."
+            caption = madison if action.is_empty() else caption + "\n" + madison
         if button.begins_with("SHIFT_"): caption += " · schakelen in bridge"
         binding_labels[button].text = caption
