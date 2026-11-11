@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ccvp6ui57rd1f"
-path="res://.godot/imported/07_outgoing_zone.png-be2ba332a7b16296dd89bfd860603e58.ctex"
+uid="uid://dsbw76r23knd6"
+path="res://.godot/imported/07_incoming_zone.png-e3355534d8d40e095c7a00478169f76a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://verification/madison_v02/07_outgoing_zone.png"
-dest_files=["res://.godot/imported/07_outgoing_zone.png-be2ba332a7b16296dd89bfd860603e58.ctex"]
+source_file="res://verification/madison_v02/07_incoming_zone.png"
+dest_files=["res://.godot/imported/07_incoming_zone.png-e3355534d8d40e095c7a00478169f76a.ctex"]
 
 [params]
 
