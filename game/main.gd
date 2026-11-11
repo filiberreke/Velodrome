@@ -93,8 +93,12 @@ const TRACK_OUTER_EDGE := 9.03
 const FRONT_WHEEL_TIP_M := 1.110
 const RADIUS := 18.0
 const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
-const PURSUIT_START_M := LAP - STRAIGHT * 0.5
-const NEUTRAL_DEPARTURE_M := -STRAIGHT * 0.5
+# Finish is on the final straight, 2 m before the smooth bend entry.
+const FINISH_STRAIGHT_CLEARANCE_M := 2.0
+const FINISH_REFERENCE_S := preload("res://track_geometry.gd").TRANSITION * 0.5 + FINISH_STRAIGHT_CLEARANCE_M
+const PURSUIT_START_M := LAP + FINISH_REFERENCE_S - STRAIGHT * 0.5
+const NEUTRAL_DEPARTURE_M := FINISH_REFERENCE_S - STRAIGHT * 0.5
+const OPPOSITE_STRAIGHT_GATE_M := fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 const UDP_PORT := 51723
 # Player selection is finer than AI corridors; physical track geometry is unchanged.
 const PLAYER_LANE_STEP_M := 0.60
@@ -124,7 +128,8 @@ var draft_leaders: Array[int] = [-1, -1, -1, -1]
 const BLUE_APRON_BANK_DEG := 12.0
 const STRAIGHT_BANK_DEG := 12.0
 const CORNER_BANK_DEG := 42.0
-const BANK_TRANSITION_M := 12.0
+const BANK_TRANSITION_M := 36.0
+var track_geometry := preload("res://track_geometry.gd").new()
 const LANE_CHANGE_MPS := 1.15
 var lane_offsets: Array[float] = [1.18, 2.38, 3.58, 4.78]
 var ai_lane_targets: Array[float] = [1.18, 2.38, 3.58, 4.78]
@@ -1488,20 +1493,7 @@ func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength
 # Lane distances are physical: outside riders must travel further around both bends.
 # Smoothly bank corners and transition into/out of the straights.
 func _bank_angle(s: float) -> float:
-	var d: float = fposmod(s, LAP)
-	var corner_progress: float = -1.0
-	var arc_length: float = PI * RADIUS
-	if d >= STRAIGHT and d <= STRAIGHT + arc_length:
-		corner_progress = d - STRAIGHT
-	elif d >= 2.0 * STRAIGHT + arc_length:
-		corner_progress = d - (2.0 * STRAIGHT + arc_length)
-	if corner_progress < 0.0:
-		return deg_to_rad(STRAIGHT_BANK_DEG)
-	var entry: float = clampf(corner_progress / BANK_TRANSITION_M, 0.0, 1.0)
-	var exit_factor: float = clampf((arc_length - corner_progress) / BANK_TRANSITION_M, 0.0, 1.0)
-	var a: float = minf(entry, exit_factor)
-	var smooth: float = a * a * (3.0 - 2.0 * a)
-	return deg_to_rad(lerpf(STRAIGHT_BANK_DEG, CORNER_BANK_DEG, smooth))
+	return deg_to_rad(lerpf(STRAIGHT_BANK_DEG, CORNER_BANK_DEG, track_geometry.bend(s)))
 
 func _path_metric(s: float, offset: float) -> float:
 	# d(actual route distance)/d(reference 250 m distance), including banking.
@@ -1959,67 +1951,30 @@ func _advance_race(dt: float) -> void:
 		_save_recording("finish")
 
 # ONE coordinate transform for both geometry and banking/lean lookup.
-# Start and finish share the same physical line, at the END of the right-hand straight
-# when travelling CCW, immediately before the curved section.
+# Race distance zero is the painted finish on the final straight.
+# Keep a 2 m margin before the geometric transition starts when travelling CCW.
 func _track_s(distance: float) -> float:
-	return fposmod(-distance, LAP)
+	return fposmod(FINISH_REFERENCE_S - distance, LAP)
 
 func _at(distance: float, offset: float) -> Vector3:
-	# Counter-clockwise velodrome: reversed traversal of the old clockwise path.
-	# Positive offsets stay toward the outside, independent of direction.
-	# At the right-hand straight the rider now heads toward -Z; the infield is LEFT.
 	var s: float = _track_s(distance)
-	var x := 0.0
-	var z := 0.0
-	var nx := 0.0
-	var nz := 0.0
-	if s < STRAIGHT:
-		x = RADIUS
-		z = -STRAIGHT / 2.0 + s
-		nx = 1.0
-	elif s < STRAIGHT + PI * RADIUS:
-		var angle := (s - STRAIGHT) / RADIUS
-		x = RADIUS * cos(angle)
-		z = STRAIGHT / 2.0 + RADIUS * sin(angle)
-		nx = cos(angle)
-		nz = sin(angle)
-	elif s < 2.0 * STRAIGHT + PI * RADIUS:
-		x = -RADIUS
-		z = STRAIGHT / 2.0 - (s - STRAIGHT - PI * RADIUS)
-		nx = -1.0
-	else:
-		var angle := PI + (s - 2.0 * STRAIGHT - PI * RADIUS) / RADIUS
-		x = RADIUS * cos(angle)
-		z = -STRAIGHT / 2.0 + RADIUS * sin(angle)
-		nx = cos(angle)
-		nz = sin(angle)
-	# The blue apron stays at a fixed 12-degree cross-slope all the way around.
-	# Wood starts at the same height at TRACK_EDGE, then uses the variable
-	# banking angle; the shared boundary therefore remains watertight.
-	var apron_width: float = minf(offset, TRACK_EDGE)
-	var wood_width: float = maxf(0.0, offset - TRACK_EDGE)
-	var height: float = 0.015 + apron_width * tan(deg_to_rad(BLUE_APRON_BANK_DEG)) + wood_width * tan(_bank_angle(s))
-	return Vector3(x + offset * nx, height, z + offset * nz)
+	var base: Vector2 = track_geometry.position(s)
+	var angle: float = track_geometry.heading(s)
+	var bank: float = _bank_angle(s)
+	var apron: float = minf(offset, TRACK_EDGE)
+	var wood: float = clampf(offset - TRACK_EDGE, 0.0, TRACK_OUTER_EDGE - TRACK_EDGE)
+	# Beyond the wood, arena/boarding offsets remain horizontal metres.
+	var outside: float = maxf(0.0, offset - TRACK_OUTER_EDGE)
+	var lateral: float = apron + wood * cos(bank) + outside
+	var height: float = 0.015 + apron * tan(deg_to_rad(BLUE_APRON_BANK_DEG)) + wood * sin(bank) + outside * tan(bank)
+	return Vector3(base.x + lateral * cos(angle), height, base.y + lateral * sin(angle))
 
 func _direction(s: float, offset: float) -> Vector3:
 	return (_at(s + 0.2, offset) - _at(s - 0.2, offset)).normalized()
 
-# Exact segments of our 250m capsule: two straights, two half-circle bends.
-# Do NOT infer a bend from camera yaw, lateral track gradient or heading.
+# Lean follows the actual curvature, including the transition curves.
 func _curve_factor(s: float) -> float:
-	var d: float = _track_s(s)
-	var arc: float = PI * RADIUS
-	var progress: float = -1.0
-	if d >= STRAIGHT and d < STRAIGHT + arc:
-		progress = d - STRAIGHT
-	elif d >= 2.0 * STRAIGHT + arc and d < LAP:
-		progress = d - (2.0 * STRAIGHT + arc)
-	if progress < 0.0:
-		return 0.0
-	# 8 metres of smoothing INSIDE the curve; straights are always zero.
-	var edge: float = minf(progress, arc - progress)
-	var fraction: float = clampf(edge / 8.0, 0.0, 1.0)
-	return fraction * fraction * (3.0 - 2.0 * fraction)
+	return track_geometry.bend(_track_s(s))
 
 func _visual_lean(i: int) -> float:
 	var curve: float = _curve_factor(_rider_distance(i, distances[i]))
@@ -2340,8 +2295,8 @@ func _build_realistic_track() -> void:
 	# Discreet black distance ticks every 5 metres, slightly longer every 10.
 	_track_distance_ticks()
 	# Pursuit starting lines sit in the middle of the two straights.
-	var pursuit_a: float = fposmod(LAP - STRAIGHT * 0.5, LAP)
-	var pursuit_b: float = fposmod(LAP - (1.5 * STRAIGHT + PI * RADIUS), LAP)
+	var pursuit_a: float = fposmod(PURSUIT_START_M, LAP)
+	var pursuit_b: float = fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 	_track_band(TRACK_EDGE + 0.02, TRACK_OUTER_EDGE - 0.05, Color("bb262b"), pursuit_a, 0.10, 0.025)
 	_track_band(TRACK_EDGE + 0.02, TRACK_OUTER_EDGE - 0.05, Color("bb262b"), pursuit_b, 0.10, 0.025)
 	# A modest 4 cm white 200 m line, 50 m after the lap's finish reference.
@@ -3982,7 +3937,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var braking: float = 2.2 if travelled > 62.0 else 1.1
 		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
-		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - 90.8) <= 0.4:
+		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - OPPOSITE_STRAIGHT_GATE_M) <= 0.4:
 			route["stage"] = 1
 			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
 			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
