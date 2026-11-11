@@ -22,6 +22,13 @@ var fade_in_remaining := 0.0
 var partner_meshes: Array[Node] = []
 var next_spawn_player_distance := 0.0
 var _outfit := {}
+var exchange_results: Array[Dictionary] = []
+var attempt_giver := 0
+var feedback := ""
+var feedback_until := 0.0
+var exchange_zone: MeshInstance3D
+var _zone_key := ""
+
 func _setup_session() -> void:
 	name = "MadisonTrainingEnvironment"
 	page = game.setup_panel.madison_page; session = page.session; page.scene = self
@@ -33,6 +40,13 @@ func _setup_session() -> void:
 	for i in range(2):
 		var bike := Node3D.new(); bike.name = "Speler" if i == 0 else "Ploegmaat"; add_child(bike); bikes.append(bike)
 		var rider := preload("res://rider_visual.gd").new(); rider.set_meta("rider_index",i); rider.set_meta("appearance_profile",0); bike.add_child(rider)
+	exchange_zone = MeshInstance3D.new(); exchange_zone.name = "Wisselzone"; add_child(exchange_zone)
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.albedo_color = Color(1.0,0.82,0.05,0.55)
+	exchange_zone.material_override = material
 	animation = preload("res://madison_animation.gd").new(); add_child(animation)
 	partner_meshes.assign(bikes[1].find_children("*","GeometryInstance3D",true,false))
 	animation.reach_limit.connect(madison.release_for_reach)
@@ -45,6 +59,7 @@ func enter() -> void:
 	distances.assign([start_distance,start_distance+10.0]); speeds.assign([12.0,8.0]); lane_offsets.assign([2.38,3.58])
 	finish_times.fill(-1.0); baseline_speed = 12.0; finished = false
 	madison.reset(); madison.advanced = page.difficulty.selected == 1; input_sources.clear(); pending_trial = true
+	exchange_results.clear(); attempt_giver = 0; feedback = ""; feedback_until = 0; _zone_key = ""
 	partner_present = true; respawn_remaining = 0; fade_in_remaining = PARTNER_FADE_SECONDS
 	next_spawn_player_distance = start_distance+game.LAP
 	page.progress.reset_session(page.count.get_selected_id())
@@ -62,9 +77,10 @@ func enter() -> void:
 	page.selected_activity = {}
 	_capture_sample(); _persist(false); hud.show(); _present(0)
 func leave() -> void:
+	_score_interrupted("Training verlaten tijdens de aflossing")
 	animation.clear(); input_sources.clear()
 	super.leave()
-	partner_present = false; bikes[1].hide()
+	partner_present = false; bikes[1].hide(); exchange_zone.hide()
 func _at(at: float, lane: float) -> Vector3: return game._at(at,lane)
 func grab_button(source: String, pressed: bool) -> void:
 	if pressed and active and session.running(): input_sources[source] = true
@@ -75,15 +91,46 @@ func steer(direction: int) -> void:
 func request_tempo(direction: int) -> void: steer(direction)
 func _phase_changed(phase: String, _giver: int, _receiver: int) -> void:
 	if phase == "APPROACH":
-		pending_trial = true
+		pending_trial = true; attempt_giver = madison.giver
 	elif phase == "SEPARATE": _score(false)
 func _released(g: int, r: int, efficiency: float) -> void:
 	madison.apply_release(self,g,r,efficiency)
 	_score(efficiency > 0.0)
 func _score(success: bool) -> void:
-	if not pending_trial: return
+	if not pending_trial or page.progress.complete(): return
 	pending_trial = false
+	var reason: String = "" if success else madison.failure_reason
+	if not success and reason.is_empty():
+		var placement: Dictionary = madison.positioning(self)
+		var pace: Dictionary = madison.speed_guidance(self)
+		reason = str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else "Greep gemist — niet op tijd op A gedrukt"
+	var score: int = clampi(roundi(madison.score_percent()),1,100) if success else 0
+	var role: String = "Inkomend" if attempt_giver == 0 else "Uitgaand"
+	exchange_results.append({"number":exchange_results.size()+1,"role":role,"success":success,"reason":reason,"score":score,"momentum_percent":madison.efficiency*100.0 if success else 0.0})
+	feedback = "%s · %d%% · %s" % [role,score,"Geslaagd" if success else "Mislukt: " + reason]
+	feedback_until = total_elapsed+5.0
 	page.progress.record(success,not madison.advanced)
+func _update_exchange_zone() -> void:
+	exchange_zone.visible = active and session.running() and partner_present and (not madison.active or madison.phase == madison.Phase.APPROACH)
+	if not exchange_zone.visible: return
+	var incoming: bool = (madison.giver if madison.active else madison.active_rider) == 0
+	var lane: float = 2.38 if incoming else 3.58
+	# Follow the banked surface; only rebuild once every 5 m or when roles change.
+	var anchor: float = floorf(distances[0]/5.0)*5.0
+	var key := str(anchor)+":"+str(incoming)
+	if key == _zone_key: return
+	_zone_key = key
+	var mesh := ImmediateMesh.new()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for step in range(40):
+		var d: float = anchor-5.0+step*2.0
+		var half_width := 0.14
+		var a: Vector3 = game._at(d,lane-half_width)+Vector3.UP*0.04
+		var b: Vector3 = game._at(d,lane+half_width)+Vector3.UP*0.04
+		var c: Vector3 = game._at(d+2.0,lane-half_width)+Vector3.UP*0.04
+		var e: Vector3 = game._at(d+2.0,lane+half_width)+Vector3.UP*0.04
+		for point in [a,b,c,b,e,c]: mesh.surface_add_vertex(point)
+	mesh.surface_end(); exchange_zone.mesh = mesh
 func _ai_lane() -> float:
 	if (madison.active and madison.giver == 1 and madison.phase in [madison.Phase.RELEASE,madison.Phase.SEPARATE]) or (madison.cooldown > 0 and madison.active_rider == 0):
 		if lane_offsets[1] < lane_offsets[0] and absf(wrapf(distances[0]-distances[1],-125,125)) < 2.2: return lane_offsets[1]
@@ -93,7 +140,9 @@ func _step(dt: float, power: float) -> void:
 	# An unattempted/uncatchable opportunity must not block the next player lap.
 	if partner_present and distances[0] >= next_spawn_player_distance and not page.progress.complete():
 		if madison.active and madison.phase == madison.Phase.APPROACH:
-			madison.cancel("Poging gemist — volgende spelersronde")
+			var placement: Dictionary = madison.positioning(self)
+			var pace: Dictionary = madison.speed_guidance(self)
+			madison.cancel(str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else "Ploegmaat niet tijdig binnen handbereik")
 		elif not madison.active:
 			_score(false)
 			_despawn_partner()
@@ -129,11 +178,14 @@ func _despawn_partner() -> void:
 	partner_present = false
 	bikes[1].hide()
 	animation.clear()
+	madison.active_rider = 1-attempt_giver
 	respawn_remaining = RESPAWN_SECONDS
 	partner_despawned.emit()
 func _spawn_partner() -> void:
 	bikes[1].hide()
 	animation.clear()
+	attempt_giver = madison.active_rider
+	madison.failure_reason = ""; madison.release_reason = ""
 	if madison.active_rider == 0:
 		distances[1] = distances[0]+madison.approach_distance
 		lane_offsets[1] = 3.58
@@ -174,16 +226,22 @@ func _present(dt: float) -> void:
 	game.visual_rolls[0] = bikes[0].rotation.z
 	game._follow_rider_camera(distance,player_lane_offset,dt,false,bikes[0].position)
 	bikes[0].visible = game.look_back_held or game.camera_mode != 2
+	_update_exchange_zone()
 	hud.update_training(self)
 func _persist(final: bool) -> void:
 	if activity.is_empty(): return
-	activity.merge({"samples":samples,"duration_s":total_elapsed,"distance_m":total_distance,"reason":session.reason,"final":final,"attempts":page.progress.attempts,"successes":page.progress.successes,"target":page.progress.target,"completed":page.progress.complete(),"peak_power_w":session.peak_w,"mean_power_w":session.energy_j/maxf(.001,session.elapsed)},true)
+	activity.merge({"samples":samples,"duration_s":total_elapsed,"distance_m":total_distance,"reason":session.reason,"final":final,"attempts":page.progress.attempts,"successes":page.progress.successes,"target":page.progress.target,"completed":page.progress.complete(),"exchanges":exchange_results.duplicate(true),"peak_power_w":session.peak_w,"mean_power_w":session.energy_j/maxf(.001,session.elapsed)},true)
 	var ok: bool = store.save(activity)
 	save_status = "Training opgeslagen in het spel." if ok else "Opslaan mislukt: "+store.error
 	if ok:
 		last_save = total_elapsed
 		if final: saved_final = true
+func _score_interrupted(reason: String) -> void:
+	if pending_trial and madison.active and madison.phase in [madison.Phase.GRAB,madison.Phase.SLING]:
+		madison.failure_reason = reason
+		_score(false)
 func finish_session(reason: String, show_result: bool = true) -> void:
+	_score_interrupted(reason)
 	session.stop(reason); finished = true; animation.clear(); input_sources.clear()
 	_capture_sample(); _persist(true); release_trainer(); hud.hide(); popup.clear()
 	page.show_activity(activity,save_status)

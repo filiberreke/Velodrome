@@ -3,6 +3,8 @@ var progress = preload("res://madison_progress.gd").new()
 var difficulty: OptionButton
 var count: OptionButton
 var unlock_label: Label
+var results_scroll: ScrollContainer
+var results_table: GridContainer
 func _ready() -> void:
 	session = preload("res://piste_exercise_session.gd").new()
 	progress.load_progress()
@@ -16,6 +18,13 @@ func _ready() -> void:
 	result = _label("",24)
 	start_button = _button("Start aflossingstraining",begin)
 	result_graph = preload("res://training_graph.gd").new(); result_graph.size_flags_vertical = Control.SIZE_EXPAND_FILL; add_child(result_graph)
+	results_scroll = ScrollContainer.new(); results_scroll.custom_minimum_size.y = 180
+	results_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	results_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(results_scroll)
+	results_table = GridContainer.new(); results_table.columns = 5; results_table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	results_table.add_theme_constant_override("h_separation",20); results_table.add_theme_constant_override("v_separation",8)
+	results_scroll.add_child(results_table)
 	upload_button = _button("Opslaan op Strava",func(): upload_requested.emit(selected_activity))
 	stop_button = _button("Stop training",func(): finish("Handmatig gestopt"))
 	back_button = _button("← Pistetraining",leave)
@@ -31,12 +40,32 @@ func _refresh() -> void:
 	unlock_label.text = "Advanced vergrendeld · haal 7/10 of 14/20 in Easy." if locked else "Advanced vrijgespeeld."
 	var has_result := not selected_activity.is_empty()
 	var running: bool = session.running()
-	for node in [difficulty,count,unlock_label]: node.visible = not running
+	for node in [difficulty,count,unlock_label]: node.visible = not running and not has_result
 	detail.visible = not running and not has_result
 	start_button.visible = not running; stop_button.hide()
+	result_graph.custom_minimum_size.y = 140
 	result_graph.visible = has_result
+	results_scroll.visible = has_result and not selected_activity.get("exchanges",[]).is_empty()
 	upload_button.visible = has_result; upload_button.disabled = selected_activity.get("samples",[]).size() < 2
 	if has_result:
 		result.text = "%s · %d/%d pogingen · %d geslaagd\n%s" % [selected_activity.get("reason",""),selected_activity.get("attempts",0),selected_activity.get("target",10),selected_activity.get("successes",0),upload_status]
 	elif session.phase == "RESULT": result.text = session.reason
-	else: result.text = "Een geldige greep en positieve momentumoverdracht tellen als geslaagd."
+	else: result.text = "Volg de gele wisselzone. Inkomend: jij geeft aan de binnenkant. Uitgaand: jij ontvangt bij de blauwe lijn.\nScore: maximaal 100/100 in beide modi; Easy draagt maximaal 70% momentum over."
+
+func show_activity(activity: Dictionary, message: String = "Training opgeslagen in het spel.") -> void:
+	super.show_activity(activity,message)
+	for child in results_table.get_children():
+		results_table.remove_child(child); child.queue_free()
+	for heading in ["Poging","Rol","Resultaat","Reden bij mislukken","Score /100"]:
+		_table_cell(heading,true)
+	for exchange in activity.get("exchanges",[]):
+		for text in [str(exchange.get("number","")),str(exchange.get("role","")),"Gelukt" if exchange.get("success",false) else "Mislukt",str(exchange.get("reason","")),str(exchange.get("score",0))]:
+			_table_cell(text)
+
+func _table_cell(text: String, heading: bool = false) -> void:
+	var cell := Label.new(); cell.text = text; cell.add_theme_font_size_override("font_size",18)
+	if results_table.get_child_count()%5 == 3:
+		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cell.custom_minimum_size.x = 220
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if heading: cell.add_theme_color_override("font_color",Color("d1a83c"))
+	results_table.add_child(cell)

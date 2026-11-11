@@ -21,6 +21,40 @@ voegt geen wedstrijdtactiek, ploegklassement of ploegpunten toe.
 - De slider staat onder de wattagebalk. Zijn positie bevriest bij grijpen;
   daarna volgt de breedte de beschikbare overdracht.
 
+## Positionering, feedback en score
+
+Tijdens het naderen markeert een gele strook op de gebankte piste de aanbevolen
+rijlijn. Inkomend (speler geeft) ligt die aan de binnenkant, uitgaand (speler
+ontvangt) bij de blauwe lijn. De ontvanger mag ook één lijn binnen de blauwe lijn
+rijden. De zone bestaat alleen in deze training en verdwijnt bij de greep.
+De speler houdt altijd stuurcontrole.
+
+Het HUD toont inkomend: **Volg de gele lijn en rij sneller dan XX km/u**.
+Dit minimum volgt de actuele snelheid van de ploegmaat plus 0,1 m/s sluitingssnelheid
+(afgerond naar boven op 0,1 km/u). Uitgaand: **Volg de gele lijn. Rij maximaal
+50 km/u**. Boven 50 km/u kan de uitgaande renner niet grijpen of handcontact
+behouden; `receiver_max_kmh` maakt deze grens instelbaar. Ook een te groot
+snelheidsverschil blokkeert de greep: beide renners moeten hun relatieve snelheid
+met de beschikbare contactversnelling kunnen afbouwen binnen het handbereik.
+Snelheidsfouten komen met de gemeten snelheid/grens in HUD en resultaattabel.
+ Bij verkeerde volgorde,
+verkeerde ontvangerslijn, te kleine of te grote zijafstand verdwijnt de slider en
+verschijnt **Aflossen niet mogelijk wegens slechte positionering**, met een
+concrete reden. De timingzone kleurt alleen groen wanneer dezelfde controller
+de greep accepteert. De controller controleert ook of het snelheidsverschil
+binnen handbereik kan worden afgebouwd; een onhoudbare greep wordt niet groen.
+
+Iedere afgeronde poging toont vijf seconden feedback met rol, scorepercentage
+en resultaat/redengeving. De vaardigheidsscore is in beide modi op 100:
+perfect Easy = 100/100 en maximaal 70% momentum, perfect Advanced = 100/100 en
+maximaal 100% momentum. Een mislukking scoort 0. De rollen wisselen ook na een
+mislukte poging, zodat beide rollen aan bod komen.
+
+De activiteit bewaart `exchanges`: per poging het volgnummer, `role`, `success`,
+`reason`, `score` (0–100) en `momentum_percent`. Na afloop en bij heropenen via de
+historiek staat er een scrollbare tabel met één rij per poging. Oude activiteiten
+zonder deze velden blijven gewoon leesbaar.
+
 ## Eén kans per spelersronde
 
 De eerste kans wordt bij de start klaargezet. Bij elke volgende gereden
@@ -68,7 +102,7 @@ De eenvoudige wanten zonder vingeranimatie blijven een assetbeperking.
 Gebruik Godot 4.7.2 na de normale import:
 
 ```text
-python game/tests/run_v02_headless.py --godot PAD/NAAR/Godot.exe test_madison_v02_training test_madison_progress test_madison test_free_training test_derny_training test_piste_exercises test_training_environment test_v02_menu test_training_signal_pause test_ftp_ramp test_workout_library test_workout_editor_ui
+python game/tests/run_v02_headless.py --godot PAD/NAAR/Godot.exe test_madison_feedback test_madison_v02_training test_madison_progress test_madison test_free_training test_derny_training test_piste_exercises test_training_environment test_v02_menu test_training_signal_pause test_ftp_ramp test_workout_library test_workout_editor_ui
 ```
 
 De Madison-integratietest controleert plaatsing in de hub, vergrendeling,

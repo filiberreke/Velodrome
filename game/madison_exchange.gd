@@ -10,6 +10,8 @@ const NAMES := ["APPROACH", "GRAB", "SLING", "RELEASE", "SEPARATE"]
 var advanced := false
 var approach_distance := 10.0
 var max_reach := 1.8
+var receiver_max_kmh := 50.0
+var minimum_closing_mps := 0.1
 var visual_reach := 1.4
 var grab_seconds := 0.15
 var sling_seconds := 2.0
@@ -38,6 +40,11 @@ var contact_point := Vector3.ZERO
 var last_result := "Zoek je ploegmaat op bij de blauwe lijn"
 var _impulse := 0.0
 var release_reason := ""
+var position_valid := false
+var position_reason := ""
+var failure_reason := ""
+var speed_valid := false
+var speed_reason := ""
 
 func reset() -> void:
 	phase = Phase.SEPARATE
@@ -48,6 +55,7 @@ func reset() -> void:
 	visual_offsets.assign([0.0, 0.0])
 	_impulse = 0.0
 	release_reason = ""
+	failure_reason = ""; position_valid = false; position_reason = ""; speed_valid = false; speed_reason = ""
 	last_result = "Zoek je ploegmaat op bij de blauwe lijn"
 
 func _change(next: int) -> void:
@@ -63,7 +71,7 @@ func button(pressed: bool) -> void:
 		return
 	if not active or phase != Phase.APPROACH: return
 	if not can_grab:
-		last_result = "Buiten handbereik"
+		last_result = position_reason if not position_valid else speed_reason if not speed_valid else "Te vroeg of te laat gegrepen: buiten handbereik"
 		missed.emit(last_result)
 		return
 	precision = clampf(1.0 - absf(marker - 0.8) / 0.2, 0.0, 1.0)
@@ -74,7 +82,11 @@ func button(pressed: bool) -> void:
 func _release(reason: String = "player") -> void:
 	release_reason = reason
 	efficiency = precision * envelope(sling_t) * (1.0 if advanced else 0.7)
-	last_result = "Aflossing: %d%% momentum" % roundi(efficiency * 100.0)
+	failure_reason = ""
+	if efficiency <= 0.0:
+		failure_reason = "Te vroeg of te laat gegrepen" if precision <= 0.0 else "Handbereik overschreden vóór de slinger" if reason == "reach" else "Te lang vastgehouden" if reason == "max_hold" else "Te vroeg losgelaten"
+	last_result = "Score: %d/100 · %d%% momentum" % [roundi(score_percent()), roundi(efficiency * 100.0)]
+	if not failure_reason.is_empty(): last_result += " · " + failure_reason
 	active_rider = receiver
 	_change(Phase.RELEASE)
 	released.emit(giver, receiver, efficiency)
@@ -89,11 +101,44 @@ func envelope(t: float) -> float:
 
 func cancel(reason: String = "Aflossing afgebroken") -> void:
 	if active and phase in [Phase.APPROACH, Phase.GRAB, Phase.SLING]:
+		failure_reason = reason
 		last_result = reason
 		missed.emit(reason)
 		_change(Phase.SEPARATE)
 	can_grab = false
 	held = false
+
+func score_percent() -> float:
+	# Skill score is out of 100 in both modes; Easy momentum remains capped at 70%.
+	return clampf(efficiency / (1.0 if advanced else 0.7) * 100.0, 0.0, 100.0)
+
+func positioning(game) -> Dictionary:
+	var g: int = giver if active else active_rider
+	var r: int = 1-g
+	var lateral: float = game._at(game.distances[0],game.lane_offsets[g]).distance_to(game._at(game.distances[0],game.lane_offsets[r]))
+	var reason := ""
+	if game.lane_offsets[g] >= game.lane_offsets[r]-0.4: reason = "De snelle renner moet aan de binnenkant rijden"
+	elif absf(game.lane_offsets[r]-3.58) > 0.15 and absf(game.lane_offsets[r]-2.98) > 0.15: reason = "De ontvanger moet op de blauwe lijn of één lijn eronder rijden"
+	elif lateral < 0.6: reason = "Te dicht bij je ploegmaat"
+	elif lateral > max_reach+0.0001: reason = "Te ver van je ploegmaat"
+	return {"valid":reason.is_empty(),"reason":reason}
+
+func speed_guidance(game) -> Dictionary:
+	var g: int = giver if active else active_rider
+	var r: int = 1-g
+	var lateral: float = game._at(game.distances[0],game.lane_offsets[g]).distance_to(game._at(game.distances[0],game.lane_offsets[r]))
+	var longitudinal_room: float = sqrt(maxf(0.0,max_reach*max_reach-lateral*lateral))
+	var maximum_closing: float = sqrt(4.0*maxf(0.0,contact_acceleration)*longitudinal_room)
+	var difference: float = game.speeds[g]-game.speeds[r]
+	var minimum_kmh: float = ceilf((game.speeds[r]+minimum_closing_mps)*36.0)/10.0
+	var reason := ""
+	if game.speeds[r]*3.6 > receiver_max_kmh:
+		reason = "Je reed te snel als uitgaande renner: %.1f km/u (maximum %.0f km/u)" % [game.speeds[r]*3.6,receiver_max_kmh] if r == 0 else "Uitgaande ploegmaat reed boven %.0f km/u" % receiver_max_kmh
+	elif difference <= minimum_closing_mps:
+		reason = "Je reed te traag als inkomende renner: %.1f km/u (rij sneller dan %.1f km/u)" % [game.speeds[g]*3.6,minimum_kmh] if g == 0 else "Je reed te snel: de inkomende ploegmaat kon niet bijsluiten"
+	elif difference > maximum_closing:
+		reason = "Je reed te snel: snelheidsverschil %.1f km/u (maximum %.1f km/u)" % [difference*3.6,maximum_closing*3.6] if g == 0 else "Snelheidsverschil met de inkomende ploegmaat te groot: %.1f km/u" % (difference*3.6)
+	return {"valid":reason.is_empty(),"reason":reason,"minimum_kmh":minimum_kmh,"maximum_closing_kmh":maximum_closing*3.6,"receiver_max_kmh":receiver_max_kmh}
 
 func step(game, dt: float) -> void:
 	if dt <= 0.0: return
@@ -104,19 +149,21 @@ func step(game, dt: float) -> void:
 	if not active and cooldown <= 0.0 and not game.finished and game.finish_times[0] < 0.0 and game.finish_times[1] < 0.0:
 		giver = active_rider; receiver = 1 - giver
 		gap = wrapf(game.distances[receiver] - game.distances[giver], -125.0, 125.0)
-		if gap >= -1.5 and gap <= approach_distance and game.speeds[giver] > game.speeds[receiver] + 0.1:
+		if gap >= -1.5 and gap <= approach_distance and game.speeds[giver] > game.speeds[receiver] + minimum_closing_mps:
 			active = true
 			precision = 0.0; efficiency = 0.0; sling_t = 0.0
-			release_reason = ""
+			release_reason = ""; failure_reason = ""
 			_impulse = 0.0
 			_change(Phase.APPROACH)
 	elapsed += dt
-	var ordered: bool = game.lane_offsets[giver] < game.lane_offsets[receiver] - 0.4
-	var receiver_in_zone: bool = absf(game.lane_offsets[receiver] - 3.58) <= 0.15 or absf(game.lane_offsets[receiver] - 2.98) <= 0.15
+	var placement: Dictionary = positioning(game)
+	position_valid = placement.valid; position_reason = placement.reason
+	var pace: Dictionary = speed_guidance(game)
+	speed_valid = pace.valid; speed_reason = pace.reason
 	var a: Vector3 = game._at(game.distances[giver], game.lane_offsets[giver])
 	var b: Vector3 = game._at(game.distances[receiver], game.lane_offsets[receiver])
 	var physical_span: float = a.distance_to(b)
-	var converging: bool = active and phase in [Phase.APPROACH, Phase.GRAB, Phase.SLING] and ordered and receiver_in_zone and physical_span <= max_reach
+	var converging: bool = active and phase in [Phase.APPROACH, Phase.GRAB, Phase.SLING] and position_valid and physical_span <= max_reach
 	var lateral: float = game.lane_offsets[receiver] - game.lane_offsets[giver]
 	# Lane coordinates measure horizontal offset. Account for banking in 3D.
 	var correction: float = minf(0.2, maxf(0.0, (physical_span - visual_reach) * 0.5)) if converging else 0.0
@@ -127,16 +174,24 @@ func step(game, dt: float) -> void:
 	a = game._at(game.distances[giver], game.lane_offsets[giver] + visual_offsets[giver])
 	b = game._at(game.distances[receiver], game.lane_offsets[receiver] + visual_offsets[receiver])
 	contact_point = (a + b) * 0.5 + Vector3.UP
-	can_grab = active and phase == Phase.APPROACH and ordered and receiver_in_zone and physical_span <= max_reach + 0.0001 and a.distance_to(b) <= visual_reach + 0.05
+	# A green grab must also leave room to equalise the relative speed without
+	# immediately losing hand contact. Both riders share the contact acceleration.
+	var relative_speed: float = game.speeds[giver]-game.speeds[receiver]
+	var closing_distance: float = relative_speed*absf(relative_speed)/maxf(0.001,4.0*contact_acceleration)
+	var settled_a: Vector3 = game._at(game.distances[giver]+closing_distance,game.lane_offsets[giver])
+	var stable_contact: bool = settled_a.distance_to(game._at(game.distances[receiver],game.lane_offsets[receiver])) <= max_reach+0.03
+	can_grab = speed_valid and stable_contact and active and phase == Phase.APPROACH and position_valid and physical_span <= max_reach + 0.0001 and a.distance_to(b) <= visual_reach + 0.05
 	if active:
 		match phase:
 			Phase.APPROACH:
 				_impulse = minf(max_impulse_mps, maxf(0.0, game.speeds[giver]) * impulse_speed_fraction)
 				marker = clampf((approach_distance - gap) / (approach_distance + 2.5), 0.0, 1.0)
-				if gap < -2.5 or gap > approach_distance + 3.0: cancel("Greep gemist — probeer de volgende ronde")
+				if gap < -2.5 or gap > approach_distance + 3.0: cancel(position_reason if not position_valid else speed_reason if not speed_valid else "Greep gemist — niet op tijd op A gedrukt")
 			Phase.GRAB, Phase.SLING:
-				if not ordered or not receiver_in_zone:
-					cancel("Handcontact verloren")
+				if not position_valid:
+					cancel("Handcontact verloren — " + position_reason)
+				elif game.speeds[receiver]*3.6 > receiver_max_kmh:
+					cancel(speed_guidance(game).reason)
 				elif physical_span > max_reach + 0.05:
 					_release("reach")
 				else:
@@ -176,4 +231,5 @@ func parameters() -> Dictionary:
 		"visual_offsets":visual_offsets.duplicate(), "can_grab":can_grab, "advanced":advanced,
 		"phase_t":clampf(elapsed / maxf(0.001, duration), 0.0, 1.0),
 		"phase_seconds":elapsed, "release_seconds":release_seconds, "release_reason":release_reason,
-		"message":last_result}
+		"message":last_result, "position_valid":position_valid, "position_reason":position_reason,
+		"failure_reason":failure_reason, "score":score_percent(), "speed_valid":speed_valid, "speed_reason":speed_reason}

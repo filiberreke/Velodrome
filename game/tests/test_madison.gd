@@ -84,7 +84,7 @@ func _initialize() -> void:
 	m.button(true); m.step(p, m.grab_seconds); m.step(p, m.sling_seconds * m.peak_t); m.button(false)
 	check(m.efficiency < 0.85 and m.efficiency > 0.75, "Imperfect grab caps even a perfectly timed release")
 	setup = prepared(); m = setup[0]; p = setup[1]
-	m.reset(); p.lane_offsets.assign([1.83, 3.58]); m.step(p, 0.01)
+	m.reset(); p.lane_offsets.assign([1.83, 3.58]); p.speeds.assign([11.0,10.0]); m.step(p, 0.01)
 	check(not m.can_grab, "Reachable pair must converge before grabbing")
 	for tick in range(100): m.step(p, 0.01)
 	check(m.can_grab and m.visual_offsets[0] <= 0.2, "Convergence reaches 1.4 m without extending arms")
@@ -94,5 +94,24 @@ func _initialize() -> void:
 	p.distances[1] += 2.0
 	m.step(p, 0.01)
 	check(m.phase == Exchange.Phase.RELEASE and m.release_reason == "reach", "Physical drift releases smoothly before arm overextension")
+	setup = prepared(); m = setup[0]; p = setup[1]
+	p.speeds.assign([15.0,8.0]); p.distances[1] = p.distances[0]-.5
+	m.step(p,.01)
+	check(m.marker >= .72 and m.marker <= .88 and not m.can_grab,"Late green timing is withheld when relative speed would immediately break contact")
+	setup = prepared(); m = setup[0]; p = setup[1]
+	p.speeds.assign([6.0,8.0]); m.reset(); m.step(p,.01)
+	check(not m.speed_guidance(p).valid and is_equal_approx(m.speed_guidance(p).minimum_kmh,29.2),"Incoming minimum tracks partner speed with a closing margin")
+	p.speeds[0] = 18.0; m.step(p,.01)
+	check(not m.can_grab and m.speed_reason.contains("te snel"),"Excessive incoming speed cannot produce a green grab")
+	p.distances[1] = p.distances[0]-3; m.step(p,.01)
+	check(m.failure_reason.contains("snelheidsverschil"),"Too-fast missed attempt retains the actual speed reason")
+	setup = prepared(); m = setup[0]; p = setup[1]
+	m.reset(); m.active_rider = 1; p.lane_offsets.assign([3.58,2.38]); p.speeds.assign([51.0/3.6,16.0])
+	m.step(p,.01)
+	check(not m.can_grab and m.speed_reason.contains("50 km/u"),"Outgoing sprint above 50 km/h is rejected with its limit")
+	p.speeds[0] = 50.0/3.6; m.step(p,.01)
+	check(m.can_grab,"Exactly 50 km/h is allowed when other reach and speed conditions hold")
+	m.button(true); p.speeds[0] = 51.0/3.6; m.step(p,.01)
+	check(m.phase == Exchange.Phase.SEPARATE and m.failure_reason.contains("50 km/u"),"Accelerating above the outgoing limit during contact records the speed failure")
 	print("MADISON_OK" if failures == 0 else "MADISON_FAILED: %d" % failures)
 	quit(0 if failures == 0 else 1)
