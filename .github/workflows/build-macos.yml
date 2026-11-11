@@ -47,7 +47,16 @@ jobs:
           done
           rm -rf game/.godot
       - name: Import project
-        run: '"$GODOT_BIN" --headless --path game --editor --import --quit'
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path game --editor --import --quit --verbose 2>&1 | tee /tmp/velodrome-import.log
+          echo "Generated texture files:"
+          find game/.godot/imported -maxdepth 1 -type f -name '*velodrome*' -exec ls -lh {} \; || true
+          echo "Import metadata:"
+          for texture in game/assets/textures/velodrome_wood_pine.png.import game/assets/textures/velodrome_cote_azur.png.import; do
+            sed -n '1,18p' "$texture"
+          done
       - name: Validate imported textures and scene
         shell: bash
         run: |
@@ -61,8 +70,10 @@ jobs:
               if not match:
                   raise SystemExit(f"No imported texture path for {name}")
               imported = Path("game") / match.group(1)
-              if not imported.is_file() or imported.stat().st_size < 64:
-                  raise SystemExit(f"Missing or suspiciously small imported texture: {imported}")
+              if not imported.is_file():
+                  raise SystemExit(f"Imported texture missing: {imported}")
+              if imported.stat().st_size < 64:
+                  raise SystemExit(f"Imported texture too small ({imported.stat().st_size} bytes): {imported}")
               print(f"{imported}: {imported.stat().st_size} bytes, header={imported.read_bytes()[:16].hex()}")
           PY
           set +e
