@@ -40,8 +40,8 @@ func _ready() -> void:
 	var toolbar := HBoxContainer.new()
 	add_child(toolbar)
 	context_choice = OptionButton.new()
-	for caption in ["Algemeen", "Menu", "Trainer aangesloten", "Zonder trainer (simulator)"]: context_choice.add_item(caption)
-	context_choice.select(2 if game._keyboard_profile() == "race" else 3)
+	for caption in Mapping.CONTEXT_LABELS: context_choice.add_item(caption)
+	context_choice.select(Mapping.CONTEXTS.find(game._keyboard_profile()))
 	context_choice.item_selected.connect(func(_i): cancel_capture(); refresh())
 	toolbar.add_child(context_choice)
 	var reset := Button.new()
@@ -76,7 +76,7 @@ func _ready() -> void:
 	refresh()
 
 func context() -> String:
-	return ["global","menu","race","simulator"][context_choice.selected]
+	return Mapping.CONTEXTS[context_choice.selected]
 
 func refresh() -> void:
 	for child in rows.get_children():
@@ -128,5 +128,5 @@ func store(scope: String, action: String, key: int) -> void:
 
 func _process(_delta: float) -> void:
 	if not is_visible_in_tree(): return
-	active_profile.text = "Actief profiel: " + ("trainer aangesloten" if game._keyboard_profile() == "race" else "zonder trainer (simulator)")
+	active_profile.text = "Actief profiel: " + str(Mapping.CONTEXT_LABELS[Mapping.CONTEXTS.find(game._keyboard_profile())])
 	enabled_check.set_pressed_no_signal(mapping.enabled)

@@ -2,7 +2,7 @@
 
 Basis: v0.2. Open de verbindingsinstellingen en kies **Toetsenbord en controller instellen**, of open **Instellingen > Toetsenbord**. Een Ride-controller is niet nodig. De toetsenbordbediening staat standaard aan en kan bij de verbindingsinstellingen worden uitgezet. De sneltoets voor Instellingen blijft beschikbaar.
 
-Er zijn vier afzonderlijke profielen: Algemeen, Menu, Trainer aangesloten en Zonder trainer (simulator). Tijdens het rijden wordt het passende profiel automatisch gekozen. Een tijdelijke storing van een eerder aangesloten trainer schakelt de sessie niet over naar gesimuleerd vermogen.
+Er zijn afzonderlijke profielen: Algemeen, Menu, Trainer aangesloten en Zonder trainer (simulator), plus Madison met trainer en Madison zonder trainer. Bij Madison blijft A standaard grijpen/loslaten en sturen de pijltjes links/rechts; ook deze toetsen zijn instelbaar. Tijdens het rijden wordt het passende profiel automatisch gekozen. Een tijdelijke storing van een eerder aangesloten trainer schakelt de sessie niet over naar gesimuleerd vermogen.
 
 | Standaardtoets | Met trainer | Zonder trainer |
 | --- | --- | --- |

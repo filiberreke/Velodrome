@@ -159,6 +159,10 @@ Met `-- --capture` zonder `--headless` worden ook schermafbeeldingen gemaakt.
 
 ## Dernytraining (Pistetraining)
 
+Naast de bestaande pistesessies is **Aflossingstraining** toegevoegd. Zie
+`README_madison.md` voor 10/20 pogingen, de Easy/Advanced-vrijgave en de
+ploegmaat die per spelersronde opnieuw op de naderingspositie verschijnt.
+
 - Instelbare startsnelheid van 10–60 km/u (standaard 30), gevolgd door één
   geholpen aanloopronde van 250 m.
   Je blijft in het wiel, onafhankelijk van het gemeten vermogen: niet inhalen

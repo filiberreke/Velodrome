@@ -11,11 +11,18 @@ const BASE_KEYS := {
 	"menu": {"up":KEY_UP,"down":KEY_DOWN,"left":KEY_LEFT,"right":KEY_RIGHT,"accept":KEY_ENTER,"back":KEY_ESCAPE},
 	"race": {"shift_up":KEY_UP,"shift_down":KEY_DOWN,"steer_left":KEY_A,"steer_right":KEY_D,"camera_next":KEY_C,"camera_previous":KEY_Q,"look_back":KEY_B,"rider_info":KEY_V,"pause":KEY_ESCAPE,"power_up":KEY_EQUAL,"power_down":KEY_MINUS,"boost":KEY_SPACE,"tempo_up":KEY_RIGHT,"tempo_down":KEY_LEFT,"record":KEY_P,"restart":KEY_R,"developer":KEY_X}
 }
+const CONTEXTS := ["global","menu","race","simulator","madison_race","madison_simulator"]
+const CONTEXT_LABELS := ["Algemeen","Menu","Trainer aangesloten","Zonder trainer (simulator)","Madison: met trainer","Madison: simulator"]
+
 static func actions() -> Dictionary:
 	var result := BASE_ACTIONS.duplicate(true)
 	result["simulator"] = result.race.duplicate(true)
 	for action in ["power_up","power_down","boost"]: result.race.erase(action)
 	for action in ["shift_up","shift_down"]: result.simulator.erase(action)
+	for profile in ["race","simulator"]:
+		result["madison_" + profile] = result[profile].duplicate(true)
+		for action in ["tempo_up","tempo_down"]: result["madison_" + profile].erase(action)
+		result["madison_" + profile]["madison_grab"] = "Madison: handaflossing (indrukken / loslaten)"
 	return result
 
 static func defaults() -> Dictionary:
@@ -25,6 +32,12 @@ static func defaults() -> Dictionary:
 	for action in ["shift_up","shift_down"]: result.simulator.erase(action)
 	result.simulator.power_up = KEY_UP
 	result.simulator.power_down = KEY_DOWN
+	for profile in ["race","simulator"]:
+		result["madison_" + profile] = result[profile].duplicate(true)
+		for action in ["tempo_up","tempo_down"]: result["madison_" + profile].erase(action)
+		result["madison_" + profile].steer_left = KEY_LEFT
+		result["madison_" + profile].steer_right = KEY_RIGHT
+		result["madison_" + profile]["madison_grab"] = KEY_A
 	return result
 
 static var ACTIONS: Dictionary = actions()

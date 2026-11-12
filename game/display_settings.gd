@@ -399,7 +399,7 @@ func open_device_mapping() -> void:
 	if not panel_root.visible: toggle_menu()
 	return_to_devices = true
 	close_button.text = "Terug naar apparaten"
-	keyboard_settings.context_choice.select(2 if get_parent()._keyboard_profile() == "race" else 3)
+	keyboard_settings.context_choice.select(get_parent().keyboard_mapping.CONTEXTS.find(get_parent()._keyboard_profile()))
 	keyboard_settings.refresh()
 	appearance_tabs.current_tab = keyboard_settings.get_index()
 	_on_settings_tab_changed(appearance_tabs.current_tab)

@@ -33,6 +33,7 @@ func refresh() -> void:
 		button.custom_minimum_size.y = 64
 		button.pressed.connect(func():
 			if activity.get("kind","derny") == "derny": menu.show_derny(); menu.derny_page.show_activity(activity)
+			elif activity.get("kind") == "madison": menu.show_madison_training(); menu.madison_page.show_activity(activity)
 			else: menu.show_piste_exercise(str(activity.kind)); menu.exercise_page.show_activity(activity)
 		)
 		rows.add_child(button)

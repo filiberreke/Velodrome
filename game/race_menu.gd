@@ -5,6 +5,7 @@ signal training_environment_requested(active: bool)
 signal workout_environment_requested(active: bool)
 signal piste_environment_requested(active: bool)
 signal exercise_environment_requested(active: bool)
+signal madison_environment_requested(active: bool)
 signal training_upload_requested(activity: Dictionary)
 const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
@@ -75,6 +76,7 @@ var piste_page: VBoxContainer
 var piste_tiles := {}
 var derny_page: VBoxContainer
 var exercise_page: VBoxContainer
+var madison_page: VBoxContainer
 var training_history_page: VBoxContainer
 var training_store = preload("res://training_store.gd").new()
 var tournament_page: VBoxContainer
@@ -348,6 +350,8 @@ func _build_hub(layout: VBoxContainer) -> void:
 	piste_tiles["derny"] = _hub_tile(top_row,"Dernytraining","Volg de gangmaker en verhoog samen het tempo.",[],show_derny,Preview.make(self,"derny_training").get_texture())
 	piste_tiles["flying_start"] = _hub_tile(bottom_row,"Vliegende start","Gebruik de hoogte en verbeter je snelheid op de lijn.",[],show_piste_exercise.bind("flying_start"),Preview.make(self,"flying_training").get_texture())
 	piste_tiles["take_lap"] = _hub_tile(bottom_row,"Neem een ronde","Win een ronde op een peloton met vast tempo.",[0],show_piste_exercise.bind("take_lap"))
+	var relay_row := HBoxContainer.new(); relay_row.size_flags_vertical = Control.SIZE_EXPAND_FILL; piste_page.add_child(relay_row)
+	piste_tiles["madison"] = _hub_tile(relay_row,"Aflossingstraining","Oefen 10 of 20 handaflossingen met je ploegmaat.",[4],show_madison_training)
 	var links := HBoxContainer.new(); links.add_theme_constant_override("separation",16); piste_page.add_child(links)
 	_hub_button(links,"Opgeslagen trainingen  →",show_training_history)
 	_hub_button(links,"← Hoofdmenu",show_hub)
@@ -363,6 +367,11 @@ func _build_hub(layout: VBoxContainer) -> void:
 	exercise_page.back_requested.connect(show_piste_training)
 	exercise_page.environment_requested.connect(_exercise_environment)
 	exercise_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
+	madison_page = preload("res://madison_training.gd").new()
+	layout.add_child(madison_page)
+	madison_page.back_requested.connect(show_piste_training)
+	madison_page.environment_requested.connect(_madison_environment)
+	madison_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	training_history_page = preload("res://training_history.gd").new()
 	training_history_page.menu = self
 	layout.add_child(training_history_page)
@@ -411,9 +420,10 @@ func _training_environment(active: bool) -> void:
 
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
-	for node in [hub_page, training_page, piste_page, derny_page, exercise_page, training_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
+	for node in [hub_page, training_page, piste_page, derny_page, exercise_page, madison_page, training_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
+	if madison_page.scene != null and madison_page.scene.active: _madison_environment(false)
 	if derny_page.scene != null and derny_page.scene.active: _piste_environment(false)
 	if exercise_page.scene != null and exercise_page.scene.active: _exercise_environment(false)
 	if workout_play_page.test.running(): workout_play_page.finish("Training verlaten")
@@ -431,6 +441,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	if node == piste_page: focus = piste_tiles["free_ride"]
 	if node == derny_page: focus = derny_page.start_button
 	if node == exercise_page: focus = exercise_page.start_button
+	if node == madison_page: focus = madison_page.start_button
 	if node == training_history_page: focus = training_history_page.get_child(1)
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == workout_play_page: focus = workout_play_page.start_button
@@ -446,6 +457,16 @@ func show_training() -> void:
 
 func show_piste_training() -> void:
 	_show_section(11, "Pistetraining", piste_page)
+
+func show_madison_training() -> void:
+	_show_section(16,"Aflossingstraining",madison_page)
+
+func _madison_environment(active: bool) -> void:
+	madison_environment_requested.emit(active)
+	if active and not madison_page.session.running(): return
+	session_panel.hide()
+	menu_margin.visible = not active
+	menu_tint.visible = not active
 
 func show_derny() -> void:
 	_show_section(12, "Dernytraining", derny_page)
@@ -800,6 +821,7 @@ func bridge_action(button: String) -> void:
 		elif page == 13: show_piste_training()
 		elif page == 14: workout_play_page.leave()
 		elif page == 15: exercise_page.leave()
+		elif page == 16: madison_page.leave()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return
@@ -812,6 +834,7 @@ func bridge_action(button: String) -> void:
 		elif page == 6: ftp_tile.grab_focus()
 		elif page == 14: workout_play_page.start_button.grab_focus()
 		elif page == 15: exercise_page.start_button.grab_focus()
+		elif page == 16: madison_page.start_button.grab_focus()
 		elif page == 7: tournament_page.get_child(1).grab_focus()
 		elif page == 8:
 			if ftp_page.test.running(): ftp_page.stop_button.grab_focus()

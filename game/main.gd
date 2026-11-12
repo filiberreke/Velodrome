@@ -8,6 +8,7 @@ var trainer_control = TrainerControl.new()
 var training_environment
 var piste_training
 var derny_training_environment
+var madison_training_environment
 var exercise_training_environment
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
@@ -841,6 +842,10 @@ func _final_start_speed_ok() -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
+	if _madison_training_active() and event is InputEventJoypadButton and event.button_index == JOY_BUTTON_A and (not event.pressed or _ride_context() == "piste"):
+		piste_training.grab_button("joy:%d" % event.device,event.pressed)
+		get_viewport().set_input_as_handled()
+		return
 	if not event is InputEventKey: return
 	var key := event as InputEventKey
 	var preferences := get_node_or_null("GameSettings")
@@ -856,6 +861,8 @@ func _input(event: InputEvent) -> void:
 	# Release by base key even if modifiers, focus or active profile changed.
 	if not key.pressed:
 		if keyboard_held.has(key.keycode):
+			if keyboard_held[key.keycode] == "madison_grab" and _madison_training_active():
+				piste_training.grab_button("keyboard",false)
 			if keyboard_held[key.keycode] == "look_back":
 				keyboard_look_back = false
 				_refresh_look_back()
@@ -891,7 +898,7 @@ func _input(event: InputEvent) -> void:
 
 func _keyboard_profile() -> String:
 	if piste_training != null and piste_training.active:
-		return "simulator" if piste_training.using_simulator() else "race"
+		return ("madison_simulator" if piste_training.using_simulator() else "madison_race") if _madison_training_active() else ("simulator" if piste_training.using_simulator() else "race")
 	# A lost trainer signal must not turn an existing trainer session into a demo.
 	return "race" if trainer_seen or connected else "simulator"
 
@@ -901,6 +908,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _keyboard_race_action(action: String) -> void:
 	var training: bool = piste_training != null and piste_training.active and _ride_context() == "piste"
 	match action:
+		"madison_grab":
+			if training and _madison_training_active(): piste_training.grab_button("keyboard",true)
 		"shift_up", "shift_down":
 			if connected and (training or (_riding() and not finished)):
 				trainer_control.shift(1 if action == "shift_up" else -1, _now_s())
@@ -973,6 +982,7 @@ func _refresh_look_back() -> void:
 	if not bikes.is_empty(): bikes[0].visible = look_back_held or camera_mode != 2
 
 func _clear_look_back() -> void:
+	if _madison_training_active(): piste_training.grab_button("keyboard",false)
 	keyboard_held.clear()
 	keyboard_look_back = false
 	ride_look_back = false
@@ -1051,7 +1061,16 @@ func _ride_action(key: String, source: String = "B") -> void:
 func _ride_profile() -> String:
 	return "race" if _ride_context() in ["race","piste"] else "menu"
 
+func _madison_training_active() -> bool:
+	return piste_training != null and piste_training.active and piste_training.has_method("grab_button")
+
+func _madison_release_input() -> void:
+	if _madison_training_active(): piste_training.grab_button("ride:A",false)
+
 func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
+	if _madison_training_active() and not testing and packet.get("source_button") == "A" and packet.get("pressed") is bool and (not packet.pressed or _ride_context() == "piste"):
+		piste_training.grab_button("ride:A",packet.pressed)
+		return
 	var source := ride_mapping.physical(str(packet.get("source_button", "")))
 	if source not in ride_mapping.BUTTONS or not packet.get("pressed") is bool: return
 	if packet.pressed:
@@ -1154,9 +1173,11 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 		last_controller_signal = _now_s()
 		if packet.get("type") == "controller_connection":
 			if not bool(packet.get("connected", false)):
+				_madison_release_input()
 				ride_buttons.clear()
 				ride_look_back = false
 			elif packet.get("buttons") is Array:
+				if "A" not in packet.buttons: _madison_release_input()
 				for held in ride_buttons.keys():
 					if held not in packet.buttons: ride_buttons.erase(held)
 				if ride_look_source not in packet.buttons: ride_look_back = false
@@ -1207,6 +1228,9 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	elif packet.get("type", "") == "button":
 		var key := str(packet.get("button", ""))
 		var source: String = ride_mapping.physical(str(packet.get("source_button", key)))
+		if _madison_training_active() and _ride_context() == "piste" and not testing and source == "A":
+			piste_training.grab_button("ride:A",bool(packet.get("pressed",true)))
+			return
 		# Raw edges already routed this press; suppress the bridge's legacy copy.
 		if ride_buttons.has(source): return
 		if packet.get("pressed", true) != true: return
@@ -1245,6 +1269,7 @@ func _apply_bridge_optional_fields(packet: Dictionary) -> void:
 
 func _expire_bridge_optional_fields(now: float) -> void:
 	if last_controller_signal >= 0.0 and now - last_controller_signal > 2.0:
+		_madison_release_input()
 		ride_look_back = false
 		ride_buttons.clear()
 		last_controller_signal = -1.0
@@ -2403,10 +2428,12 @@ func _build_hud() -> void:
 	menu.workout_environment_requested.connect(_workout_environment_requested)
 	menu.piste_environment_requested.connect(_piste_environment_requested)
 	menu.exercise_environment_requested.connect(_exercise_environment_requested)
+	menu.madison_environment_requested.connect(_madison_environment_requested)
 	menu.training_upload_requested.connect(_upload_training)
 	strava_client.status_changed.connect(func(message):
 		menu.derny_page.upload_status = message
 		menu.exercise_page.upload_status = message
+		menu.madison_page.upload_status = message
 	)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(24, 255)
@@ -2733,6 +2760,23 @@ func _exercise_environment_requested(active: bool) -> void:
 		piste_training.enter()
 	elif piste_training != null:
 		piste_training.leave()
+		exit_menu.set_exit_visible(true)
+
+func _madison_environment_requested(active: bool) -> void:
+	if active:
+		var blocker := _piste_start_blocker()
+		if not blocker.is_empty():
+			setup_panel.madison_page.session.phase = "RESULT"
+			setup_panel.madison_page.session.reason = blocker
+			return
+		if madison_training_environment == null:
+			madison_training_environment = preload("res://madison_training_environment.gd").new()
+			add_child(madison_training_environment)
+		piste_training = madison_training_environment
+		broadcast_intro.cancel()
+		piste_training.enter()
+	elif madison_training_environment != null:
+		madison_training_environment.leave()
 		exit_menu.set_exit_visible(true)
 
 func _difficulty_changed(value: float) -> void:
