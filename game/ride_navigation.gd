@@ -122,6 +122,6 @@ func close_keyboard(accept: bool) -> void:
 	if is_instance_valid(previous_focus) and previous_focus.is_visible_in_tree(): previous_focus.grab_focus()
 
 func _input(event: InputEvent) -> void:
-	if is_instance_valid(keyboard) and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+	if is_instance_valid(keyboard) and event is InputEventKey and event.pressed and get_parent().keyboard_mapping.action_for("menu", event) == "back":
 		close_keyboard(false)
 		get_viewport().set_input_as_handled()

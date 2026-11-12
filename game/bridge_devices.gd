@@ -19,6 +19,7 @@ var status: Label
 var choices: Dictionary = {}
 var mapping_separator: HSeparator
 var controller_connection: Label
+var keyboard_check: CheckButton
 var mapping_link: Button
 var close_button: Button
 var return_focus: Control
@@ -101,11 +102,24 @@ func _ready() -> void:
 		choices[ROLES[i]] = option
 		option.item_selected.connect(func(index: int): _select(ROLES[i], index))
 		if ROLES[i] == "controller":
+			keyboard_check = CheckButton.new()
+			keyboard_check.text = "Toetsenbordbediening gebruiken"
+			keyboard_check.button_pressed = get_parent().keyboard_mapping.enabled
+			keyboard_check.toggled.connect(func(value):
+				var mapping = get_parent().keyboard_mapping
+				var before: bool = mapping.enabled
+				mapping.enabled = value
+				if mapping.save() != OK:
+					mapping.enabled = before
+					keyboard_check.set_pressed_no_signal(before)
+					error = "Toetsenbordkeuze kon niet worden opgeslagen."
+				get_parent()._clear_look_back())
+			section.add_child(keyboard_check)
 			mapping_separator = HSeparator.new()
 			section.add_child(mapping_separator)
 			mapping_link = Button.new()
-			mapping_link.text = "Knoptoewijzing aanpassen"
-			mapping_link.tooltip_text = "Instellingen > Besturing > Knoptoewijzing"
+			mapping_link.text = "Toetsenbord en controller instellen"
+			mapping_link.tooltip_text = "Alle toetsen aanpassen; toetsenbord werkt ook zonder Zwift Ride"
 			mapping_link.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			mapping_link.flat = true
 			mapping_link.custom_minimum_size.y = 40
@@ -222,8 +236,7 @@ func _refresh() -> void:
 			option.set_item_disabled(option.item_count - 1, true)
 			option.select(option.item_count - 1)
 		option.disabled = snapshot.is_empty() or not pending.is_empty()
-	var controller := str(selected.get("controller", "")) if selected.get("controller") != null else str(connected.get("controller", ""))
-	mapping_link.visible = not controller.is_empty()
+	mapping_link.visible = true
 	mapping_separator.visible = mapping_link.visible
 	_update_connection_action(Time.get_ticks_msec() / 1000.0 - last_response <= 3.0)
 
@@ -233,7 +246,11 @@ func _update_connection_action(online: bool) -> void:
 	for role in ROLES:
 		if online and not str(connected.get(role, "")).is_empty(): any_connected = true
 	close_button.text = "Kies deze setup" if any_connected else "Overslaan"
-	controller_connection.visible = online and not str(connected.get("controller", "")).is_empty()
+	keyboard_check.set_pressed_no_signal(get_parent().keyboard_mapping.enabled)
+	controller_connection.visible = true
+	var ride_online := online and not str(connected.get("controller", "")).is_empty()
+	controller_connection.text = "Ride verbonden" if ride_online else "Geen Ride: toetsenbord beschikbaar"
+	controller_connection.add_theme_color_override("font_color", Color("008b38") if ride_online else Style.MUTED)
 
 func _select(role: String, index: int) -> void:
 	if not pending.is_empty(): return

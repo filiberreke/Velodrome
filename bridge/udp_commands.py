@@ -13,9 +13,9 @@ CACHE_SECONDS, CACHE_SIZE = 60.0, 2048
 log = logging.getLogger(__name__)
 SCHEMA = {'set_mode': {'mode'}, 'set_target_power': {'watts', 'ramp_w_per_s'},
           'set_grade': {'grade_pct', 'ramp_pct_per_s', 'aero_scale'},
-          'stop': set(), 'status': set(), 'heartbeat': set(),
+          'stop': set(), 'status': set(), 'heartbeat': set(), 'shift': {'direction'},
           'devices': set(), 'select_device': {'role', 'address'}}
-REQUIRED = {'select_device': {'role', 'address'}, 'set_mode': {'mode'}, 'set_target_power': {'watts'}, 'set_grade': {'grade_pct'}}
+REQUIRED = {'shift': {'direction'}, 'select_device': {'role', 'address'}, 'set_mode': {'mode'}, 'set_target_power': {'watts'}, 'set_grade': {'grade_pct'}}
 
 def pairs_unique(pairs):
     result = {}

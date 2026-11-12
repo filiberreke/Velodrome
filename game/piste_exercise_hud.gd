@@ -1,4 +1,5 @@
 extends "res://derny_hud.gd"
+var keyboard_hint: Label
 var mission_panel: PanelContainer
 var laps_panel: PanelContainer
 var totals_label: Label
@@ -18,10 +19,13 @@ func _ready() -> void:
 	mission_title = text("",24); box.add_child(mission_title)
 	mission_text = text("",20); mission_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; box.add_child(mission_text)
 	mission_bar = ProgressBar.new(); mission_bar.show_percentage = false; mission_bar.custom_minimum_size.y = 16; mission_bar.max_value = 250; box.add_child(mission_bar)
-	var hint := text("←/→ of paddles: rijlijn\nC: camera · B: achteruitkijken",16); box.add_child(hint)
+	keyboard_hint = text("",16); box.add_child(keyboard_hint)
 	_build_lap_table()
 	map_panel.reparent(self); map_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT); map_panel.offset_left = -400; map_panel.offset_right = -32; map_panel.offset_top = 300; map_panel.offset_bottom = 540; map_panel.show()
 func update_training(scene) -> void:
+	var mapping = scene.game.keyboard_mapping
+	var profile: String = scene.game._keyboard_profile()
+	keyboard_hint.text = "%s/%s: rijlijn\n%s: camera · %s: achteruitkijken" % [mapping.caption(profile,"steer_left"),mapping.caption(profile,"steer_right"),mapping.caption(profile,"camera_next"),mapping.caption(profile,"look_back")]
 	var power: float = scene.demo_power if scene.demo else scene.game.setup_panel.ftp_page.measured
 	power_meter.set_power(power)
 	speed_label.text = "%.1f" % (scene.player_speed*3.6)

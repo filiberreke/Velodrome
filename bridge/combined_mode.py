@@ -176,6 +176,15 @@ class CombinedMode:
                 raise CommandError('not_active', 'UDP-lease verlopen; belasting vrijgegeven, nieuwe sessie mogelijk na reset')
         if source is not None and self.owner not in (None, source):
             raise CommandError('control_busy', 'Een andere UDP-client bestuurt de trainer; stop/status blijven beschikbaar')
+        if command == 'shift':
+            direction = params.get('direction')
+            if type(direction) is not int or direction not in (-1, 1):
+                raise CommandError('invalid_direction', 'Schakelrichting moet -1 of 1 zijn')
+            if self.selected_gear() is None:
+                raise CommandError('wrong_mode', 'Schakelen is alleen beschikbaar in actieve SIM-modus')
+            self.on_button('SHIFT_UP_RIGHT' if direction == 1 else 'SHIFT_DOWN_LEFT')
+            # Gear input never acquires or renews the trainer-control lease.
+            return self.status(source)
         if command == 'heartbeat':
             if source is None or self.owner != source:
                 raise CommandError('no_lease', 'Deze UDP-client heeft geen actieve lease')

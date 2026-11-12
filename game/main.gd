@@ -575,6 +575,9 @@ var keyboard_look_back := false
 var ride_look_back := false
 var ride_look_source := "B"
 var ride_buttons: Dictionary = {}
+var keyboard_mapping := preload("res://keyboard_mapping.gd").new()
+var keyboard_held := {}
+var keyboard_capture_releases := {}
 var ride_mapping := preload("res://ride_mapping.gd").new()
 var last_controller_signal := -1.0
 var bridge_devices: CanvasLayer
@@ -611,6 +614,8 @@ func _ready() -> void:
 	if not FileAccess.file_exists(legacy_mapping):
 		legacy_mapping = ProjectSettings.globalize_path("res://").path_join("../bridge/button_mapping.json")
 	ride_mapping.load_settings(ride_mapping.PATH, legacy_mapping)
+	keyboard_mapping.load_settings()
+	keyboard_mapping.apply_ui()
 	player_appearance.load_preferences()
 	Engine.max_fps = 90
 	if _bind_bridge() != OK:
@@ -836,51 +841,103 @@ func _final_start_speed_ok() -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
-	if piste_training != null and piste_training.active and _ride_context() == "piste" and event is InputEventKey and event.keycode == KEY_B:
-		keyboard_look_back = event.pressed
-		_refresh_look_back()
+	if not event is InputEventKey: return
+	var key := event as InputEventKey
+	var preferences := get_node_or_null("GameSettings")
+	if preferences != null and preferences.keyboard_settings.consume(key):
+		if key.pressed: keyboard_capture_releases[key.keycode] = true
+		else: keyboard_capture_releases.erase(key.keycode)
 		get_viewport().set_input_as_handled()
 		return
-	if piste_training != null and piste_training.active and _ride_context() == "piste" and event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_LEFT: piste_training.request_tempo(-1)
-			KEY_RIGHT: piste_training.request_tempo(1)
-			KEY_A: piste_training.steer(-1)
-			KEY_D: piste_training.steer(1)
-			KEY_UP:
-				if piste_training.using_simulator(): piste_training.demo_power = minf(1000,piste_training.demo_power+25)
-				else: _cycle_camera(-1)
-			KEY_DOWN:
-				if piste_training.using_simulator(): piste_training.demo_power = maxf(0,piste_training.demo_power-25)
-				else: _cycle_camera(1)
-			KEY_ESCAPE: piste_training.page.finish("Handmatig gestopt")
-			KEY_C: _cycle_camera(1)
-			KEY_V: _cycle_rider_names()
-			KEY_P: piste_training._persist(false)
-			_: return
+	if keyboard_capture_releases.has(key.keycode):
+		if not key.pressed: keyboard_capture_releases.erase(key.keycode)
 		get_viewport().set_input_as_handled()
 		return
-	if event is InputEventKey and event.keycode == KEY_B and not event.pressed:
-		keyboard_look_back = false
-		_refresh_look_back()
-	# Escape must also work when a race HUD button has keyboard focus.
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
-		var preferences := get_node_or_null("GameSettings")
-		if ride_navigation != null and ride_navigation.keyboard_action("B"):
-			pass
-		elif preferences != null and preferences.panel_root.visible:
-			preferences._close_settings()
-		elif bridge_devices != null and bridge_devices.panel_root.visible:
-			bridge_devices.close_page()
-		elif exit_menu != null and exit_menu.quitting_application:
-			exit_menu.cancel_or_resume()
-		elif race_paused:
-			exit_menu.cancel_or_resume()
-		elif start_state not in ["SETUP", "INTRO"] and not finished:
-			_pause_race()
-		else:
-			return
+	# Release by base key even if modifiers, focus or active profile changed.
+	if not key.pressed:
+		if keyboard_held.has(key.keycode):
+			if keyboard_held[key.keycode] == "look_back":
+				keyboard_look_back = false
+				_refresh_look_back()
+			keyboard_held.erase(key.keycode)
+			get_viewport().set_input_as_handled()
+		return
+	var action: String = keyboard_mapping.action_for("global", key)
+	if not action.is_empty():
+		if not key.echo: preferences.toggle_menu()
 		get_viewport().set_input_as_handled()
+		return
+	if not keyboard_mapping.enabled: return
+	var scope := _ride_context()
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused is LineEdit and scope not in ["race","piste"] and keyboard_mapping.action_for("menu", key) != "back": return
+	var profile := _keyboard_profile() if scope in ["race","piste"] else "menu"
+	action = keyboard_mapping.action_for(profile, key)
+	if scope == "results" and keyboard_mapping.action_for(_keyboard_profile(), key) == "restart": action = "restart"
+	if action.is_empty(): return
+	get_viewport().set_input_as_handled()
+	if key.echo: return
+	keyboard_held[key.keycode] = action
+	if scope == "results" and action == "restart":
+		_restart_same_race()
+		return
+	if profile == "menu":
+		var token: String = {"up":"UP","down":"DOWN","left":"LEFT","right":"RIGHT","accept":"A","back":"B"}.get(action, "")
+		if scope == "settings":
+			preferences.bridge_action(token, true)
+		else: _ride_action(token, "KEYBOARD")
+		return
+	_keyboard_race_action(action)
+
+func _keyboard_profile() -> String:
+	if piste_training != null and piste_training.active:
+		return "simulator" if piste_training.using_simulator() else "race"
+	# A lost trainer signal must not turn an existing trainer session into a demo.
+	return "race" if trainer_seen or connected else "simulator"
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	_input(event)
+
+func _keyboard_race_action(action: String) -> void:
+	var training: bool = piste_training != null and piste_training.active and _ride_context() == "piste"
+	match action:
+		"shift_up", "shift_down":
+			if connected and (training or (_riding() and not finished)):
+				trainer_control.shift(1 if action == "shift_up" else -1, _now_s())
+		"camera_next": _cycle_camera(1)
+		"camera_previous": _cycle_camera(-1)
+		"look_back":
+			keyboard_look_back = training or not finished
+			_refresh_look_back()
+		"rider_info": _cycle_rider_names()
+		"steer_left": _steer_player(-1)
+		"steer_right": _steer_player(1)
+		"pause":
+			if training: piste_training.page.finish("Handmatig gestopt")
+			else: _pause_race()
+		"tempo_up", "tempo_down":
+			if training: piste_training.request_tempo(1 if action == "tempo_up" else -1)
+		"power_up", "power_down":
+			var delta := 25.0 if action == "power_up" else -25.0
+			if training and piste_training.using_simulator(): piste_training.demo_power = clampf(piste_training.demo_power + delta, 0, 1000)
+			elif not connected and not trainer_seen:
+				if _riding(): watts = clampf(watts + delta, 0, PC_MAX_REQUEST_W)
+				else: demo_launch_watts = clampf(demo_launch_watts + delta, 0, PC_MAX_REQUEST_W)
+		"record":
+			if training: piste_training._persist(false)
+			else: _save_recording("manual")
+		"restart":
+			if finished: _restart_same_race()
+			else: _reset()
+		"developer":
+			if race_overlay != null and race_overlay.is_visible_in_tree(): race_overlay.toggle_developer()
+		"boost":
+			if not trainer_seen and start_state == "RACING" and running and not finished and not boost_used and race_mode not in [1,4,5]:
+				boost_left = BOOST_DURATION
+				boosted_speed = speeds[0]
+				baseline_speed = speeds[0]
+				recovery_left = 0.0
+				boost_used = true
 
 func _pause_race() -> void:
 	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
@@ -906,74 +963,6 @@ func _quit_application() -> void:
 	_save_recording("exit")
 	get_tree().quit()
 
-func _unhandled_key_input(event: InputEvent) -> void:
-	if race_paused: return
-	var key_event := event as InputEventKey
-	if key_event == null or key_event.echo:
-		return
-	if key_event.keycode == KEY_B and not key_event.pressed:
-		keyboard_look_back = false
-		_refresh_look_back()
-		return
-	var preferences := get_node_or_null("GameSettings")
-	if preferences != null and preferences.panel_root.visible: return
-	if setup_panel != null and setup_panel.visible:
-		# The menu owns navigation; race shortcuts must not reset/quit it.
-		return
-	if broadcast_intro != null and broadcast_intro.active:
-		if key_event.pressed and key_event.keycode in [KEY_ENTER, KEY_SPACE]: broadcast_intro.finish()
-		elif key_event.pressed and key_event.keycode == KEY_R: _reset()
-		elif key_event.pressed and key_event.keycode == KEY_ESCAPE: _reset()
-		return
-	# Handle both key-down and key-up, without modifying the selected camera mode.
-	if key_event.keycode == KEY_B:
-		keyboard_look_back = key_event.pressed and not finished
-		_refresh_look_back()
-		return
-	if not key_event.pressed:
-		return
-	match key_event.keycode:
-		KEY_X:
-			if race_overlay != null and race_overlay.is_visible_in_tree():
-				race_overlay.toggle_developer()
-		KEY_V:
-			if not key_event.echo: _cycle_rider_names()
-		KEY_R:
-			if finished: _restart_same_race()
-			else: _reset()
-		KEY_C:
-			camera_mode = (camera_mode + 1) % 4
-			# Never display own model in first-person view.
-			bikes[0].visible = look_back_held or camera_mode != 2
-		KEY_P:
-			_save_recording("manual")
-		KEY_A, KEY_LEFT:
-			_steer_player(-1)
-		KEY_D, KEY_RIGHT:
-			_steer_player(1)
-		KEY_UP, KEY_EQUAL:
-			if not trainer_seen:
-				if _riding():
-					watts = minf(PC_MAX_REQUEST_W, watts + 25.0)
-				else:
-					demo_launch_watts = minf(PC_MAX_REQUEST_W, demo_launch_watts + 25.0)
-		KEY_DOWN, KEY_MINUS:
-			if not trainer_seen:
-				if _riding():
-					watts = maxf(0.0, watts - 25.0)
-				else:
-					demo_launch_watts = maxf(0.0, demo_launch_watts - 25.0)
-		KEY_SPACE:
-			if not trainer_seen and start_state == "RACING" and running and not finished and not boost_used and race_mode not in [1, 4, 5]:
-				boost_left = BOOST_DURATION
-				boosted_speed = speeds[0]
-				baseline_speed = speeds[0]
-				recovery_left = 0.0
-				boost_used = true
-		KEY_ESCAPE:
-			if finished: _reset()
-			else: _pause_race()
-
 func _cycle_camera(direction: int) -> void:
 	camera_mode = posmod(camera_mode + direction, CAMERA_NAMES.size())
 	if not bikes.is_empty():
@@ -984,6 +973,7 @@ func _refresh_look_back() -> void:
 	if not bikes.is_empty(): bikes[0].visible = look_back_held or camera_mode != 2
 
 func _clear_look_back() -> void:
+	keyboard_held.clear()
 	keyboard_look_back = false
 	ride_look_back = false
 	_refresh_look_back()
@@ -3076,7 +3066,9 @@ func _ai_diagnostics_text() -> String:
 	return text
 
 func _update_hud() -> void:
+	if race_overlay != null: race_overlay.set_keyboard_hints(keyboard_mapping, _keyboard_profile())
 	if setup_panel != null and setup_panel.visible:
+		setup_panel.footer_label.text = keyboard_mapping.menu_hint()
 		setup_panel.update_bridge_status(trainer_seen, connected and trainer_ready, bridge_bind_error != OK)
 		return
 	var status := "KICKR LIVE" if connected else ("KICKR WACHT OP DATA" if trainer_seen else "DEMO (startpreset %.0f W)" % demo_launch_watts)

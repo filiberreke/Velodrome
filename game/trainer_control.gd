@@ -59,6 +59,12 @@ func _request(command: String, params: Dictionary, now: float, mutation: bool = 
 		if now - float(requests[id].at) > 4.0 and id != pending.get("packet", {}).get("id", ""):
 			requests.erase(id)
 
+func shift(direction: int, now: float) -> void:
+	if direction not in [-1,1] or not armed or not enabled_before or phase not in ["READY","ACTIVE"]: return
+	if not pending.is_empty() or state.get("desired_mode", "") != "SIM": return
+	if not _open(): return
+	_request("shift", {"direction":direction}, now)
+
 func _block(reason: String, release_owned: bool = false, now: float = 0.0) -> void:
 	armed = false
 	allow_released_session = false
@@ -99,6 +105,10 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		if pending.get("packet", {}).get("id", "") == id: pending = {}
 		return
 	if pending.get("packet", {}).get("id", "") == id: pending = {}
+	if command == "shift":
+		# An older bridge/ERG refusal must not interrupt the active trainer lease.
+		if packet.get("ok") != true: push_warning("Schakelen: " + str(packet.get("message", "Bridge bijwerken vereist")))
+		return
 	if packet.get("ok") != true:
 		var code: String = str(packet.get("code", "invalid_reply"))
 		# Console/another client owns control now. Never reset their session.

@@ -23,6 +23,7 @@ var rider_weight_input: SpinBox
 var rider_ftp_input: SpinBox
 const Appearance = preload("res://player_appearance.gd")
 var appearance
+var keyboard_settings: Control
 var controller_test: Control
 var appearance_tabs: TabContainer
 var ride_tabs: Button
@@ -262,7 +263,7 @@ func _build_menu() -> void:
 	intro_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(intro_hint)
 	var info := Label.new()
-	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nDruk op F10 om dit menu te openen of sluiten."
+	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nStel je sneltoetsen in op het tabblad Toetsenbord."
 	info.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(info)
 	box = VBoxContainer.new()
@@ -280,6 +281,9 @@ func _build_menu() -> void:
 	controller_test = preload("res://controller_settings.gd").new()
 	controller_test.name = "Besturing"
 	appearance_tabs.add_child(controller_test)
+	keyboard_settings = preload("res://keyboard_settings.gd").new()
+	keyboard_settings.name = "Toetsenbord"
+	appearance_tabs.add_child(keyboard_settings)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)
 	outer.add_child(actions)
@@ -395,11 +399,14 @@ func open_device_mapping() -> void:
 	if not panel_root.visible: toggle_menu()
 	return_to_devices = true
 	close_button.text = "Terug naar apparaten"
-	appearance_tabs.current_tab = controller_test.get_index()
+	keyboard_settings.context_choice.select(2 if get_parent()._keyboard_profile() == "race" else 3)
+	keyboard_settings.refresh()
+	appearance_tabs.current_tab = keyboard_settings.get_index()
 	_on_settings_tab_changed(appearance_tabs.current_tab)
-	controller_test.context_choice.grab_focus()
+	keyboard_settings.context_choice.grab_focus()
 
 func _close_settings() -> void:
+	keyboard_settings.cancel_capture()
 	panel_root.hide()
 	close_button.text = "Sluiten"
 	appearance_preview.set_active(false)
@@ -442,8 +449,8 @@ func toggle_menu() -> void:
 		_on_settings_tab_changed(appearance_tabs.current_tab)
 		ride_tabs.grab_focus()
 
-func bridge_action(button: String) -> void:
-	if controller_test_active():
+func bridge_action(button: String, from_keyboard: bool = false) -> void:
+	if controller_test_active() and not from_keyboard:
 		if button in ["B", "Z"] and return_to_devices:
 			_close_settings()
 			return
@@ -463,12 +470,8 @@ func bridge_action(button: String) -> void:
 	# A controller test can only be left through Z, so no gameplay input escapes.
 	get_parent().ride_navigation.navigate(panel_root, button, ride_tabs, true)
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
-		toggle_menu()
-		get_viewport().set_input_as_handled()
-
 func _process(_delta: float) -> void:
-	# In-race access is F10, advertised beside ESC in the HUD footer.
+	open_button.text = "Instellingen: " + get_parent().keyboard_mapping.caption("global", "settings")
+	ride_tabs.text = "Tab: links/rechts · Controller: B/Z sluiten · Toetsenbord: " + get_parent().keyboard_mapping.caption("menu","back") + " sluiten"
 	if open_button != null:
 		open_button.visible = not panel_root.visible and (get_parent().get("bridge_devices") == null or not get_parent().bridge_devices.panel_root.visible)

@@ -131,9 +131,16 @@ func show_records(entry: Dictionary) -> void:
 	dialog.confirmed.connect(dialog.queue_free)
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
-		layer.queue_free()
-		get_viewport().set_input_as_handled()
+	if not event is InputEventKey or not event.pressed: return
+	var owner_node: Node = get_parent()
+	while owner_node != null:
+		var mapping = owner_node.get("keyboard_mapping")
+		if mapping != null:
+			if mapping.enabled and mapping.action_for("menu", event) == "back":
+				layer.queue_free()
+				get_viewport().set_input_as_handled()
+			return
+		owner_node = owner_node.get_parent()
 
 func bridge_action(button: String) -> void:
 	if button == "B": layer.queue_free(); return

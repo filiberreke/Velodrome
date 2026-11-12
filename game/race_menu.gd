@@ -769,11 +769,11 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and event.keycode == KEY_ESCAPE and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14]:
+	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and get_parent().keyboard_mapping.action_for("menu", event) == "back" and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14]:
 		bridge_action("B")
 		get_viewport().set_input_as_handled()
 		return
-	if visible and page in [2, 3, 4, 5] and event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+	if visible and page in [2, 3, 4, 5] and event is InputEventKey and event.is_pressed() and get_parent().keyboard_mapping.action_for("menu", event) == "back":
 		if page == 5: startlist_page.back()
 		elif selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
 		else: show_choices()

@@ -5,6 +5,8 @@ const MenuStyle := preload("res://menu_theme.gd")
 const INK := MenuStyle.INK
 const MUTED := MenuStyle.MUTED
 const ACCENT := MenuStyle.BLUE
+var pause_hint: Label
+var settings_hint: Label
 var signals: Control
 var power_label: Label
 var speed_label: Label
@@ -421,8 +423,14 @@ func _build_bottom() -> void:
 	help.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	help.add_theme_constant_override("separation", 8)
 	row.add_child(help)
-	help.add_child(text("ESC · Pauze", 17, MUTED))
-	help.add_child(text("F10 - Instellingen", 17, MUTED))
+	pause_hint = text("ESC · Pauze", 17, MUTED)
+	settings_hint = text("F10 - Instellingen", 17, MUTED)
+	help.add_child(pause_hint)
+	help.add_child(settings_hint)
+
+func set_keyboard_hints(mapping: RefCounted, profile: String) -> void:
+	pause_hint.text = mapping.caption(profile, "pause") + " · Pauze"
+	settings_hint.text = mapping.caption("global", "settings") + " - Instellingen"
 
 func _build_solo_checkpoints() -> void:
 	solo_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
