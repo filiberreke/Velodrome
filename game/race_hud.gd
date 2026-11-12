@@ -512,7 +512,7 @@ func _build_pursuit_bar(row: HBoxContainer) -> void:
 	pursuit_center.add_theme_constant_override("separation", 0)
 	row.add_child(pursuit_center)
 	pursuit_lead_style = style(Color(0.8784, 0.9294, 0.9608, 0.9), Color.TRANSPARENT)
-	pursuit_trail_style = style(Color(0.9608, 0.9451, 0.9059, 0.75), Color.TRANSPARENT)
+	pursuit_trail_style = style(Color(0.72, 0.06, 0.13, 0.55), Color.TRANSPARENT)
 	pursuit_tie_style = style(Color(0.9608, 0.9451, 0.9059, 0.55), Color.TRANSPARENT)
 	for box in [pursuit_lead_style, pursuit_trail_style, pursuit_tie_style]:
 		box.set_content_margin_all(12)
