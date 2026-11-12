@@ -1,0 +1,73 @@
+[
+  {
+    "test": "traffic_power_does_not_burn_reserve_against_equal_speed_leader",
+    "passed": true,
+    "old_power": 400.0,
+    "new_power": 95.91384615384615,
+    "old_wprime": 19973.0,
+    "new_wprime": 20003.836040043418
+  },
+  {
+    "test": "parallel_away_merge_and_swap_trajectories",
+    "passed": true
+  },
+  {
+    "test": "safe_existing_3_2m_wheel_can_be_left_new_merge_still_guarded",
+    "passed": true
+  },
+  {
+    "test": "wheel_velocity_uses_common_reference_metric_9_cases",
+    "passed": true
+  },
+  {
+    "test": "urgency_resets_at_leader_elimination_boundary",
+    "passed": true
+  },
+  {
+    "test": "velocity_feedback_matches_physics_3_cases",
+    "passed": true
+  },
+  {
+    "test": "uncontested_head_uses_cruise_power_below_legacy_minimum_speed",
+    "passed": true,
+    "example": {
+      "time": 14.05,
+      "speed": 9.310783428770065,
+      "power": 244.44316126254876,
+      "cp": 265.69908832885733
+    }
+  },
+  {
+    "test": "11_seeds_full_state_equal_across_4_frame_intervals",
+    "passed": true,
+    "frames": [
+      0.1,
+      0.2,
+      0.4,
+      0.13
+    ],
+    "seeds": [
+      17,
+      23,
+      24,
+      31,
+      41,
+      42,
+      52,
+      53,
+      64,
+      65,
+      76
+    ]
+  },
+  {
+    "test": "120_detailed_races_completed_zero_corrections_legal_following_distance",
+    "passed": true,
+    "source_sha256": "8df0f468eea47396f4f39b60930ad339bfd539341e3b2b25a879832803c58bdf"
+  },
+  {
+    "test": "natural_pace_elimination_laps_faster_on_average",
+    "passed": true,
+    "mean_difference_kmh": 0.667123768640011
+  }
+]

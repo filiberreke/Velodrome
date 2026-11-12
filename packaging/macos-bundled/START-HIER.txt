@@ -1,0 +1,81 @@
+VELODROME OP JE MAC
+Installeren en starten
+======================
+
+1. KIES DE JUISTE DOWNLOAD
+
+Klik linksboven op het Apple-menu en kies 'Over deze Mac'.
+
+- Staat er bij Processor 'Intel'? Kies de download met x86_64.
+- Staat er bij Chip 'Apple M1', 'M2', 'M3' enzovoort? Kies arm64.
+
+Gebruik macOS Monterey 12.3 of nieuwer.
+Je hoeft geen extra programma's te installeren.
+
+
+2. PAK ALLES UIT
+
+Dubbelklik op het gedownloade ZIP-bestand.
+Zie je daarna nog een ZIP-bestand? Dubbelklik ook daarop.
+
+Open de uitgepakte map 'bundle'. Daarin staat Start-Velodrome.command.
+Bewaar deze volledige map bij elkaar, bijvoorbeeld in Documenten.
+Haal geen bestanden of programma's afzonderlijk uit die map.
+
+
+3. GEEF DE MAP EENMALIG VRIJ
+
+Dit voorkomt dat je Mac onderdelen blokkeert met een melding zoals
+'Python.framework is beschadigd' of 'ontwikkelaar kan niet worden geverifieerd'.
+
+a. Open Terminal:
+   druk op Command + spatie, typ Terminal en druk op Enter.
+
+b. Typ cd gevolgd door een spatie. Druk nog niet op Enter.
+
+c. Sleep de uitgepakte map 'bundle' vanuit Finder naar het Terminalvenster.
+   Druk nu op Enter.
+
+d. Kopieer deze twee regels naar Terminal en druk op Enter:
+
+xattr -dr com.apple.quarantine .
+chmod u+x Start-Velodrome.command
+
+Hiermee geef je de hele uitgepakte map vrij, inclusief alle onderdelen.
+Als er geen melding verschijnt, is dat normaal.
+Deze stap hoef je per nieuwe download maar één keer uit te voeren.
+
+
+4. ZET JE APPARATEN KLAAR
+
+- Zet Bluetooth aan op je Mac.
+- Zet je KICKR aan.
+- Zet eerst de linker Zwift Ride aan, daarna de rechter.
+- Wil je hartslag gebruiken? Sluit je ANT+-USB-stick aan en zet op je
+  Garmin-horloge 'Broadcast Heart Rate' / 'Hartslag uitzenden' aan.
+- Sluit andere apps die je trainer, Ride of ANT+-stick gebruiken,
+  zoals Zwift en Garmin Express.
+
+
+5. START VELODROME
+
+Dubbelklik in de map 'bundle' op Start-Velodrome.command.
+
+Er opent een tekstvenster en het spel start. Laat het tekstvenster open:
+het zorgt voor de verbinding met je apparaten.
+
+Vraagt je Mac om Bluetooth-toegang? Kies 'Sta toe' of 'OK'.
+Wacht even totdat je apparaten verbonden zijn.
+
+Heb je Bluetooth-toegang eerder geweigerd?
+- Monterey: Systeemvoorkeuren > Beveiliging en privacy > Privacy > Bluetooth.
+- Nieuwere macOS-versies: Systeeminstellingen > Privacy en beveiliging > Bluetooth.
+Zet daar toegang aan voor VelodromeBridge of Terminal en start Velodrome opnieuw.
+
+Sluit het spel als je klaar bent. De verbinding met je apparaten wordt
+daarna automatisch afgesloten.
+
+
+DE VOLGENDE KEER
+
+Zet je apparaten aan en dubbelklik op Start-Velodrome.command.

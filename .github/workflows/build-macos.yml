@@ -1,0 +1,150 @@
+name: Build macOS game
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'game/**'
+      - '.github/workflows/build-macos.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Godot 4.7 and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT_VERSION=4.7
+          curl -fL --retry 3 -o /tmp/godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          GODOT_BIN="$(find /tmp/godot -type f -path '*/Contents/MacOS/Godot' | head -n 1)"
+          test -n "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          curl -fL --retry 3 -o /tmp/templates.tpz "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          unzip -q /tmp/templates.tpz -d /tmp/godot-templates
+          cp -R /tmp/godot-templates/templates/. "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable/"
+      - name: Isolate Blender source assets from Godot import
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import shutil
+          destination = Path(os.environ["RUNNER_TEMP"]) / "velodrome-blend-sources"
+          sources = sorted(Path("game").rglob("*.blend"))
+          for source in sources:
+              target = destination / source
+              target.parent.mkdir(parents=True, exist_ok=True)
+              print(f"Temporarily isolating Blender source: {source}")
+              shutil.copy2(source, target)
+              source.unlink()
+              source.with_name(source.name + ".import").unlink(missing_ok=True)
+          print(f"Isolated Blender source file count: {len(sources)}")
+          print("Exported .glb assets remain in the project.")
+          PY
+      - name: Verify texture sources and clear import cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          for texture in game/assets/textures/velodrome_wood_pine.png game/assets/textures/velodrome_cote_azur.png; do
+            test -s "$texture"
+            file "$texture"
+            python3 - "$texture" <<'PY'
+          import pathlib, sys
+          p = pathlib.Path(sys.argv[1])
+          if p.read_bytes()[:8] != bytes.fromhex('89504e470d0a1a0a'):
+              raise SystemExit(f'Invalid PNG source (possible Git LFS pointer): {p}')
+          PY
+          done
+          rm -rf game/.godot
+          rm -f game/assets/textures/velodrome_wood_pine.png.import game/assets/textures/velodrome_cote_azur.png.import
+      - name: Import project
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path game --editor --import --verbose 2>&1 | tee /tmp/velodrome-import.log
+          echo "Generated texture files:"
+          find game/.godot/imported -maxdepth 1 -type f -name '*velodrome*' -exec ls -lh {} \; || true
+          echo "Import metadata:"
+          for texture in game/assets/textures/velodrome_wood_pine.png.import game/assets/textures/velodrome_cote_azur.png.import; do
+            sed -n '1,18p' "$texture"
+          done
+      - name: Validate imported textures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for name in ("velodrome_wood_pine", "velodrome_cote_azur"):
+              config = Path(f"game/assets/textures/{name}.png.import").read_text()
+              match = re.search(r'^path="res://([^"]+)"', config, re.M)
+              if not match:
+                  raise SystemExit(f"No imported texture path for {name}")
+              imported = Path("game") / match.group(1)
+              if not imported.is_file():
+                  raise SystemExit(f"Imported texture missing: {imported}")
+              if imported.stat().st_size < 64:
+                  raise SystemExit(f"Imported texture too small ({imported.stat().st_size} bytes): {imported}")
+              print(f"{imported}: {imported.stat().st_size} bytes, header={imported.read_bytes()[:16].hex()}")
+          PY
+      - name: Validate project after completed import
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path game --editor --import --verbose > /tmp/velodrome-import-validation.log 2>&1 || {
+            cat /tmp/velodrome-import-validation.log
+            exit 1
+          }
+          cat /tmp/velodrome-import-validation.log
+          if grep -Ei 'Bad header|Unable to open file: res://.godot/imported/|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|ERROR:' /tmp/velodrome-import-validation.log; then
+            echo "Godot still reports invalid resources after import"
+            exit 1
+          fi
+      - name: Smoke-test imported scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          "$GODOT_BIN" --headless --path game --quit-after 3 --verbose > /tmp/velodrome-smoke.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/velodrome-smoke.log
+          if [ "$status" -ne 0 ] || grep -Eq 'SCRIPT ERROR:|ERROR:|Failed loading resource:|Parse Error:' /tmp/velodrome-smoke.log; then
+            echo "Godot smoke test failed; refusing to publish macOS artifact"
+            exit 1
+          fi
+      - name: Export macOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          "$GODOT_BIN" --headless --path game --export-release "macOS" "../build/Velodrome.zip" 2>&1 | tee /tmp/velodrome-export.log
+          test -s build/Velodrome.zip
+          if grep -Ei 'Bad header|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|ERROR:' /tmp/velodrome-export.log; then
+            echo "Godot export reported errors"
+            exit 1
+          fi
+      - name: Upload import and export diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-godot-diagnostics
+          path: /tmp/velodrome-*.log
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Velodrome-macOS-unsigned
+          path: build/Velodrome.zip
+          if-no-files-found: error

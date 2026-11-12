@@ -50,23 +50,15 @@ class HeartRatePublisher:
         self.sock.close()
 
 
-def run_ant(device_id=0, backend='legacy', on_node_ready=None):
-    if backend != 'legacy':
-        raise ValueError('v0.13 ondersteunt uitsluitend de geteste Dynastream/libusb0-backend')
-    restore_backend = None
-    if sys.platform == 'win32':
-        from ant_legacy_backend import activate_legacy_backend, report_legacy_adapter
-        restore_backend = activate_legacy_backend()
-        try:
-            report_legacy_adapter()
-        except Exception:
-            restore_backend()
-            raise
+def run_ant(device_id=0, backend='auto', on_node_ready=None):
+    from ant_backend import activate_backend
+    restore_backend = activate_backend(backend)
     try:
         from openant.easy.node import Node
         from openant.easy.channel import Channel
     except ImportError as exc:
-        raise RuntimeError('openant ontbreekt; gebruik start_ant_hr_test_windows.bat') from exc
+        restore_backend()
+        raise RuntimeError('openant ontbreekt; installeer bridge/requirements.txt of gebruik de volledige bundel') from exc
 
     pub = HeartRatePublisher()
     node = None
@@ -121,7 +113,7 @@ def main():
     p = argparse.ArgumentParser(description='Velodrome 250: ANT+ hartslag naar lokale UDP bridge')
     p.add_argument('--device-id', type=int, default=0, help='Optioneel ANT+ sensornummer (0 = eerste hartslagsensor)')
     p.add_argument('--demo', action='store_true', help='STUUR SYNTHETISCHE hartslag via UDP voor softwaretest')
-    p.add_argument('--backend', choices=['legacy'], default='legacy', help='Oorspronkelijke Dynastream-driver via libusb0')
+    p.add_argument('--backend', choices=['auto', 'legacy', 'native'], default='auto', help='Automatisch: Windows libusb0, macOS libusb 1.0')
     args = p.parse_args()
     if not 0 <= args.device_id <= 65535:
         p.error('--device-id moet 0..65535 zijn')
@@ -134,7 +126,7 @@ def main():
         print('ANT+ hartslagtest gestopt.')
     except Exception as exc:
         print('ANT+ FOUT:', type(exc).__name__, str(exc), file=sys.stderr)
-        print('Zie README.md. De originele Dynastream-driver blijft ongewijzigd.', file=sys.stderr)
+        print('Zie README.md en packaging/macos-bundled/README.md voor platformdiagnose.', file=sys.stderr)
         raise SystemExit(1)
 
 
