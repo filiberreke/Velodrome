@@ -56,6 +56,7 @@ var choice_page: VBoxContainer
 var settings_page: CenterContainer
 var breadcrumb: Label
 var page_title: Label
+var page_header: HBoxContainer
 var selected_title: Label
 var selected_description: Label
 var selected_art: TextureRect
@@ -85,6 +86,10 @@ var workout_editor_page: VBoxContainer
 var workout_play_page: VBoxContainer
 var workout_library = preload("res://workout_library.gd").new()
 var workout_grid: GridContainer
+var fixed_workout_grid: GridContainer
+var custom_workout_empty: Label
+var custom_duration_filter: OptionButton
+var custom_intensity_filter: OptionButton
 var ftp_tile: Button
 var editor_tile: Button
 var saved_workout_tiles: Array[Button] = []
@@ -103,6 +108,15 @@ static func panel_style(colour: Color, outline: Color = Color.TRANSPARENT) -> St
 	style.set_corner_radius_all(18)
 	style.set_content_margin_all(22)
 	return style
+
+func place_back(button: Button, screen: Control) -> void:
+	button.reparent(page_header)
+	page_header.move_child(button, 0)
+	button.custom_minimum_size = Vector2(210, 48)
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	MenuStyle.primary(button)
+	screen.visibility_changed.connect(func(): button.visible = screen.visible)
+	button.visible = screen.visible
 
 func label(text: String, font_size: int, colour: Color = INK) -> Label:
 	var node := Label.new()
@@ -159,6 +173,7 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation", 16)
 	shell.add_child(layout)
 	var title_row := HBoxContainer.new()
+	page_header = title_row
 	title_row.add_theme_constant_override("separation", 20)
 	layout.add_child(title_row)
 	page_title = label("Kies jouw wedstrijd", 44)
@@ -239,6 +254,7 @@ func _ready() -> void:
 	records_page = preload("res://records_page.gd").new()
 	records_page.store = records_store
 	layout.add_child(records_page)
+	place_back(records_page.back_button, records_page)
 	records_page.back_requested.connect(show_choices)
 	footer_label = label("Pijltjes: kiezen  •  A: bevestigen  •  B: terug  •  Z / F10: instellingen", 17, MUTED)
 	layout.add_child(footer_label)
@@ -318,7 +334,14 @@ func _build_hub(layout: VBoxContainer) -> void:
 	first_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(first_row)
 	hub_button = _hub_tile(first_row, "Wedstrijden", "Kies je discipline en ga voor de winst.", [0], show_choices)
-	_hub_tile(first_row, "Toernooien", "Binnenkort: meerdere wedstrijden, één klassement.", [2], show_tournaments)
+	var tournaments := _hub_tile(first_row, "Toernooien", "Meerdere wedstrijden, één klassement.", [2], show_tournaments)
+	var tournament_copy: VBoxContainer = tournaments.get_child(0).get_child(0)
+	var coming_soon := label("BINNENKORT", 14, MenuStyle.MUTED)
+	coming_soon.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	coming_soon.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.PALE, MenuStyle.LINE, 8, 6))
+	tournament_copy.add_child(coming_soon)
+	tournament_copy.move_child(coming_soon, 0)
+	tournament_copy.get_child(1).add_theme_color_override("font_color", MenuStyle.MUTED)
 	var second_row := HBoxContainer.new()
 	second_row.name = "ErgEnPistetraining"
 	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -326,55 +349,141 @@ func _build_hub(layout: VBoxContainer) -> void:
 	hub_page.add_child(second_row)
 	_hub_tile(second_row, "ERG-training", "Workouts op vermogen en FTP-tests.", [], show_training)
 	_hub_tile(second_row, "Pistetraining", "Vrij rijden, derny en specifieke pistesessies.", [7], show_piste_training)
+	for tile_row in [first_row, second_row]:
+		for tile in tile_row.get_children():
+			var artwork: Control = tile.get_child(0).get_child(1)
+			artwork.custom_minimum_size = Vector2(280, 200)
+			artwork.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			for preview in artwork.get_children():
+				preview.custom_minimum_size = Vector2(280, 200)
 	races_back = _hub_button(choice_page, "← Hoofdmenu", show_hub)
-	races_back.custom_minimum_size.y = 46
+	races_back.reparent(page_header)
+	page_header.move_child(races_back, 0)
+	races_back.custom_minimum_size = Vector2(190, 48)
+	races_back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	MenuStyle.primary(races_back)
+	choice_page.visibility_changed.connect(func(): races_back.visible = choice_page.visible)
+	races_back.visible = choice_page.visible
 	training_page = VBoxContainer.new()
 	training_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(training_page)
 	var workout_scroll := ScrollContainer.new()
 	workout_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	training_page.add_child(workout_scroll)
+	var workout_margin := MarginContainer.new()
+	workout_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right", "top", "bottom"]: workout_margin.add_theme_constant_override("margin_" + side, 8)
+	workout_scroll.add_child(workout_margin)
+	var workout_sections := VBoxContainer.new()
+	workout_sections.add_theme_constant_override("separation", 20)
+	workout_margin.add_child(workout_sections)
+	fixed_workout_grid = GridContainer.new()
+	fixed_workout_grid.name = "VasteTestsEnEditor"
+	fixed_workout_grid.columns = 3
+	fixed_workout_grid.add_theme_constant_override("h_separation", 16)
+	workout_sections.add_child(fixed_workout_grid)
+	var custom_header := HBoxContainer.new()
+	custom_header.add_theme_constant_override("separation", 18)
+	workout_sections.add_child(custom_header)
+	var custom_title := label("Eigen workouts", 27)
+	custom_title.add_theme_font_override("font", MenuStyle.heading())
+	custom_header.add_child(custom_title)
+	var divider := HSeparator.new()
+	divider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	custom_header.add_child(divider)
+	var import_button := Button.new()
+	import_button.text = "Importeer .zwo"
+	import_button.custom_minimum_size = Vector2(190, 48)
+	import_button.pressed.connect(func(): show_workout_editor(); workout_editor_page._open())
+	custom_header.add_child(import_button)
+	var custom_filters := HBoxContainer.new()
+	custom_filters.add_theme_constant_override("separation", 16)
+	workout_sections.add_child(custom_filters)
+	custom_filters.add_child(label("Tijdsduur", 19, MUTED))
+	custom_duration_filter = OptionButton.new()
+	for caption in ["Alle tijdsduren", "Korter dan 30 min", "30–60 min", "Langer dan 60 min"]: custom_duration_filter.add_item(caption)
+	custom_filters.add_child(custom_duration_filter)
+	custom_filters.add_child(label("Intensiteit", 19, MUTED))
+	custom_intensity_filter = OptionButton.new()
+	custom_intensity_filter.add_item("Alle intensiteiten")
+	var intensity_art := preload("res://workout_intensity.gd")
+	for level in range(1, 6):
+		custom_intensity_filter.add_icon_item(intensity_art.filter_icon(level), intensity_art.LABELS[level])
+	custom_intensity_filter.add_item("Alleen vrij rijden")
+	custom_intensity_filter.tooltip_text = "Gemiddeld gepland doelvermogen als percentage van FTP, gewogen naar tijd. Blokken vrij rijden tellen niet mee."
+	custom_filters.add_child(custom_intensity_filter)
+	for filter in [custom_duration_filter, custom_intensity_filter]: filter.item_selected.connect(func(_index): apply_workout_filters())
+	custom_workout_empty = label("Nog geen eigen workouts. Maak een workout in de editor of importeer een .zwo-bestand.", 20, MUTED)
+	custom_workout_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	workout_sections.add_child(custom_workout_empty)
 	workout_grid = GridContainer.new()
 	workout_grid.columns = 3
 	workout_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	workout_grid.add_theme_constant_override("h_separation",16)
 	workout_grid.add_theme_constant_override("v_separation",16)
-	workout_scroll.add_child(workout_grid)
-	_hub_button(training_page,"← Hoofdmenu",show_hub)
+	workout_sections.add_child(workout_grid)
+	var training_back := _hub_button(training_page,"← Hoofdmenu",show_hub)
+	place_back(training_back, training_page)
 	piste_page = VBoxContainer.new()
 	piste_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(piste_page)
-	var top_row := HBoxContainer.new(); top_row.size_flags_vertical = Control.SIZE_EXPAND_FILL; top_row.add_theme_constant_override("separation",16); piste_page.add_child(top_row)
-	var bottom_row := HBoxContainer.new(); bottom_row.size_flags_vertical = Control.SIZE_EXPAND_FILL; bottom_row.add_theme_constant_override("separation",16); piste_page.add_child(bottom_row)
-	piste_tiles["free_ride"] = _hub_tile(top_row,"Vrije training","Vrij rondfietsen, rondetijden en vier gekleurde pacers.",[],show_piste_exercise.bind("free_ride"),Preview.make(self,"free_training").get_texture())
-	piste_tiles["derny"] = _hub_tile(top_row,"Dernytraining","Volg de gangmaker en verhoog samen het tempo.",[],show_derny,Preview.make(self,"derny_training").get_texture())
-	piste_tiles["flying_start"] = _hub_tile(bottom_row,"Vliegende start","Gebruik de hoogte en verbeter je snelheid op de lijn.",[],show_piste_exercise.bind("flying_start"),Preview.make(self,"flying_training").get_texture())
-	piste_tiles["take_lap"] = _hub_tile(bottom_row,"Neem een ronde","Win een ronde op een peloton met vast tempo.",[0],show_piste_exercise.bind("take_lap"))
-	var relay_row := HBoxContainer.new(); relay_row.size_flags_vertical = Control.SIZE_EXPAND_FILL; piste_page.add_child(relay_row)
-	piste_tiles["madison"] = _hub_tile(relay_row,"Aflossingstraining","Oefen 10 of 20 handaflossingen met je ploegmaat.",[4],show_madison_training)
-	var links := HBoxContainer.new(); links.add_theme_constant_override("separation",16); piste_page.add_child(links)
-	_hub_button(links,"Opgeslagen trainingen  →",show_training_history)
-	_hub_button(links,"← Hoofdmenu",show_hub)
-	for button in links.get_children(): button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var piste_grid := GridContainer.new()
+	piste_grid.columns = 3
+	piste_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	piste_grid.add_theme_constant_override("h_separation", 16)
+	piste_grid.add_theme_constant_override("v_separation", 16)
+	piste_page.add_child(piste_grid)
+	piste_tiles["free_ride"] = _hub_tile(piste_grid,"Vrije training","Vrij rondfietsen, rondetijden en vier gekleurde pacers.",[],show_piste_exercise.bind("free_ride"),Preview.make(self,"free_training").get_texture())
+	piste_tiles["derny"] = _hub_tile(piste_grid,"Dernytraining","Volg de gangmaker en verhoog samen het tempo.",[],show_derny,Preview.make(self,"derny_training").get_texture())
+	piste_tiles["flying_start"] = _hub_tile(piste_grid,"Vliegende start","Gebruik de hoogte en verbeter je snelheid op de lijn.",[],show_piste_exercise.bind("flying_start"),Preview.make(self,"flying_training").get_texture())
+	piste_tiles["take_lap"] = _hub_tile(piste_grid,"Neem een ronde","Win een ronde op een peloton met vast tempo.",[0],show_piste_exercise.bind("take_lap"))
+	piste_tiles["madison"] = _hub_tile(piste_grid,"Aflossingstraining","Oefen 10 of 20 handaflossingen met je ploegmaat.",[4],show_madison_training)
+	var history_tile := _hub_tile(piste_grid,"Opgeslagen trainingen","Bekijk je eerdere trainingen en prestaties.",[],show_training_history)
+	var history_images: HBoxContainer = history_tile.get_child(0).get_child(1)
+	var old_history_art := history_images.get_child(0)
+	history_images.remove_child(old_history_art)
+	old_history_art.queue_free()
+	history_images.add_child(preload("res://training_history_art.gd").new())
+	for tile in piste_grid.get_children():
+		var content: HBoxContainer = tile.get_child(0)
+		var title: Label = content.get_child(0).get_child(0)
+		title.add_theme_font_size_override("font_size", 27)
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		for artwork in content.get_child(1).get_children():
+			artwork.custom_minimum_size = Vector2(170, 140)
+			artwork.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var piste_back := _hub_button(piste_page,"← Hoofdmenu",show_hub)
+	place_back(piste_back, piste_page)
 	derny_page = preload("res://derny_training.gd").new()
 	layout.add_child(derny_page)
+	var derny_card := preload("res://training_menu_card.gd").new()
+	derny_card.configure(self, derny_page, [derny_page.motor_picker, derny_page.start_speed_row], derny_card.picture(piste_tiles["derny"].get_child(0).get_child(1).get_child(0).texture))
 	derny_page.back_requested.connect(show_piste_training)
 	derny_page.environment_requested.connect(_piste_environment)
 	derny_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	exercise_page = preload("res://piste_exercise_page.gd").new()
 	exercise_page.records_store = training_store
 	layout.add_child(exercise_page)
+	var exercise_card := preload("res://training_menu_card.gd").new()
+	var exercise_art: Texture2D = piste_tiles["flying_start"].get_child(0).get_child(1).get_child(0).texture
+	exercise_card.configure(self, exercise_page, [exercise_page.tempo_row, exercise_page.limit_row], exercise_card.picture(exercise_art))
+	for kind in ["free_ride", "flying_start", "take_lap"]:
+		exercise_card.exercise_previews[kind] = piste_tiles[kind].get_child(0).get_child(1).get_child(0).texture
 	exercise_page.back_requested.connect(show_piste_training)
 	exercise_page.environment_requested.connect(_exercise_environment)
 	exercise_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	madison_page = preload("res://madison_training.gd").new()
 	layout.add_child(madison_page)
+	var madison_card := preload("res://training_menu_card.gd").new()
+	madison_card.configure(self, madison_page, [madison_page.difficulty, madison_page.count, madison_page.unlock_label], madison_card.picture(piste_tiles["madison"].get_child(0).get_child(1).get_child(0).texture))
 	madison_page.back_requested.connect(show_piste_training)
 	madison_page.environment_requested.connect(_madison_environment)
 	madison_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	training_history_page = preload("res://training_history.gd").new()
 	training_history_page.menu = self
 	layout.add_child(training_history_page)
+	place_back(training_history_page.back_button, training_history_page)
 	tournament_page = VBoxContainer.new()
 	tournament_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(tournament_page)
@@ -383,16 +492,22 @@ func _build_hub(layout: VBoxContainer) -> void:
 	workout_editor_page = preload("res://workout_editor.gd").new()
 	workout_editor_page.library = workout_library
 	layout.add_child(workout_editor_page)
+	place_back(workout_editor_page.back_button, workout_editor_page)
 	workout_editor_page.workout_saved.connect(func(_id): refresh_workout_tiles())
 	workout_editor_page.workout_deleted.connect(func(_id): refresh_workout_tiles())
 	workout_editor_page.back_requested.connect(show_training)
 	ftp_page = preload("res://ftp_training.gd").new()
 	layout.add_child(ftp_page)
+	var ftp_card := preload("res://training_menu_card.gd").new()
+	ftp_card.configure(self, ftp_page, [ftp_page.warmup_hint], ftp_card.chart(preload("res://ftp_ramp.gd").preview_blocks(ftp_page.player_profile.ftp())))
 	ftp_page.back_requested.connect(show_training)
 	ftp_page.environment_requested.connect(_training_environment)
 	workout_play_page = preload("res://workout_training.gd").new()
 	workout_play_page.menu = self
 	layout.add_child(workout_play_page)
+	var workout_card := preload("res://training_menu_card.gd").new()
+	workout_card.configure(self, workout_play_page, [workout_play_page.ftp_caption, workout_play_page.ftp_input], workout_card.chart())
+	workout_play_page.set_meta("preparation_card", workout_card)
 	workout_play_page.back_requested.connect(show_training)
 	workout_play_page.edit_requested.connect(edit_workout)
 	workout_play_page.environment_requested.connect(_workout_environment)
@@ -442,7 +557,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	if node == derny_page: focus = derny_page.start_button
 	if node == exercise_page: focus = exercise_page.start_button
 	if node == madison_page: focus = madison_page.start_button
-	if node == training_history_page: focus = training_history_page.get_child(1)
+	if node == training_history_page: focus = training_history_page.back_button
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == workout_play_page: focus = workout_play_page.start_button
 	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
@@ -501,14 +616,14 @@ func show_tournaments() -> void:
 	_show_section(7, "Toernooien", tournament_page)
 	tournament_page.get_child(1).grab_focus.call_deferred()
 
-func _workout_tile(caption: String, description: String, action: Callable, workout_blocks: Array = []) -> Button:
+func _workout_tile(caption: String, description: String, action: Callable, workout_blocks: Array = [], destination: GridContainer = null, badge_text: String = "") -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(0,210)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.tooltip_text = caption
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	for state in ["normal","hover","pressed"]: button.add_theme_stylebox_override(state,MenuStyle.panel(MenuStyle.PAPER if state == "normal" else MenuStyle.PALE,MenuStyle.LINE if state == "normal" else MenuStyle.BLUE,0,12))
-	workout_grid.add_child(button)
+	(workout_grid if destination == null else destination).add_child(button)
 	var content := VBoxContainer.new()
 	button.add_child(content)
 	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -523,6 +638,11 @@ func _workout_tile(caption: String, description: String, action: Callable, worko
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_override("font",MenuStyle.heading())
 	content.add_child(title)
+	if not badge_text.is_empty():
+		var badge := label(badge_text, 13, MenuStyle.BLUE)
+		badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		badge.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.PALE, Color.TRANSPARENT, 6, 6))
+		content.add_child(badge)
 	var detail := label(description,18,MUTED)
 	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(detail)
@@ -530,12 +650,40 @@ func _workout_tile(caption: String, description: String, action: Callable, worko
 	return button
 func refresh_workout_tiles() -> void:
 	for child in workout_grid.get_children(): workout_grid.remove_child(child); child.queue_free()
-	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()))
-	editor_tile = _workout_tile("Workout-editor","Nieuwe workout maken of bestaande bewerken.",show_workout_editor)
+	for child in fixed_workout_grid.get_children(): fixed_workout_grid.remove_child(child); child.queue_free()
+	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()),fixed_workout_grid,"VASTE TEST VAN VELODROME")
+	var twenty_minute := _workout_tile("20’ FTP-test","Deze vaste test wordt later toegevoegd.",func(): pass,[],fixed_workout_grid,"VASTE TEST · BINNENKORT")
+	twenty_minute.disabled = true
+	twenty_minute.add_theme_stylebox_override("disabled", MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 0, 12))
+	editor_tile = _workout_tile("Workout-editor","Maak een eigen workout of bewerk een bestaande.",show_workout_editor,[],fixed_workout_grid,"EDITOR")
 	saved_workout_tiles.clear()
 	for item in workout_library.all_workouts():
 		var seconds: float = workout_library.total_seconds(item.blocks)
-		saved_workout_tiles.append(_workout_tile(item.name,"%d blokken · %d minuten" % [item.blocks.size(),int(ceil(seconds/60))],show_workout.bind(str(item.id)),item.blocks))
+		var intensity: float = workout_library.average_target(item.blocks)
+		var intensity_text := "vrij rijden" if intensity < 0 else "gem. %d%% FTP" % roundi(intensity * 100)
+		var tile := _workout_tile(item.name,"%d %s · %d minuten · %s" % [item.blocks.size(),"blok" if item.blocks.size() == 1 else "blokken",int(ceil(seconds/60)),intensity_text],show_workout.bind(str(item.id)),item.blocks)
+		var intensity_badge := preload("res://workout_intensity.gd").new()
+		intensity_badge.configure(intensity)
+		tile.get_child(0).add_child(intensity_badge)
+		tile.tooltip_text += "\n" + intensity_badge.tooltip_text
+		tile.set_meta("duration_s", seconds)
+		tile.set_meta("intensity", intensity)
+		saved_workout_tiles.append(tile)
+	apply_workout_filters()
+
+func apply_workout_filters() -> void:
+	var visible_count := 0
+	for tile in saved_workout_tiles:
+		var seconds: float = tile.get_meta("duration_s")
+		var intensity: float = tile.get_meta("intensity")
+		var duration_matches: bool = [true, seconds < 1800, seconds >= 1800 and seconds <= 3600, seconds > 3600][custom_duration_filter.selected]
+		var level: int = workout_library.intensity_level(intensity)
+		var selected_level := custom_intensity_filter.selected
+		var intensity_matches: bool = selected_level == 0 or (level == selected_level if selected_level < 6 else level == 0)
+		tile.visible = duration_matches and intensity_matches
+		if tile.visible: visible_count += 1
+	custom_workout_empty.visible = visible_count == 0
+	custom_workout_empty.text = "Nog geen eigen workouts. Maak een workout in de editor of importeer een .zwo-bestand." if saved_workout_tiles.is_empty() else "Geen eigen workouts met deze filters. Kies een andere tijdsduur of intensiteit."
 func show_workout(id: String) -> void:
 	var item: Dictionary = workout_library.get_workout(id)
 	if item.is_empty(): return
@@ -662,6 +810,8 @@ func _build_settings(layout: VBoxContainer) -> void:
 	back_button.add_theme_font_size_override("font_size", 21)
 	back_button.pressed.connect(show_choices)
 	navigation.add_child(back_button)
+	place_back(back_button, settings_page)
+	navigation.add_spacer(false)
 	start_button = Button.new()
 	start_button.custom_minimum_size = Vector2(310, 60)
 	start_button.add_theme_font_size_override("font_size", 22)
@@ -847,6 +997,7 @@ func bridge_action(button: String) -> void:
 		get_viewport().push_input(event)
 
 func show_records() -> void:
+	_hide_hub_pages()
 	footer_label.hide()
 	page_title.add_theme_font_size_override("font_size",44)
 	if startlist_page != null: startlist_page.hide()

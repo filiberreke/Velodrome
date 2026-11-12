@@ -29,8 +29,10 @@ var status: Label
 var summary: Label
 var open_dialog: FileDialog
 var save_dialog: FileDialog
+var back_button: Button
 
 func _ready() -> void:
+	theme = MenuStyle.create()
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 12)
 	var selection := HBoxContainer.new()
@@ -44,7 +46,7 @@ func _ready() -> void:
 		else: load_workout(id)
 	)
 	_button(selection,"Nieuwe workout",new_workout)
-	_button(selection,"Opslaan",save_workout)
+	MenuStyle.primary(_button(selection,"Opslaan",save_workout))
 	delete_workout_button = _button(selection,"Workout verwijderen",request_delete_workout)
 	delete_dialog = ConfirmationDialog.new()
 	delete_dialog.title = "Workout verwijderen?"
@@ -59,8 +61,7 @@ func _ready() -> void:
 	name_edit.text = "Nieuwe training"
 	name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	toolbar.add_child(name_edit)
-	_button(toolbar, "Openen (.zwo)", _open)
-	_button(toolbar, "Exporteren (.zwo)", _export)
+	_button(toolbar, "Importeer .zwo", _open)
 	var columns := HBoxContainer.new()
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	columns.add_theme_constant_override("separation", 12)
@@ -102,8 +103,8 @@ func _ready() -> void:
 	footer.add_child(summary)
 	status = _label("", 15)
 	footer.add_child(status)
-	_button(footer, "Terug", func(): back_requested.emit())
-	_button(footer, "Exporteren", _export)
+	back_button = _button(footer, "← ERG-training", func(): back_requested.emit())
+	_button(footer, "Exporteer .zwo", _export)
 	open_dialog = _dialog(FileDialog.FILE_MODE_OPEN_FILE)
 	save_dialog = _dialog(FileDialog.FILE_MODE_SAVE_FILE)
 	open_dialog.file_selected.connect(_load_file)

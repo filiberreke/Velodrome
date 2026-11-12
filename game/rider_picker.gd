@@ -32,6 +32,7 @@ func _ready() -> void:
 	var header := HBoxContainer.new()
 	column.add_child(header)
 	var title := label("Kies je tegenstander", 34)
+	title.add_theme_font_override("font", MenuStyle.heading())
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var close := Button.new()
@@ -39,6 +40,9 @@ func _ready() -> void:
 	close.custom_minimum_size = Vector2(150, 48)
 	close.pressed.connect(func(): layer.queue_free())
 	header.add_child(close)
+	header.move_child(close, 0)
+	header.add_theme_constant_override("separation", 20)
+	MenuStyle.primary(close)
 	column.add_child(label("Vaste kwaliteiten · afgeronde basiswaarden · dagvorm 97,5–102,5%", 18))
 	var filters := HBoxContainer.new()
 	filters.add_theme_constant_override("separation", 16)
@@ -110,8 +114,10 @@ func apply_filter() -> void:
 
 func show_records(entry: Dictionary) -> void:
 	var dialog := AcceptDialog.new()
+	dialog.theme = MenuStyle.create()
+	dialog.borderless = true
 	dialog.title = entry.name + " · " + country_name(entry.country)
-	var details := "ID: %s\nCP %d W · Piek %d W · W′ %d J\n\nOpgegeven records" % [entry.id, roundi(entry.cp_w), roundi(entry.max_power_w), roundi(entry.w_prime_j)]
+	var details := "OPGEGEVEN RECORDS"
 	for distance in [250, 1000, 4000]:
 		var seconds := float(entry.records.get("record_%dm_s" % distance, 0.0))
 		details += "\n%d m: %s" % [distance, "%d s" % roundi(seconds) if seconds > 0 else "nog geen record"]
@@ -119,16 +125,54 @@ func show_records(entry: Dictionary) -> void:
 		var watts := float(entry.records.get("best_%ds_w" % duration, 0.0))
 		details += "\n%d s: %s" % [duration, "%d W" % roundi(watts) if watts > 0 else "nog geen record"]
 	var saved := preload("res://rider_records.gd").new().personal(entry.id)
-	details += "\n\nBehaalde spelrecords (per discipline, afstand en AI-percentage)"
+	details += "\n\nBEHAALDE SPELRECORDS\nPer discipline, afstand en AI-sterkte"
 	if saved.is_empty(): details += "\nNog geen voltooide prestatie."
 	for key in saved:
 		var record: Dictionary = saved[key]
 		details += "\n%s · %d m · AI %d%%: %d s · piek %d W" % ["Achtervolging" if int(record.mode) == 4 else ("Puntenkoers" if int(record.mode) == 1 else "Scratch"), int(record.distance_m), roundi(record.ai_percent), roundi(record.time_s), roundi(record.peak_w)]
 		if not record.get("parameters",{}).is_empty(): details += " · CP %d W" % roundi(record.parameters.cp_w)
-	dialog.dialog_text = details
+	var content := VBoxContainer.new()
+	content.custom_minimum_size = Vector2(620, 440)
+	content.add_theme_constant_override("separation", 16)
+	dialog.add_child(content)
+	var heading := HBoxContainer.new()
+	heading.add_theme_constant_override("separation", 16)
+	content.add_child(heading)
+	var back := Button.new()
+	back.text = "← Terug"
+	MenuStyle.primary(back)
+	back.pressed.connect(dialog.queue_free)
+	heading.add_child(back)
+	var identity := label(entry.name + " · " + country_name(entry.country), 24)
+	identity.add_theme_font_override("font", MenuStyle.heading())
+	heading.add_child(identity)
+	var qualities := GridContainer.new()
+	qualities.columns = 2
+	qualities.add_theme_constant_override("h_separation", 32)
+	qualities.add_theme_constant_override("v_separation", 12)
+	content.add_child(qualities)
+	for stat in [["Duurvermogen", "%d W" % roundi(entry.cp_w)], ["Sprintvermogen", "%d W" % roundi(entry.max_power_w)], ["W′-reserve", "%d J" % roundi(entry.w_prime_j)]]:
+		var caption := label(stat[0], 20)
+		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		qualities.add_child(caption)
+		var value := label(stat[1], 22)
+		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		value.add_theme_color_override("font_color", MenuStyle.BLUE)
+		qualities.add_child(value)
+	content.add_child(HSeparator.new())
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(scroll)
+	var records := label(details, 19)
+	records.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	records.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	scroll.add_child(records)
+	dialog.get_ok_button().hide()
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(680, 560))
 	dialog.confirmed.connect(dialog.queue_free)
+	dialog.canceled.connect(dialog.queue_free)
+	back.grab_focus.call_deferred()
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed: return

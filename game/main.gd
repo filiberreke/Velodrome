@@ -2565,7 +2565,6 @@ func _build_hud() -> void:
 	again.custom_minimum_size = Vector2(340, 58)
 	_style_finish_button(again, MenuSkin.BLUE, Color.WHITE)
 	again.pressed.connect(_restart_same_race)
-	buttons.add_child(again)
 	var strava_button := Button.new()
 	strava_button.text = "Export naar Strava"
 	strava_button.icon = load("res://strava_logo.svg")
@@ -2582,13 +2581,17 @@ func _build_hud() -> void:
 	_style_finish_button(fit_button, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	fit_button.pressed.connect(func(): _export_strava_fit(true))
 	buttons.add_child(fit_button)
+	buttons.add_spacer(false)
+	buttons.add_child(again)
 	var quit := Button.new()
 	quit.name = "MainMenuButton"
-	quit.text = "Terug naar hoofdmenu"
-	quit.custom_minimum_size = Vector2(300, 58)
-	_style_finish_button(quit, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
+	quit.text = "← Hoofdmenu"
+	quit.custom_minimum_size = Vector2(200, 48)
+	quit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	MenuSkin.primary(quit)
 	quit.pressed.connect(_reset)
-	buttons.add_child(quit)
+	title_row.add_child(quit)
+	title_row.move_child(quit, 0)
 
 func _build_finish_photo_ui(row: HBoxContainer) -> void:
 	var frame := PanelContainer.new()

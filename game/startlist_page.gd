@@ -35,6 +35,7 @@ func _ready() -> void:
 	previous_button.custom_minimum_size = Vector2(300, 54)
 	previous_button.pressed.connect(back)
 	navigation.add_child(previous_button)
+	menu.place_back(previous_button, self)
 	navigation.add_spacer(false)
 	start_button = Button.new()
 	start_button.text = "Start wedstrijd →"
@@ -152,7 +153,7 @@ func bridge_action(value: String) -> void:
 	var actions := {"LEFT":"ui_left", "RIGHT":"ui_right", "UP":"ui_up", "DOWN":"ui_down", "A":"ui_accept"}
 	if not actions.has(value): return
 	var focus := get_viewport().gui_get_focus_owner()
-	if focus == null or not is_ancestor_of(focus): start_button.grab_focus()
+	if focus == null or (focus != previous_button and not is_ancestor_of(focus)): start_button.grab_focus()
 	for down in [true, false]:
 		var event := InputEventAction.new()
 		event.action = actions[value]

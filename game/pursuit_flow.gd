@@ -113,6 +113,9 @@ func _ready()->void:
 	previous_button=button("← Spelvormen",210);proceed_button=button("Kies tegenstander →",310);match_navigation.add_child(previous_button);match_navigation.add_child(proceed_button)
 	proceed_button.add_theme_stylebox_override("normal",menu.panel_style(MenuStyle.BLUE));proceed_button.add_theme_color_override("font_color",Color.WHITE)
 	MenuStyle.primary(proceed_button)
+	menu.place_back(previous_button, self)
+	match_navigation.alignment=BoxContainer.ALIGNMENT_END
+	opponent_navigation.alignment=BoxContainer.ALIGNMENT_END
 	previous_button.pressed.connect(back);proceed_button.pressed.connect(next_step)
 	hide()
 
@@ -164,14 +167,14 @@ func back()->void:
 func _show_step()->void:
 	distance_page.visible=step==1;opponent_page.visible=step==2
 	var navigation:HBoxContainer=match_navigation if step==1 else opponent_navigation
-	if previous_button.get_parent()!=navigation:
-		previous_button.reparent(navigation);proceed_button.reparent(navigation)
+	if proceed_button.get_parent()!=navigation:
+		proceed_button.reparent(navigation)
 	match_navigation.visible=step==1;opponent_navigation.visible=step==2
 	previous_button.text="← Wedstrijd"if step==2 else"← Spelvormen"
 	proceed_button.text="Start wedstrijd →"if step==2 else"Kies tegenstander →"
 	menu.page_title.text="Kies je tegenstander"if step==2 else"Stel je wedstrijd in"
 	menu.page_title.add_theme_font_size_override("font_size",36)
-	menu.breadcrumb.text=menu.get_parent().keyboard_mapping.menu_hint()
+	menu.breadcrumb.text="01  Afstand     /     02  Tegenstander"
 	if step==2:summary_label.text="%s  ·  %d km%s"%["Ploegenachtervolging"if team else"Achtervolging",options.distance_m()/1000,"  ·  %d renners"%options.team_size()if team else""]
 	update_bridge();_bridge_default_focus.call_deferred()
 
