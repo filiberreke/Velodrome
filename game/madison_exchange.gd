@@ -258,11 +258,15 @@ func step(game, dt: float) -> void:
 					cooldown = 4.0
 	animation_parameters.emit(parameters())
 
-func apply_release(game, g: int, r: int, amount: float) -> void:
+func apply_release(game, g: int, r: int, amount: float) -> Dictionary:
+	var before: Array = game.speeds.duplicate()
 	var delta: float = minf(game.speeds[g], _impulse * amount)
 	game.speeds[g] -= delta
 	game.speeds[r] += delta
 	game.baseline_speed = game.speeds[0]
+	# Equal-mass momentum transfer. Energy is diagnostic, not assumed conserved.
+	return {"giver":g,"receiver":r,"delta_mps":delta,"intensity":amount,
+		"before_mps":before,"after_mps":game.speeds.duplicate()}
 
 func parameters() -> Dictionary:
 	var duration: float = {Phase.GRAB:grab_seconds, Phase.SLING:sling_seconds, Phase.RELEASE:release_seconds, Phase.SEPARATE:separate_seconds}.get(phase, 1.0)

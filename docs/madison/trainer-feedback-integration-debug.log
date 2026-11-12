@@ -1,0 +1,16 @@
+# Simulated test diagnostic output; no physical trainer.
+MADISON_FEEDBACK_LOAD {"at_s":100.0,"confirmed_simulation":null,"offset_pct":0.0,"requested_grade_pct":0.0,"speed_mps":12.0}
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[12.0,10.0],"clipped":false,"delta_mps":1.0,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":10.2470581044554,"player_energy_delta_j":-920.0,"receiver":1}
+MADISON_FEEDBACK_LOAD {"at_s":100.2,"confirmed_simulation":null,"offset_pct":10.2470581044554,"requested_grade_pct":12.2470581044554,"speed_mps":11.0}
+MADISON_FEEDBACK_END {"elapsed_s":2.0}
+MADISON_FEEDBACK_LOAD {"at_s":102.0,"confirmed_simulation":null,"offset_pct":0.0,"requested_grade_pct":2.0,"speed_mps":11.0}
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[10.0,12.0],"clipped":false,"delta_mps":1.0,"direction":-1,"duration_s":1.6,"giver":1,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":-10.2470581044554,"player_energy_delta_j":840.0,"receiver":0}
+MADISON_FEEDBACK_LOAD {"at_s":103.2,"confirmed_simulation":null,"offset_pct":-10.2470581044554,"requested_grade_pct":-8.24705810445543,"speed_mps":11.0}
+MADISON_FEEDBACK_END {"elapsed_s":0.299999999999997}
+MADISON_FEEDBACK_LOAD {"at_s":103.3,"confirmed_simulation":null,"offset_pct":0.0,"requested_grade_pct":2.0,"speed_mps":11.0}
+MADISON_FEEDBACK_LOAD {"at_s":103.4,"confirmed_simulation":null,"offset_pct":0.0,"requested_grade_pct":2.0,"speed_mps":11.0}
+MADISON_FEEDBACK_START {"after_mps":[10.0,12.0],"before_mps":[11.0,11.0],"clipped":false,"delta_mps":1.0,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":80.0,"peak_grade_pct":10.2470581044554,"player_energy_delta_j":-840.0,"receiver":1}
+MADISON_FEEDBACK_END {"elapsed_s":0.0}
+MADISON_FEEDBACK_START {"after_mps":[9.0,13.0],"before_mps":[10.0,12.0],"clipped":false,"delta_mps":1.0,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":240.0,"peak_grade_pct":10.2470581044554,"player_energy_delta_j":-760.0,"receiver":1}
+MADISON_FEEDBACK_END {"elapsed_s":0.0}
+MADISON_TRAINER_INTEGRATION_OK

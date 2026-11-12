@@ -72,7 +72,7 @@ func reset_session(now: float, client) -> void:
 	signal_state.reset_clock(now); interrupted_clients.erase(client.get_instance_id()); control_started_at[client.get_instance_id()] = now
 func control_response_at(client) -> float: return maxf(client.last_response,float(control_started_at.get(client.get_instance_id(),-100.0)))
 func resume_pending(client) -> bool: return interrupted_clients.has(client.get_instance_id())
-func drive_trainer(client, active: bool, grade: float, aero: float, now: float, target: int = 0) -> void:
+func drive_trainer(client, active: bool, grade: float, aero: float, now: float, target: int = 0, grade_rate: float = 10.0) -> void:
 	var id: int = client.get_instance_id()
 	var receiving := live(now)
 	var transient: bool = client.owned and client.armed and now-signal_state.last_valid <= TrainerSignal.CONTROL_HOLD_SECONDS
@@ -82,6 +82,7 @@ func drive_trainer(client, active: bool, grade: float, aero: float, now: float, 
 		if client.owned and client.armed: interrupted_clients.erase(id)
 		elif client.phase != "RELEASING" and (not client.state.get("udp_owned",false) or client.error == "Geen antwoord van bridge"):
 			client.arm(client.allow_released_session); interrupted_clients.erase(id); control_started_at[id] = now
+	client.grade_rate = grade_rate
 	client.tick(active and fresh(now) and (receiving or transient) and not resume_pending(client),grade,aero,now,target)
 func _ftp_pause_expired(now: float) -> bool:
 	return test is Ramp and test.running() and signal_state.paused_seconds(now) > FTP_MAX_PAUSE_SECONDS

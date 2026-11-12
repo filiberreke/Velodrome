@@ -159,7 +159,7 @@ func advance(dt: float) -> void:
 			remaining -= step
 			if not session.running(): break
 	var enabled: bool = session.running() and not demo and live
-	source.drive_trainer(game.trainer_control,session.running() and not demo,road_grade,1.0-reduction,now)
+	_drive_trainer(source,session.running() and not demo,live,now)
 	if enabled and source.live(now) and not source.resume_pending(game.trainer_control) and (not game.trainer_control.error.is_empty() or (now - control_started > 8 and game.trainer_control.last_response < control_started)):
 		session.stop("Trainerbediening niet beschikbaar")
 		release_trainer()
@@ -169,6 +169,8 @@ func advance(dt: float) -> void:
 	_present(0 if paused else dt)
 	if total_elapsed - last_sample >= 1.0: _capture_sample()
 	if total_elapsed - last_save >= 10.0: _persist(false)
+func _drive_trainer(source, enabled: bool, _live: bool, now: float) -> void:
+	source.drive_trainer(game.trainer_control,enabled,road_grade,1.0-reduction,now)
 func _step(dt: float, power: float) -> void:
 	if not tempo_requests.is_empty():
 		call_elapsed += dt

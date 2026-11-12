@@ -1,6 +1,7 @@
 extends "res://derny_environment.gd"
 ## Dedicated v0.2 training state: never changes game race arrays or race_mode.
 var madison = preload("res://madison_exchange.gd").new()
+var trainer_feedback = preload("res://madison_trainer_feedback.gd").new()
 var animation: Node
 var race_mode := 6 # Adapter-local role identifier, never assigned to game.race_mode.
 var bikes: Array[Node3D] = []
@@ -31,6 +32,7 @@ var _zone_key := ""
 
 func _setup_session() -> void:
 	name = "MadisonTrainingEnvironment"
+	trainer_feedback.debug_log = OS.get_environment("MADISON_TRAINER_DEBUG") == "1"
 	page = game.setup_panel.madison_page; session = page.session; page.scene = self
 	store = game.setup_panel.training_store
 	popup = preload("res://race_popup.gd").new(); game.setup_panel.add_child(popup)
@@ -58,6 +60,7 @@ func enter() -> void:
 	player_lane_target = 2; player_lane_offset = 2.38
 	distances.assign([start_distance,start_distance+10.0]); speeds.assign([12.0,8.0]); lane_offsets.assign([2.38,3.58])
 	finish_times.fill(-1.0); baseline_speed = 12.0; finished = false
+	trainer_feedback.clear(game._now_s())
 	madison.reset(); madison.advanced = page.difficulty.selected == 1; input_sources.clear(); pending_trial = false
 	exchange_results.clear(); attempt_giver = 0; feedback = ""; feedback_until = 0; _zone_key = ""
 	partner_present = false; respawn_remaining = 0; fade_in_remaining = 0
@@ -97,10 +100,30 @@ func request_tempo(direction: int) -> void: steer(direction)
 func _phase_changed(phase: String, _giver: int, _receiver: int) -> void:
 	if phase == "APPROACH":
 		pending_trial = true; attempt_giver = madison.giver
-	elif phase == "SEPARATE": _score(false)
+	elif phase == "SEPARATE":
+		if not madison.failure_reason.is_empty(): trainer_feedback.clear(game._now_s())
+		_score(false)
 func _released(g: int, r: int, efficiency: float) -> void:
-	madison.apply_release(self,g,r,efficiency)
+	var exchange: Dictionary = madison.apply_release(self,g,r,efficiency)
+	trainer_feedback.start(exchange,game._now_s())
 	_score(efficiency > 0.0)
+func _drive_trainer(source, enabled: bool, live: bool, now: float) -> void:
+	# Expire against wall time even while simulation is paused; never replay a
+	# pulse after telemetry recovery or trainer acquisition.
+	if not enabled or not live or not game.trainer_control.owned:
+		trainer_feedback.clear(now)
+	var offset: float = trainer_feedback.grade(now)
+	game.trainer_control.grade_deadline = trainer_feedback.started_at+trainer_feedback.duration if not trainer_feedback.event.is_empty() else INF
+	game.trainer_control.debug_commands = trainer_feedback.debug_log
+	source.drive_trainer(game.trainer_control,enabled,clampf(road_grade+offset,-20,20),1.0-reduction,now,0,trainer_feedback.rate(now))
+	if trainer_feedback.debug_log and (not trainer_feedback.event.is_empty() or now < trainer_feedback.recovery_until):
+		print("MADISON_FEEDBACK_LOAD ",JSON.stringify({"at_s":now,"speed_mps":speeds[0],"offset_pct":offset,"requested_grade_pct":clampf(road_grade+offset,-20,20),"confirmed_simulation":game.trainer_control.state.get("confirmed_simulation")}))
+func release_trainer() -> void:
+	trainer_feedback.clear(game._now_s())
+	game.trainer_control.debug_commands = false
+	game.trainer_control.grade_deadline = INF
+	game.trainer_control.grade_rate = 10.0
+	super.release_trainer()
 func _score(success: bool) -> void:
 	if not pending_trial or page.progress.complete(): return
 	pending_trial = false
