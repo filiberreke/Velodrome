@@ -274,3 +274,7 @@ in actieve SIM, anders null; Ride-knopberichten blijven behouden.
 
 
 
+
+## Apparaatselectie
+
+De aanvullende commando's `devices` en `select_device` staan beschreven in [DEVICE_SELECTION.md](DEVICE_SELECTION.md). Ze gebruiken dezelfde envelope en deduplicatie, zonder trainerlease.

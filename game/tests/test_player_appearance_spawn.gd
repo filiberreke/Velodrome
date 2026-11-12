@@ -2,6 +2,10 @@ extends SceneTree
 ## Exercise the actual main.gd spawn/apply methods without trainer/network startup.
 const Appearance = preload("res://player_appearance.gd")
 var failures := 0
+class SpawnHost extends "res://main.gd":
+	func _ready() -> void: set_physics_process(false)
+	func _profile(_i): return 0
+	func _rider_name(i): return str(i)
 
 func check(ok: bool, message: String) -> void:
 	if not ok:
@@ -12,32 +16,13 @@ func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
-	var source := FileAccess.get_file_as_string("res://main.gd")
-	var start := source.find("func _spawn_peloton()")
-	var end := source.find("# AI riders: reactive drafting", start)
-	check(start >= 0 and end > start, "Main spawn methods missing")
-	if failures > 0:
-		quit(1)
-		return
-	var script := GDScript.new()
-	script.source_code = """extends Node3D
-const PlayerAppearance = preload("res://player_appearance.gd")
-var player_appearance = PlayerAppearance.new("user://test_spawn_appearance.cfg")
-var rider_count := 2
-var race_mode := 0
-var rider_kits := [{}, {}]
-var rider_config := ConfigFile.new()
-var rider_config_ready := true
-var bikes: Array[Node3D] = []
-func _profile(_i): return 0
-func _rider_name(i): return str(i)
-""" + source.substr(start, end - start)
-	check(script.reload() == OK, "Actual main spawn methods failed compilation")
-	if failures > 0:
-		quit(1)
-		return
 	for mode in [0, 4, 5]:
-		var host = script.new()
+		var host = SpawnHost.new()
+		host.player_appearance = Appearance.new("user://test_spawn_appearance.cfg")
+		host.rider_count = 2; host.team_size = 1
+		host.rider_identities.assign([{},{}])
+		host.rider_kits.assign([{}, {"country_kit":"belgium"}])
+		host.rider_config_ready = true
 		root.add_child(host)
 		host.race_mode = mode
 		host.rider_config.set_value("player", "country_kit", "belgium")

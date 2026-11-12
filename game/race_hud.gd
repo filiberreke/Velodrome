@@ -5,6 +5,8 @@ const MenuStyle := preload("res://menu_theme.gd")
 const INK := MenuStyle.INK
 const MUTED := MenuStyle.MUTED
 const ACCENT := MenuStyle.BLUE
+var pause_hint: Label
+var settings_hint: Label
 var signals: Control
 var power_label: Label
 var speed_label: Label
@@ -14,6 +16,7 @@ var slipstream_heading: HBoxContainer
 var left_stack: VBoxContainer
 var map_panel: Control
 var heart_label: Label
+var cadence_label: Label
 var gear_label: Label
 var energy_panel: VBoxContainer
 var energy_bar: ProgressBar
@@ -170,6 +173,7 @@ func _build_power() -> void:
 	speed_unit.size_flags_vertical = Control.SIZE_SHRINK_END
 	speed_row.add_child(speed_unit)
 	heart_label = _metric(column, "HARTSLAG", "— bpm")
+	cadence_label = _metric(column, "CADANS", "— rpm")
 	heart_label.tooltip_text = "Hartslag is voorlopig een placeholder"
 	gear_label = _metric(column, "VERSNELLING", "—")
 	gear_label.custom_minimum_size.x = 100
@@ -419,8 +423,14 @@ func _build_bottom() -> void:
 	help.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	help.add_theme_constant_override("separation", 8)
 	row.add_child(help)
-	help.add_child(text("ESC · Pauze", 17, MUTED))
-	help.add_child(text("F10 - Instellingen", 17, MUTED))
+	pause_hint = text("ESC · Pauze", 17, MUTED)
+	settings_hint = text("F10 - Instellingen", 17, MUTED)
+	help.add_child(pause_hint)
+	help.add_child(settings_hint)
+
+func set_keyboard_hints(mapping: RefCounted, profile: String) -> void:
+	pause_hint.text = mapping.caption(profile, "pause") + " · Pauze"
+	settings_hint.text = mapping.caption("global", "settings") + " - Instellingen"
 
 func _build_solo_checkpoints() -> void:
 	solo_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
@@ -502,7 +512,7 @@ func _build_pursuit_bar(row: HBoxContainer) -> void:
 	pursuit_center.add_theme_constant_override("separation", 0)
 	row.add_child(pursuit_center)
 	pursuit_lead_style = style(Color(0.8784, 0.9294, 0.9608, 0.9), Color.TRANSPARENT)
-	pursuit_trail_style = style(Color(0.9608, 0.9451, 0.9059, 0.75), Color.TRANSPARENT)
+	pursuit_trail_style = style(Color(0.72, 0.06, 0.13, 0.55), Color.TRANSPARENT)
 	pursuit_tie_style = style(Color(0.9608, 0.9451, 0.9059, 0.55), Color.TRANSPARENT)
 	for box in [pursuit_lead_style, pursuit_trail_style, pursuit_tie_style]:
 		box.set_content_margin_all(12)
@@ -680,6 +690,8 @@ func update_race(data: Dictionary) -> void:
 	slipstream_bar.tooltip_text = "%.0f%% minder luchtweerstand · maximaal %.0f%%" % [reduction, maximum]
 	var bpm: Variant = data.get("heart_rate_bpm", null)
 	heart_label.text = "%d bpm" % int(bpm) if (bpm is int or bpm is float) and int(bpm) > 0 else "— bpm"
+	var rpm: Variant = data.get("cadence_rpm", null)
+	cadence_label.text = "%d rpm" % roundi(float(rpm)) if (rpm is int or rpm is float) and is_finite(float(rpm)) and float(rpm) >= 0.0 else "— rpm"
 	# Selection alone never means ERG is active. Future bridge integration supplies
 	# these two fields only after confirming the actual trainer state.
 	var erg_watts: Variant = data.get("erg_target_w", null)
@@ -688,7 +700,8 @@ func update_race(data: Dictionary) -> void:
 		erg_active = is_finite(float(erg_watts)) and float(erg_watts) >= 0.0
 	gear_label.text = "ERG %.0f W" % float(erg_watts) if erg_active else str(data["gear"])
 	gear_label.get_parent().get_child(0).text = "WEERSTAND" if erg_active else "VERSNELLING"
-	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else "%d/%d" % [data["lap"], data["laps"]]
+	var lap_suffix: int = int(data.get("lap_credit", 0))
+	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if bool(data.get("points_race", false)) and lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]

@@ -12,6 +12,7 @@ var intro_check: CheckButton
 var crowd_slider: HSlider
 var crowd_label: Label
 var panel_root: Control
+var close_button: Button
 var open_button: Button
 var resolution_choice: OptionButton
 var scale_slider: HSlider
@@ -19,11 +20,14 @@ var scale_label: Label
 var fullscreen_check: CheckButton
 var rider_name_input: LineEdit
 var rider_weight_input: SpinBox
+var rider_ftp_input: SpinBox
 const Appearance = preload("res://player_appearance.gd")
 var appearance
+var keyboard_settings: Control
 var controller_test: Control
 var appearance_tabs: TabContainer
 var ride_tabs: Button
+var return_to_devices := false
 var return_focus: Control
 var suit_choice: OptionButton
 var helmet_choice: OptionButton
@@ -33,7 +37,7 @@ var appearance_status: Label
 const RIDER_PATH := "user://config/rider_profile.cfg"
 
 func _ready() -> void:
-	layer = 25
+	layer = 110
 	appearance = get_parent().get("player_appearance")
 	_load_settings()
 	_load_rider_profile()
@@ -95,6 +99,8 @@ func _save_rider_profile() -> void:
 	get_parent().set("player_display_name", name_text if not name_text.is_empty() else "JIJ")
 	get_parent().set("player_weight_kg", rider_weight_input.value)
 	var cfg := ConfigFile.new()
+	preload("res://config_paths.gd").load_user(cfg,"rider_profile.cfg")
+	if rider_ftp_input != null: cfg.set_value("rider","ftp_w",roundi(rider_ftp_input.value))
 	cfg.set_value("rider", "name", get_parent().get("player_display_name"))
 	cfg.set_value("rider", "weight_kg", get_parent().get("player_weight_kg"))
 	cfg.save(preload("res://config_paths.gd").user_path("rider_profile.cfg"))
@@ -184,6 +190,15 @@ func _build_menu() -> void:
 	rider_weight_input.step = 0.5
 	rider_weight_input.value = float(get_parent().get("player_weight_kg"))
 	box.add_child(rider_weight_input)
+	var ftp_label := Label.new()
+	ftp_label.text = "FTP (W)"
+	box.add_child(ftp_label)
+	rider_ftp_input = SpinBox.new()
+	rider_ftp_input.min_value = 20
+	rider_ftp_input.max_value = 1000
+	rider_ftp_input.step = 1
+	rider_ftp_input.value = preload("res://player_profile.gd").new().ftp()
+	box.add_child(rider_ftp_input)
 	_build_appearance_controls(box, player_tab)
 	box = VBoxContainer.new()
 	box.name = "Beeld"
@@ -248,7 +263,7 @@ func _build_menu() -> void:
 	intro_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(intro_hint)
 	var info := Label.new()
-	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nDruk op F10 om dit menu te openen of sluiten."
+	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nStel je sneltoetsen in op het tabblad Toetsenbord."
 	info.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(info)
 	box = VBoxContainer.new()
@@ -264,8 +279,11 @@ func _build_menu() -> void:
 	reconnect_button.pressed.connect(func(): get_parent().get("strava_client").call("reconnect"))
 	box.add_child(reconnect_button)
 	controller_test = preload("res://controller_settings.gd").new()
-	controller_test.name = "Controller"
+	controller_test.name = "Besturing"
 	appearance_tabs.add_child(controller_test)
+	keyboard_settings = preload("res://keyboard_settings.gd").new()
+	keyboard_settings.name = "Toetsenbord"
+	appearance_tabs.add_child(keyboard_settings)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)
 	outer.add_child(actions)
@@ -275,7 +293,7 @@ func _build_menu() -> void:
 	apply_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	apply_button.pressed.connect(_on_apply)
 	actions.add_child(apply_button)
-	var close_button := Button.new()
+	close_button = Button.new()
 	close_button.text = "Sluiten"
 	close_button.pressed.connect(_close_settings)
 	actions.add_child(close_button)
@@ -344,6 +362,7 @@ func _select_id(choice: OptionButton, id: String) -> void:
 	choice.select(0)
 
 func _sync_appearance_controls() -> void:
+	rider_ftp_input.value = preload("res://player_profile.gd").new().ftp()
 	rider_name_input.text = str(get_parent().get("player_display_name"))
 	rider_weight_input.value = float(get_parent().get("player_weight_kg"))
 	_select_id(suit_choice, appearance.suit_id)
@@ -376,13 +395,28 @@ func receive_controller_packet(packet: Dictionary) -> void:
 	if controller_test != null:
 		controller_test.call("receive_packet", packet)
 
+func open_device_mapping() -> void:
+	if not panel_root.visible: toggle_menu()
+	return_to_devices = true
+	close_button.text = "Terug naar apparaten"
+	keyboard_settings.context_choice.select(get_parent().keyboard_mapping.CONTEXTS.find(get_parent()._keyboard_profile()))
+	keyboard_settings.refresh()
+	appearance_tabs.current_tab = keyboard_settings.get_index()
+	_on_settings_tab_changed(appearance_tabs.current_tab)
+	keyboard_settings.context_choice.grab_focus()
+
 func _close_settings() -> void:
+	keyboard_settings.cancel_capture()
 	panel_root.hide()
+	close_button.text = "Sluiten"
 	appearance_preview.set_active(false)
 	if controller_test != null:
 		controller_test.call("set_testing", false)
 	if is_instance_valid(return_focus) and return_focus.is_visible_in_tree(): return_focus.grab_focus()
 	get_parent().call("_clear_look_back")
+	if return_to_devices:
+		return_to_devices = false
+		get_parent().bridge_devices.open_page()
 
 func _on_apply() -> void:
 	var error: Error = appearance.save_choices(_choice_id(suit_choice), _choice_id(helmet_choice), _choice_id(visor_choice))
@@ -415,8 +449,11 @@ func toggle_menu() -> void:
 		_on_settings_tab_changed(appearance_tabs.current_tab)
 		ride_tabs.grab_focus()
 
-func bridge_action(button: String) -> void:
-	if controller_test_active():
+func bridge_action(button: String, from_keyboard: bool = false) -> void:
+	if controller_test_active() and not from_keyboard:
+		if button in ["B", "Z"] and return_to_devices:
+			_close_settings()
+			return
 		if button == "Z":
 			appearance_tabs.current_tab = 0
 			ride_tabs.grab_focus()
@@ -433,13 +470,8 @@ func bridge_action(button: String) -> void:
 	# A controller test can only be left through Z, so no gameplay input escapes.
 	get_parent().ride_navigation.navigate(panel_root, button, ride_tabs, true)
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
-		toggle_menu()
-		get_viewport().set_input_as_handled()
-
 func _process(_delta: float) -> void:
-	# In-race access is F10, advertised beside ESC in the HUD footer.
+	open_button.text = "Instellingen: " + get_parent().keyboard_mapping.caption("global", "settings")
+	ride_tabs.text = "Tab: links/rechts · Controller: B/Z sluiten · Toetsenbord: " + get_parent().keyboard_mapping.caption("menu","back") + " sluiten"
 	if open_button != null:
-		var menu = get_parent().get("setup_panel")
-		open_button.visible = menu != null and menu.is_visible_in_tree()
+		open_button.visible = not panel_root.visible and (get_parent().get("bridge_devices") == null or not get_parent().bridge_devices.panel_root.visible)

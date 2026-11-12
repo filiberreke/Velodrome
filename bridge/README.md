@@ -184,3 +184,7 @@ en [GATT Specification Supplement](https://btprodspecificationrefs.blob.core.win
 Voor spel en bridge samen: [macOS-bundel en startinstructies](../packaging/macos-bundled/README.md).
 Dezelfde trainer-, Ride- en UDP-code draait op beide platforms; macOS gebruikt
 CoreBluetooth en libusb 1.0. Windows blijft zijn bestaande libusb0-driver gebruiken.
+
+## Apparaten kiezen in Godot
+
+Zie [apparaatselectie, protocol en beperkingen](DEVICE_SELECTION.md). Werk spel en bridge samen bij.

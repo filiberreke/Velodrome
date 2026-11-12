@@ -19,7 +19,10 @@ func run_test() -> void:
 	await process_frame
 	var menu = game.setup_panel
 	game.get_node("GameSettings").always_show_intro = true
-	check(menu.visible and menu.page == 1, "Opening screen is mode gallery")
+	check(menu.visible and menu.page == 0, "Opening screen is v0.2 main menu")
+	menu.show_choices()
+	await process_frame
+	await process_frame
 	check(menu.cards.size() == 10 and menu.previews.size() == 10, "Nine disciplines plus Records tile")
 	var expected := ["Scratch", "Achtervolging", "Ploegenachtervolging", "Puntenkoers", "Ploegkoers", "Afvalling", "Keirin"]
 	for i in range(7):
@@ -36,7 +39,7 @@ func run_test() -> void:
 	check(people.size() > 0, "Stadium crowd is available for race restoration")
 	for person in people:
 		check(not person.visible, "Stadium empty in menus")
-	for index in [4, 6, 7, 8]:
+	for index in [4, 8]:
 		menu.cards[index].pressed.emit()
 		check(menu.page == 2 and menu.settings_page.visible and not menu.choice_page.visible, "Card opens second menu")
 		check(menu.start_button.disabled and not menu.race_settings.visible, "Unimplemented mode cannot start")
@@ -85,7 +88,7 @@ func run_test() -> void:
 	check(game.start_state == "INTRO" and not game.race_overlay.visible, "Repeat-intro test setting applies to the second event")
 	game.broadcast_intro.finish()
 	check(game.race_mode == 1 and game.rider_count == 16 and game.race_laps == 40, "Points mode starts with its own settings")
-	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0), "Points CP configuration is passed through")
+	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], 265.0*game.ai_difficulty/100.) and is_equal_approx(game.x_ai.cp[2] / game.rider_forms[2], 240.0*game.ai_difficulty/100.), "Points CP configuration includes the selected AI strength")
 	game.start_state = "RACING"
 	game._update_hud()
 	check(game.race_overlay.visible and not game.race_overlay.status_panel.visible, "Points race uses compact HUD without the retired persistent sprint banner")

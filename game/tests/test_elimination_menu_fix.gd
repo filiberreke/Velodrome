@@ -44,8 +44,13 @@ func run_test()->void:
 		check(game.race_mode==2 and game.rider_count==amount,"Elimination keeps requested participant count")
 		game.broadcast_intro.finish()
 		for i in range(70):game._physics_process(.1)
+		check(game.start_state=="NEUTRAL" and game.running,"Elimination countdown enters the neutral opening lap")
+		game.watts=350
+		for i in range(1500):
+			if game.start_state!="NEUTRAL":break
+			game.neutral_start.step(game,.1)
 		check(game.start_state=="RACING" and game.running,"Elimination proceeds through countdown into racing")
-		check(is_equal_approx(game.x_ai.cp[1],float(game.rider_identities[1].cp_w)*game.rider_forms[1]),"Elimination retains main's fixed rider profiles and factors")
+		check(is_equal_approx(game.x_ai.cp[1],float(game.rider_identities[1].cp_w)*game.rider_forms[1]*game.ai_difficulty/100.),"Elimination applies strength after rider identity and form")
 		if amount==4:
 			while game.elimination_rules.remaining_count()==4 and game.clock<250:
 				game.clock+=.1;game.watts=350;game._update_race(.1)

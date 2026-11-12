@@ -171,7 +171,7 @@ func _show_step()->void:
 	proceed_button.text="Start wedstrijd →"if step==2 else"Kies tegenstander →"
 	menu.page_title.text="Kies je tegenstander"if step==2 else"Stel je wedstrijd in"
 	menu.page_title.add_theme_font_size_override("font_size",36)
-	menu.breadcrumb.text="↑/↓ Onderdeel kiezen    ·    ←/→ Aanpassen    ·    A Bevestigen    ·    B Terug"
+	menu.breadcrumb.text=menu.get_parent().keyboard_mapping.menu_hint()
 	if step==2:summary_label.text="%s  ·  %d km%s"%["Ploegenachtervolging"if team else"Achtervolging",options.distance_m()/1000,"  ·  %d renners"%options.team_size()if team else""]
 	update_bridge();_bridge_default_focus.call_deferred()
 

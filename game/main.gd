@@ -2,8 +2,14 @@ extends Node3D
 const MenuSkin := preload("res://menu_theme.gd")
 signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
+const TrainerSignal := preload("res://trainer_signal.gd")
 const TrainerControl := preload("res://trainer_control.gd")
 var trainer_control = TrainerControl.new()
+var training_environment
+var piste_training
+var derny_training_environment
+var madison_training_environment
+var exercise_training_environment
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
@@ -88,8 +94,12 @@ const TRACK_OUTER_EDGE := 9.03
 const FRONT_WHEEL_TIP_M := 1.110
 const RADIUS := 18.0
 const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
-const PURSUIT_START_M := LAP - STRAIGHT * 0.5
-const NEUTRAL_DEPARTURE_M := -STRAIGHT * 0.5
+# Finish is on the final straight, 2 m before the smooth bend entry.
+const FINISH_STRAIGHT_CLEARANCE_M := 2.0
+const FINISH_REFERENCE_S := preload("res://track_geometry.gd").TRANSITION * 0.5 + FINISH_STRAIGHT_CLEARANCE_M
+const PURSUIT_START_M := LAP + FINISH_REFERENCE_S - STRAIGHT * 0.5
+const NEUTRAL_DEPARTURE_M := FINISH_REFERENCE_S - STRAIGHT * 0.5
+const OPPOSITE_STRAIGHT_GATE_M := fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 const UDP_PORT := 51723
 # Player selection is finer than AI corridors; physical track geometry is unchanged.
 const PLAYER_LANE_STEP_M := 0.60
@@ -119,7 +129,8 @@ var draft_leaders: Array[int] = [-1, -1, -1, -1]
 const BLUE_APRON_BANK_DEG := 12.0
 const STRAIGHT_BANK_DEG := 12.0
 const CORNER_BANK_DEG := 42.0
-const BANK_TRANSITION_M := 12.0
+const BANK_TRANSITION_M := 36.0
+var track_geometry := preload("res://track_geometry.gd").new()
 const LANE_CHANGE_MPS := 1.15
 var lane_offsets: Array[float] = [1.18, 2.38, 3.58, 4.78]
 var ai_lane_targets: Array[float] = [1.18, 2.38, 3.58, 4.78]
@@ -132,6 +143,8 @@ var rider_names: Array[String] = ["JIJ", "TIJDRIJDER", "SPRINTER", "AANVALLER"]
 var rider_forms: Array[float] = [1.0, 1.0, 1.0, 1.0]
 var rider_kits: Array[Dictionary] = []
 var race_mode := 0
+var keirin_percent := 100.0
+var keirin = preload("res://keirin_race.gd").new()
 var rider_count_input: SpinBox
 var form_rng := RandomNumberGenerator.new()
 var rider_config := ConfigFile.new()
@@ -168,6 +181,7 @@ func _form(i: int) -> float:
 	return rider_forms[i] if i < rider_forms.size() else 1.0
 
 func _configure_peloton() -> void:
+	if race_mode == 3: rider_count = 6; race_laps = 6
 	neutral_start.reset()
 	flying_start.reset()
 	if race_mode == 5:
@@ -190,7 +204,7 @@ func _configure_peloton() -> void:
 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
 		# 1 = TT, 2 = sprinter, 3 = attacker.
 		var configured: Dictionary = _configured_rider(i, kind) if i > 0 else {"profile": 0, "name": player_display_name}
-		if race_mode in [0,1,2] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
+		if race_mode in [0,1,2,3] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
 			configured = selected_startlist[i - 1].duplicate(true)
 		if race_mode == 4 and i > 0:
 			configured = pursuit_opponent_config.duplicate(true) if not pursuit_opponent_config.is_empty() else _configured_rider(1, 1)
@@ -259,11 +273,12 @@ func _configure_peloton() -> void:
 	if race_mode in [0, 1, 2]:
 		neutral_start.distance_offset = -NEUTRAL_DEPARTURE_M
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
-	if race_mode in [0, 1, 2]:
-		x_ai = PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())
+	if race_mode in [0, 1, 2, 3]:
+		x_ai = preload("res://keirin_ai.gd").new() if race_mode == 3 else (PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new()))
 		if race_mode == 1: x_ai.jury = points_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 		x_ai.configure_riders(rider_identities, rider_forms)
+		x_ai.apply_ai_strength(ai_difficulty)
 	if race_mode == 2:
 		var rear_positions: Array[float] = []
 		_elimination_clock_ready = false; _elimination_accumulator = 0.0; _elimination_ticks = 0
@@ -282,6 +297,10 @@ func _configure_peloton() -> void:
 	if peloton_markers == null:
 		peloton_markers = preload("res://peloton_markers.gd").new()
 		add_child(peloton_markers)
+	if race_mode == 3:
+		keirin.percent = keirin_percent
+		keirin.configure(self)
+	else: keirin.hide()
 	infield_riders_changed.emit()
 
 func _spawn_peloton() -> void:
@@ -486,6 +505,7 @@ func _reset_pc_energy() -> void:
 	pc_power_limit_watts = -1.0
 var trainer_speed_kmh := -1.0
 var trainer_ready := false
+var trainer_virtual := false
 var trainer_seen := false
 var zero_stable := 0.0
 const ZERO_CONFIRM_SECONDS := 1.0
@@ -507,7 +527,7 @@ var last_telemetry := -100.0
 # beta.16.14: a short KICKR/Bluetooth dropout no longer freezes the race. For up to
 # DROPOUT_HOLD_SECONDS after the last valid sample the game keeps riding on the last
 # known power and cadence; only a longer outage pauses the race (as before).
-const DROPOUT_HOLD_SECONDS := 10.0
+const DROPOUT_HOLD_SECONDS := TrainerSignal.HOLD_SECONDS
 var last_good_watts := 0.0
 var last_good_cadence := -1.0
 var dropout_since := -1.0
@@ -556,8 +576,12 @@ var keyboard_look_back := false
 var ride_look_back := false
 var ride_look_source := "B"
 var ride_buttons: Dictionary = {}
+var keyboard_mapping := preload("res://keyboard_mapping.gd").new()
+var keyboard_held := {}
+var keyboard_capture_releases := {}
 var ride_mapping := preload("res://ride_mapping.gd").new()
 var last_controller_signal := -1.0
+var bridge_devices: CanvasLayer
 var ride_navigation: CanvasLayer
 # Visual-only lean; race physics remains untouched.
 var visual_rolls: Array[float] = [0.0, 0.0, 0.0, 0.0]
@@ -591,6 +615,8 @@ func _ready() -> void:
 	if not FileAccess.file_exists(legacy_mapping):
 		legacy_mapping = ProjectSettings.globalize_path("res://").path_join("../bridge/button_mapping.json")
 	ride_mapping.load_settings(ride_mapping.PATH, legacy_mapping)
+	keyboard_mapping.load_settings()
+	keyboard_mapping.apply_ui()
 	player_appearance.load_preferences()
 	Engine.max_fps = 90
 	if _bind_bridge() != OK:
@@ -614,6 +640,9 @@ func _ready() -> void:
 	add_child(exit_menu)
 	exit_menu.setup(self)
 	_reset()
+	setup_panel.show_hub()
+	bridge_devices = preload("res://bridge_devices.gd").new()
+	add_child(bridge_devices)
 
 func _bind_bridge(port: int = UDP_PORT) -> Error:
 	bridge_bind_error = udp.bind(port, "127.0.0.1")
@@ -632,7 +661,16 @@ func _begin_dropout(since: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_read_bridge()
-	if _now_s() - last_telemetry > 1.0:
+	if piste_training != null and piste_training.active:
+		exit_menu.set_exit_visible(false)
+		piste_training.advance(delta)
+		return
+	if training_environment != null and training_environment.active:
+		trainer_control.tick(false, 0.0, 1.0, _now_s())
+		exit_menu.set_exit_visible(false)
+		training_environment.advance(delta)
+		return
+	if _now_s() - last_telemetry > TrainerSignal.LIVE_SECONDS:
 		trainer_ready = false
 		_begin_dropout(last_telemetry)
 		if connected:
@@ -653,6 +691,7 @@ func _physics_process(delta: float) -> void:
 		trainer_control.tick(false, 0.0, 1.0, _now_s())
 		return
 	if start_state == "INTRO": broadcast_intro.advance(delta)
+	var keirin_player_already_finished: bool = finished
 	if not finished:
 		if start_state == "WAIT_STOP":
 			var stopped: bool = _start_conditions_met()
@@ -683,7 +722,7 @@ func _physics_process(delta: float) -> void:
 				_update_race(delta)
 	# After the player finishes, let AI riders complete their own races.
 	# The player's distance and time are frozen by finish_times[0].
-	if finished and start_state == "RACING" and not _all_riders_finished():
+	if finished and start_state == "RACING" and not _all_riders_finished() and (race_mode != 3 or keirin_player_already_finished):
 		clock += delta
 		_update_race(delta)
 	# Run each finished rider's coast immediately after THEIR finish, even while
@@ -719,6 +758,8 @@ func _begin_riding() -> void:
 		ride_start_unix = int(Time.get_unix_time_from_system())
 	if race_mode in [0, 1, 2]:
 		neutral_start.begin(self)
+	elif race_mode == 3:
+		keirin.begin(self)
 	elif race_mode == 7 and time_trial_start_type == "flying":
 		flying_start.begin(self)
 	else:
@@ -746,6 +787,7 @@ func _finish_neutral_start() -> void:
 	peloton_info.clear()
 	x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 	x_ai.configure_riders(rider_identities, rider_forms)
+	x_ai.apply_ai_strength(ai_difficulty)
 	start_state = "RACING"
 
 func _finish_flying_start() -> void:
@@ -800,25 +842,111 @@ func _final_start_speed_ok() -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.keycode == KEY_B and not event.pressed:
-		keyboard_look_back = false
-		_refresh_look_back()
-	# Escape must also work when a race HUD button has keyboard focus.
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
-		var preferences := get_node_or_null("GameSettings")
-		if ride_navigation != null and ride_navigation.keyboard_action("B"):
-			pass
-		elif preferences != null and preferences.panel_root.visible:
-			preferences._close_settings()
-		elif exit_menu != null and exit_menu.quitting_application:
-			exit_menu.cancel_or_resume()
-		elif race_paused:
-			exit_menu.cancel_or_resume()
-		elif start_state not in ["SETUP", "INTRO"] and not finished:
-			_pause_race()
-		else:
-			return
+	if _madison_training_active() and event is InputEventJoypadButton and event.button_index == JOY_BUTTON_A and (not event.pressed or _ride_context() == "piste"):
+		piste_training.grab_button("joy:%d" % event.device,event.pressed)
 		get_viewport().set_input_as_handled()
+		return
+	if not event is InputEventKey: return
+	var key := event as InputEventKey
+	var preferences := get_node_or_null("GameSettings")
+	if preferences != null and preferences.keyboard_settings.consume(key):
+		if key.pressed: keyboard_capture_releases[key.keycode] = true
+		else: keyboard_capture_releases.erase(key.keycode)
+		get_viewport().set_input_as_handled()
+		return
+	if keyboard_capture_releases.has(key.keycode):
+		if not key.pressed: keyboard_capture_releases.erase(key.keycode)
+		get_viewport().set_input_as_handled()
+		return
+	# Release by base key even if modifiers, focus or active profile changed.
+	if not key.pressed:
+		if keyboard_held.has(key.keycode):
+			if keyboard_held[key.keycode] == "madison_grab" and _madison_training_active():
+				piste_training.grab_button("keyboard",false)
+			if keyboard_held[key.keycode] == "look_back":
+				keyboard_look_back = false
+				_refresh_look_back()
+			keyboard_held.erase(key.keycode)
+			get_viewport().set_input_as_handled()
+		return
+	var action: String = keyboard_mapping.action_for("global", key)
+	if not action.is_empty():
+		if not key.echo: preferences.toggle_menu()
+		get_viewport().set_input_as_handled()
+		return
+	if not keyboard_mapping.enabled: return
+	var scope := _ride_context()
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused is LineEdit and scope not in ["race","piste"] and keyboard_mapping.action_for("menu", key) != "back": return
+	var profile := _keyboard_profile() if scope in ["race","piste"] else "menu"
+	action = keyboard_mapping.action_for(profile, key)
+	if scope == "results" and keyboard_mapping.action_for(_keyboard_profile(), key) == "restart": action = "restart"
+	if action.is_empty(): return
+	get_viewport().set_input_as_handled()
+	if key.echo: return
+	keyboard_held[key.keycode] = action
+	if scope == "results" and action == "restart":
+		_restart_same_race()
+		return
+	if profile == "menu":
+		var token: String = {"up":"UP","down":"DOWN","left":"LEFT","right":"RIGHT","accept":"A","back":"B"}.get(action, "")
+		if scope == "settings":
+			preferences.bridge_action(token, true)
+		else: _ride_action(token, "KEYBOARD")
+		return
+	_keyboard_race_action(action)
+
+func _keyboard_profile() -> String:
+	if piste_training != null and piste_training.active:
+		return ("madison_simulator" if piste_training.using_simulator() else "madison_race") if _madison_training_active() else ("simulator" if piste_training.using_simulator() else "race")
+	# A lost trainer signal must not turn an existing trainer session into a demo.
+	return "race" if trainer_seen or connected else "simulator"
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	_input(event)
+
+func _keyboard_race_action(action: String) -> void:
+	var training: bool = piste_training != null and piste_training.active and _ride_context() == "piste"
+	match action:
+		"madison_grab":
+			if training and _madison_training_active(): piste_training.grab_button("keyboard",true)
+		"shift_up", "shift_down":
+			if connected and (training or (_riding() and not finished)):
+				trainer_control.shift(1 if action == "shift_up" else -1, _now_s())
+		"camera_next": _cycle_camera(1)
+		"camera_previous": _cycle_camera(-1)
+		"look_back":
+			keyboard_look_back = training or not finished
+			_refresh_look_back()
+		"rider_info": _cycle_rider_names()
+		"steer_left": _steer_player(-1)
+		"steer_right": _steer_player(1)
+		"pause":
+			if training: piste_training.page.finish("Handmatig gestopt")
+			else: _pause_race()
+		"tempo_up", "tempo_down":
+			if training: piste_training.request_tempo(1 if action == "tempo_up" else -1)
+		"power_up", "power_down":
+			var delta := 25.0 if action == "power_up" else -25.0
+			if training and piste_training.using_simulator(): piste_training.demo_power = clampf(piste_training.demo_power + delta, 0, 1000)
+			elif not connected and not trainer_seen:
+				if _riding(): watts = clampf(watts + delta, 0, PC_MAX_REQUEST_W)
+				else: demo_launch_watts = clampf(demo_launch_watts + delta, 0, PC_MAX_REQUEST_W)
+		"record":
+			if training: piste_training._persist(false)
+			else: _save_recording("manual")
+		"restart":
+			if finished: _restart_same_race()
+			else: _reset()
+		"developer":
+			if race_overlay != null and race_overlay.is_visible_in_tree(): race_overlay.toggle_developer()
+		"boost":
+			if not trainer_seen and start_state == "RACING" and running and not finished and not boost_used and race_mode not in [1,4,5]:
+				boost_left = BOOST_DURATION
+				boosted_speed = speeds[0]
+				baseline_speed = speeds[0]
+				recovery_left = 0.0
+				boost_used = true
 
 func _pause_race() -> void:
 	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
@@ -837,77 +965,12 @@ func _resume_race() -> void:
 	exit_menu.hide_pause()
 
 func _quit_application() -> void:
+	if setup_panel != null and setup_panel.workout_play_page != null: setup_panel.workout_play_page.shutdown()
+	if piste_training != null and piste_training.active: piste_training.finish_session("Spel gesloten",false)
+	if setup_panel != null and setup_panel.ftp_page != null: setup_panel.ftp_page.shutdown()
 	trainer_control.close()
 	_save_recording("exit")
 	get_tree().quit()
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if race_paused: return
-	var key_event := event as InputEventKey
-	if key_event == null or key_event.echo:
-		return
-	if key_event.keycode == KEY_B and not key_event.pressed:
-		keyboard_look_back = false
-		_refresh_look_back()
-		return
-	var preferences := get_node_or_null("GameSettings")
-	if preferences != null and preferences.panel_root.visible: return
-	if setup_panel != null and setup_panel.visible:
-		# The menu owns navigation; race shortcuts must not reset/quit it.
-		return
-	if broadcast_intro != null and broadcast_intro.active:
-		if key_event.pressed and key_event.keycode in [KEY_ENTER, KEY_SPACE]: broadcast_intro.finish()
-		elif key_event.pressed and key_event.keycode == KEY_R: _reset()
-		elif key_event.pressed and key_event.keycode == KEY_ESCAPE: _reset()
-		return
-	# Handle both key-down and key-up, without modifying the selected camera mode.
-	if key_event.keycode == KEY_B:
-		keyboard_look_back = key_event.pressed and not finished
-		_refresh_look_back()
-		return
-	if not key_event.pressed:
-		return
-	match key_event.keycode:
-		KEY_X:
-			if race_overlay != null and race_overlay.is_visible_in_tree():
-				race_overlay.toggle_developer()
-		KEY_V:
-			if not key_event.echo: _cycle_rider_names()
-		KEY_R:
-			if finished: _restart_same_race()
-			else: _reset()
-		KEY_C:
-			camera_mode = (camera_mode + 1) % 4
-			# Never display own model in first-person view.
-			bikes[0].visible = look_back_held or camera_mode != 2
-		KEY_P:
-			_save_recording("manual")
-		KEY_A, KEY_LEFT:
-			_steer_player(-1)
-		KEY_D, KEY_RIGHT:
-			_steer_player(1)
-		KEY_UP, KEY_EQUAL:
-			if not trainer_seen:
-				if _riding():
-					watts = minf(PC_MAX_REQUEST_W, watts + 25.0)
-				else:
-					demo_launch_watts = minf(PC_MAX_REQUEST_W, demo_launch_watts + 25.0)
-		KEY_DOWN, KEY_MINUS:
-			if not trainer_seen:
-				if _riding():
-					watts = maxf(0.0, watts - 25.0)
-				else:
-					demo_launch_watts = maxf(0.0, demo_launch_watts - 25.0)
-		KEY_SPACE:
-			if not trainer_seen and start_state == "RACING" and running and not finished and not boost_used and race_mode not in [1, 4, 5]:
-				boost_left = BOOST_DURATION
-				boosted_speed = speeds[0]
-				baseline_speed = speeds[0]
-				recovery_left = 0.0
-				boost_used = true
-		KEY_ESCAPE:
-			if finished: _reset()
-			else: _pause_race()
 
 func _cycle_camera(direction: int) -> void:
 	camera_mode = posmod(camera_mode + direction, CAMERA_NAMES.size())
@@ -919,6 +982,8 @@ func _refresh_look_back() -> void:
 	if not bikes.is_empty(): bikes[0].visible = look_back_held or camera_mode != 2
 
 func _clear_look_back() -> void:
+	if _madison_training_active(): piste_training.grab_button("keyboard",false)
+	keyboard_held.clear()
 	keyboard_look_back = false
 	ride_look_back = false
 	_refresh_look_back()
@@ -926,27 +991,46 @@ func _clear_look_back() -> void:
 func _ride_context() -> String:
 	var preferences := get_node_or_null("GameSettings")
 	if preferences != null and preferences.panel_root.visible: return "settings"
+	if bridge_devices != null and bridge_devices.panel_root.visible: return "devices"
 	if race_paused or (exit_menu != null and exit_menu.quitting_application): return "pause"
+	if piste_training != null and piste_training.active: return "piste"
 	if setup_panel != null and setup_panel.visible: return "setup"
 	if broadcast_intro != null and broadcast_intro.active: return "intro"
 	if finished: return "results"
 	return "race"
 
 func _ride_action(key: String, source: String = "B") -> void:
+	if piste_training != null and piste_training.active and _ride_context() == "piste":
+		if source.begins_with("SHIFT_"): return
+		if key in ["LEFT","RIGHT"]: piste_training.request_tempo(1 if key == "RIGHT" else -1)
+		elif key == "Y": _cycle_rider_names()
+		elif key == "UP": _cycle_camera(-1)
+		elif key == "DOWN": _cycle_camera(1)
+		elif key == "B":
+			ride_look_source = source
+			ride_look_back = true
+			_refresh_look_back()
+		elif key == "Z": piste_training.page.finish("Handmatig gestopt")
+		return
+	# Physical gears stay owned by the bridge during training, including when
+	# a user mapped their shift paddles to menu confirmation/back actions.
+	if setup_panel != null and setup_panel.visible and setup_panel.page in [8,14] and source.begins_with("SHIFT_"):
+		return
 	var preferences := get_node_or_null("GameSettings")
 	# The diagnostic page consumes every gameplay action. Z explicitly exits it.
 	if preferences != null and preferences.controller_test_active():
-		if key == "Z": preferences.bridge_action(key)
+		if key == "Z" or (key == "B" and preferences.return_to_devices): preferences.bridge_action(key)
 		return
 	if ride_navigation != null and ride_navigation.keyboard_action(key): return
 	match _ride_context():
+		"devices": bridge_devices.bridge_action(key)
 		"settings": preferences.bridge_action(key)
 		"pause":
 			if key in ["B", "Z"]: exit_menu.cancel_or_resume()
 			else: ride_navigation.navigate(exit_menu.backdrop, key, exit_menu.resume_button, true)
 		"setup":
 			if key == "Z": preferences.toggle_menu()
-			elif key == "B" and setup_panel.page == 1: exit_menu.show_quit()
+			elif key == "B" and setup_panel.page == 0: exit_menu.show_quit()
 			elif setup_panel.selected in [1, 2] and setup_panel.pursuit_flow.visible:
 				# The pursuit flow owns its rows; generic range editing must not
 				# consume arrows or A before that screen can navigate/confirm.
@@ -975,9 +1059,18 @@ func _ride_action(key: String, source: String = "B") -> void:
 				"DOWN": _cycle_camera(1)
 
 func _ride_profile() -> String:
-	return "race" if _ride_context() == "race" else "menu"
+	return "race" if _ride_context() in ["race","piste"] else "menu"
+
+func _madison_training_active() -> bool:
+	return piste_training != null and piste_training.active and piste_training.has_method("grab_button")
+
+func _madison_release_input() -> void:
+	if _madison_training_active(): piste_training.grab_button("ride:A",false)
 
 func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
+	if _madison_training_active() and not testing and packet.get("source_button") == "A" and packet.get("pressed") is bool and (not packet.pressed or _ride_context() == "piste"):
+		piste_training.grab_button("ride:A",packet.pressed)
+		return
 	var source := ride_mapping.physical(str(packet.get("source_button", "")))
 	if source not in ride_mapping.BUTTONS or not packet.get("pressed") is bool: return
 	if packet.pressed:
@@ -986,10 +1079,14 @@ func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
 		var trigger := "press"
 		if not action.is_empty(): trigger = ride_mapping.profiles[_ride_profile()][action].trigger
 		var key: String = ride_mapping.KEYS.get(action, "")
+		if key.is_empty() and piste_training != null and piste_training.active and source in ["LEFT","RIGHT","UP","DOWN"]: key = source
 		# Older/custom bridge files remain authoritative until a UI mapping is saved.
 		if not ride_mapping.customized and packet.has("mapped_action"):
 			key = str(packet.mapped_action) if not source.begins_with("SHIFT_") else ""
 			trigger = "hold" if key == "B" and _ride_profile() == "race" else "press"
+		if piste_training != null and piste_training.active and source in ["LEFT","RIGHT"]:
+			key = source
+			trigger = "press"
 		ride_buttons[source] = {"context":_ride_context(), "key":key, "trigger":trigger, "testing":testing}
 		if testing:
 			var preferences := get_node("GameSettings")
@@ -1004,11 +1101,17 @@ func _ride_raw_button(packet: Dictionary, testing: bool) -> void:
 			_ride_action(edge.key, source)
 
 func _steer_player(direction: int) -> void:
+	if piste_training != null and piste_training.active and _ride_context() == "piste":
+		piste_training.steer(direction)
+		return
 	if _ride_context() != "race" or not running or finished or not _riding():
 		return
 	if race_mode == 5:
 		if direction > 0:
 			team_race.request_player_exchange()
+		return
+	if race_mode == 3:
+		if keirin.phase == "FREE": player_lane = 2 if direction > 0 else 0
 		return
 	player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
@@ -1035,12 +1138,17 @@ func _process_steering(value: Variant) -> void:
 		return
 	steering_direction = direction
 	steering_steps = 1
+	if piste_training != null and piste_training.active and _ride_context() == "piste":
+		piste_training.steer(direction)
+		return
 	# Consume presses during menus/countdown so holding through GO cannot steer.
 	if _ride_context() != "race" or not running or finished or not _riding():
 		return
 	if race_mode == 5:
 		if direction > 0:
 			team_race.request_player_exchange()
+	elif race_mode == 3:
+		if keirin.phase == "FREE": player_lane = 2 if direction > 0 else 0
 	else:
 		player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
@@ -1051,6 +1159,12 @@ func _process_bridge_json(raw: String) -> void:
 	_process_bridge_packet(parser.data)
 
 func _process_bridge_packet(packet: Dictionary) -> void:
+	if setup_panel != null and setup_panel.ftp_page != null:
+		setup_panel.ftp_page.receive(packet, _now_s())
+	if setup_panel != null and setup_panel.workout_play_page != null:
+		setup_panel.workout_play_page.receive(packet,_now_s())
+	if packet.get("type") == "telemetry" and exercise_training_environment != null and exercise_training_environment.active:
+		exercise_training_environment.receive_power_sample(_now_s())
 	var preferences: Node = get_node_or_null("GameSettings")
 	var testing: bool = preferences != null and preferences.call("controller_test_active")
 	if packet.get("type", "") in ["controller_button", "controller_connection"]:
@@ -1059,9 +1173,11 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 		last_controller_signal = _now_s()
 		if packet.get("type") == "controller_connection":
 			if not bool(packet.get("connected", false)):
+				_madison_release_input()
 				ride_buttons.clear()
 				ride_look_back = false
 			elif packet.get("buttons") is Array:
+				if "A" not in packet.buttons: _madison_release_input()
 				for held in ride_buttons.keys():
 					if held not in packet.buttons: ride_buttons.erase(held)
 				if ride_look_source not in packet.buttons: ride_look_back = false
@@ -1076,6 +1192,7 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	elif packet.get("type", "") == "telemetry":
 		if not trainer_seen and _riding() and not testing and _ride_context() == "race":
 			_reset() # Avoid attaching a live trainer mid-demo with a flying start.
+		trainer_virtual = packet.get("virtual",false) == true
 		_apply_bridge_optional_fields(packet)
 		trainer_seen = true
 		trainer_ready = bool(packet.get("valid", false))
@@ -1111,6 +1228,9 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 	elif packet.get("type", "") == "button":
 		var key := str(packet.get("button", ""))
 		var source: String = ride_mapping.physical(str(packet.get("source_button", key)))
+		if _madison_training_active() and _ride_context() == "piste" and not testing and source == "A":
+			piste_training.grab_button("ride:A",bool(packet.get("pressed",true)))
+			return
 		# Raw edges already routed this press; suppress the bridge's legacy copy.
 		if ride_buttons.has(source): return
 		if packet.get("pressed", true) != true: return
@@ -1149,6 +1269,7 @@ func _apply_bridge_optional_fields(packet: Dictionary) -> void:
 
 func _expire_bridge_optional_fields(now: float) -> void:
 	if last_controller_signal >= 0.0 and now - last_controller_signal > 2.0:
+		_madison_release_input()
 		ride_look_back = false
 		ride_buttons.clear()
 		last_controller_signal = -1.0
@@ -1163,7 +1284,7 @@ func _expire_bridge_optional_fields(now: float) -> void:
 
 func _restart_same_race() -> void:
 	if replay_setup.is_empty(): return
-	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "keirin_percent", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		set(key, replay_setup[key])
 	_restarting_event = true
 	_reset()
@@ -1179,6 +1300,9 @@ func _restart_same_race() -> void:
 	start_state = "WAIT_STOP"
 
 func _reset() -> void:
+	if piste_training != null and piste_training.active:
+		piste_training.finish_session("Training verlaten",false)
+		piste_training.page.environment_requested.emit(false)
 	_clear_look_back()
 	pursuit_start.clear()
 	race_paused = false
@@ -1280,7 +1404,7 @@ func _draft_target(rider: int) -> float:
 		draft_leaders[rider] = -1
 		return 0.0
 	# Non-scratch modes retain the exact prior drafting model.
-	if race_mode not in [0, 1, 2]:
+	if race_mode not in [0, 1, 2, 3]:
 		if speeds[rider] < DRAFT_MIN_SPEED_MPS:
 			return 0.0
 		var old_best := 0.0
@@ -1313,7 +1437,7 @@ func _draft_target(rider: int) -> float:
 	for other in range(rider_count):
 		if other == rider or finish_times[other] >= 0.0:
 			continue
-		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2] else distances[other] - distances[rider]
+		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2, 3] else distances[other] - distances[rider]
 		if gap <= 0.35 or gap >= 9.0:
 			continue
 		var lateral: float = absf(lane_offsets[other] - lane_offsets[rider])
@@ -1323,7 +1447,7 @@ func _draft_target(rider: int) -> float:
 		if real_gap < 1.0 or real_gap > 9.0:
 			continue
 		var drag_benefit: float = 0.62 * maxf(0.0, 1.0 - gap / 10.0) * maxf(0.18, 1.0 - lateral / 1.25)
-		if race_mode in [0, 1, 2]:
+		if race_mode in [0, 1, 2, 3]:
 			var more_wheels := 0
 			for third in range(rider_count):
 				if third == rider or finish_times[third] >= 0.0:
@@ -1352,7 +1476,7 @@ func _effective_draft_strength(rider: int) -> float:
 	if race_mode in [4, 5, 7]:
 		return 0.0
 	var strength: float = clampf(draft_strengths[rider], 0.0, 1.0)
-	if race_mode not in [0, 1, 2]:
+	if race_mode not in [0, 1, 2, 3]:
 		return strength
 	var speed_ratio: float = clampf((speeds[rider] - SCRATCH_DRAFT_RAMP_START_MPS) / (SCRATCH_DRAFT_RAMP_END_MPS - SCRATCH_DRAFT_RAMP_START_MPS), 0.0, 1.0)
 	return strength * lerpf(SCRATCH_DRAFT_LOW_SPEED_SCALE, 1.0, speed_ratio)
@@ -1360,14 +1484,14 @@ func _effective_draft_strength(rider: int) -> float:
 func _draft_drag_reduction(rider: int) -> float:
 	if race_mode in [4, 5, 7]:
 		return 0.0
-	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2] else DRAFT_MAX_DRAG_REDUCTION
+	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2, 3] else DRAFT_MAX_DRAG_REDUCTION
 	return limit * _effective_draft_strength(rider)
 
 func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
 	if race_mode in [4, 5, 7]:
 		draft_strength = 0.0
 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
-	if race_mode in [0, 1, 2, 4, 5]:
+	if race_mode in [0, 1, 2, 3, 4, 5]:
 		var v: float = maxf(current_speed, 0.0)
 		var aero_factor: float = maxf(1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION, 1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION * draft_strength)
 		var drag: float = 0.5 * 1.20 * 0.334 * v * v * aero_factor
@@ -1384,20 +1508,7 @@ func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength
 # Lane distances are physical: outside riders must travel further around both bends.
 # Smoothly bank corners and transition into/out of the straights.
 func _bank_angle(s: float) -> float:
-	var d: float = fposmod(s, LAP)
-	var corner_progress: float = -1.0
-	var arc_length: float = PI * RADIUS
-	if d >= STRAIGHT and d <= STRAIGHT + arc_length:
-		corner_progress = d - STRAIGHT
-	elif d >= 2.0 * STRAIGHT + arc_length:
-		corner_progress = d - (2.0 * STRAIGHT + arc_length)
-	if corner_progress < 0.0:
-		return deg_to_rad(STRAIGHT_BANK_DEG)
-	var entry: float = clampf(corner_progress / BANK_TRANSITION_M, 0.0, 1.0)
-	var exit_factor: float = clampf((arc_length - corner_progress) / BANK_TRANSITION_M, 0.0, 1.0)
-	var a: float = minf(entry, exit_factor)
-	var smooth: float = a * a * (3.0 - 2.0 * a)
-	return deg_to_rad(lerpf(STRAIGHT_BANK_DEG, CORNER_BANK_DEG, smooth))
+	return deg_to_rad(lerpf(STRAIGHT_BANK_DEG, CORNER_BANK_DEG, track_geometry.bend(s)))
 
 func _path_metric(s: float, offset: float) -> float:
 	# d(actual route distance)/d(reference 250 m distance), including banking.
@@ -1636,7 +1747,7 @@ func _update_trainer_control() -> void:
 	var live: bool = connected and trainer_ready
 	# Ignore very brief invalid samples only for an already active, owned session.
 	# The bridge retains its independent three-second safety watchdog.
-	var transient_gap: bool = racing and not live and trainer_control.owned and trainer_control.armed and last_telemetry >= 0.0 and _now_s() - last_telemetry <= 0.5
+	var transient_gap: bool = racing and not live and trainer_control.owned and trainer_control.armed and last_telemetry >= 0.0 and _now_s() - last_telemetry <= TrainerSignal.CONTROL_HOLD_SECONDS
 	var active: bool = racing and (live or transient_gap)
 	# Loss of the whole UDP stream releases our load. Remember only that
 	# release, so fresh telemetry can resume this race through the normal probe.
@@ -1689,6 +1800,9 @@ func elimination_simulation_time() -> float:
 	return _elimination_epoch + _elimination_ticks * ELIMINATION_PHYSICS_STEP
 
 func _advance_race(dt: float) -> void:
+	if race_mode == 3:
+		keirin.advance(self, dt)
+		return
 	if race_mode == 5:
 		team_race.step(self, dt)
 		return
@@ -1806,7 +1920,8 @@ func _advance_race(dt: float) -> void:
 	if race_mode == 1:
 		var old_finishes: Array[float] = finish_times.duplicate()
 		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
-		for message in points_notifications.collect(points_rules, _race_positions().max()):
+		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
+		for message in points_notifications.collect(points_rules, float(peloton_info.get("center", _race_positions().max()))):
 			if race_overlay != null: race_overlay.popup.enqueue(message)
 		for i in range(rider_count):
 			if old_finishes[i] < 0.0 and finish_times[i] >= 0.0:
@@ -1851,67 +1966,30 @@ func _advance_race(dt: float) -> void:
 		_save_recording("finish")
 
 # ONE coordinate transform for both geometry and banking/lean lookup.
-# Start and finish share the same physical line, at the END of the right-hand straight
-# when travelling CCW, immediately before the curved section.
+# Race distance zero is the painted finish on the final straight.
+# Keep a 2 m margin before the geometric transition starts when travelling CCW.
 func _track_s(distance: float) -> float:
-	return fposmod(-distance, LAP)
+	return fposmod(FINISH_REFERENCE_S - distance, LAP)
 
 func _at(distance: float, offset: float) -> Vector3:
-	# Counter-clockwise velodrome: reversed traversal of the old clockwise path.
-	# Positive offsets stay toward the outside, independent of direction.
-	# At the right-hand straight the rider now heads toward -Z; the infield is LEFT.
 	var s: float = _track_s(distance)
-	var x := 0.0
-	var z := 0.0
-	var nx := 0.0
-	var nz := 0.0
-	if s < STRAIGHT:
-		x = RADIUS
-		z = -STRAIGHT / 2.0 + s
-		nx = 1.0
-	elif s < STRAIGHT + PI * RADIUS:
-		var angle := (s - STRAIGHT) / RADIUS
-		x = RADIUS * cos(angle)
-		z = STRAIGHT / 2.0 + RADIUS * sin(angle)
-		nx = cos(angle)
-		nz = sin(angle)
-	elif s < 2.0 * STRAIGHT + PI * RADIUS:
-		x = -RADIUS
-		z = STRAIGHT / 2.0 - (s - STRAIGHT - PI * RADIUS)
-		nx = -1.0
-	else:
-		var angle := PI + (s - 2.0 * STRAIGHT - PI * RADIUS) / RADIUS
-		x = RADIUS * cos(angle)
-		z = -STRAIGHT / 2.0 + RADIUS * sin(angle)
-		nx = cos(angle)
-		nz = sin(angle)
-	# The blue apron stays at a fixed 12-degree cross-slope all the way around.
-	# Wood starts at the same height at TRACK_EDGE, then uses the variable
-	# banking angle; the shared boundary therefore remains watertight.
-	var apron_width: float = minf(offset, TRACK_EDGE)
-	var wood_width: float = maxf(0.0, offset - TRACK_EDGE)
-	var height: float = 0.015 + apron_width * tan(deg_to_rad(BLUE_APRON_BANK_DEG)) + wood_width * tan(_bank_angle(s))
-	return Vector3(x + offset * nx, height, z + offset * nz)
+	var base: Vector2 = track_geometry.position(s)
+	var angle: float = track_geometry.heading(s)
+	var bank: float = _bank_angle(s)
+	var apron: float = minf(offset, TRACK_EDGE)
+	var wood: float = clampf(offset - TRACK_EDGE, 0.0, TRACK_OUTER_EDGE - TRACK_EDGE)
+	# Beyond the wood, arena/boarding offsets remain horizontal metres.
+	var outside: float = maxf(0.0, offset - TRACK_OUTER_EDGE)
+	var lateral: float = apron + wood * cos(bank) + outside
+	var height: float = 0.015 + apron * tan(deg_to_rad(BLUE_APRON_BANK_DEG)) + wood * sin(bank) + outside * tan(bank)
+	return Vector3(base.x + lateral * cos(angle), height, base.y + lateral * sin(angle))
 
 func _direction(s: float, offset: float) -> Vector3:
 	return (_at(s + 0.2, offset) - _at(s - 0.2, offset)).normalized()
 
-# Exact segments of our 250m capsule: two straights, two half-circle bends.
-# Do NOT infer a bend from camera yaw, lateral track gradient or heading.
+# Lean follows the actual curvature, including the transition curves.
 func _curve_factor(s: float) -> float:
-	var d: float = _track_s(s)
-	var arc: float = PI * RADIUS
-	var progress: float = -1.0
-	if d >= STRAIGHT and d < STRAIGHT + arc:
-		progress = d - STRAIGHT
-	elif d >= 2.0 * STRAIGHT + arc and d < LAP:
-		progress = d - (2.0 * STRAIGHT + arc)
-	if progress < 0.0:
-		return 0.0
-	# 8 metres of smoothing INSIDE the curve; straights are always zero.
-	var edge: float = minf(progress, arc - progress)
-	var fraction: float = clampf(edge / 8.0, 0.0, 1.0)
-	return fraction * fraction * (3.0 - 2.0 * fraction)
+	return track_geometry.bend(_track_s(s))
 
 func _visual_lean(i: int) -> float:
 	var curve: float = _curve_factor(_rider_distance(i, distances[i]))
@@ -1930,7 +2008,7 @@ func _update_coasting(dt: float) -> void:
 	for i in range(rider_count):
 		if finish_times[i] < 0.0:
 			continue
-		if race_mode == 2 and elimination_exit.has(i):
+		if race_mode in [2, 3] and elimination_exit.has(i):
 			_update_eliminated_exit(i, dt)
 			continue
 		if coast_speeds[i] <= 0.0: continue
@@ -1972,7 +2050,8 @@ func _player_won() -> bool:
 	return true
 
 func _update_visuals(dt: float) -> void:
-	if finish_overlay != null and finish_overlay.visible:
+	if race_mode == 3: keirin._present_pilot(self)
+	if finish_overlay != null and finish_overlay.visible and race_mode != 3:
 		_place_results_camera()
 		return
 	if setup_panel != null and setup_panel.visible:
@@ -1993,6 +2072,7 @@ func _update_visuals(dt: float) -> void:
 		# Imported Blender wheel mesh reaches local ground at y=0.  On the
 		# bank, visual lean can otherwise push the inboard tyre below the track.
 		var model_lift: float = 0.085 + 0.18 * absf(sin(visual_rolls[i]))
+		if race_mode == 3 and lateral < 0.0: position.y = 0.015
 		bikes[i].position = position + Vector3(0.0, model_lift, 0.0)
 		var tangent: Vector3 = _direction(display_distance, lateral)
 		bikes[i].rotation.y = atan2(tangent.x, tangent.z)
@@ -2000,7 +2080,7 @@ func _update_visuals(dt: float) -> void:
 		visual_rolls[i] = lerp_angle(visual_rolls[i], lean_target, clampf(dt * (12.0 if lean_target == 0.0 else 5.0), 0.0, 1.0))
 		bikes[i].rotation.z = visual_rolls[i]
 		pursuit_start.align_rider(self, i, display_distance - FRONT_WHEEL_TIP_M - starting_grid, model_lift)
-		if race_mode == 2 and elimination_exit.has(i) and int(elimination_exit[i]["stage"]) >= 1:
+		if race_mode in [2, 3] and elimination_exit.has(i) and int(elimination_exit[i]["stage"]) >= 1:
 			var exit_state: Dictionary = elimination_exit[i]
 			bikes[i].position = Vector3(exit_state["position"]) + Vector3.UP * 0.09
 			var head: Vector3 = Vector3(exit_state["heading"])
@@ -2013,22 +2093,25 @@ func _update_visuals(dt: float) -> void:
 		if finish_times[i] >= 0.0:
 			# Continue the normal cycling loop at progressively lower cadence while coasting.
 			# beta.16.16: the race winner sits up and raises both arms.
-			visual.call("set_victory", race_mode != 2 and i == _winner_index())
+			visual.call("set_victory", race_mode not in [2, 3] and i == _winner_index())
 			visual.call("pedal", dt, clampf(coast_speeds[i] * 5.5, 0.0, 110.0), 120.0)
 		else:
 			visual.call("set_victory", false)
-			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
+			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1, 2, 3] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
 	pursuit_start.update(self, dt)
 	team_race.update_badges(self)
 	_update_bunch_presentation()
+	if race_mode == 3 and finish_overlay != null and finish_overlay.visible:
+		_place_results_camera()
+		return
 	if broadcast_intro != null and broadcast_intro.apply_camera(): return
 	if finished:
 		_place_finish_camera()
 		return
-	var offset: float = lane_offsets[0]
-	var t: Vector3 = _direction(_rider_distance(0, distances[0]), offset)
-	var start_view: bool = not _riding() and not finished
-	var follow_position: Vector3 = bikes[0].position
+	_follow_rider_camera(_rider_distance(0,distances[0]),lane_offsets[0],dt,not _riding() and not finished,bikes[0].position)
+
+func _follow_rider_camera(follow_distance: float, offset: float, dt: float, start_view: bool, follow_position: Vector3) -> void:
+	var t: Vector3 = _direction(follow_distance, offset)
 	var desired: Vector3
 	var target: Vector3
 	var target_fov: float = 72.0
@@ -2037,8 +2120,8 @@ func _update_visuals(dt: float) -> void:
 		# Rearward view from just ahead of the rider: follow the curved track,
 		# so other riders behind remain visible even through the banking.
 		# No changes to bike movement, lane choice, or race physics.
-		desired = _at(_rider_distance(0, distances[0]) + 3.0, offset) + Vector3(0.0, 2.65, 0.0)
-		target = _at(_rider_distance(0, distances[0]) - 13.0, offset) + Vector3(0.0, 1.10, 0.0)
+		desired = _at(follow_distance + 3.0, offset) + Vector3(0.0, 2.65, 0.0)
+		target = _at(follow_distance - 13.0, offset) + Vector3(0.0, 1.10, 0.0)
 		target_fov = 77.0
 	elif camera_mode == 2:
 		# Very subtle POV sway synchronized to the standing sprint crank phase.
@@ -2052,8 +2135,8 @@ func _update_visuals(dt: float) -> void:
 		target_fov = 78.0
 	elif camera_mode == 3:
 		# Infield side camera to inspect rider posture and bike shape.
-		var inner_probe: Vector3 = _at(_rider_distance(0, distances[0]), maxf(0.2, offset - 1.8))
-		var outer_probe: Vector3 = _at(_rider_distance(0, distances[0]), minf(8.4, offset + 1.8))
+		var inner_probe: Vector3 = _at(follow_distance, maxf(0.2, offset - 1.8))
+		var outer_probe: Vector3 = _at(follow_distance, minf(8.4, offset + 1.8))
 		# IMPORTANT: lateral track probe includes vertical banking height.
 		# Taking its 3D normal pulled the camera BELOW the infield floor in bends.
 		# Use a horizontal-only inward direction and independent camera height.
@@ -2068,9 +2151,9 @@ func _update_visuals(dt: float) -> void:
 		# Follow the actual track arc rather than extending the current tangent.
 		# This keeps the chase camera inboard of the external advertising wall.
 		var safe_lane: float = clampf(offset - 0.75, 1.1, 6.3)
-		var back_on_track: Vector3 = _at(_rider_distance(0, distances[0]) - back, safe_lane)
+		var back_on_track: Vector3 = _at(follow_distance - back, safe_lane)
 		desired = back_on_track + Vector3(0.0, height, 0.0)
-		target = _at(_rider_distance(0, distances[0]) + (7.0 if close_mode else 9.0), offset) + Vector3(0.0, 1.1, 0.0)
+		target = _at(follow_distance + (7.0 if close_mode else 9.0), offset) + Vector3(0.0, 1.1, 0.0)
 		target_fov = (72.0 if close_mode else 77.0) if start_view else (69.0 if close_mode else 72.0)
 	if boost_left > 0.0:
 		target_fov += 4.0
@@ -2083,7 +2166,7 @@ func _update_visuals(dt: float) -> void:
 	# Camera looks along local -Z while the bicycle faces local +Z.
 	# Their roll signs therefore differ; negate to follow the visible rider lean.
 	var pov_rock_roll: float = deg_to_rad(1.8) * pov_sway if camera_mode == 2 and not look_back_held else 0.0
-	camera_roll = lerp_angle(camera_roll, -visual_rolls[0] * follow_ratio + pov_rock_roll, clampf(dt * (12.0 if _curve_factor(_rider_distance(0, distances[0])) == 0.0 else 8.0), 0.0, 1.0))
+	camera_roll = lerp_angle(camera_roll, -visual_rolls[0] * follow_ratio + pov_rock_roll, clampf(dt * (12.0 if _curve_factor(follow_distance) == 0.0 else 8.0), 0.0, 1.0))
 	camera.rotate_object_local(Vector3(0.0, 0.0, 1.0), camera_roll)
 
 func _update_boost_dog(dt: float) -> void:
@@ -2227,8 +2310,8 @@ func _build_realistic_track() -> void:
 	# Discreet black distance ticks every 5 metres, slightly longer every 10.
 	_track_distance_ticks()
 	# Pursuit starting lines sit in the middle of the two straights.
-	var pursuit_a: float = fposmod(LAP - STRAIGHT * 0.5, LAP)
-	var pursuit_b: float = fposmod(LAP - (1.5 * STRAIGHT + PI * RADIUS), LAP)
+	var pursuit_a: float = fposmod(PURSUIT_START_M, LAP)
+	var pursuit_b: float = fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 	_track_band(TRACK_EDGE + 0.02, TRACK_OUTER_EDGE - 0.05, Color("bb262b"), pursuit_a, 0.10, 0.025)
 	_track_band(TRACK_EDGE + 0.02, TRACK_OUTER_EDGE - 0.05, Color("bb262b"), pursuit_b, 0.10, 0.025)
 	# A modest 4 cm white 200 m line, 50 m after the lap's finish reference.
@@ -2341,6 +2424,17 @@ func _build_hud() -> void:
 	difficulty_slider.value = ai_difficulty
 	menu.difficulty_changed.connect(_difficulty_changed)
 	menu.start_requested.connect(_confirm_start)
+	menu.training_environment_requested.connect(_training_environment_requested)
+	menu.workout_environment_requested.connect(_workout_environment_requested)
+	menu.piste_environment_requested.connect(_piste_environment_requested)
+	menu.exercise_environment_requested.connect(_exercise_environment_requested)
+	menu.madison_environment_requested.connect(_madison_environment_requested)
+	menu.training_upload_requested.connect(_upload_training)
+	strava_client.status_changed.connect(func(message):
+		menu.derny_page.upload_status = message
+		menu.exercise_page.upload_status = message
+		menu.madison_page.upload_status = message
+	)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(24, 255)
 	result_panel.custom_minimum_size = Vector2(425, 380)
@@ -2598,6 +2692,93 @@ func _set_menu_visible(is_visible: bool) -> void:
 	if arena != null and arena.get("board") != null:
 		arena.get("board").visible = not is_visible
 
+func _training_environment_requested(active: bool) -> void:
+	if active:
+		if training_environment == null:
+			training_environment = preload("res://training_environment.gd").new()
+			add_child(training_environment)
+		broadcast_intro.cancel()
+		training_environment.enter()
+	elif training_environment != null:
+		training_environment.leave()
+		exit_menu.set_exit_visible(true)
+
+func _workout_environment_requested(active: bool) -> void:
+	if active:
+		if training_environment == null:
+			training_environment = preload("res://training_environment.gd").new()
+			add_child(training_environment)
+		broadcast_intro.cancel()
+		training_environment.training_page = setup_panel.workout_play_page
+		training_environment.enter()
+	elif training_environment != null:
+		training_environment.leave()
+		training_environment.training_page = null
+		exit_menu.set_exit_visible(true)
+
+func _piste_start_blocker() -> String:
+	if not trainer_seen: return ""
+	var ftp = setup_panel.ftp_page
+	if ftp.bridge_update_needed:
+		return "De bridge mist actuele vermogensgegevens. Werk de bridge bij en start die opnieuw."
+	if not ftp.live(_now_s()):
+		return "Geen verse vermogensmetingen. Controleer de trainerverbinding."
+	if not ftp.release_complete() or not setup_panel.workout_play_page.release_complete() or trainer_control.phase == "RELEASING":
+		return "De trainerbediening is nog niet vrij. Wacht op bevestiging van de bridge."
+	return ""
+
+func _piste_environment_requested(active: bool) -> void:
+	if active:
+		var page = setup_panel.derny_page
+		var blocker := _piste_start_blocker()
+		if not blocker.is_empty():
+			page.session.phase = "RESULT"
+			page.session.reason = blocker
+			return
+		if derny_training_environment == null:
+			derny_training_environment = preload("res://derny_environment.gd").new()
+			add_child(derny_training_environment)
+		piste_training = derny_training_environment
+		broadcast_intro.cancel()
+		piste_training.enter()
+	elif piste_training != null:
+		piste_training.leave()
+		exit_menu.set_exit_visible(true)
+
+func _exercise_environment_requested(active: bool) -> void:
+	if active:
+		var blocker := _piste_start_blocker()
+		if not blocker.is_empty():
+			setup_panel.exercise_page.session.phase = "RESULT"
+			setup_panel.exercise_page.session.reason = blocker
+			return
+		if exercise_training_environment == null:
+			exercise_training_environment = preload("res://piste_exercise_environment.gd").new()
+			add_child(exercise_training_environment)
+		piste_training = exercise_training_environment
+		broadcast_intro.cancel()
+		piste_training.enter()
+	elif piste_training != null:
+		piste_training.leave()
+		exit_menu.set_exit_visible(true)
+
+func _madison_environment_requested(active: bool) -> void:
+	if active:
+		var blocker := _piste_start_blocker()
+		if not blocker.is_empty():
+			setup_panel.madison_page.session.phase = "RESULT"
+			setup_panel.madison_page.session.reason = blocker
+			return
+		if madison_training_environment == null:
+			madison_training_environment = preload("res://madison_training_environment.gd").new()
+			add_child(madison_training_environment)
+		piste_training = madison_training_environment
+		broadcast_intro.cancel()
+		piste_training.enter()
+	elif madison_training_environment != null:
+		madison_training_environment.leave()
+		exit_menu.set_exit_visible(true)
+
 func _difficulty_changed(value: float) -> void:
 	ai_difficulty = value
 	difficulty_label.text = "AI-sterkte · %d%%" % int(ai_difficulty)
@@ -2606,7 +2787,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2, 3, 5, 7]:
+	if choice not in [0, 1, 2, 3, 5, 6, 7]:
 		return
 	if choice in [1,2] and setup_panel.page != 4: return
 	var replay: Dictionary = {}
@@ -2628,13 +2809,16 @@ func _confirm_start() -> void:
 		if not replay.is_empty(): replay = PursuitRecords.scaled_replay(replay, pursuit_opponent_percent)
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0))))
+	race_mode = 3 if choice == 6 else (7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))))
+	if choice == 6: keirin_percent = setup_panel.keirin_derny.value
 	race_laps = int(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))))
+	if choice == 6: race_laps = 6
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
 	rider_count = 1 if choice == 7 else (team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 5 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))))
+	if choice == 6: rider_count = 6
 	if choice in [1, 2]:
 		var selected_ai: Dictionary = options.selected_ai()
 		if choice == 1: pursuit_opponent_config = selected_ai
@@ -2642,7 +2826,7 @@ func _confirm_start() -> void:
 	_clear_elimination_feedback()
 	selected_startlist.clear()
 	startlist_mode = -1
-	if choice in [0,3,5] and setup_panel.page == 5:
+	if choice in [0,3,5,6] and setup_panel.page == 5:
 		if not setup_panel.startlist_page.can_start(): return
 		selected_startlist.assign(setup_panel.startlist_page.lineup.duplicate(true))
 		startlist_mode = race_mode
@@ -2660,7 +2844,7 @@ func _confirm_start() -> void:
 	else:
 		_tt_prepare_event()
 	replay_setup = {"riders": rider_identities.duplicate(true), "forms": rider_forms.duplicate(), "replay": replay.duplicate(true), "cp": options.configured_cp() if options != null else 0.0, "team_factors": team_race.ours.position_factors.duplicate()}
-	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
+	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "keirin_percent", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		replay_setup[key] = get(key)
 	trainer_control.arm()
 	zero_stable = 0.0
@@ -2855,6 +3039,10 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_clear_look_back()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		if what == NOTIFICATION_WM_CLOSE_REQUEST and piste_training != null and piste_training.active: piste_training.finish_session("Spel gesloten",false)
+		if what == NOTIFICATION_WM_CLOSE_REQUEST and setup_panel != null and setup_panel.workout_play_page != null: setup_panel.workout_play_page.shutdown()
+		if what == NOTIFICATION_WM_CLOSE_REQUEST and setup_panel != null and setup_panel.ftp_page != null:
+			setup_panel.ftp_page.shutdown()
 		trainer_control.close()
 		_save_recording("exit")
 
@@ -2908,7 +3096,7 @@ func _lean_debug_text() -> String:
 	return "BANK DEBUG: %s | offset %.1f m | lean %.1f deg" % ["BOCHT" if on_bend else "RECHT", _track_s(distances[0]), rad_to_deg(visual_rolls[0])]
 
 func _ai_diagnostics_text() -> String:
-	var uses_wprime: bool = race_mode in [0, 1, 2]
+	var uses_wprime: bool = race_mode in [0, 1, 2, 3]
 	var text: String = "\nAI: %d%% | CP / W-prime model X\n" % int(ai_difficulty) if uses_wprime else "\nAI: %d%% (80%% = beta.10)\nAI resterende inspanning (TT) / anaeroob\n" % int(ai_difficulty)
 	for j in range(1, rider_count):
 		# The reserve and its maximum must come from the same model, including
@@ -2922,7 +3110,9 @@ func _ai_diagnostics_text() -> String:
 	return text
 
 func _update_hud() -> void:
+	if race_overlay != null: race_overlay.set_keyboard_hints(keyboard_mapping, _keyboard_profile())
 	if setup_panel != null and setup_panel.visible:
+		setup_panel.footer_label.text = keyboard_mapping.menu_hint()
 		setup_panel.update_bridge_status(trainer_seen, connected and trainer_ready, bridge_bind_error != OK)
 		return
 	var status := "KICKR LIVE" if connected else ("KICKR WACHT OP DATA" if trainer_seen else "DEMO (startpreset %.0f W)" % demo_launch_watts)
@@ -3069,6 +3259,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
 	if start_state == "NEUTRAL" and (not trainer_seen or connected or _power_hold_active()): notice = neutral_start.notice(self)
+	if race_mode == 3 and start_state == "RACING": notice = "DERNY · %.1f km/u · uitsturen na 3 ronden" % (keirin.speed*3.6) if keirin.phase == "PACED" else "DERNY UIT · VRIJE WEDSTRIJD"
 	if start_state == "RUN_UP" and (not trainer_seen or connected or _power_hold_active()): notice = flying_start.notice(self)
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
@@ -3097,7 +3288,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "lap": mini(race_laps, int(distances[0] / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 3] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "cadence_rpm": cadence if cadence >= 0.0 and connected else null, "lap_credit": points_rules.credits[0] if race_mode == 1 else 0, "lap": mini(race_laps, int(float(peloton_info.get("center", distances[0])) / LAP) + 1) if race_mode == 1 and not peloton_info.is_empty() else mini(race_laps, int((distances[0] - float(points_rules.credits[0]) * LAP if race_mode == 1 else distances[0]) / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3132,7 +3323,7 @@ func _refresh_fullscreen_results() -> void:
 	for n in range(rider_count): ordered.append(n)
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
-	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag")
+	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Keirin · Uitslag" if race_mode == 3 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag"))
 	if finish_subtitle != null:
 		finish_subtitle.text = ("VLIEGENDE START · 125 M TUSSENTIJDEN" if time_trial_start_type == "flying" else "STAANDE START · 125 M TUSSENTIJDEN") if race_mode == 7 else "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
 	if pursuit_save_box != null:
@@ -3359,7 +3550,7 @@ func _update_pursuit(dt: float) -> void:
 		else:
 			ai_power_w[i] = power
 			ai_energy_j[i] = pursuit_pacer.reserve_j
-			tt_effort_remaining = pursuit_pacer.reserve_j / PursuitPacer.WPRIME_J
+			tt_effort_remaining = pursuit_pacer.reserve_j / maxf(1.0, pursuit_pacer.capacity_j)
 		if crossed:
 			finish_times[i] = end_time
 			coast_distances[i] = _race_length()
@@ -3611,7 +3802,7 @@ func _points_order() -> Array[int]:
 func _update_bunch_presentation() -> void:
 	# Scratch/points/elimination start with a neutral lap. Show the full rider
 	# card there too, instead of falling back to a name-only Label3D.
-	var active: bool = race_mode in [0, 1, 2] and start_state in ["NEUTRAL", "RACING"]
+	var active: bool = race_mode in [0, 1, 2, 3] and start_state in ["NEUTRAL", "RACING"]
 	if active: peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	if peloton_markers != null: peloton_markers.update_bunch(self, peloton_info, active)
 	for i in range(bikes.size()):
@@ -3700,7 +3891,7 @@ func _record_ai_performances() -> void:
 			ai_recorded[i] = true
 			var identity: Dictionary = rider_identities[i]
 			var parameters := {"cp_w":pursuit_pacer.cp_w if race_mode == 4 else float(identity.get("cp_w",0.0)), "max_power_w":float(identity.get("max_power_w",0.0)), "w_prime_j":float(identity.get("w_prime_j",0.0))}
-			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
+			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1,3] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
 
 func _update_elimination_jury(dt: float) -> void:
 	var rear: Array[float] = []
@@ -3764,6 +3955,9 @@ func _elimination_box_target(rider: int) -> Vector3:
 	return Vector3(-14.1 - 0.45 * float(slot % 2), 0.15, -25.0 + 10.0 * float(box_index) + 0.85 * float(slot / 2))
 
 func _update_eliminated_exit(rider: int, dt: float) -> void:
+	if race_mode == 3:
+		keirin.update_finish_exit(self, rider, dt)
+		return
 	var route: Dictionary = elimination_exit[rider]
 	var stage: int = int(route["stage"])
 	if stage == 3:
@@ -3779,7 +3973,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var braking: float = 2.2 if travelled > 62.0 else 1.1
 		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
-		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - 90.8) <= 0.4:
+		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - OPPOSITE_STRAIGHT_GATE_M) <= 0.4:
 			route["stage"] = 1
 			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
 			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
@@ -3836,3 +4030,30 @@ func available_startlist_riders() -> Array[Dictionary]:
 	for entry in result:
 		if not entry.jersey.has("country_kit"): entry.jersey["country_kit"] = entry.country
 	return result
+
+func _upload_training(activity: Dictionary) -> void:
+	var page = setup_panel.derny_page if activity.get("kind","derny") == "derny" else setup_panel.exercise_page
+	if strava_client.working:
+		page.upload_status = "Er is al een Strava-upload bezig."
+		return
+	var payload := preload("res://training_store.gd").fit_payload(activity)
+	if payload.is_empty():
+		page.upload_status = "Minstens twee ritmetingen nodig voor Strava."
+		return
+	var file := FileAccess.open("user://training_upload.fit",FileAccess.WRITE)
+	if file == null:
+		page.upload_status = "Strava-bestand kon niet worden gemaakt."
+		return
+	file.store_buffer(payload)
+	file.close()
+	strava_desired_title = "Velodrome - " + str(activity.get("title","Dernytraining")) + (" (PC-proefrit)" if activity.get("demo",false) else "")
+	strava_desired_description = "Dernytraining · gemiddelde startsnelheid %d km/u · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
+	if activity.get("kind","derny") != "derny":
+		strava_desired_description = "%s · %s. Begonnen met virtuele rolsnelheid %.0f km/u. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("title","Pistetraining"),activity.get("reason",""),activity.get("initial_speed_kmh",30)]
+		if activity.get("kind") == "flying_start": strava_desired_description += " Passage %.2f km/u · piek %.0f W." % [activity.get("entry_speed_kmh",0),activity.get("peak_power_w",0)]
+		elif activity.get("kind") == "free_ride": strava_desired_description += " Vrij rijden · %.2f km · %d voltooide rondes." % [float(activity.get("distance_m",0))/1000,activity.get("laps",[]).size()]
+		else: strava_desired_description += " Peloton %.0f km/u · %.1f m gewonnen." % [activity.get("peloton_kmh",30),activity.get("gained_m",0)]
+	if activity.get("demo",false): strava_desired_description = "GESIMULEERDE PC-PROEFRIT. " + strava_desired_description
+	strava_save_screenshot = false
+	strava_screenshot_path = ""
+	strava_client.begin_export(ProjectSettings.globalize_path("user://training_upload.fit"),strava_desired_title,strava_desired_description)

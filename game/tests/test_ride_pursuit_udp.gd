@@ -17,6 +17,7 @@ func run_test()->void:
 	await process_frame;await process_frame
 	g.trainer_control.port=int(OS.get_cmdline_user_args()[1])
 	g.get_node("GameSettings").always_show_intro=true
+	g.setup_panel.show_choices()
 	var flow=g.setup_panel.pursuit_flow
 	flow.preferences_path="user://test_ride_pursuit_udp.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(flow.preferences_path))

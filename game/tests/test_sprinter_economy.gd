@@ -29,7 +29,7 @@ func _initialize() -> void:
 	var before: float = model.wprime[2]
 	var watts: Array[float] = model.step(0.1, 20.0, distances, speeds, lanes, drafts, finished, profiles, 50, 80.0, credits)
 	check(model.shelter_wheel[2] == 1, "Keep aligned wheel despite closer adjacent rider")
-	check(watts[2] <= 295.001, "Near wheel uses at most CP + 60 W at 80% difficulty")
+	check(watts[2] <= model.cp[2] + 60.001, "Near wheel uses at most the rider's actual CP + 60 W")
 	check(model.wprime[2] < before, "Following above CP still spends actual W-prime")
 	check(is_equal_approx(model.lane_targets[2], lanes[1]), "Keep shelter lane")
 	var economy_watts: float = watts[2]

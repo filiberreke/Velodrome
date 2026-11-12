@@ -1,5 +1,8 @@
 extends SceneTree
 class Model extends "res://main.gd":
+	func _ready() -> void:
+		super._ready()
+		bridge_devices.set_process(false) # Isolate menu regression from a running local bridge.
 	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
 var failures := 0
 func check(ok: bool, message: String) -> void:
@@ -16,6 +19,8 @@ func run_test() -> void:
 	game.set_physics_process(false)
 	await process_frame; await process_frame
 	var menu = game.setup_panel
+	menu.show_choices()
+	await process_frame
 	menu.cards[0].grab_focus()
 	await press(game, "RIGHT")
 	check(root.gui_get_focus_owner() == menu.cards[1], "Bridge RIGHT moves focus to next menu card")
@@ -23,6 +28,7 @@ func run_test() -> void:
 	check(menu.page == 2 and menu.selected == 1 and game.start_state == "SETUP", "Bridge A selects card without resetting race")
 	await press(game, "B")
 	check(menu.page == 1, "Bridge B returns to mode gallery")
+	await process_frame
 	menu.cards[0].grab_focus()
 	await press(game, "DOWN")
 	check(root.gui_get_focus_owner() == menu.cards[4], "Bridge DOWN navigates grid")

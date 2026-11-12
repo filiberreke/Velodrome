@@ -16,7 +16,14 @@ func run_tests() -> void:
 		for enabled in [false,true]:
 			var game = TestRace.new();root.add_child(game)
 			game.rider_count=count;game.race_laps=10 if count==8 else 50
-			game._configure_peloton();game.rider_forms.fill(1.0)
+			game._configure_peloton()
+			# Official racing starts after the approach and full neutral opening lap.
+			game.watts=300.0;game._begin_riding()
+			for tick in range(1500):
+				if game.start_state!="NEUTRAL":break
+				game.neutral_start.step(game,.1)
+			check(game.start_state=="RACING","Launch fixture completes the neutral start")
+			game.rider_forms.fill(1.0)
 			game.x_ai.reset(game.rider_profiles,game.rider_forms,game.lane_offsets)
 			game.x_ai.prefer_inside_when_free=enabled;game.x_ai.rng.seed=23102026
 			for i in range(1,count):

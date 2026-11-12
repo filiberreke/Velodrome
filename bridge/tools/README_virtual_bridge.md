@@ -2,10 +2,50 @@
 
 Start de echte Python-bridge niet tegelijk met deze testtool. De tool opent UDP 51725 en verzendt naar Godot op 127.0.0.1:51723. Er worden geen BLE- of ANT+-verbindingen gemaakt en geen trainercommando's naar fysieke hardware verstuurd.
 
+## Apparatenpagina testen (feature/bridge-device-selection)
+
+1. Sluit de echte bridge. Dubbelklik `bridge/start_virtual_bridge_windows.bat`
+   of start `python bridge/tools/virtual_bridge_ui.py`. Er zijn geen extra
+   Pythonpakketten nodig; Python met Tkinter volstaat.
+2. Vink **Precies 2 apparaten: Wahoo KICKR + Zwift Ride** aan. Start het Godot-
+   project uit dezelfde featurebranch. Apparaten verschijnt automatisch.
+3. De gevonden lijst bevat precies **Wahoo KICKR** (trainer/rollen) en
+   **Zwift Ride (links)** (besturing). Het zijn expliciet gesimuleerde apparaten;
+   de simulator doet geen Bluetooth-scan. In deze stand wordt geen hartslagmeter
+   aangeboden en is de hartslagtelemetrie null. Vink de stand uit om ook de
+   virtuele BLE-hartslagmeter te kunnen selecteren.
+4. Kies een apparaat of **Geen / overslaan**. De keuze heeft effect: een
+   uitgeschakelde trainer geeft ongeldige telemetrie en vrijgegeven belasting;
+   uitgeschakelde besturing verstuurt geen knop-/paddle-invoer. Schakel de rol
+   via het gevonden apparaat weer in om verder te testen.
+5. Klik na verbinding op **Kies deze setup** om verder te gaan. Zonder verbonden
+   apparaten heet die knop **Overslaan**. Gebruik bij gekozen besturing de link **Knoptoewijzing aanpassen**
+   direct onder Besturing. Sluit met **Terug naar apparaten**, Escape of Ride Z.
+6. Vink **Wahoo KICKR gevonden** of **Zwift Ride (links) gevonden** uit om het
+   geselecteerde apparaat te laten verdwijnen. De selectie blijft bewaard en
+   verschijnt als niet beschikbaar. Vink opnieuw aan om herstel te testen.
+7. Vink **Bridge bereikbaar** uit voor volledige uitval van telemetrie én
+   commando-antwoorden. Godot meldt de bridge als niet bereikbaar. Vink opnieuw
+   aan om herstel via periodieke polling te testen. De bestaande optie
+   **Simuleer verlies ... UDP-telemetrie** laat commando-antwoorden wel door.
+8. Start een wedstrijd, pauzeer en klik op de **bridgestatus met tandwiel** rechtsboven naast
+   Instellingen om de apparatenpagina te openen. Test de keuzes en de instellingenlink. Na sluiten blijft de
+   wedstrijd gepauzeerd op dezelfde tijd/positie. Hervat via het pauzemenu.
+
+Selecties staan in `bridge/virtual_device_selections.json`, afzonderlijk van
+`device_selections.json` van de echte bridge. Ze blijven na herstart bewaard.
+De vinkjes voor scenario's en beschikbaarheid gelden alleen voor de huidige
+simulatorrun. Verwijder uitsluitend het virtuele selectiebestand om opnieuw met
+standaardselecties te beginnen. De echte bridge hoeft hiervoor niet gewijzigd.
+
+De simulator gebruikt voor `devices` en `select_device` dezelfde rolvalidatie,
+opslag, UDP-envelope en deduplicatie als de echte bridge. Inventarisvragen nemen
+geen trainerlease over. Het blijft een hardwarevrije simulatie.
+
 ## Controller-tab testen zonder hardware (featurebranch)
 
 1. Start `python bridge/tools/virtual_bridge_ui.py` uit deze branch en start Godot uit dezelfde branch.
-2. Open **F10 -> Instellingen -> Controller** in Godot.
+2. Open **F10 -> Instellingen -> Besturing** in Godot.
 3. Druk met de muis op een van de 16 fysieke Ride-knoppen in de virtuele bridge, **houd ingedrukt** en controleer de opgelichte rij. Bij muis loslaten dooft de rij.
 4. Test ook **Y**, **Z** en de powerknoppen: deze zijn zichtbaar, ook als er geen spelactie aan gekoppeld is.
 5. Test beide analoge paddles: de bestaande gecombineerde stuurwaarde wordt in Godot weergegeven (-100 tot +100).
@@ -15,7 +55,7 @@ De virtuele bridge verstuurt nu net als de echte bridge een aanvullend `controll
 
 **Opgelet:** met de Controller-tab open blokkeert Godot de reguliere spelacties. In de simulator blijft het wijzigen van een gesimuleerde versnelling via de bestaande schakelknoppen mogelijk, maar er wordt nooit echte trainerhardware aangestuurd. De speciale knoptest mag niet tegelijk met de echte bridge op dezelfde poorten draaien.
 
-De bediening wordt voor deze fase getest; knopmapping aanpassen en de televisie-intro zijn nog geen onderdeel van deze branch.
+Knoptoewijzing aanpassen kan in de tab Besturing; de apparatenpagina heeft een directe link naar die editor.
 
 ## Starten op Windows
 
@@ -81,3 +121,35 @@ Een tweede integratietest start manuele ploegenachtervolging met een reeds `RELE
 
 Bij de echte bridge blijft de oorspronkelijke knop beschikbaar in het extra UDP-veld `source_button`, bijvoorbeeld `{"type":"button","button":"RIGHT","source_button":"SHIFT_UP_RIGHT"}`. Godot gebruikt dit om schakelen buiten de menu's te houden. Sturen gebruikt nu een apart `{"type":"steering","value":25}`-bericht uit de analoge paddles. De integratietest controleert dat schakelen op kop de versnelling wijzigt zonder uit te sturen, en dat daarna de rechter paddle wel een wissel start. Zie ook `game/tests/test_analog_steering.gd` en `game/tests/test_bridge_navigation.gd` voor de drukniveaus, vloeiende verplaatsing en menubediening.
 
+
+
+## Dernytraining starten met een vrijgegeven simulator
+
+Ook in `RELEASED` en bij 0 W blijft de simulator nieuwe vermogensmetingen sturen,
+met `power_sample_id` en `power_age_s`. De dernytraining accepteert deze geldige
+nulmetingen en activeert SIM opnieuw via de bestaande handshake. Trappen of de
+vermogensschuif verhogen is dus niet nodig om de geholpen aanloop te starten.
+
+Bij de melding dat de bridge actuele vermogensgegevens mist: werk ook
+`bridge/tools/virtual_bridge_ui.py` bij en sluit/herstart de virtuele bridge.
+Een reeds geopend Python-venster blijft de oude code en berichten gebruiken.
+De game onderscheidt nu een verouderde bridge, ontbrekende verse metingen en
+trainerbediening die nog op vrijgave wacht. De controle op verse metingen blijft
+ook voor echte hardware actief.
+
+`test_derny_starts_from_released_with_zero_power` in
+`bridge/tests/test_virtual_bridge_ui.py` test de echte Python/Godot-UDP-koppeling:
+starten vanuit RELEASED bij 0 W, SIM-heractivatie, blijven rijden in de geholpen
+aanloop en de regeling na stoppen weer vrijgeven.
+
+## Verificatie apparaatselectie
+
+De Python-suite bevat 106 tests: 98 geslaagd, 8 Godot-integraties beschikbaar
+als optionele tests (overgeslagen zonder GODOT_BIN). De nieuwe
+integratietest `test_godot_device_selection_with_two_devices` is afzonderlijk
+uitgevoerd met Godot 4.7.2 en geslaagd. Die gebruikt de echte virtuele bridge en
+de echte Godot-apparatenpagina via lokale UDP-sockets op vrije poorten. Hij test
+de twee namen/rollen, automatisch openen, uitschakelen/opnieuw selecteren,
+knoptoewijzing/terug, verdwijnen/herstellen, volledige bridge-uitval/herstel en
+het behoud van een gepauzeerde wedstrijd. De unit-tests controleren daarnaast
+opslag/herstart, ongeldige rollen, loslaten van controllerinvoer en retries.

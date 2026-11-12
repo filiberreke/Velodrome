@@ -22,6 +22,8 @@ func run_test() -> void:
 	var settings = g.get_node("GameSettings")
 	await wait_for("SETTINGS", func(): return settings.panel_root.visible)
 	await wait_for("CLOSE", func(): return not settings.panel_root.visible)
+	g.setup_panel.show_choices()
+	g.get_node("GameSettings").always_show_intro = true
 	g.setup_panel.cards[0].grab_focus()
 	await wait_for("SELECT", func(): return g.setup_panel.page == 2)
 	g.setup_panel.start_button.grab_focus()

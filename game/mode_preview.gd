@@ -116,6 +116,17 @@ static func make(owner_node: Node, mode: String) -> SubViewport:
 		for x in [-4.8, -3.7, 4.9]:
 			box(world, Vector3(x, 0.012, 0), Vector3(0.065, 0.025, 18), Color("18202a") if x < -4.0 else (Color("d34b50") if x < 0 else Color("329fb9")))
 	match mode:
+		"free_training":
+			for i in range(4):
+				var pacer := rider(world,Vector3(-3+i*2.0,0,-2.4+i*1.5),i)
+				pacer.set_training_colour(preload("res://free_training_pacers.gd").COLOURS[i])
+		"flying_training":
+			box(world,Vector3(.75,.025,1.5),Vector3(11.5,.025,.20),Color("bb262b"))
+			rider(world,Vector3(1.2,0,1.1),0)
+		"derny_training":
+			var motor := preload("res://derny_visual.gd").new(); world.add_child(motor)
+			motor.position = Vector3(0,track_height(world,0),-2.3); motor.rotation.y = PI
+			rider(world,Vector3(0,0,1.5),0)
 		"scratch":
 			for i in range(6):
 				rider(world, Vector3(-2.4 + (i % 3) * 2.15, 0, -2.0 + (i / 3) * 3.4), i)

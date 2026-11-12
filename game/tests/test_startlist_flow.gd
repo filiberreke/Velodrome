@@ -11,11 +11,14 @@ func settle() -> void:
 func click(button: Button) -> void:
 	await settle()
 	var position := button.get_global_rect().get_center()
+	check(button.is_visible_in_tree() and not button.disabled, "Mouse target is visible and enabled: " + button.text)
+	check(root.get_visible_rect().encloses(button.get_global_rect()), "Mouse target fits inside test viewport: " + button.text)
 	var motion := InputEventMouseMotion.new(); motion.position = position; root.push_input(motion, true)
 	for down in [true,false]:
 		var event := InputEventMouseButton.new(); event.position = position; event.button_index = MOUSE_BUTTON_LEFT; event.pressed = down; root.push_input(event, true)
 	await settle()
 func run_test() -> void:
+	root.size = Vector2i(1920, 1080)
 	var game := Game.new(); root.add_child(game); game.set_physics_process(false)
 	await settle()
 	var menu = game.setup_panel
@@ -52,7 +55,7 @@ func run_test() -> void:
 	await click(roster.start_button)
 	check(game.start_state != "SETUP" and game.rider_count == 12, "Actual start-list mouse click launches the configured race")
 	check(game.rider_identities[1].id == chosen.id and game.rider_profiles[1] == chosen.profile, "Selected profile and identity reach the game")
-	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], float(chosen.cp_w)), "Selected physiology reaches the actual AI")
+	check(is_equal_approx(game.x_ai.cp[1] / game.rider_forms[1], float(chosen.cp_w)*game.ai_difficulty/100.), "Selected physiology and AI strength reach the actual AI")
 	game.broadcast_intro.finish(); game._reset()
 	for mode in [3,5]:
 		for amount in ([16] if mode == 3 else [4,12,16]):
@@ -70,7 +73,7 @@ func run_test() -> void:
 			check(root.get_visible_rect().encloses(roster.start_button.get_global_rect()), "Start action remains visible for largest field")
 			await click(roster.start_button)
 			check(game.rider_count == amount and game.race_mode == (1 if mode == 3 else 2), "Start list keeps the requested discipline and field size")
-			check(game.rider_identities[amount - 1].id == replacement.id, "Last replacement is present in the running race")
+			check(game.rider_identities.size() == amount and game.rider_identities[amount - 1].id == replacement.id, "Last replacement is present in the running race")
 			game.broadcast_intro.finish(); game._reset()
 	menu.select_mode(1)
 	await settle()
@@ -84,8 +87,9 @@ func run_test() -> void:
 	menu.show_records()
 	var page = menu.records_page
 	page.mode_buttons[2].pressed.emit()
-	check(page.mode_choice.get_selected_id() == 7 and page.shown.is_empty() and page.message.text.contains("later"), "Time trial has an explicit future record category")
-	check(not page.size_box.visible and not page.distance_caption.visible, "Future category does not promise unsupported distances or squad sizes")
+	check(page.mode_choice.get_selected_id() == 7 and page.shown.is_empty() and page.category.text.begins_with("Tijdrit"), "Time trial has its own implemented record category")
+	check(not page.size_box.visible and page.distance_caption.visible and page.start_choice.visible, "Time trial records expose distance and start type, without squad size")
+	check(page.distance_choice.get_item_id(0) == 500 and page.distance_choice.get_item_id(1) == 1000, "Time trial record filters use the supported 500 m and 1 km distances")
 	page.mode_buttons[0].pressed.emit()
 	check(page.distance_caption.visible, "Existing record filters restore when returning")
 	menu.hide()

@@ -24,6 +24,8 @@ var armed := true
 var allow_released_session := false
 var requested_erg := 0
 var last_target := -1
+var last_response := -100.0
+var erg_only := false # Explicit training opt-in; race probing stays SIM-only.
 
 func arm(explicit_start: bool = true) -> void:
 	# Explicit start can claim a confirmed release; telemetry recovery is limited
@@ -57,6 +59,12 @@ func _request(command: String, params: Dictionary, now: float, mutation: bool = 
 		if now - float(requests[id].at) > 4.0 and id != pending.get("packet", {}).get("id", ""):
 			requests.erase(id)
 
+func shift(direction: int, now: float) -> void:
+	if direction not in [-1,1] or not armed or not enabled_before or phase not in ["READY","ACTIVE"]: return
+	if not pending.is_empty() or state.get("desired_mode", "") != "SIM": return
+	if not _open(): return
+	_request("shift", {"direction":direction}, now)
+
 func _block(reason: String, release_owned: bool = false, now: float = 0.0) -> void:
 	armed = false
 	allow_released_session = false
@@ -87,10 +95,20 @@ func handle_response(packet: Dictionary, now: float) -> void:
 	var id: Variant = packet.get("id")
 	if not id is String or not requests.has(id) or packet.get("v") != 1: return
 	if packet.get("type") not in ["ack", "error"]: return
+	last_response = now
 	var request: Dictionary = requests[id]
 	requests.erase(id)
 	var command: String = request.packet.command
+	# An accepted load may arrive after stop, while Reset is already in flight.
+	# Do not let that old ACK resurrect ownership or restart heartbeats.
+	if erg_only and not armed and (command == "set_mode" or (command == "set_target_power" and int(request.packet.get("watts", 0)) > 0)):
+		if pending.get("packet", {}).get("id", "") == id: pending = {}
+		return
 	if pending.get("packet", {}).get("id", "") == id: pending = {}
+	if command == "shift":
+		# An older bridge/ERG refusal must not interrupt the active trainer lease.
+		if packet.get("ok") != true: push_warning("Schakelen: " + str(packet.get("message", "Bridge bijwerken vereist")))
+		return
 	if packet.get("ok") != true:
 		var code: String = str(packet.get("code", "invalid_reply"))
 		# Console/another client owns control now. Never reset their session.
@@ -111,6 +129,9 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		_block(str(state.get("last_error", "bridge_disabled")))
 		return
 	if command == "set_target_power" and int(request.packet.get("watts", 0)) == 0:
+		if erg_only and not state.get("release_confirmed", false):
+			phase = "RELEASING"
+			return
 		# Reset is a release, not a positive ERG target.
 		# A new race may already have armed while the previous release was pending.
 		# Continue probing instead of stranding the new race in BLOCKED.
@@ -135,6 +156,8 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		last_aero = INF
 		last_target = -1
 		return
+	if erg_only and phase == "RELEASING" and state.get("release_confirmed", false) and not state.get("udp_owned", false):
+		phase = "IDLE"
 	if phase in ["BLOCKED", "RELEASING", "IDLE"]: return
 	if command == "set_grade":
 		owned = true
@@ -149,7 +172,16 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		if state.get("waiting_for_feedback", false): return
 		if state.get("mode") == "RELEASED" and not state.get("release_confirmed", false): return
 		if state.get("reconnect_ready", false) and not state.get("release_confirmed", false): return
-		if not state.get("simulation_supported", false):
+		if erg_only:
+			if not state.get("power_supported", false):
+				_block("Trainer ondersteunt geen ERG")
+			elif state.get("udp_owned", false):
+				_block("control_busy")
+			elif state.get("mode") == "SIM" or (state.get("mode") == "RELEASED" and state.get("release_confirmed", false)):
+				phase = "READY"
+			else:
+				_block("Bestaande trainersessie blijft behouden")
+		elif not state.get("simulation_supported", false):
 			_block("simulation_unsupported")
 		elif state.get("udp_owned", false):
 			# On a fresh race only, clear a stale lease held by our own UDP port.
@@ -199,7 +231,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 			socket.put_packet(pending.raw) # Identical id, content and source port.
 			pending.tries += 1
 			pending.retry_at = now + 0.3 * pow(2.0, int(pending.tries))
-	if phase in ["PROBE", "READY", "ACTIVE", "RELEASING"] and now - last_status >= 1.0:
+	if (phase in ["PROBE", "READY", "ACTIVE", "RELEASING"] or (erg_only and phase == "BLOCKED")) and now - last_status >= 1.0:
 		_request("status", {}, now)
 		last_status = now
 	if owned and phase == "ACTIVE" and now - last_heartbeat >= 1.0:

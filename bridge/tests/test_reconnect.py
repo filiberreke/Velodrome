@@ -153,7 +153,13 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
             async def start_notify(self, uuid, callback):
                 if uuid == bridge.BIKE_DATA:
                     callback(None, struct.pack('<HHHh', 68, 3000, 180, 150))
+                    measured_id = sender.power_sample_id
+                    notification_id = sender.sample_id
+                    callback(None, struct.pack('<HH', 0, 3000))  # Speed without power.
+                    self_test.assertEqual(sender.power_sample_id, measured_id)
+                    self_test.assertEqual(sender.sample_id, notification_id + 1)
                 else: await super().start_notify(uuid, callback)
+        self_test = self
         clients = []
         class Context:
             async def __aenter__(self):

@@ -110,27 +110,27 @@ func run_test() -> void:
 	check(not ui.is_visible_in_tree() and not ui.developer_panel.is_visible_in_tree(), "Results hide every HUD layer")
 	game._reset()
 	check(not ui.developer_enabled and not ui.is_visible_in_tree(), "New race resets debug toggle and returns to menus")
-	# The personal lap display follows the player's finish crossings, including
-	# when the points-race leader or bunch is already on a different lap.
+	# Points display follows the peloton's race lap plus the player's lap balance.
 	game.race_mode = 1
 	game.race_laps = 40
 	game._configure_peloton()
-	game.distances.fill(1000.0)
-	var player_progress := [0.0, 249.99, 250.0, 499.99, 500.0, 10000.0]
-	var expected_laps := [1, 1, 2, 2, 3, 40]
-	for index in range(player_progress.size()):
-		game.distances[0] = player_progress[index]
+	game.distances.fill(1100.0)
+	for progress in [0.0,249.99,250.0,499.99,500.0,10000.0]:
+		game.distances[0] = progress
 		game._update_compact_hud(game._physical_order(game._race_positions()))
-		check(ui.lap_label.text == "%d/40" % expected_laps[index], "Personal lap changes only at own finish crossing: %.2f m" % player_progress[index])
+		check(ui.lap_label.text == "5/40", "Points round follows bunch, independent of player odometer")
 	game.distances[0] = 749.99
-	for credit in [-1, 0, 1]:
+	for credit in [-1,0,1]:
 		game.points_rules.credits[0] = credit
 		game._update_compact_hud(game._physical_order(game._race_positions()))
-		check(ui.lap_label.text == "3/40", "Lap awards do not change personal lap display")
+		check(ui.lap_label.text == ("5/40 %+d" % credit if credit != 0 else "5/40"), "Points lap balance is shown separately")
 	game.points_rules.credits[0] = 0
-	game.distances[1] = 1250.0
+	game.distances.fill(1249.99)
 	game._update_compact_hud(game._physical_order(game._race_positions()))
-	check(ui.lap_label.text == "3/40", "Another rider crossing the line does not advance player lap")
+	check(ui.lap_label.text == "5/40", "Bunch before line remains on fifth lap")
+	game.distances.fill(1250.0)
+	game._update_compact_hud(game._physical_order(game._race_positions()))
+	check(ui.lap_label.text == "6/40", "Bunch crossing advances points race round")
 	check(game.points_rules.next_sprint_lap() == 10 and game.points_rules.sprints.is_empty(), "HUD updates do not advance sprint jury")
 	# Pursuit presentation: matching rounds, named replay, lead changes and reset.
 	game.race_mode = 4
