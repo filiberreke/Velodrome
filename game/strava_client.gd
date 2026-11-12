@@ -1,4 +1,5 @@
 extends Node
+const MenuStyle := preload("res://menu_theme.gd")
 # Strava OAuth2 + Uploads API client. Config contains YOUR secrets; never ship a filled-in copy.
 signal status_changed(message: String)
 signal activity_created(activity_id: String)
@@ -97,15 +98,26 @@ func _show_authorize() -> void:
 	if open_result != OK:
 		_emit("Kan Strava niet openen in de browser. Controleer je standaardbrowser.")
 		return
+	var dialog := _build_authorization_dialog()
+	dialog.popup_centered(Vector2i(800, 400))
+
+func _build_authorization_dialog() -> ConfirmationDialog:
 	pending_dialog = ConfirmationDialog.new()
+	pending_dialog.theme = MenuStyle.create()
 	pending_dialog.title = "Strava koppelen"
-	pending_dialog.dialog_text = "1. Geef Strava toestemming om activiteiten te uploaden.\n2. Kopieer de volledige http://localhost/?code=... URL uit je browser.\n3. Plak die hieronder en klik op Koppel en upload.\n\nEen onbereikbare localhost-pagina is bij deze handmatige koppeling normaal."
+	var body := VBoxContainer.new()
+	body.custom_minimum_size = Vector2(650, 320)
+	body.add_theme_constant_override("separation", 20)
+	pending_dialog.add_child(body)
+	var instructions := Label.new()
+	instructions.text = "1. Kopieer config/strava_config.example.cfg\n   naar config/strava_config.cfg en vul je gegevens in.\n   Client ID en Client Secret: strava.com/settings/api\n   redirect_uri: http://localhost · callbackdomein: localhost\n2. Geef Strava toestemming om activiteiten te uploaden.\n3. Kopieer de volledige localhost-URL uit je browser.\n4. Plak die hieronder en kies Koppel en upload.\n\nEen onbereikbare localhost-pagina is normaal\nbij deze handmatige koppeling."
+	body.add_child(instructions)
 	pending_dialog.ok_button_text = "Koppel en upload"
 	pending_dialog.cancel_button_text = "Annuleren"
 	var input := LineEdit.new()
 	input.placeholder_text = "Autorisatiecode of volledige callback-URL"
-	input.custom_minimum_size = Vector2(550, 35)
-	pending_dialog.add_child(input)
+	input.custom_minimum_size = Vector2(650, 48)
+	body.add_child(input)
 	add_child(pending_dialog)
 	pending_dialog.confirmed.connect(func():
 		var code: String = input.text.strip_edges()
@@ -120,9 +132,11 @@ func _show_authorize() -> void:
 		else:
 			_exchange_code(code)
 	)
-	pending_dialog.popup_centered(Vector2i(730, 305))
+	MenuStyle.primary(pending_dialog.get_ok_button())
 	pending_dialog.confirmed.connect(pending_dialog.queue_free)
 	pending_dialog.canceled.connect(pending_dialog.queue_free)
+	input.grab_focus.call_deferred()
+	return pending_dialog
 
 func _save_tokens(data: Dictionary) -> void:
 	if data.has("refresh_token"):

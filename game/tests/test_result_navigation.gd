@@ -16,7 +16,7 @@ func run_test() -> void:
 	await process_frame
 	var again: Button = g.finish_overlay.find_child("ReplayRaceButton", true, false)
 	var menu: Button = g.finish_overlay.find_child("MainMenuButton", true, false)
-	check(again.text == "Wedstrijd opnieuw rijden" and menu.text == "Terug naar hoofdmenu", "Result buttons clearly describe different actions")
+	check(again.text == "Wedstrijd opnieuw rijden" and menu.text == "← Hoofdmenu", "Result buttons clearly describe different actions")
 	for scenario in [[0,0], [3,0], [5,0], [7,0], [7,1], [1,0], [2,0]]:
 		g._reset()
 		await process_frame

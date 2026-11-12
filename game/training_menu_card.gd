@@ -2,11 +2,15 @@ extends CenterContainer
 ## Shared preparation card; the existing session owns all training behaviour.
 const Style := preload("res://menu_theme.gd")
 var page: VBoxContainer
+var host: Control
 var summary: Label
 var preview: Control
+var overview: Label
 var exercise_previews := {}
+var result_presentation := false
 
 func configure(menu: Control, training: VBoxContainer, controls: Array, artwork: Control) -> void:
+	host = menu
 	page = training
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_child(self)
@@ -52,6 +56,11 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 	heading.add_theme_font_override("font", Style.heading())
 	heading.add_theme_font_size_override("font_size", 30)
 	options.add_child(heading)
+	overview = Label.new()
+	overview.add_theme_font_size_override("font_size", 22)
+	overview.add_theme_color_override("font_color", Style.MUTED)
+	options.add_child(overview)
+	overview.hide()
 	for control in controls: control.reparent(options)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 14)
@@ -81,11 +90,24 @@ func _refresh() -> void:
 	var model = page.get("session") if page.get("session") != null else page.get("test")
 	var activity = page.get("selected_activity")
 	var has_result: bool = activity is Dictionary and not activity.is_empty()
+	if has_result and page.is_visible_in_tree(): host.page_title.text = page.title.text + " · Resultaat"
+	if has_result != result_presentation:
+		result_presentation = has_result
+		if has_result:
+			page.result.add_theme_stylebox_override("normal", Style.panel(Style.PAPER, Style.LINE, 18))
+			page.result.add_theme_font_size_override("font_size", 26)
+			page.result.add_theme_color_override("font_color", Style.INK)
+		else:
+			page.result.remove_theme_stylebox_override("normal")
+			page.result.add_theme_font_size_override("font_size", 22)
+			page.result.add_theme_color_override("font_color", Style.MUTED)
 	visible = not model.running() and not has_result and model.phase != "RESULT"
 	summary.text = str(page.detail.text).get_slice("\n", 0)
 	page.title.hide()
 	if preview is TextureRect and not exercise_previews.is_empty():
 		preview.texture = exercise_previews.get(page.get("kind"), preview.texture)
+		overview.visible = page.get("kind") != "take_lap"
+		overview.text = "Duur\nVrij, zonder tijdslimiet\n\nPacers\n30 · 35 · 40 · 45 km/u\n\nRegistratie\nTijd, afstand, rondetijden en vermogen" if page.get("kind") == "free_ride" else "Start\n30 km/u onderaan de piste\n\nVoorbereiding\nEén ronde\n\nDoel\nHoogste snelheid op de startlijn"
 
 static func chart(blocks: Array = []) -> Control:
 	var node := preload("res://training_tile_art.gd").new()

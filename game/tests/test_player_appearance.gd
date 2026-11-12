@@ -13,6 +13,8 @@ class SettingsUnderTest extends "res://display_settings.gd":
 class Host extends Node:
 	var start_state := "SETUP"
 	var ride_mapping = preload("res://ride_mapping.gd").new()
+	var keyboard_mapping = preload("res://keyboard_mapping.gd").new()
+	func _keyboard_profile() -> String: return "simulator"
 	func _clear_look_back() -> void: pass
 	var player_appearance = Appearance.new("user://test_player_appearance.cfg")
 	var player_display_name := "Testspeler"

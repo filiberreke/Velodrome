@@ -106,6 +106,26 @@ static func create() -> Theme:
 		for state in ["grabber", "grabber_highlight", "grabber_pressed"]:
 			cached.set_stylebox(state, kind, panel(MUTED, Color.TRANSPARENT, 4, 4))
 	cached.set_stylebox("separator", "HSeparator", panel(LINE, Color.TRANSPARENT, 1, 0))
+	var window_border := panel(IVORY, BLUE, 12, 12)
+	window_border.set_border_width_all(2)
+	window_border.border_width_top = 32
+	window_border.expand_margin_top = 32
+	window_border.expand_margin_left = 2
+	window_border.expand_margin_right = 2
+	window_border.expand_margin_bottom = 2
+	for state in ["embedded_border", "embedded_unfocused_border"]: cached.set_stylebox(state, "Window", window_border)
+	cached.set_color("title_color", "Window", PAPER)
+	cached.set_font("title_font", "Window", heading())
+	cached.set_font_size("title_font_size", "Window", 20)
+	cached.set_constant("title_height", "Window", 32)
+	for state in ["close", "close_pressed"]: cached.set_icon(state, "Window", icon('<path d="m6 6 12 12M18 6 6 18"/>', PAPER))
+	for kind in ["Tree", "ItemList"]:
+		cached.set_stylebox("panel", kind, panel(PAPER, LINE, 10, 8))
+		cached.set_color("font_color", kind, INK)
+		cached.set_color("font_selected_color", kind, Color.WHITE)
+		for state in ["selected", "selected_focus"]: cached.set_stylebox(state, kind, panel(BLUE, BLUE, 4, 4))
+	cached.set_stylebox("background", "ProgressBar", panel(PALE, Color.TRANSPARENT, 4, 6))
+	cached.set_stylebox("fill", "ProgressBar", panel(BLUE, Color.TRANSPARENT, 4, 6))
 	return cached
 
 static func primary(button: Button) -> void:
@@ -116,6 +136,15 @@ static func primary(button: Button) -> void:
 		button.add_theme_color_override(state, Color.WHITE)
 	button.add_theme_stylebox_override("disabled", panel(LINE, Color.TRANSPARENT, 14, 10))
 	button.add_theme_color_override("font_disabled_color", MUTED)
+
+static func destructive(button: Button) -> void:
+	var warning := Color("a44135")
+	button.add_theme_stylebox_override("normal", panel(PAPER, warning, 14, 10))
+	button.add_theme_stylebox_override("hover", panel(warning.lightened(.88), warning, 14, 10))
+	button.add_theme_stylebox_override("pressed", panel(warning, warning, 14, 10))
+	for state in ["font_color", "font_hover_color", "font_focus_color"]: button.add_theme_color_override(state, warning)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_stylebox_override("focus", focus_ring(10))
 
 static func logo() -> TextureRect:
 	var image: Texture2D = preload("res://assets/branding/velodrome_wordmark.png")

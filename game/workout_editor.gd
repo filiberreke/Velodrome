@@ -48,9 +48,11 @@ func _ready() -> void:
 	_button(selection,"Nieuwe workout",new_workout)
 	MenuStyle.primary(_button(selection,"Opslaan",save_workout))
 	delete_workout_button = _button(selection,"Workout verwijderen",request_delete_workout)
+	MenuStyle.destructive(delete_workout_button)
 	delete_dialog = ConfirmationDialog.new()
 	delete_dialog.title = "Workout verwijderen?"
 	delete_dialog.get_ok_button().text = "Verwijderen"
+	MenuStyle.destructive(delete_dialog.get_ok_button())
 	delete_dialog.get_cancel_button().text = "Annuleren"
 	delete_dialog.confirmed.connect(_confirm_delete_workout)
 	delete_dialog.canceled.connect(func(): pending_delete_id = "")
@@ -398,6 +400,10 @@ func _dialog(mode: FileDialog.FileMode) -> FileDialog:
 	var d := FileDialog.new()
 	d.access = FileDialog.ACCESS_FILESYSTEM
 	d.file_mode = mode
+	d.title = "Importeer workout" if mode == FileDialog.FILE_MODE_OPEN_FILE else "Exporteer workout"
+	d.get_ok_button().text = "Importeren" if mode == FileDialog.FILE_MODE_OPEN_FILE else "Exporteren"
+	d.get_cancel_button().text = "Annuleren"
+	MenuStyle.primary(d.get_ok_button())
 	d.add_filter("*.zwo", "Zwift Workout")
 	add_child(d)
 	return d

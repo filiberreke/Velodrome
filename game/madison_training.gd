@@ -68,7 +68,7 @@ func _table_cell(text: String, heading: bool = false) -> void:
 	if results_table.get_child_count()%5 == 3:
 		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cell.custom_minimum_size.x = 220
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if heading: cell.add_theme_color_override("font_color",Color("d1a83c"))
+	if heading: cell.add_theme_color_override("font_color",preload("res://menu_theme.gd").BLUE)
 	results_table.add_child(cell)
 
 func _display_exchange(stored: Dictionary) -> Dictionary:

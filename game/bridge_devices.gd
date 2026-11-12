@@ -17,6 +17,7 @@ var panel_root: ColorRect
 var open_button: Button
 var status: Label
 var choices: Dictionary = {}
+var connection_labels: Dictionary = {}
 var mapping_separator: HSeparator
 var controller_connection: Label
 var keyboard_check: CheckButton
@@ -66,23 +67,30 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 22)
 	panel.add_child(box)
 	var title := Label.new()
-	title.text = "Apparaten via de bridge"
+	title.text = "Apparaten"
+	title.add_theme_font_override("font", Style.heading())
 	title.add_theme_font_size_override("font_size", 32)
-	box.add_child(title)
+	var page_header := HBoxContainer.new()
+	page_header.add_theme_constant_override("separation", 20)
+	box.add_child(page_header)
+	var back := Button.new()
+	back.text = "← Terug"
+	back.custom_minimum_size = Vector2(190, 48)
+	Style.primary(back)
+	back.pressed.connect(close_page)
+	page_header.add_child(back)
+	page_header.add_child(title)
 	status = Label.new()
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status.custom_minimum_size = Vector2(1000, 90)
+	status.custom_minimum_size = Vector2(1000, 52)
 	box.add_child(status)
 	for i in ROLES.size():
 		var section := VBoxContainer.new()
 		section.add_theme_constant_override("separation", 10)
-		if ROLES[i] == "controller":
-			var card := PanelContainer.new()
-			card.add_theme_stylebox_override("panel", Style.panel(Style.PAPER, Style.LINE, 16, 16))
-			box.add_child(card)
-			card.add_child(section)
-		else:
-			box.add_child(section)
+		var card := PanelContainer.new()
+		card.add_theme_stylebox_override("panel", Style.panel(Style.PAPER, Style.LINE, 16, 12))
+		box.add_child(card)
+		card.add_child(section)
 		var header := HBoxContainer.new()
 		section.add_child(header)
 		var label := Label.new()
@@ -96,6 +104,12 @@ func _ready() -> void:
 			controller_connection.add_theme_color_override("font_color", Color("008b38"))
 			controller_connection.add_theme_stylebox_override("normal", Style.panel(Color("d9f5e3"), Color.TRANSPARENT, 6, 12))
 			header.add_child(controller_connection)
+			connection_labels[ROLES[i]] = controller_connection
+		else:
+			var connection := Label.new()
+			connection.add_theme_font_size_override("font_size", 16)
+			header.add_child(connection)
+			connection_labels[ROLES[i]] = connection
 		var option := OptionButton.new()
 		option.custom_minimum_size.y = 48
 		section.add_child(option)
@@ -245,6 +259,11 @@ func _update_connection_action(online: bool) -> void:
 	var any_connected := false
 	for role in ROLES:
 		if online and not str(connected.get(role, "")).is_empty(): any_connected = true
+		var live: bool = online and not str(connected.get(role, "")).is_empty()
+		var badge: Label = connection_labels[role]
+		badge.text = "Verbonden" if live else "Niet verbonden"
+		badge.add_theme_color_override("font_color", Color("008b38") if live else Style.MUTED)
+		badge.add_theme_stylebox_override("normal", Style.panel(Color("d9f5e3") if live else Style.PALE, Color.TRANSPARENT, 6, 8))
 	close_button.text = "Kies deze setup" if any_connected else "Overslaan"
 	keyboard_check.set_pressed_no_signal(get_parent().keyboard_mapping.enabled)
 	controller_connection.visible = true
