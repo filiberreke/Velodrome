@@ -2411,6 +2411,7 @@ func _build_hud() -> void:
 	minimap = race_overlay.map
 	# Separate mode gallery and race configuration, above a quiet arena.
 	var menu = preload("res://race_menu.gd").new()
+	menu.keyboard_mapping = keyboard_mapping
 	menu.library = pursuit_library
 	menu.records_store = performance_records
 	setup_panel = menu

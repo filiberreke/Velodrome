@@ -10,6 +10,7 @@ signal training_upload_requested(activity: Dictionary)
 const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
 const Records := preload("res://pursuit_records.gd")
+var keyboard_mapping: RefCounted = preload("res://keyboard_mapping.gd").new()
 var library = Records.new()
 var records_store = preload("res://performance_records.gd").new()
 var records_page: VBoxContainer
@@ -972,11 +973,12 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and get_parent().keyboard_mapping.action_for("menu", event) == "back" and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14]:
+	if not keyboard_mapping.enabled: return
+	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and keyboard_mapping.action_for("menu", event) == "back" and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14]:
 		bridge_action("B")
 		get_viewport().set_input_as_handled()
 		return
-	if visible and page in [2, 3, 4, 5] and event is InputEventKey and event.is_pressed() and get_parent().keyboard_mapping.action_for("menu", event) == "back":
+	if visible and page in [2, 3, 4, 5] and event is InputEventKey and event.is_pressed() and keyboard_mapping.action_for("menu", event) == "back":
 		if page == 5: startlist_page.back()
 		elif selected in [1,2] and pursuit_flow.visible: pursuit_flow.back()
 		else: show_choices()
