@@ -876,8 +876,11 @@ func _input(event: InputEvent) -> void:
 		return
 	if not keyboard_mapping.enabled: return
 	var scope := _ride_context()
+	ride_navigation.refresh_focus()
 	var focused := get_viewport().gui_get_focus_owner()
-	if focused is LineEdit and scope not in ["race","piste"] and keyboard_mapping.action_for("menu", key) != "back": return
+	if focused is LineEdit and scope not in ["race","piste"]:
+		var menu_action: String = keyboard_mapping.action_for("menu", key)
+		if menu_action not in ["back", "up", "down"] and not (focused.get_parent() is SpinBox and menu_action in ["left", "right"]): return
 	var profile := _keyboard_profile() if scope in ["race","piste"] else "menu"
 	action = keyboard_mapping.action_for(profile, key)
 	if scope == "results" and keyboard_mapping.action_for(_keyboard_profile(), key) == "restart": action = "restart"
@@ -893,6 +896,9 @@ func _input(event: InputEvent) -> void:
 		if scope == "settings":
 			preferences.bridge_action(token, true)
 		else: _ride_action(token, "KEYBOARD")
+		# Navigation sends synthetic GUI actions. Restore the handled flag after
+		# that nested dispatch so the original key cannot move focus a second time.
+		get_viewport().set_input_as_handled()
 		return
 	_keyboard_race_action(action)
 
@@ -1000,6 +1006,7 @@ func _ride_context() -> String:
 	return "race"
 
 func _ride_action(key: String, source: String = "B") -> void:
+	ride_navigation.refresh_focus()
 	if piste_training != null and piste_training.active and _ride_context() == "piste":
 		if source.begins_with("SHIFT_"): return
 		if key in ["LEFT","RIGHT"]: piste_training.request_tempo(1 if key == "RIGHT" else -1)

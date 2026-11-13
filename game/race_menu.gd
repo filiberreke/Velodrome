@@ -607,18 +607,20 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	breadcrumb.text = "Velodrome v0.2"
 	footer_label.show()
 	node.show()
-	var focus: Control = node.get_child(0)
+	var candidates: Array[Control] = preload("res://ride_navigation.gd").controls(node)
+	if candidates.is_empty(): candidates = preload("res://ride_navigation.gd").controls(page_header)
+	var focus: Control = candidates[0] if not candidates.is_empty() else null
 	if node == hub_page: focus = hub_button
 	if node == training_page: focus = ftp_tile
 	if node == piste_page: focus = piste_tiles["free_ride"]
-	if node == derny_page: focus = derny_page.start_button
-	if node == exercise_page: focus = exercise_page.start_button
-	if node == madison_page: focus = madison_page.start_button
+	if node == derny_page: focus = derny_page.derny_motor_button if derny_page.selected_activity.is_empty() else derny_page.start_button
+	if node == exercise_page: focus = exercise_page.tempo_input.get_line_edit() if exercise_page.kind == "take_lap" else exercise_page.start_button
+	if node == madison_page: focus = madison_page.difficulty if madison_page.selected_activity.is_empty() else madison_page.start_button
 	if node == training_history_page: focus = training_history_page.back_button
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == workout_play_page: focus = workout_play_page.start_button
 	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
-	focus.grab_focus.call_deferred()
+	if focus != null: focus.grab_focus.call_deferred()
 
 func show_hub() -> void:
 	_show_section(0, "Welkom in Velodrome", hub_page)
@@ -647,8 +649,8 @@ func show_derny(new_training: bool = true) -> void:
 
 func show_piste_exercise(kind: String, new_training: bool = true) -> void:
 	if new_training: exercise_page.prepare_new_training()
-	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
 	exercise_page.configure(kind)
+	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
 func _exercise_environment(active: bool) -> void:
 	exercise_environment_requested.emit(active)
 	if active and not exercise_page.session.running(): return
