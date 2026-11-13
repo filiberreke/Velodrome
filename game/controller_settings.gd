@@ -58,7 +58,7 @@ func _ready() -> void:
     scroll.custom_minimum_size.y = 270
     add_child(scroll)
     var grid := GridContainer.new()
-    grid.columns = 2
+    grid.columns = 1
     grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     grid.add_theme_constant_override("h_separation", 10)
     grid.add_theme_constant_override("v_separation", 7)
@@ -66,7 +66,7 @@ func _ready() -> void:
     for entry in BUTTONS:
         var panel := PanelContainer.new()
         panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        panel.custom_minimum_size = Vector2(465, 43)
+        panel.custom_minimum_size = Vector2(0, 43)
         var style := StyleBoxFlat.new()
         style.bg_color = MenuStyle.PAPER
         style.set_corner_radius_all(6)
@@ -77,13 +77,15 @@ func _ready() -> void:
         panel.add_child(row)
         var key := Label.new()
         key.text = str(entry[0]).replace("POWER_LEFT", "DROP_LEFT").replace("POWER_RIGHT", "DROP_RIGHT")
-        key.custom_minimum_size.x = 180
+        key.custom_minimum_size.x = 250
+        key.add_theme_font_size_override("font_size", 18)
         row.add_child(key)
         var action := Label.new()
         action.text = str(entry[1])
         binding_labels[str(entry[0])] = action
         action.add_theme_color_override("font_color", MenuStyle.MUTED)
         action.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        action.add_theme_font_size_override("font_size", 18)
         action.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
         row.add_child(action)
         indicators[str(entry[0])] = panel
@@ -95,6 +97,7 @@ func _ready() -> void:
     steering_bar.max_value = 100
     steering_bar.value = 0
     steering_bar.show_percentage = false
+    steering_bar.custom_minimum_size.y = 12
     add_child(steering_bar)
     last_label = Label.new()
     last_label.text = "Laatste invoer: —"

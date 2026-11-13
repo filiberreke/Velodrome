@@ -143,19 +143,26 @@ func _build_menu() -> void:
 	panel.add_theme_stylebox_override("panel", style)
 	centered.add_child(panel)
 	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 18)
+	outer.add_theme_constant_override("separation", 12)
 	panel.add_child(outer)
 	var title := Label.new()
 	title.text = "Instellingen"
 	title.add_theme_font_override("font", MenuStyle.heading())
-	title.add_theme_font_size_override("font_size", 30)
-	title.add_theme_color_override("font_color", MenuStyle.WOOD)
-	outer.add_child(title)
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", MenuStyle.INK)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 20)
+	outer.add_child(header)
+	header.add_child(title)
 	appearance_tabs = TabContainer.new()
 	appearance_tabs.custom_minimum_size = Vector2(0, 620)
 	appearance_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_child(appearance_tabs)
 	ride_tabs = Button.new()
+	ride_tabs.flat = true
+	ride_tabs.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	ride_tabs.add_theme_font_size_override("font_size", 17)
+	ride_tabs.add_theme_color_override("font_color", MenuStyle.MUTED)
 	ride_tabs.text = "Tab kiezen: links / rechts  ·  omlaag: opties  ·  B/Z: sluiten"
 	outer.move_child(appearance_tabs, outer.get_child_count() - 1)
 	outer.add_child(ride_tabs)
@@ -167,7 +174,7 @@ func _build_menu() -> void:
 	var box := VBoxContainer.new()
 	box.custom_minimum_size.x = 420
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 10)
 	player_tab.add_child(box)
 	var player_heading := Label.new()
 	player_heading.text = "RENNE R  /  SPELERSPROFIEL".replace("RENNE R", "RENNER")
@@ -202,7 +209,7 @@ func _build_menu() -> void:
 	_build_appearance_controls(box, player_tab)
 	box = VBoxContainer.new()
 	box.name = "Beeld"
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 10)
 	appearance_tabs.add_child(box)
 	var display_heading := Label.new()
 	display_heading.text = "BEELDINSTELLINGEN"
@@ -263,7 +270,7 @@ func _build_menu() -> void:
 	intro_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(intro_hint)
 	var info := Label.new()
-	info.text = "3D lager instellen kan helpen op een Intel GPU.\nDe uitslag en andere interface-elementen blijven scherp.\nStel je sneltoetsen in op het tabblad Toetsenbord."
+	info.text = "Een lagere 3D-resolutie verbetert de prestaties.\nMenu’s en uitslagen blijven scherp.\nStel je sneltoetsen in op het tabblad Toetsenbord."
 	info.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(info)
 	box = VBoxContainer.new()
@@ -274,8 +281,23 @@ func _build_menu() -> void:
 	account_heading.text = "STRAVA"
 	account_heading.add_theme_color_override("font_color", MenuStyle.BLUE)
 	box.add_child(account_heading)
+	var account_status := Label.new()
+	var client = get_parent().get("strava_client")
+	var has_account := false
+	if client != null:
+		has_account = not str(client.tokens.get_value("tokens", "refresh_token", "")).is_empty() or not str(client.config.get_value("strava", "refresh_token", "")).is_empty()
+	account_status.text = "Account gekoppeld" if has_account else "Nog geen account gekoppeld"
+	account_status.add_theme_font_size_override("font_size", 26)
+	box.add_child(account_status)
+	var account_help := Label.new()
+	account_help.text = "1. Kopieer config/strava_config.example.cfg naar config/strava_config.cfg.\n2. Vul client_id en client_secret in via strava.com/settings/api.\n3. Gebruik redirect_uri = http://localhost en callbackdomein localhost.\n4. Kies hieronder Koppel je Strava-account en geef toestemming.\n5. Upload na een wedstrijd of pistetraining je activiteit naar Strava.\n\nJe trainingen en resultaten blijven ook lokaal beschikbaar."
+	account_help.add_theme_font_size_override("font_size", 19)
+	account_help.add_theme_color_override("font_color", MenuStyle.MUTED)
+	box.add_child(account_help)
 	var reconnect_button := Button.new()
-	reconnect_button.text = "STRAVA OPNIEUW KOPPELEN"
+	reconnect_button.text = "Strava opnieuw koppelen" if has_account else "Koppel je Strava-account"
+	reconnect_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	MenuStyle.primary(reconnect_button)
 	reconnect_button.pressed.connect(func(): get_parent().get("strava_client").call("reconnect"))
 	box.add_child(reconnect_button)
 	controller_test = preload("res://controller_settings.gd").new()
@@ -285,18 +307,24 @@ func _build_menu() -> void:
 	keyboard_settings.name = "Toetsenbord"
 	appearance_tabs.add_child(keyboard_settings)
 	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_END
 	actions.add_theme_constant_override("separation", 12)
 	outer.add_child(actions)
 	var apply_button := Button.new()
 	apply_button.text = "Toepassen en bewaren"
 	MenuStyle.primary(apply_button)
-	apply_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apply_button.custom_minimum_size = Vector2(310, 52)
 	apply_button.pressed.connect(_on_apply)
 	actions.add_child(apply_button)
 	close_button = Button.new()
 	close_button.text = "Sluiten"
 	close_button.pressed.connect(_close_settings)
 	actions.add_child(close_button)
+	close_button.reparent(header)
+	header.move_child(close_button, 0)
+	close_button.text = "← Terug"
+	close_button.custom_minimum_size = Vector2(210, 48)
+	MenuStyle.primary(close_button)
 	appearance_tabs.tab_changed.connect(_on_settings_tab_changed)
 
 func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -> void:
@@ -408,7 +436,7 @@ func open_device_mapping() -> void:
 func _close_settings() -> void:
 	keyboard_settings.cancel_capture()
 	panel_root.hide()
-	close_button.text = "Sluiten"
+	close_button.text = "← Terug"
 	appearance_preview.set_active(false)
 	if controller_test != null:
 		controller_test.call("set_testing", false)

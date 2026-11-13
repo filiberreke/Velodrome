@@ -254,4 +254,4 @@ func finish_session(reason: String, show_result: bool = true) -> void:
 	page.show_activity(activity,save_status)
 	if show_result:
 		game.setup_panel._madison_environment(false)
-		game.setup_panel.show_madison_training()
+		game.setup_panel.show_madison_training(false)

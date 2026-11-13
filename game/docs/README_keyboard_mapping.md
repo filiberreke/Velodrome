@@ -20,3 +20,12 @@ Alle acties, inclusief menu, Instellingen, opname bewaren en herstart, zijn opni
 Instellingen staan in `user://keyboard_mapping.json`, apart van de bestaande Ride-knopmapping. Ongeldige opgeslagen gegevens vallen terug op de standaardbediening zonder het bestand te overschrijven. Toetsenbordschakelen vereist de bijbehorende bridge-versie met het lokale `shift`-commando. Het gebruikt dezelfde virtuele versnellingen als de Ride-paddles; ERG, uitgeschakelde trainers en andere actieve eigenaren worden gerespecteerd. Er wordt geen verbinding met fysieke hardware getest door de automatische tests.
 
 Validatie: `game/tests/test_keyboard_mapping.gd`, bestaande controller-/Ride-/trainingscontroles en `python -m unittest discover -s bridge/tests -q`.
+
+
+## Focus in menu’s
+
+Eén druk op een pijltjestoets verplaatst de focus één keer. Links/rechts volgt de zichtbare rij tegels, omhoog/omlaag volgt de kolom. Aan de rand springt de focus niet naar een andere rij. Tab en Shift+Tab volgen de zichtbare leesvolgorde, met de terugknop bovenaan. Verborgen of uitgeschakelde opties worden overgeslagen; de focus blijft binnen het actieve scherm of venster.
+
+Bij numerieke velden en schuifregelaars ga je met omhoog/omlaag naar het vorige/volgende bedieningselement en pas je de waarde met links/rechts aan. Gewone tekstvelden blijven met het toetsenbord bewerkbaar. Trainingspagina’s beginnen bij de eerste trainingskeuze; na het afronden van een rit blijft het resultaat zichtbaar.
+
+Regressietest met echte toetsdrukken: `godot --headless --path game --script res://tests/test_menu_navigation.gd`.

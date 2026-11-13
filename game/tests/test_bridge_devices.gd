@@ -51,10 +51,10 @@ func run_test() -> void:
 	check(page.close_button.text == "Kies deze setup", "Connected devices use Kies deze setup")
 	check(page.mapping_link.get_parent() == page.choices.controller.get_parent(), "Mapping belongs directly to controller section")
 	check(page.mapping_link.get_index() > page.choices.controller.get_index(), "Mapping follows selected controller")
-	check(page.mapping_link.flat and page.mapping_link.text == "Knoptoewijzing aanpassen", "Mapping uses subtle action label")
+	check(page.mapping_link.flat and page.mapping_link.text == "Toetsenbord en controller instellen", "Mapping action describes keyboard and controller setup")
 	page.snapshot.connected = {}
 	page._refresh()
-	check(page.close_button.text == "Overslaan" and not page.controller_connection.visible, "Selection without a connection still uses Overslaan")
+	check(page.close_button.text == "Overslaan" and page.controller_connection.text.contains("toetsenbord"), "Offline setup explains keyboard availability")
 	page.snapshot.connected = {"heart_rate": "hr-1"}
 	page._refresh()
 	check(page.close_button.text == "Kies deze setup", "Heart-rate-only connection also confirms setup")
@@ -73,7 +73,7 @@ func run_test() -> void:
 	check(game.clock == 123.0 and game.player_lane == 2, "Opening preserves race time and lane")
 	page.open_mapping()
 	var settings = game.get_node("GameSettings")
-	check(settings.controller_test_active() and settings.return_to_devices, "Link opens Besturing and mapping editor")
+	check(settings.appearance_tabs.current_tab == 4 and settings.return_to_devices, "Link opens keyboard setup and remembers device return destination")
 	check(settings.layer > game.exit_menu.layer, "Settings stay above paused overlay")
 	settings._close_settings()
 	check(page.panel_root.visible and game.race_paused, "Closing settings returns to devices and keeps pause")
@@ -91,7 +91,7 @@ func run_test() -> void:
 	page.last_response = -10.0
 	page._process(0.0)
 	check(page.choices.trainer.disabled and page.status.text.contains("niet bereikbaar"), "Bridge loss disables stale selection")
-	check(page.close_button.text == "Overslaan" and not page.controller_connection.visible, "Bridge loss clears connected action and badge")
+	check(page.close_button.text == "Overslaan" and page.controller_connection.text.contains("toetsenbord") and page.connection_labels.trainer.text == "Niet verbonden", "Bridge loss clears device connections and explains keyboard availability")
 	if DisplayServer.get_name() != "headless":
 		page.last_response = Time.get_ticks_msec() / 1000.0
 		page.error = ""

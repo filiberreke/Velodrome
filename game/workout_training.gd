@@ -5,6 +5,7 @@ var menu
 var workout_id := ""
 var item := {}
 var ftp_input: SpinBox
+var ftp_caption: Label
 var edit_button: Button
 var confirmation_at := 0.0
 var desired_target := -1
@@ -19,6 +20,7 @@ func _ready() -> void:
 	title = _label("Workout",34)
 	detail = _label("",22)
 	var caption := _label("FTP voor deze training (W)",20)
+	ftp_caption = caption
 	caption.tooltip_text = "Standaard je spelers-FTP. Een wijziging hier geldt alleen voor deze training."
 	ftp_input = SpinBox.new()
 	ftp_input.min_value = 20; ftp_input.max_value = 1000; ftp_input.step = 1
@@ -33,6 +35,8 @@ func load_workout(workout: Dictionary) -> void:
 	item = workout
 	workout_id = str(item.id)
 	test.load_workout(item)
+	if has_meta("preparation_card"):
+		get_meta("preparation_card").preview.set_workout(item.blocks)
 	ftp_input.value = player_profile.ftp()
 	title.text = str(item.name)
 	detail.text = "%d blokken · %d minuten\nJe profiel-FTP wordt als standaard gebruikt. Je kunt hieronder alleen voor deze training afwijken." % [item.blocks.size(),int(ceil(test.duration()/60))]
