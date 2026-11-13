@@ -40,6 +40,10 @@ var pursuit_trail_style: StyleBoxFlat
 var pursuit_tie_style: StyleBoxFlat
 var map: Control
 var rider_rows: Array[Dictionary] = []
+var nearby_others: Label
+var eliminated_panel: PanelContainer
+var eliminated_rows: VBoxContainer
+var eliminated_scroll: ScrollContainer
 var nearby_panel: PanelContainer
 var peloton_label: Label
 var points_panel: PanelContainer
@@ -120,6 +124,7 @@ func _ready() -> void:
 	row_player = style(MenuStyle.BLUE, Color.TRANSPARENT)
 	row_player.set_content_margin_all(8)
 	_build_nearby()
+	_build_eliminated()
 	_build_points_standings()
 	_build_team_laps()
 	_build_solo_checkpoints()
@@ -302,6 +307,42 @@ func _build_nearby() -> void:
 		gap.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(gap)
 		rider_rows.append({"shell": shell, "rank": rank, "marker": marker, "name": name_label, "gap": gap})
+
+	nearby_others = text("", 17, MUTED)
+	column.add_child(nearby_others)
+	nearby_others.hide()
+
+func _build_eliminated() -> void:
+	eliminated_panel = panel(self, Control.PRESET_TOP_RIGHT, -410, 330, -32, 858)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	eliminated_panel.add_child(column)
+	column.add_child(text("KLASSEMENT · AFGEVALLEN", 18, ACCENT))
+	eliminated_scroll = ScrollContainer.new()
+	eliminated_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(eliminated_scroll)
+	eliminated_rows = VBoxContainer.new()
+	eliminated_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	eliminated_rows.add_theme_constant_override("separation", 8)
+	eliminated_scroll.add_child(eliminated_rows)
+	eliminated_panel.hide()
+
+func _update_eliminated(data: Dictionary) -> void:
+	eliminated_panel.visible = bool(data.get("elimination", false))
+	if not eliminated_panel.visible: return
+	var out: Array = data.get("eliminated", [])
+	eliminated_scroll.custom_minimum_size.y = minf(360.0, out.size() * 30.0)
+	eliminated_panel.offset_bottom = 330.0 + minf(528.0, 100.0 + out.size() * 30.0)
+	while eliminated_rows.get_child_count() < out.size():
+		eliminated_rows.add_child(text("", 19))
+	for i in range(eliminated_rows.get_child_count()):
+		var row: Label = eliminated_rows.get_child(i)
+		row.visible = i < out.size()
+		if i >= out.size(): continue
+		var index: int = out.size() - 1 - i
+		var id: int = int(out[index])
+		row.text = "%d.  %s" % [data.names.size() - index, data.names[id]]
+		row.add_theme_color_override("font_color", ACCENT if id == 0 else INK)
 
 func _build_team_laps() -> void:
 	team_laps_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
@@ -715,10 +756,16 @@ func update_race(data: Dictionary) -> void:
 	peloton_label.text = str(data.get("peloton_gap", ""))
 	peloton_label.visible = not peloton_label.text.is_empty()
 	_update_points_standings(data)
-	var order: Array[int] = data["order"]
+	_update_eliminated(data)
+	var order: Array[int] = data["order"].duplicate()
+	if bool(data.get("elimination", false)):
+		for id in data.get("eliminated", []): order.erase(int(id))
 	var ids: Array[int] = nearby_ids(order)
 	var positions: Array = data.get("race_positions", [])
 	if positions.size() == order.size(): ids = closest_race_ids(order, positions)
+	var hidden_count: int = order.size() - ids.size()
+	nearby_others.text = "+ %d anderen" % hidden_count
+	nearby_others.visible = hidden_count > 0
 	for index in range(rider_rows.size()):
 		var row: Dictionary = rider_rows[index]
 		row["shell"].visible = index < ids.size()

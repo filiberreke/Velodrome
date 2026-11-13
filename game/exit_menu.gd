@@ -11,6 +11,7 @@ var leave_button: Button
 var settings_button: Button
 var confirming_leave := false
 var quitting_application := false
+var returning_to_menu := false
 
 func setup(owner_game: Node) -> void:
 	game = owner_game
@@ -29,7 +30,7 @@ func setup(owner_game: Node) -> void:
 	exit_button.offset_bottom = 100
 	exit_button.icon = MenuStyle.icon('<path d="M10 4H4v16h6M14 8l4 4-4 4M8 12h10"/>')
 	exit_button.tooltip_text = "Spel afsluiten"
-	exit_button.pressed.connect(game._quit_application)
+	exit_button.pressed.connect(show_quit)
 	backdrop = ColorRect.new()
 	screen.add_child(backdrop)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -86,6 +87,7 @@ func show_pause() -> void:
 	resume_button.grab_focus()
 
 func hide_pause() -> void:
+	returning_to_menu = false
 	quitting_application = false
 	backdrop.hide()
 	confirming_leave = false
@@ -93,13 +95,14 @@ func hide_pause() -> void:
 	leave_button.release_focus()
 
 func cancel_or_resume() -> void:
-	if quitting_application:
+	if quitting_application or returning_to_menu:
 		hide_pause()
 		set_exit_visible(true)
 	elif confirming_leave: show_pause()
 	else: game._resume_race()
 
 func show_quit() -> void:
+	returning_to_menu = false
 	quitting_application = true
 	confirming_leave = false
 	heading.text = "Spel afsluiten?"
@@ -124,4 +127,17 @@ func _leave_pressed() -> void:
 	detail.text = "Je kunt deze wedstrijd daarna niet hervatten."
 	resume_button.text = "Terug"
 	leave_button.text = "Verlaten naar hoofdmenu"
+	resume_button.grab_focus()
+
+func show_results_leave() -> void:
+	quitting_application = false
+	returning_to_menu = true
+	confirming_leave = true
+	heading.text = "Resultaat sluiten?"
+	detail.text = "Wil je het resultaat verlaten en terugkeren naar de wedstrijdkeuze?"
+	resume_button.text = "Resultaat bekijken"
+	leave_button.text = "Terug naar wedstrijdkeuze"
+	settings_button.hide()
+	backdrop.show()
+	exit_button.hide()
 	resume_button.grab_focus()

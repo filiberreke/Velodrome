@@ -65,13 +65,14 @@ func _lane_safe(i: int, candidate: float, active: Array[int], distances: Array[f
 		if j==i: continue
 		var other: float=float(reserved.get(j,lanes[j]))
 		if Motion.laterally_separate(lanes[i],candidate,lanes[j],other): continue
+		if Motion.moving_apart(lanes[i],candidate,lanes[j],other): continue
 		var gap: float=Motion.signed_gap(distances[i],distances[j])
 		var relative: float=speeds[j]/_metric(j,other,lanes)-speeds[i]/_metric(i,candidate,lanes)
 		var departure: float=absf(candidate-lanes[i])/INSIDE_LANE_CHANGE_MPS+0.05
-		var existing_horizon: float=1.8 if absf(candidate-other)<Motion.LATERAL_CLEARANCE else departure
+		var existing_horizon: float=departure
 		if absf(lanes[i]-lanes[j])<Motion.LATERAL_CLEARANCE and Motion.leaves_safely(gap,relative,existing_horizon):
 			continue
-		var future: float=gap+relative*1.8
+		var future: float=gap+relative*departure
 		if gap*future<=0.0 or minf(absf(gap),absf(future))<Motion.MERGE_GAP: return false
 	return true
 
