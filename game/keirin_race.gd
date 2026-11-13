@@ -98,7 +98,7 @@ func _tick(g, dt: float) -> void:
 		if distance >= EXIT_M:
 			phase = "FREE"; exit_time = next_time; exit_speed_kmh = speed*3.6; pilot_exit_start = distance
 			events.append({"kind":"derny_exit","time":next_time,"kmh":exit_speed_kmh})
-			g._announce_race_event("DERNY UIT · VRIJE WEDSTRIJD", false)
+			g._announce_race_event("DERNY UIT Â· VRIJE WEDSTRIJD", false)
 	else:
 		_free_step(g, dt, next_time)
 		# The pilot keeps rolling and leaves through the inside; no hand signal.
@@ -118,12 +118,11 @@ func _free_step(g, dt: float, next_time: float) -> void:
 	for i in range(6): reductions.append(g._draft_drag_reduction(i))
 	var powers: Array[float] = g.x_ai.step_keirin(dt,next_time-exit_time,FINISH_M,old,old_speeds,prior_lanes,reductions,g.finish_times,g.ai_difficulty)
 	if not g.x_ai.all_ai: powers[0] = g._pc_power(dt)
-	# AI riders reserve passing corridors; the human player can ride through others.
+	# As in scratch, integrate every rider freely; AI anticipates traffic through power.
 	for i in range(6):
 		if g.finish_times[i]>=0.0: continue
 		var human_player: bool = i == 0 and not g.x_ai.all_ai
 		var target: float = g.LANES[clampi(g.player_lane,0,2)] if human_player else g.x_ai.lane_targets[i]
-		if not human_player and absf(target-prior_lanes[i])>.01 and not g.x_ai.corridor_clear(i,target,old,old_speeds,prior_lanes,g.finish_times): target=prior_lanes[i]
 		g.lane_offsets[i] = move_toward(prior_lanes[i],target,g.LANE_CHANGE_MPS*dt)
 		var metric: float = g._path_metric(old[i],g.lane_offsets[i])
 		var v: float = g._next_speed(old_speeds[i],powers[i],dt,g._effective_draft_strength(i))
@@ -131,12 +130,6 @@ func _free_step(g, dt: float, next_time: float) -> void:
 		var forward: Vector3 = g._at(old[i]+v*dt/metric,g.lane_offsets[i])
 		v = g._banked_speed(v,forward.y-side.y,side.y-g._at(old[i],prior_lanes[i]).y,absf(g.lane_offsets[i]-prior_lanes[i]),dt,powers[i])
 		var nd: float = old[i] + v*dt/metric
-		# Moving obstacle boundary, never the frozen finishing-line position.
-		for j in range(6):
-			if human_player or j==i or g.finish_times[j]>=0.0: continue
-			if old[j]>old[i] and absf(g.lane_offsets[i]-g.lane_offsets[j])<0.85:
-				nd = minf(nd, maxf(old[i],old[j]+old_speeds[j]*dt/metric-1.8))
-		v = minf(v,maxf(0.0,(nd-old[i])*metric/dt))
 		g.speeds[i]=v; g.distances[i]=minf(FINISH_M,nd)
 		g.ai_power_w[i]=powers[i]; g.ai_energy_j[i]=g.x_ai.wprime[i]
 		g._register_lap_crossings(i,old[i],nd-old[i],dt)
