@@ -48,3 +48,27 @@ static func total_seconds(blocks: Array) -> float:
 	var result := 0.0
 	for block in blocks: result += duration(block)
 	return result
+
+static func average_target(blocks: Array) -> float:
+	var weighted := 0.0
+	var measured_seconds := 0.0
+	for block in blocks:
+		if block.kind == "FreeRide": continue
+		var seconds := duration(block)
+		if seconds <= 0: continue
+		if block.kind == "IntervalsT":
+			weighted += float(block.get("repeat", 1)) * (float(block.on_duration) * float(block.on_power) + float(block.off_duration) * float(block.off_power))
+		else:
+			var low := float(block.get("power_low", 0))
+			var high := float(block.get("power_high", low)) if block.kind in ["Warmup", "Cooldown", "Ramp"] else low
+			weighted += seconds * (low + high) * 0.5
+		measured_seconds += seconds
+	return weighted / measured_seconds if measured_seconds > 0 else -1.0
+
+static func intensity_level(target: float) -> int:
+	if target < 0: return 0
+	if target < .55: return 1
+	if target < .7: return 2
+	if target < .85: return 3
+	if target < 1.0: return 4
+	return 5

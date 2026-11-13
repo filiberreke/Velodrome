@@ -13,6 +13,7 @@ var size_box: VBoxContainer
 var rows: VBoxContainer
 var message: Label
 var back_button: Button
+var first_ride_button: Button
 var category: Label
 var mode_buttons: Array[Button] = []
 var distance_caption: Label
@@ -116,6 +117,13 @@ func _ready() -> void:
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	add_child(back_button)
+	first_ride_button = Button.new()
+	first_ride_button.text = "Kies een wedstrijd →"
+	first_ride_button.custom_minimum_size = Vector2(310, 54)
+	first_ride_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	MenuStyle.primary(first_ride_button)
+	first_ride_button.pressed.connect(func(): back_requested.emit())
+	add_child(first_ride_button)
 
 func _cell(row: HBoxContainer, value: String, weight: float, right: bool = false) -> Label:
 	var label := _label(value, 22)
@@ -178,6 +186,7 @@ func refresh(import_old: bool = false) -> void:
 		shown = shown.slice(0, 10)
 		message.text = "All-time: %s · Recent (60 dagen): %s · Laatste rit: %s" % [_record_time(references["alltime"]), _record_time(references["recent"]), _record_time(references["last"])]
 	else: shown = store.top(mode_choice.get_selected_id(), distance_choice.get_selected_id(), size_choice.get_selected_id() if size_box.visible else 0)
+	first_ride_button.visible = shown.is_empty()
 	for child in rows.get_children():
 		rows.remove_child(child)
 		child.queue_free()

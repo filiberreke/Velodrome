@@ -151,4 +151,4 @@ func finish_session(reason: String, show_result: bool = true) -> void:
 	page.show_activity(activity,save_status)
 	if show_result:
 		game.setup_panel._exercise_environment(false)
-		game.setup_panel.show_piste_exercise(session.kind)
+		game.setup_panel.show_piste_exercise(session.kind, false)

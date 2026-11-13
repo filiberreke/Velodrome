@@ -28,7 +28,14 @@ func run_test() -> void:
 	check(ui.exit_button.is_visible_in_tree() and ui.layer > 30, "Exit above settings and rider picker layers")
 	game.get_node("GameSettings").panel_root.hide()
 	ui.exit_button.pressed.emit()
-	check(game.quit_requested, "Exit button routes through application cleanup")
+	check(ui.quitting_application and not game.quit_requested, "Exit opens confirmation before application cleanup")
+	escape(game)
+	check(not ui.quitting_application and not game.quit_requested, "Escape cancels application exit")
+	ui.exit_button.pressed.emit()
+	ui.leave_button.pressed.emit()
+	check(game.quit_requested, "Confirmed exit routes through application cleanup")
+	# The test double records cleanup instead of terminating the process.
+	ui.hide_pause()
 	game.quit_requested = false
 	game.setup_panel.cards[0].pressed.emit()
 	game.setup_panel.start_button.pressed.emit()

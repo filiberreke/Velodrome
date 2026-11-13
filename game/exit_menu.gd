@@ -48,12 +48,15 @@ func setup(owner_game: Node) -> void:
 	heading = Label.new()
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	heading.add_theme_font_size_override("font_size", 30)
+	heading.add_theme_font_override("font", MenuStyle.heading())
 	box.add_child(heading)
 	detail = Label.new()
 	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	detail.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(detail)
 	resume_button = Button.new()
 	resume_button.custom_minimum_size.y = 60
+	MenuStyle.primary(resume_button)
 	resume_button.pressed.connect(cancel_or_resume)
 	box.add_child(resume_button)
 	settings_button = Button.new()
@@ -63,6 +66,7 @@ func setup(owner_game: Node) -> void:
 	box.add_child(settings_button)
 	leave_button = Button.new()
 	leave_button.custom_minimum_size.y = 60
+	MenuStyle.destructive(leave_button)
 	leave_button.pressed.connect(_leave_pressed)
 	box.add_child(leave_button)
 	hide_pause()
