@@ -7,6 +7,8 @@ var resolution := Vector2i(1920, 1080)
 var render_scale := 0.85
 var fullscreen := true
 var crowd_density := 0.60
+var simple_infield := false
+var simple_infield_check: CheckButton
 var always_show_intro := false
 var intro_check: CheckButton
 var crowd_slider: HSlider
@@ -56,6 +58,7 @@ func _load_settings() -> void:
 	render_scale = clampf(float(cfg.get_value("display", "render_scale", 0.85)), 0.5, 1.0)
 	fullscreen = bool(cfg.get_value("display", "fullscreen", true))
 	crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
+	simple_infield = bool(cfg.get_value("arena", "simple_infield", false))
 	always_show_intro = bool(cfg.get_value("presentation", "always_show_intro", false))
 
 func _apply_display() -> void:
@@ -80,6 +83,7 @@ func _save_settings() -> void:
 	cfg.set_value("display", "render_scale", render_scale)
 	cfg.set_value("display", "fullscreen", fullscreen)
 	cfg.set_value("arena", "crowd_density", crowd_density)
+	cfg.set_value("arena", "simple_infield", simple_infield)
 	cfg.set_value("presentation", "always_show_intro", always_show_intro)
 	var err := cfg.save(preload("res://config_paths.gd").user_path("display_settings.cfg"))
 	if err != OK:
@@ -256,6 +260,12 @@ func _build_menu() -> void:
 	crowd_slider.value_changed.connect(func(v: float): crowd_label.text = "%d%%" % roundi(v * 100.0))
 	box.add_child(crowd_slider)
 	crowd_label.text = "%d%%" % roundi(crowd_density * 100.0)
+	simple_infield_check = CheckButton.new()
+	simple_infield_check.name = "EenvoudigMiddenplein"
+	simple_infield_check.text = "Eenvoudige graphics (na herstart)"
+	simple_infield_check.button_pressed = simple_infield
+	simple_infield_check.tooltip_text = "Eenvoudig publiek op de tribunes, eenvoudige tenten en supporters op het middenplein. Zonder mediazone of commentaarcabine. Intro van 2,5 seconden bij de renners. Rennersboxen, jury en wedstrijdcommissaris blijven behouden."
+	box.add_child(simple_infield_check)
 	fullscreen_check = CheckButton.new()
 	fullscreen_check.text = "Volledig scherm"
 	fullscreen_check.button_pressed = fullscreen
@@ -457,6 +467,7 @@ func _on_apply() -> void:
 	fullscreen = fullscreen_check.button_pressed
 	always_show_intro = intro_check.button_pressed
 	crowd_density = float(crowd_slider.value)
+	simple_infield = simple_infield_check.button_pressed
 	_apply_display()
 	_save_settings()
 	_save_rider_profile()

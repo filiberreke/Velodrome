@@ -11,12 +11,12 @@ func build(arena: Node3D) -> void:
 	kit.material("LEDSegments", "f0f5ff", 0.0, 0.65)
 	for i in 24:
 		var s := 250.0 * (float(i) + 0.5) / 24.0
-		var mount: Vector3 = arena._stadium_point(s, 28.8, 18.0)
+		var mount: Vector3 = arena._roof_light_mount(s)
 		var target: Vector3 = arena._point(s, 3.6)
 		var normal := (target - mount).normalized()
 		var x := Vector3.UP.cross(normal).normalized()
 		var basis := Basis(x, normal.cross(x), normal)
-		var row := 3 if absf(mount.z) < 32.0 else 4
+		var row := 3 if absf(arena._stadium_point(s, 28.8, 12.0).z) < 32.0 else 4
 		kit.beam("HousingsAndYokes", mount - x * 3.5, mount + x * 3.5, 0.15)
 		for hook in [-2.7, 2.7]:
 			kit.beam("HousingsAndYokes", mount + x * hook, mount + x * hook + Vector3.UP * 0.95, 0.09)

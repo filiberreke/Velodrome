@@ -99,7 +99,7 @@ func build(owner_arena: Node3D) -> void:
 		var u := (float(i) + 0.5) / 12.0
 		var p := point(u, THICKNESS * 0.5) + Vector3.UP * (HEIGHT + 0.2)
 		var top := point(u)
-		top.y = 24.0
+		top.y = 19.5
 		for side in [-0.16, 0.16]:
 			kit.beam("HoistCables", p + Vector3(side, 0, 0), top + Vector3(side, 0, 0), 0.032)
 		kit.box("HoistMotors", top - Vector3.UP * 0.3, Vector3(0.6, 0.42, 0.42))

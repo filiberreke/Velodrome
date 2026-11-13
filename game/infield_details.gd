@@ -20,6 +20,7 @@ const OFFICIAL_FINISH_EARLY_M := 100.0
 const Layout := preload("res://infield_layout.gd")
 const GLASS_OFFSET := Layout.FENCE_OFFSET
 var supporter_count := 0
+var simple_infield := false
 var rail_supporter_count := 0
 var supporter_positions: Array[Vector3] = []
 const NEAR_M := 20.0                      # detailed people closer than this, light figures further away
@@ -168,6 +169,9 @@ func _group_around(centre: Vector3, count: int, radius: float, variants: Array =
 # ------------------------------------------------------------------ build
 func _ready() -> void:
 	game = get_parent().get_parent()
+	var cfg := ConfigFile.new()
+	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") == OK:
+		simple_infield = bool(cfg.get_value("arena", "simple_infield", false))
 	if crowd == null:
 		crowd = CrowdKit.new()
 	rng.seed = 1613
@@ -177,16 +181,114 @@ func _ready() -> void:
 	blue = _mat("162e4c")
 	_build_floor()
 	_build_tunnel()
-	_build_south_plaza()
-	_build_north_plaza()
+	if not simple_infield:
+		_build_south_plaza()
+		_build_north_plaza()
 	_build_team_pits()
 	_build_finish_zone()
-	_build_ends()
-	_build_rail_public()
-	_build_wanderers()
+	if simple_infield:
+		_build_simple_plazas()
+	else:
+		_build_ends()
+		_build_rail_public()
+		_build_wanderers()
 	_emit_people()
 	_emit_bulbs()
 	_build_flag_official()
+
+func _build_simple_plazas() -> void:
+	# Keep results presentation and a few landmarks; omit hospitality and media scenery.
+	var podium := _prop("podium", Vector3(9.4, 0, 16), -PI * 0.5, {"banner": "0b1a2d"}, 2.6)
+	podium.name = "Podium"
+	preload("res://podium_sponsor_wall.gd").build(podium)
+	for z in [-32.0, 32.0]:
+		for x in [-3.0, 3.0]:
+			_prop("picnic_bench", Vector3(x, 0, z), 0.0, {}, 1.2)
+	_build_simple_tents()
+	# A lively crowd, using a few shared low-detail poses instead of festival props.
+	const POSES := ["stand_m_relaxed", "stand_f_relaxed", "stand_m_clap"]
+	var s := 0.0
+	while s < LAP:
+		var p := _at(s, GLASS_OFFSET - 0.55)
+		var blocked := (p.x < -10.0 and absf(p.z) < 31.0) or Layout.coach_gate(p, 0.4) or not _free_spot(p, 0.35)
+		if not blocked:
+			var outward := (_at(s, GLASS_OFFSET) - p).normalized()
+			_person(CrowdKit.RAIL[int(s) % 2], p, _yaw_to(outward))
+			rail_supporter_count += 1
+			blockers.append([Vector2(p.x, p.z), 0.25])
+		s += 1.15
+	var tries := 0
+	while supporter_count < 400 and tries < 8000:
+		tries += 1
+		var p := Vector3(rng.randf_range(-11.0, 11.0), 0, rng.randf_range(-43.0, 43.0))
+		if Layout.inset(p) < 6.0 or not _free_spot(p, 0.45):
+			continue
+		_person(POSES[rng.randi() % POSES.size()], p, rng.randf() * TAU)
+		blockers.append([Vector2(p.x, p.z), 0.45])
+
+func _build_simple_tents() -> void:
+	# Six plain canopies share one roof mesh, one trim mesh and one instanced pole mesh.
+	# No interiors, signs, staff, furniture or separate light sources per tent.
+	var root := Node3D.new()
+	root.name = "EenvoudigeTenten"
+	root.set_meta("tent_count", 6)
+	add_child(root)
+	var roof_vertices := PackedVector3Array()
+	var roof_normals := PackedVector3Array()
+	var trim_vertices := PackedVector3Array()
+	var trim_normals := PackedVector3Array()
+	var poles: Array[Transform3D] = []
+	for p in [Vector3(-5, 0, -20), Vector3(3, 0, -21), Vector3(4, 0, -36),
+		Vector3(-5, 0, 20), Vector3(3, 0, 27), Vector3(4, 0, 39)]:
+		var corners := [p + Vector3(-2.2, 2.3, -1.8), p + Vector3(2.2, 2.3, -1.8),
+			p + Vector3(2.2, 2.3, 1.8), p + Vector3(-2.2, 2.3, 1.8)]
+		var peak: Vector3 = p + Vector3.UP * 3.1
+		for i in range(4):
+			var a: Vector3 = corners[i]
+			var b: Vector3 = corners[(i + 1) % 4]
+			var normal := (b - a).cross(peak - a).normalized()
+			if normal.y < 0.0: normal = -normal
+			for vertex in [a, b, peak]:
+				roof_vertices.append(vertex)
+				roof_normals.append(normal)
+			var trim_normal := (b - a).cross(Vector3.DOWN).normalized()
+			for vertex in [a, b, a - Vector3.UP * 0.18, b, b - Vector3.UP * 0.18, a - Vector3.UP * 0.18]:
+				trim_vertices.append(vertex)
+				trim_normals.append(trim_normal)
+			poles.append(Transform3D(Basis.IDENTITY, Vector3(a.x, 1.15, a.z)))
+		blockers.append([Vector2(p.x, p.z), 3.25])
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = roof_vertices
+	arrays[Mesh.ARRAY_NORMAL] = roof_normals
+	var roof := ArrayMesh.new()
+	roof.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var roof_material := _mat("e4e3dc")
+	roof_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_mesh(roof, Vector3.ZERO, roof_material, root).name = "GedeeldeTentdaken"
+	# Flat valance strips need no extra geometry beyond two triangles per edge.
+	var trim_arrays: Array = []
+	trim_arrays.resize(Mesh.ARRAY_MAX)
+	trim_arrays[Mesh.ARRAY_VERTEX] = trim_vertices
+	trim_arrays[Mesh.ARRAY_NORMAL] = trim_normals
+	var trim := ArrayMesh.new()
+	trim.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, trim_arrays)
+	var trim_material := _mat("244968")
+	trim_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_mesh(trim, Vector3.ZERO, trim_material, root).name = "GedeeldeTentranden"
+	var pole_mesh := BoxMesh.new()
+	pole_mesh.size = Vector3(0.055, 2.3, 0.055)
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.mesh = pole_mesh
+	multi.instance_count = poles.size()
+	for i in range(poles.size()): multi.set_instance_transform(i, poles[i])
+	var supports := MultiMeshInstance3D.new()
+	supports.name = "GedeeldeTentpoten"
+	supports.multimesh = multi
+	supports.material_override = steel
+	supports.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(supports)
 
 func _surface(verts: PackedVector3Array, label: String, colour: String, y_lift: float = 0.0) -> void:
 	var normals := PackedVector3Array()
@@ -229,6 +331,8 @@ func _build_floor() -> void:
 	var joint := _mat("9d8f6e")
 	for zc in [-19.5, 19.5]:
 		_box(Vector3(0, -0.012, zc), Vector3(25.0, 0.04, 22.0), tile)
+		if simple_infield:
+			continue
 		for k in range(-5, 6):
 			_box(Vector3(0, 0.009, zc + float(k) * 2.0), Vector3(25.0, 0.004, 0.03), joint)
 			_box(Vector3(float(k) * 2.27, 0.009, zc), Vector3(0.03, 0.004, 22.0), joint)
@@ -483,7 +587,18 @@ func _build_wanderers() -> void:
 func _emit_people() -> void:
 	var total := 0
 	for key in people.keys():
-		total += int(crowd.call("emit_group", self, people[key], "Middenterrein " + String(key), [[0, 0.0, NEAR_M], [1, NEAR_M, 0.0]]))
+		if simple_infield:
+			var supporters := {}
+			var staff := {}
+			for variant in people[key].keys():
+				if String(variant).begins_with("staff_"):
+					staff[variant] = people[key][variant]
+				else:
+					supporters[variant] = people[key][variant]
+			total += int(crowd.call("emit_group", self, supporters, "Eenvoudig publiek " + String(key), [[1, 0.0, 0.0]]))
+			total += int(crowd.call("emit_group", self, staff, "Middenterrein " + String(key), [[0, 0.0, NEAR_M], [1, NEAR_M, 0.0]]))
+		else:
+			total += int(crowd.call("emit_group", self, people[key], "Middenterrein " + String(key), [[0, 0.0, NEAR_M], [1, NEAR_M, 0.0]]))
 	people.clear()
 	print("Velodrome 250 middenterrein: %d personen" % total)
 

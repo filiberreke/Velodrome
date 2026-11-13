@@ -62,7 +62,7 @@ func _make_flags() -> void:
 	for i in FLAGS.size():
 		countries.append([])
 	var tier_specs := [[11.0, 7, 1.10, 0.88, 0.40], [20.6, 8, 1.17, 5.15, 0.47], [32.4, 7, 1.27, 11.20, 0.55]]
-	for tier in 3:
+	for tier in 2:
 		var spec: Array = tier_specs[tier]
 		for s_index in 200:
 			var s := (float(s_index) + rng.randf_range(-0.2,0.2)) * LAP / 200.0
