@@ -55,6 +55,8 @@ func run_test() -> void:
 		g.finished = true
 		g.finish_overlay.show()
 		menu.pressed.emit()
+		check(g.exit_menu.returning_to_menu and g.finished and not g.setup_panel.visible, "Result stays open until leaving is confirmed")
+		g.exit_menu._leave_pressed()
 		check(g.start_state == "SETUP" and g.setup_panel.visible and g.setup_panel.page == 1 and not g.quit_requested, "Main menu button returns to game selection without quitting")
 	g._reset()
 	await process_frame
@@ -78,6 +80,7 @@ func run_test() -> void:
 		check(g.pursuit_replay == scaled and g.pursuit_replay.time_s == 20.0, "Repeating saved opponent does not apply strength scaling again")
 	g._set_menu_visible(false)
 	g.finished = true
+	g.finish_overlay.show()
 	var key := InputEventKey.new()
 	key.pressed = true
 	key.keycode = KEY_R

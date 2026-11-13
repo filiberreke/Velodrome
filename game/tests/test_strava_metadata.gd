@@ -38,33 +38,39 @@ func run_test() -> void:
 	for pair in [[0,"Scratch"],[1,"Puntenkoers"],[2,"Afvalling"],[4,"Achtervolging"],[5,"Ploegenachtervolging"],[7,"Tijdrit"]]:
 		game.race_mode = pair[0]
 		check(game._strava_activity_title() == "Velodrome - " + pair[1], "Title follows actual race mode: " + pair[1])
+	game.ai_difficulty = 85; game.keirin_percent = 70; game.pursuit_opponent_percent = 95
+	for mode in [0, 1, 2, 3, 4, 5, 7]:
+		game.race_mode = mode; game._configure_peloton()
+		var level: int = 70 if mode == 3 else (95 if mode in [4, 5] else 85)
+		check(game._strava_activity_description().begins_with("Niveau: %d%%\n" % level), "Correct level in every race mode: %d" % mode)
+	game.race_laps = 10
 	game.race_mode = 0; game.rider_count = 12; game._configure_peloton(); complete(game)
 	game.scratch_rules.credits[1] = 1
-	check(game._strava_activity_description() == "Uitslag: 2/12", "Scratch uses credited laps, not raw finish time")
+	check(game._strava_result_description() == "Uitslag: 2/12", "Scratch uses credited laps, not raw finish time")
 	game.finish_times[11] = -1.0
-	check(game._strava_activity_description() == "Uitslag nog niet definitief.", "Pending classification is not published as a final result")
+	check(game._strava_result_description() == "Uitslag nog niet definitief.", "Pending classification is not published as a final result")
 	game.race_mode = 1; game.rider_count = 16; game._configure_peloton(); complete(game)
 	game.points_rules.points[0] = 12; game.points_rules.points[1] = 20; game.points_rules.points[2] = 15
-	check(game._strava_activity_description() == "Uitslag: 3/16, 12 punten", "Points uses official rank, field size and score")
+	check(game._strava_result_description() == "Uitslag: 3/16, 12 punten", "Points uses official rank, field size and score")
 	game.points_rules.points.fill(-3); game.points_rules.points[0] = -2
-	check(game._strava_activity_description() == "Uitslag: 1/16, -2 punten", "Negative points are preserved")
+	check(game._strava_result_description() == "Uitslag: 1/16, -2 punten", "Negative points are preserved")
 	game.race_mode = 2; game.rider_count = 4; game._configure_peloton(); complete(game)
 	game.elimination_rules.eliminated.assign([2,0])
 	game.finish_times.assign([60.0,89.0,50.0,90.0])
-	check(game._strava_activity_description() == "Uitslag: 3/4", "Elimination uses original field and elimination order")
+	check(game._strava_result_description() == "Uitslag: 3/4", "Elimination uses original field and elimination order")
 	game.race_mode = 4; game._configure_peloton(); complete(game)
 	game.finish_times[1] = 99.0
-	check(game._strava_activity_description() == "Uitslag: 2/2", "Pursuit uses both competitors")
+	check(game._strava_result_description() == "Uitslag: 2/2", "Pursuit uses both competitors")
 	game.race_mode = 5; game.team_size = 3; game._configure_peloton(); complete(game)
 	game.team_race.times.assign([72.0,70.0])
-	check(game._strava_activity_description() == "Uitslag: 2/2", "Team pursuit counts teams instead of six individual riders")
+	check(game._strava_result_description() == "Uitslag: 2/2", "Team pursuit counts teams instead of six individual riders")
 	game.race_mode = 7; game.race_laps = 2; game._configure_peloton()
 	game.lap_times[0] = [20.123,15.456]; game.finish_times[0] = 35.579
-	check(game._strava_activity_description() == "Tijd: 35.579 s\nRondetijden (250 m):\nRonde 1: 20.123 s\nRonde 2: 15.456 s", "500 m exports own individual full laps with millisecond precision")
+	check(game._strava_result_description() == "Tijd: 35.579 s\nRondetijden (250 m):\nRonde 1: 20.123 s\nRonde 2: 15.456 s", "500 m exports own individual full laps with millisecond precision")
 	game.race_laps = 4; game.lap_times[0] = [20.0,15.0,16.0,17.0]; game.finish_times[0] = 68.0
 	check(game._strava_activity_description().ends_with("Ronde 4: 17.000 s"), "1000 m exports all four laps")
 	game.finish_times[0] = -1.0; game.lap_times[0] = [20.0]
-	check(game._strava_activity_description() == "Tijdrit nog niet voltooid.\nRondetijden (250 m):\nRonde 1: 20.000 s", "Incomplete time trial never invents unfinished laps")
+	check(game._strava_result_description() == "Tijdrit nog niet voltooid.\nRondetijden (250 m):\nRonde 1: 20.000 s", "Incomplete time trial never invents unfinished laps")
 	game.finish_times[0] = 35.0; game.lap_times[0] = [20.0,15.0]
 	game.ride_records.assign([{"time_s":0.0,"distance_m":0.0,"game_speed_kmh":0.0,"power_w":250.0,"cadence_rpm":80.0},{"time_s":35.0,"distance_m":500.0,"game_speed_kmh":50.0,"power_w":250.0,"cadence_rpm":80.0}])
 	var capture := UploadCapture.new(); game.add_child(capture); game.strava_client = capture
