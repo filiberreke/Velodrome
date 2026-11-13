@@ -1002,7 +1002,7 @@ func _pursuit_changed() -> void:
 	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if not keyboard_mapping.enabled: return
+	if keyboard_mapping == null or not keyboard_mapping.enabled: return
 	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and keyboard_mapping.action_for("menu", event) == "back" and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14]:
 		bridge_action("B")
 		get_viewport().set_input_as_handled()
@@ -1039,20 +1039,12 @@ func bridge_action(button: String) -> void:
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return
 	var focused: Control = get_viewport().gui_get_focus_owner()
-	if focused == null or not is_ancestor_of(focused):
-		if page == 1: cards[selected].grab_focus()
-		elif page == 0: hub_button.grab_focus()
-		elif page == 11: piste_tiles["free_ride"].grab_focus()
-		elif page == 12: derny_page.stop_button.grab_focus() if derny_page.session.running() else derny_page.start_button.grab_focus()
-		elif page == 6: ftp_tile.grab_focus()
-		elif page == 14: workout_play_page.start_button.grab_focus()
-		elif page == 15: exercise_page.start_button.grab_focus()
-		elif page == 16: madison_page.start_button.grab_focus()
-		elif page == 7: tournament_page.get_child(1).grab_focus()
-		elif page == 8:
-			if ftp_page.test.running(): ftp_page.stop_button.grab_focus()
-			else: ftp_page.back_button.grab_focus()
-		else: back_button.grab_focus()
+	var available := preload("res://ride_navigation.gd").controls(self)
+	if not available.has(focused):
+		# Results can hide the preparation control that previously had focus.
+		# Recover using the visible, enabled controls of the current screen.
+		if available.is_empty(): return
+		available[0].grab_focus()
 	for pressed in [true, false]:
 		var event := InputEventAction.new()
 		event.action = actions[button]
