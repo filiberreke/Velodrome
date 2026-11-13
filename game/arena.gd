@@ -51,7 +51,8 @@ func _ready() -> void:
 		CommentaryBox.build(self)
 	_emit_stand_crowd()
 	_build_aisles()
-	preload("res://tour_spectator_details.gd").new().build(self)
+	if not simple_infield:
+		load("res://tour_spectator_details.gd").new().build(self)
 	_build_facades_and_railings()
 	_build_roof()
 	var show := preload("res://stadium_show.gd").new()
@@ -257,7 +258,7 @@ func _build_grandstands() -> void:
 				b.y = 0.0
 				var metres_per_s: float = maxf(0.55, a.distance_to(b) / 0.32)
 				# Leave a clear first-row spot for the hand-placed WOUT supporter.
-				var reserved_supporter := tier == 0 and row == 0 and absf(s-152.4) < 1.4
+				var reserved_supporter := not simple_infield and tier == 0 and row == 0 and absf(s-152.4) < 1.4
 				if not _aisle(s) and not reserved_supporter and (simple_infield or not CommentaryBox.reserves_seat(self, tier, s, off)):
 					var orientation: Basis = _seat_basis(s)
 					var outward: Vector3 = _outward(s)

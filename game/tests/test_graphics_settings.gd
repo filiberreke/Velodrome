@@ -20,6 +20,11 @@ func check_scene(game, simple: bool) -> void:
 	check(arena.TIERS.size() == 2, "Compact two-tier stadium in both modes")
 	check(arena.has_node("InfinityScreen"), "Live curved screen retained")
 	check(arena.has_node("EuroMaxCyclingCommentaryBox") != simple, "Commentary cabin follows preference")
+	var tour_details := arena.get_node_or_null("TourBochtDetails")
+	check((tour_details == null) == simple, "Special Tour spectators only exist in standard mode")
+	if not simple and tour_details != null:
+		check(tour_details.has_node("ChihuahuaLasagne"), "Standard mode retains lasagne-eating dog")
+		check(tour_details.has_node("WoutSupporter/WoutSpandoekTekst") and tour_details.get_node("WoutSupporter").get_meta("supporter_count") == 2, "Standard mode retains both WOUT supporters and banner")
 	check(field.get_node("Rennersboxen").boxes.size() == 6 and field.get_node("Rennersboxen").crews.size() == 6, "Rider boxes and crews retained")
 	check(field.has_node("Keldertrap"), "Central stairs retained")
 	var stair := field.get_node("Keldertrap")

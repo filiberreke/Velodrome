@@ -12,6 +12,7 @@ de andere inrichting te laden. De keuze staat lokaal in
 | Mediazone en interviews | Aanwezig | Weggelaten |
 | Lichtslingers en tegelvoegen | Aanwezig | Weggelaten |
 | Tribunepubliek | Bestaande nabij-/verafmodellen | Eenvoudigste modellen op alle afstanden |
+| WOUT-supporters met spandoek en lasagne-etende hond | Aanwezig | Weggelaten; gewone zitplaatsen op de plek van de supporters |
 | Commentaarcabine | Aanwezig | Weggelaten; gewone tribuneplaatsen op die plek |
 | Intro | 26 seconden; 28 bij achtervolging | 2,5 seconden direct bij de renners, zonder lichtshow |
 
