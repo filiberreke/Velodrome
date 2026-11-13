@@ -8,8 +8,9 @@ func _ready() -> void:
 
 func _draw() -> void:
 	if size.x <= 0 or size.y <= 0: return
-	draw_set_transform(Vector2.ZERO, 0, size / Vector2(200, 160))
-	draw_style_box(Style.panel(Style.PALE, Style.LINE, 0, 12), Rect2(0, 0, 200, 160))
+	draw_style_box(Style.panel(Style.PALE, Style.LINE, 0, 12), Rect2(Vector2.ZERO, size))
+	var factor := minf(size.x / 200.0, size.y / 160.0)
+	draw_set_transform((size - Vector2(200, 160) * factor) * .5, 0, Vector2.ONE * factor)
 	draw_style_box(Style.panel(Style.PAPER, Style.LINE, 0, 8), Rect2(16, 20, 168, 120))
 	draw_style_box(Style.panel(Style.BLUE, Color.TRANSPARENT, 0, 6), Rect2(16, 20, 168, 26))
 	for x in [27, 77, 140]: draw_line(Vector2(x, 33), Vector2(x + 26, 33), Style.PAPER, 3, true)

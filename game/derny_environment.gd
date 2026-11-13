@@ -261,7 +261,7 @@ func finish_session(reason: String, show_result: bool = true) -> void:
 	page.show_activity(activity,save_status)
 	if show_result:
 		game.setup_panel._piste_environment(false)
-		game.setup_panel.show_derny()
+		game.setup_panel.show_derny(false)
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE and not saved_final and not activity.is_empty():
 		session.stop("Spel gesloten")

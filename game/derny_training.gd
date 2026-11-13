@@ -121,10 +121,17 @@ func _motor_tile(button: Button, caption: String, artwork: Control, stats: Strin
 	content.add_child(description)
 func begin() -> void:
 	if session.running(): return
-	selected_activity = {}
-	upload_status = ""
+	prepare_new_training()
 	environment_requested.emit(true)
 	if session.running() and is_instance_valid(scene): scene.hud.stop_button.grab_focus()
+
+func prepare_new_training() -> void:
+	if session.running(): return
+	selected_activity = {}
+	upload_status = ""
+	session.phase = "IDLE"
+	result_graph.set_samples([])
+	_refresh()
 func finish(reason: String) -> void:
 	if is_instance_valid(scene) and scene.active: scene.finish_session(reason)
 	else: session.stop(reason)

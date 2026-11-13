@@ -8,6 +8,8 @@ var preview: Control
 var overview: Label
 var exercise_previews := {}
 var result_presentation := false
+var help_toggle: Button
+var help_panel: ScrollContainer
 
 func configure(menu: Control, training: VBoxContainer, controls: Array, artwork: Control) -> void:
 	host = menu
@@ -34,10 +36,18 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	summary.add_theme_font_size_override("font_size", 22)
 	information.add_child(summary)
-	var help_toggle := CheckButton.new()
+	help_toggle = Button.new()
+	help_toggle.toggle_mode = true
+	help_toggle.flat = true
+	help_toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	help_toggle.text = "Uitleg en bediening"
+	help_toggle.icon = Style.icon('<path d="m7 5 5 5 5-5M7 12l5 5 5-5"/>', Style.BLUE)
+	help_toggle.tooltip_text = "Uitleg tonen"
+	help_toggle.add_theme_stylebox_override("pressed", Style.panel(Style.PALE, Style.LINE, 12, 9))
+	help_toggle.add_theme_color_override("font_pressed_color", Style.INK)
 	information.add_child(help_toggle)
 	var help := ScrollContainer.new()
+	help_panel = help
 	help.custom_minimum_size = Vector2(540, 140)
 	help.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	information.add_child(help)
@@ -46,7 +56,10 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 	page.detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.detail.add_theme_font_size_override("font_size", 19)
 	help.hide()
-	help_toggle.toggled.connect(func(value): help.visible = value)
+	help_toggle.toggled.connect(func(expanded):
+		help.visible = expanded
+		help_toggle.icon = Style.icon('<path d="m7 12 5-5 5 5M7 19l5-5 5 5"/>' if expanded else '<path d="m7 5 5 5 5-5M7 12l5 5 5-5"/>', Style.BLUE)
+		help_toggle.tooltip_text = "Uitleg verbergen" if expanded else "Uitleg tonen")
 	var options := VBoxContainer.new()
 	options.custom_minimum_size.x = 570
 	options.add_theme_constant_override("separation", 16)

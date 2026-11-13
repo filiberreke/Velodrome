@@ -448,19 +448,43 @@ func _build_hub(layout: VBoxContainer) -> void:
 	old_history_art.queue_free()
 	history_images.add_child(preload("res://training_history_art.gd").new())
 	for tile in piste_grid.get_children():
-		var content: HBoxContainer = tile.get_child(0)
-		var title: Label = content.get_child(0).get_child(0)
-		title.add_theme_font_size_override("font_size", 27)
+		var old_content: HBoxContainer = tile.get_child(0)
+		var copy: VBoxContainer = old_content.get_child(0)
+		var images: HBoxContainer = old_content.get_child(1)
+		var gallery := VBoxContainer.new()
+		gallery.name = "PisteTileContent"
+		gallery.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		gallery.offset_left = 12; gallery.offset_right = -12
+		gallery.offset_top = 12; gallery.offset_bottom = -12
+		gallery.add_theme_constant_override("separation", 10)
+		gallery.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_child(gallery)
+		images.reparent(gallery)
+		images.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		images.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		copy.reparent(gallery)
+		copy.size_flags_vertical = Control.SIZE_SHRINK_END
+		var title: Label = copy.get_child(0)
+		title.text = tile.name
+		title.add_theme_font_size_override("font_size", 26)
+		title.custom_minimum_size.y = 62
+		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		for artwork in content.get_child(1).get_children():
-			artwork.custom_minimum_size = Vector2(170, 140)
-			artwork.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		copy.get_child(1).hide()
+		for artwork in images.get_children():
+			if artwork is TextureRect:
+				tile.set_meta("preview_texture", artwork.texture)
+				artwork.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			artwork.custom_minimum_size = Vector2(0, 180)
+			artwork.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			artwork.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		old_content.free()
 	var piste_back := _hub_button(piste_page,"← Hoofdmenu",show_hub)
 	place_back(piste_back, piste_page)
 	derny_page = preload("res://derny_training.gd").new()
 	layout.add_child(derny_page)
 	var derny_card := preload("res://training_menu_card.gd").new()
-	derny_card.configure(self, derny_page, [derny_page.motor_picker, derny_page.start_speed_row], derny_card.picture(piste_tiles["derny"].get_child(0).get_child(1).get_child(0).texture))
+	derny_card.configure(self, derny_page, [derny_page.motor_picker, derny_page.start_speed_row], derny_card.picture(piste_tiles["derny"].get_meta("preview_texture")))
 	derny_page.back_requested.connect(show_piste_training)
 	derny_page.environment_requested.connect(_piste_environment)
 	derny_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
@@ -468,17 +492,17 @@ func _build_hub(layout: VBoxContainer) -> void:
 	exercise_page.records_store = training_store
 	layout.add_child(exercise_page)
 	var exercise_card := preload("res://training_menu_card.gd").new()
-	var exercise_art: Texture2D = piste_tiles["flying_start"].get_child(0).get_child(1).get_child(0).texture
+	var exercise_art: Texture2D = piste_tiles["flying_start"].get_meta("preview_texture")
 	exercise_card.configure(self, exercise_page, [exercise_page.tempo_row, exercise_page.limit_row], exercise_card.picture(exercise_art))
 	for kind in ["free_ride", "flying_start", "take_lap"]:
-		exercise_card.exercise_previews[kind] = piste_tiles[kind].get_child(0).get_child(1).get_child(0).texture
+		exercise_card.exercise_previews[kind] = piste_tiles[kind].get_meta("preview_texture")
 	exercise_page.back_requested.connect(show_piste_training)
 	exercise_page.environment_requested.connect(_exercise_environment)
 	exercise_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	madison_page = preload("res://madison_training.gd").new()
 	layout.add_child(madison_page)
 	var madison_card := preload("res://training_menu_card.gd").new()
-	madison_card.configure(self, madison_page, [madison_page.difficulty, madison_page.count, madison_page.unlock_label], madison_card.picture(piste_tiles["madison"].get_child(0).get_child(1).get_child(0).texture))
+	madison_card.configure(self, madison_page, [madison_page.difficulty, madison_page.count, madison_page.unlock_label], madison_card.picture(piste_tiles["madison"].get_meta("preview_texture")))
 	madison_page.back_requested.connect(show_piste_training)
 	madison_page.environment_requested.connect(_madison_environment)
 	madison_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
@@ -606,7 +630,8 @@ func show_training() -> void:
 func show_piste_training() -> void:
 	_show_section(11, "Pistetraining", piste_page)
 
-func show_madison_training() -> void:
+func show_madison_training(new_training: bool = true) -> void:
+	if new_training: madison_page.prepare_new_training()
 	_show_section(16,"Aflossingstraining",madison_page)
 
 func _madison_environment(active: bool) -> void:
@@ -616,10 +641,12 @@ func _madison_environment(active: bool) -> void:
 	menu_margin.visible = not active
 	menu_tint.visible = not active
 
-func show_derny() -> void:
+func show_derny(new_training: bool = true) -> void:
+	if new_training: derny_page.prepare_new_training()
 	_show_section(12, "Dernytraining", derny_page)
 
-func show_piste_exercise(kind: String) -> void:
+func show_piste_exercise(kind: String, new_training: bool = true) -> void:
+	if new_training: exercise_page.prepare_new_training()
 	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
 	exercise_page.configure(kind)
 func _exercise_environment(active: bool) -> void:

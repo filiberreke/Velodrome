@@ -21,6 +21,7 @@ func run_test() -> void:
 	await settle()
 	var menu = game.setup_panel
 	await check_keyboard_navigation(game)
+	await check_training_navigation(menu, game)
 	menu.show_choices()
 	await settle()
 	check(visible_back_buttons(menu) == 1, "Gallery exposes one header back action")
@@ -66,6 +67,47 @@ func visible_back_buttons(menu: Control) -> int:
 	for child in menu.page_header.get_children():
 		if child is Button and child.is_visible_in_tree(): count += 1
 	return count
+
+func check_training_navigation(menu: Control, game: Node) -> void:
+	menu.show_derny()
+	await settle()
+	var preparation = menu.derny_page.get_child(0)
+	check(preparation.help_toggle is Button and not preparation.help_toggle is CheckButton, "Training help uses a disclosure button")
+	check(not preparation.help_panel.visible, "Training instructions start collapsed")
+	preparation.help_toggle.button_pressed = true
+	check(preparation.help_panel.visible and menu.derny_page.detail.is_visible_in_tree(), "Disclosure expands the actual instructions")
+	preparation.help_toggle.button_pressed = false
+	check(not preparation.help_panel.visible, "Disclosure collapses again")
+	menu.show_piste_training()
+	await settle()
+	for tile in menu.piste_tiles.values():
+		var content: Control = tile.get_node("PisteTileContent")
+		var artwork: Control = content.get_child(0)
+		var caption: Control = content.get_child(1)
+		check(artwork.size.x >= tile.size.x * .9 and artwork.size.y > tile.size.y * .5, "Piste images fill the cards")
+		check(not caption.get_child(1).visible, "Descriptions are kept off the overview")
+		check(root.get_visible_rect().encloses(tile.get_global_rect()), "Piste gallery stays within the viewport")
+	menu.training_store.folder = "user://menu_cleanup_restart_test"
+	var saved := {"version":1,"id":"saved-madison","kind":"madison","title":"Opgeslagen aflossingstraining","samples":[{"time_s":0,"power_w":180},{"time_s":60,"power_w":220}],"exchanges":[],"reason":"Training voltooid","attempts":10,"target":10,"successes":8,"final":true}
+	check(menu.training_store.save(saved), "Historical fixture is saved")
+	menu.show_training_history()
+	menu.training_history_page.rows.get_child(0).pressed.emit()
+	await settle()
+	var page = menu.madison_page
+	check(page.selected_activity.id == saved.id and not page.count.visible, "History opens the saved result")
+	page.back_button.pressed.emit()
+	menu.bridge_action("B")
+	check(menu.page == 0, "Saved result can return through the piste overview to home")
+	menu.show_piste_training()
+	menu.piste_tiles.madison.pressed.emit()
+	await settle()
+	check(page.selected_activity.is_empty() and page.session.phase == "IDLE", "Opening training anew clears the historical selection and result phase")
+	check(page.count.visible and page.get_child(0).is_visible_in_tree(), "Fresh training shows preparation controls")
+	page.difficulty.select(0)
+	page.start_button.pressed.emit()
+	check(game.madison_training_environment != null and game.madison_training_environment.active and page.session.running(), "A new Madison session starts after viewing history")
+	page.leave()
+	check(menu.training_store.load_activity(saved.id).successes == 8, "Starting again preserves the historical record")
 
 func menu_key(menu: Control, code: int, down: bool = true, echo: bool = false) -> void:
 	var event := InputEventKey.new()
