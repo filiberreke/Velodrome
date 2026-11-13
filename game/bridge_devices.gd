@@ -216,6 +216,9 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		if response_sequence >= newest_snapshot:
 			snapshot = packet.state
 			newest_snapshot = response_sequence
+			# Only confirmed, current selections change the game's power source.
+			var selected: Dictionary = snapshot.get("selected", {})
+			get_parent()._set_trainer_disabled(selected.get("trainer") == "")
 		if selection_reply: error = ""
 	_refresh()
 

@@ -507,6 +507,7 @@ var trainer_speed_kmh := -1.0
 var trainer_ready := false
 var trainer_virtual := false
 var trainer_seen := false
+var trainer_disabled := false # Explicit "Geen / overslaan" from device selection.
 var zero_stable := 0.0
 const ZERO_CONFIRM_SECONDS := 1.0
 const ZERO_WATTS_THRESHOLD := 50.0
@@ -1167,6 +1168,28 @@ func _process_bridge_json(raw: String) -> void:
 		return
 	_process_bridge_packet(parser.data)
 
+func _set_trainer_disabled(disabled: bool) -> void:
+	if trainer_disabled == disabled: return
+	trainer_disabled = disabled
+	if not disabled: return # Wait for a fresh valid sample before using a trainer.
+	_save_recording("trainer_disabled")
+	trainer_seen = false
+	trainer_ready = false
+	trainer_virtual = false
+	connected = false
+	last_telemetry = -100.0
+	dropout_since = -1.0
+	last_good_watts = 0.0
+	last_good_cadence = -1.0
+	watts = 0.0
+	cadence = -1.0
+	trainer_speed_kmh = -1.0
+	trainer_selected_gear = null
+	trainer_gear = "—"
+	trainer_telemetry_resume = false
+	trainer_pause_resume = false
+	trainer_control.tick(false, 0.0, 1.0, _now_s())
+
 func _process_bridge_packet(packet: Dictionary) -> void:
 	if setup_panel != null and setup_panel.ftp_page != null:
 		setup_panel.ftp_page.receive(packet, _now_s())
@@ -1199,10 +1222,16 @@ func _process_bridge_packet(packet: Dictionary) -> void:
 			preferences.call("receive_controller_packet", packet)
 		_process_steering(packet.get("value"))
 	elif packet.get("type", "") == "telemetry":
+		_apply_bridge_optional_fields(packet)
+		# A bundled bridge publishes even with no trainer selected or connected.
+		# Keep independent HR updates, but do not turn its heartbeat into trainer input.
+		if trainer_disabled or (not trainer_seen and not bool(packet.get("valid", false))):
+			trainer_selected_gear = null
+			trainer_gear = "—"
+			return
 		if not trainer_seen and _riding() and not testing and _ride_context() == "race":
 			_reset() # Avoid attaching a live trainer mid-demo with a flying start.
 		trainer_virtual = packet.get("virtual",false) == true
-		_apply_bridge_optional_fields(packet)
 		trainer_seen = true
 		trainer_ready = bool(packet.get("valid", false))
 		connected = trainer_ready

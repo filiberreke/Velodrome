@@ -63,6 +63,21 @@ func run_test() -> void:
 	page.close_page()
 	page._process(0.0)
 	check(not page.panel_root.visible, "Skip does not immediately reopen page")
+	game._process_bridge_packet({"type": "telemetry", "valid": true, "power_w": 180})
+	check(game.trainer_seen, "Valid trainer detected before disabling it")
+	page._select("trainer", 0)
+	var disabled_id: String = page.pending
+	var disabled_state: Dictionary = state.duplicate(true)
+	disabled_state.selected.trainer = ""
+	page.handle_response({"type": "ack", "v": 1, "id": disabled_id, "ok": true, "state": disabled_state}, Time.get_ticks_msec() / 1000.0)
+	check(game.trainer_disabled and not game.trainer_seen and not game.connected, "Confirmed Geen / overslaan restores simulator input")
+	game._process_bridge_packet({"type": "telemetry", "valid": true, "power_w": 250})
+	check(not game.trainer_seen and game._keyboard_profile() == "simulator", "Late trainer packets cannot override disabled selection")
+	var enabled_id: String = page._send("devices")
+	page.handle_response({"type": "ack", "v": 1, "id": enabled_id, "ok": true, "state": state}, Time.get_ticks_msec() / 1000.0)
+	check(not game.trainer_disabled and not game.trainer_seen, "Re-enabling waits for fresh trainer data")
+	game._process_bridge_packet({"type": "telemetry", "valid": true, "power_w": 180})
+	check(game.trainer_seen and game.connected, "Fresh valid telemetry restores trainer mode")
 	check(page.open_button.is_visible_in_tree(), "Combined status/setup control is visible after closing devices")
 	game.start_state = "RACING"
 	game.running = true

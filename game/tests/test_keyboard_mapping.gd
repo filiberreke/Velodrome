@@ -56,8 +56,9 @@ func run_test() -> void:
 	game.trainer_seen = false
 	game.connected = false
 	game.watts = 100
+	game._process_bridge_packet({"type": "telemetry", "valid": false, "heart_rate_bpm": 140})
 	tap(KEY_UP)
-	check(game.watts == 125, "No trainer: Up increases simulated power")
+	check(game.watts == 125 and not game.trainer_seen, "Bundled bridge without trainer: Up increases simulated power")
 	game.trainer_seen = true
 	game.connected = true
 	var server := PacketPeerUDP.new()

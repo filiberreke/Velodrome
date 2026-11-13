@@ -2,7 +2,10 @@ extends SceneTree
 const Game := preload("res://main.gd")
 class Protocol extends "res://main.gd":
 	var resets := 0
-	func _ready() -> void: set_physics_process(false)
+	func _ready() -> void:
+		set_physics_process(false)
+		ride_navigation = preload("res://ride_navigation.gd").new()
+		add_child(ride_navigation)
 	func _save_recording(_reason: String) -> void: pass
 	func _reset() -> void:
 		resets += 1
@@ -27,6 +30,12 @@ func run_test() -> void:
 		check(Game._bridge_optional_integer(invalid) == null, "Invalid heart rate unavailable")
 	var game := Protocol.new(); root.add_child(game)
 	check(game.trainer_heart_rate_bpm == null and game.trainer_selected_gear == null, "Optional fields initially unavailable")
+	game.start_state = "RACING"; game.running = true; game.watts = 100
+	for i in range(5):
+		game._process_bridge_packet({"type": "telemetry", "valid": false, "heart_rate_bpm": 142})
+		game._keyboard_race_action("power_up")
+	check(not game.trainer_seen and not game.connected and game.watts == 225 and game.resets == 0, "Bundled bridge without trainer preserves keyboard power and active demo")
+	check(game.trainer_heart_rate_bpm == 142, "Independent heart rate still updates without a trainer")
 	game.trainer_seen = true; game.start_state = "RACING"; game.running = true
 	game.recording_active = true
 	game._process_bridge_json('{"type":"telemetry","valid":true,"power_w":170,"speed_kmh":39.0,"cadence_rpm":87,"sample_id":42,"heart_rate_bpm":143,"gear":4}')
