@@ -32,9 +32,26 @@ func run_test() -> void:
 	g.keirin._free_step(g, 0.1, 10.1)
 	check(g.lane_offsets[0] > g.LANES[0], "Human can steer across an occupied passing corridor")
 	g.free()
+	# A player crossing just ahead must not stop the AI rider behind.
+	g = fixture()
+	g.distances[0] = 900.4; g.distances[1] = 900.0
+	g.speeds[0] = 5.0; g.speeds[1] = 20.0
+	g.keirin._free_step(g, 0.25, 10.25)
+	check(g.distances[1] > g.distances[0], "AI can pass through the player without a hard boundary")
+	check(g.speeds[1] > 15.0, "Overlapping player does not abruptly stop AI")
+	g.free()
+	# The same freedom applies between AI riders, including diagnostic rider zero.
 	g = fixture(); g.x_ai.all_ai = true
 	g.keirin._free_step(g, 0.25, 10.25)
-	check(g.distances[0] <= 900.4 + 5.0 * 0.25, "AI diagnostic rider retains traffic restrictions")
+	check(g.distances[0] > g.distances[1], "AI diagnostic rider can pass slower traffic")
+	check(g.speeds[0] > 15.0, "AI diagnostic rider retains physical speed integration")
+	g.free()
+	g = fixture()
+	g.distances[1] = 900.0; g.distances[2] = 900.4
+	g.speeds[1] = 20.0; g.speeds[2] = 5.0
+	g.keirin._free_step(g, 0.25, 10.25)
+	check(g.distances[1] > g.distances[2], "AI can pass through another AI rider")
+	check(g.speeds[1] > 15.0, "Slower AI does not impose a hard speed cap")
 	g.free()
 	print("KEIRIN_PLAYER_TRAFFIC failures=", failures)
 	quit(1 if failures else 0)
