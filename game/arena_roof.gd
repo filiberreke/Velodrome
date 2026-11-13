@@ -19,9 +19,9 @@ func build(owner_arena: Node3D) -> void:
 			kit.beam("TrussChords", rib_point(float(i), 0.0) + Vector3.UP * h, rib_point(float(i + 1), 0.0) + Vector3.UP * h, 0.20)
 	for i in 24:
 		var s := 250.0 * float(i) / 24.0
-		var edge: Vector3 = arena._stadium_point(s, 28.8, 19.2)
+		var edge: Vector3 = arena._stadium_point(s, 28.8, 12.0)
 		var crown := Vector3(edge.x, 0, edge.z).normalized() * 3.5
-		crown.y = 27.0
+		crown.y = 22.5
 		edge.y -= 0.25
 		# Twelve triangulated bays, slender chords and real node plates.
 		for j in 12:
@@ -35,7 +35,7 @@ func build(owner_arena: Node3D) -> void:
 			kit.beam("DiagonalBracing", a, low_a, 0.07)
 			kit.box("GussetsAndWalkways", low_a, Vector3(0.29, 0.34, 0.10))
 		# Continue the load path into the retained outer columns.
-		var outer: Vector3 = arena._stadium_point(s, 43.0, 21.7)
+		var outer: Vector3 = arena._stadium_point(s, 32.35, 12.40)
 		kit.beam("TrussChords", edge - Vector3.UP * 0.6, outer, 0.20, 0.32)
 	# Longitudinal ties / X braces at two radii connect adjacent trusses.
 	for fraction in [0.38, 0.72]:
@@ -73,7 +73,7 @@ func build(owner_arena: Node3D) -> void:
 				kit.beam("SafetyRails", a + n + Vector3.UP * h, b + n + Vector3.UP * h, 0.035)
 			if i % 3 == 0: kit.beam("SafetyRails", a + n, a + n + Vector3.UP * 1.05, 0.04)
 	for sign_x in [-1.0, 1.0]:
-		var a := Vector3(sign_x * 7.0, 24.0, 0)
+		var a := Vector3(sign_x * 7.0, 19.5, 0)
 		# Locate the actual side-straight centre through the arena coordinate API.
 		var side_s := 0.0
 		var best := INF
@@ -83,18 +83,18 @@ func build(owner_arena: Node3D) -> void:
 			if score < best:
 				best = score
 				side_s = float(sample)
-		var edge: Vector3 = arena._stadium_point(side_s, 28.8, 18.0)
+		var edge: Vector3 = arena._stadium_point(side_s, 28.8, 10.8)
 		kit.beam("GussetsAndWalkways", a, edge, 0.65, 0.12)
 		for side in [-0.32, 0.32]:
 			kit.beam("SafetyRails", a + Vector3(0, 1.05, side), edge + Vector3(0, 1.05, side), 0.04)
 	kit.flush(self)
 
 func rib_point(index: float, fraction: float) -> Vector3:
-	var edge: Vector3 = arena._stadium_point(fposmod(index, 24.0) * 250.0 / 24.0, 28.8, 18.95)
+	var edge: Vector3 = arena._stadium_point(fposmod(index, 24.0) * 250.0 / 24.0, 28.8, 11.75)
 	var crown := Vector3(edge.x, 0, edge.z).normalized() * 3.5
-	crown.y = 27.0
+	crown.y = 22.5
 	return crown.lerp(edge, fraction) - Vector3.UP * 0.6
 
 func service_point(u: float) -> Vector3:
 	var p: Vector3 = arena._point(u * 250.0, -7.0)
-	return Vector3(p.x * 7.0 / 11.0, 24.0, p.z * 0.39)
+	return Vector3(p.x * 7.0 / 11.0, 19.5, p.z * 0.39)

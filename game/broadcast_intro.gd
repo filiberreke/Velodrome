@@ -4,6 +4,7 @@ const APPROACH := 0.0
 const WELCOME_END := 2.2
 const DURATION := 26.0
 const PURSUIT_DURATION := 28.0
+const SIMPLE_DURATION := 2.5
 const OPPONENT_START := 8.0
 const OPPONENT_END := 10.0
 const WELCOME := "Welkom bij Velodrome!"
@@ -86,7 +87,7 @@ func start() -> void:
 	var show_intro := repeat_intro or not shown_this_session
 	shown_this_session = true
 	subtitle.text = WELCOME
-	duration = PURSUIT_DURATION if game.race_mode in [4, 5] else DURATION
+	duration = SIMPLE_DURATION if game.arena.simple_infield else (PURSUIT_DURATION if game.race_mode in [4, 5] else DURATION)
 	original_cull_mask = game.camera.cull_mask
 	game.camera.set_cull_mask_value(2, false)
 	elapsed = 0.0
@@ -99,8 +100,9 @@ func start() -> void:
 	if not show_intro:
 		finish()
 		return
-	if game.race_mode in [4, 5]: opponent_card.prepare()
-	light_show.start()
+	if not game.arena.simple_infield:
+		if game.race_mode in [4, 5]: opponent_card.prepare()
+		light_show.start()
 	overlay.show()
 	_update_dialogue()
 
@@ -142,6 +144,11 @@ func opponent_visible(time: float) -> bool:
 	return game.race_mode in [4, 5] and time >= OPPONENT_START and time < OPPONENT_END
 
 func _update_dialogue() -> void:
+	if game.arena.simple_infield:
+		caption_panel.visible = true
+		subtitle.text = welcome_for_mode(game.race_mode)
+		opponent_card.hide()
+		return
 	caption_panel.visible = elapsed < 5.5
 	subtitle.text = WELCOME if elapsed < WELCOME_END else welcome_for_mode(game.race_mode)
 	if is_instance_valid(suite):
@@ -166,6 +173,8 @@ func chase_pose() -> Dictionary:
 		"target": game.bikes[0].position + Vector3.UP * 1.1 + game._direction(s, lane) * 3.0, "fov": 66.0}
 
 func _close_pose() -> Dictionary:
+	if not is_instance_valid(suite):
+		return chase_pose()
 	var tr: Transform3D = suite.global_transform
 	return {"position": tr * Vector3(0.0, 2.15, 4.6), "target": tr * Vector3(0.0, 1.65, 0.0), "fov": 52.0}
 
@@ -268,6 +277,8 @@ func focus_keys() -> Array:
 	return keys
 
 func sample(time: float) -> Dictionary:
+	if game.arena.simple_infield:
+		return chase_pose()
 	var close := _close_pose()
 	if time <= WELCOME_END: return close
 	var pos := flight_position(time)

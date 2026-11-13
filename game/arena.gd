@@ -7,6 +7,7 @@ extends Node3D
 const LAP := 250.0
 const STAND_RIM := 9.1
 var crowd_density := 0.60
+var simple_infield := false
 const RING_STEPS := 300
 const SEAT_SPACING := 0.94
 
@@ -21,8 +22,7 @@ const CONCRETE := "c9c5b6"
 const TIERS := [
 	# inner row start, row count, row depth, row rise, relative deck height
 	{"start": 10.65, "rows": 7, "depth": 1.10, "rise": 0.40, "base": 0.88},
-	{"start": 20.25, "rows": 8, "depth": 1.17, "rise": 0.47, "base": 5.15},
-	{"start": 32.05, "rows": 7, "depth": 1.27, "rise": 0.55, "base": 11.20}
+	{"start": 20.25, "rows": 8, "depth": 1.17, "rise": 0.47, "base": 5.15}
 ]
 
 var main: Node3D
@@ -43,13 +43,16 @@ func _ready() -> void:
 	var cfg := ConfigFile.new()
 	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") == OK:
 		crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
+		simple_infield = bool(cfg.get_value("arena", "simple_infield", false))
 	_build_boarding()
 	_build_concourses()
 	_build_grandstands()
-	CommentaryBox.build(self)
+	if not simple_infield:
+		CommentaryBox.build(self)
 	_emit_stand_crowd()
 	_build_aisles()
-	preload("res://tour_spectator_details.gd").new().build(self)
+	if not simple_infield:
+		load("res://tour_spectator_details.gd").new().build(self)
 	_build_facades_and_railings()
 	_build_roof()
 	var show := preload("res://stadium_show.gd").new()
@@ -255,8 +258,8 @@ func _build_grandstands() -> void:
 				b.y = 0.0
 				var metres_per_s: float = maxf(0.55, a.distance_to(b) / 0.32)
 				# Leave a clear first-row spot for the hand-placed WOUT supporter.
-				var reserved_supporter := tier == 0 and row == 0 and absf(s-152.4) < 1.4
-				if not _aisle(s) and not reserved_supporter and not CommentaryBox.reserves_seat(self, tier, s, off):
+				var reserved_supporter := not simple_infield and tier == 0 and row == 0 and absf(s-152.4) < 1.4
+				if not _aisle(s) and not reserved_supporter and (simple_infield or not CommentaryBox.reserves_seat(self, tier, s, off)):
 					var orientation: Basis = _seat_basis(s)
 					var outward: Vector3 = _outward(s)
 					var deck: Vector3 = _stadium_point(s, off, floor_h)
@@ -290,25 +293,24 @@ func _build_grandstands() -> void:
 func _emit_stand_crowd() -> void:
 	# One MultiMesh per (tier block, pose, detail level). Blocks behind the camera are culled,
 	# far blocks switch to the light figures.
+	var lods := [[2, 0.0, 0.0]] if simple_infield else [[1, 0.0, CROWD_NEAR_M], [2, CROWD_NEAR_M, 0.0]]
 	for key in crowd_sections.keys():
 		crowd.emit_group(self, crowd_sections[key], "Publiek blok " + String(key),
-			[[1, 0.0, CROWD_NEAR_M], [2, CROWD_NEAR_M, 0.0]])
+			lods)
 	crowd_sections.clear()
 
 func _build_concourses() -> void:
 	# A ring-shaped circulation gallery separates each tier.
 	_ring_deck(9.3, 10.6, 0.75, 0.86, _material("77898f"), "Veiligheidsgang aan piste")
 	_ring_deck(18.3, 20.25, 5.05, 5.15, _material("a6a99d"), "Omloop eerste verdieping")
-	_ring_deck(29.65, 32.05, 11.08, 11.20, _material("aeb0a7"), "Omloop tweede verdieping")
 	# Spacious shaded gallery openings and branded fascia underneath the balcony.
 	_ring_wall(18.6, 2.40, 4.92, _material("162738"), "Glaswand niveau 1")
-	_ring_wall(30.0, 8.70, 10.98, _material("142535"), "Glaswand niveau 2")
-	_ring_wall(41.1, 14.8, 16.5, _material(NAVY_DARK), "Buitenwand hoogste tribune")
+	_ring_deck(29.61, 32.60, 8.44, 8.44, _material("a6a99d"), "Achteromloop tweede ring")
+	_ring_wall(32.60, 8.44, 12.80, _material(NAVY_DARK), "Gesloten achterwand tweede ring")
+	_ring_wall(32.58, 8.44, 8.64, _material("516776"), "Plint achterwand tweede ring")
 	_ring_deck(18.6, 20.1, 4.98, 5.12, _material(NAVY_MID), "Balkonportaal 1")
-	_ring_deck(30.0, 31.9, 11.03, 11.16, _material(NAVY_MID), "Balkonportaal 2")
 	# Slim horizontal turquoise LED bands across the entire gallery frontage.
 	_ring_deck(18.51, 18.63, 4.85, 4.85, _emissive(TURQUOISE, 0.65), "LED galerij 1")
-	_ring_deck(29.91, 30.03, 10.87, 10.87, _emissive(GOLD, 0.55), "LED galerij 2")
 
 func _build_aisles() -> void:
 	# Five light concrete stair-ribbons cut through the grandstands.
@@ -333,7 +335,7 @@ func _build_facades_and_railings() -> void:
 	var vertical_mesh: Mesh = _box_mesh(Vector3(0.10, 1.35, 0.10))
 	var glass_material: Material = _material("528f9b", 0.33, 0.32)
 	# Glass spandrels and metal railings along gallery edges.
-	for edge in [18.45, 29.85]:
+	for edge in [18.45]:
 		var bottom: float = 5.0 if edge < 20.0 else 10.95
 		_ring_wall(edge, bottom, bottom + 1.15, glass_material, "Glazen balustrade %.1f" % edge)
 		_ring_deck(edge - 0.05, edge + 0.05, bottom + 1.20, bottom + 1.20,
@@ -341,7 +343,7 @@ func _build_facades_and_railings() -> void:
 		for i in range(125):
 			var s: float = LAP * float(i) / 125.0
 			rail_poses.append(Transform3D(Basis.IDENTITY, _stadium_point(s, edge, bottom + 0.59)))
-	for tier in range(2):
+	for tier in range(1):
 		var offset: float = 18.65 if tier == 0 else 30.05
 		var midheight: float = 3.70 if tier == 0 else 9.85
 		for i in range(130):
@@ -352,14 +354,14 @@ func _build_facades_and_railings() -> void:
 
 func _build_roof() -> void:
 	# Large cantilevered roof, with an enclosed high central canopy.
-	_ring_deck(28.8, 49.1, 19.2, 23.3, _material("27354b"), "Donker dakvlak")
-	_ring_deck(29.0, 49.3, 19.42, 23.62, _material("4c3d32"), "Warm houten dakschild")
-	_ring_deck(29.1, 48.9, 19.52, 23.69, _material("76533b"), "Houten plafond tint")
+	_ring_deck(28.8, 32.60, 12.0, 12.80, _material("27354b"), "Donker dakvlak")
+	_ring_deck(28.8, 32.72, 12.14, 12.94, _material("4c3d32"), "Warm houten dakschild")
+	_ring_deck(28.8, 32.64, 12.20, 13.0, _material("76533b"), "Houten plafond tint")
 	_build_central_canopy()
 	# Navy roof fascia and accent stripes.
-	_ring_wall(28.77, 18.73, 19.52, _material(NAVY), "Dakboord donkerblauw")
-	_ring_deck(28.64, 28.79, 18.87, 18.87, _emissive(GOLD, 0.9), "Dak lichtlijn goud")
-	_ring_wall(49.11, 22.5, 24.0, _material(NAVY_DARK), "Buitenste dakrand")
+	_ring_wall(28.77, 11.65, 12.20, _material(NAVY), "Dakboord donkerblauw")
+	_ring_deck(28.64, 28.79, 11.80, 11.80, _emissive(GOLD, 0.9), "Dak lichtlijn goud")
+	_ring_wall(32.64, 12.60, 13.0, _material(NAVY_DARK), "Buitenste dakrand")
 	# Separate static components share meshes and leave effective lights intact.
 	preload("res://arena_roof.gd").new().build(self)
 	preload("res://arena_floodlights.gd").new().build(self)
@@ -368,22 +370,22 @@ func _build_roof() -> void:
 	var supports: Array[Transform3D] = []
 	for i in range(46):
 		var s: float = LAP * float(i) / 46.0
-		var low: Vector3 = _stadium_point(s, 43.0, 10.3)
-		var high: Vector3 = _stadium_point(s, 43.0, 21.7)
+		var low: Vector3 = _stadium_point(s, 32.35, 8.44)
+		var high: Vector3 = _stadium_point(s, 32.35, 12.40)
 		supports.append(_between(low, high))
 	_solid_instances(_box_mesh(Vector3(0.27, 0.27, 1.0)), supports, "384b5d", "Stalen dragende kolommen")
 	# Architectural flood-light strips: glow material, only FOUR actual OmniLights.
 	var light_poses: Array[Transform3D] = []
 	for i in range(46):
 		var s: float = LAP * float(i) / 46.0
-		var p: Vector3 = _stadium_point(s, 29.8, 18.55)
+		var p: Vector3 = _stadium_point(s, 27.8, 11.80)
 		light_poses.append(Transform3D(_seat_basis(s), p))
 	_solid_instances(_box_mesh(Vector3(2.75, 0.08, 0.24)), light_poses, "ffe5ac", "Arena lichtpanelen")
 	for i in range(4):
 		var s: float = LAP * float(i) / 4.0
 		var lamp := OmniLight3D.new()
 		lamp.name = "Sfeerverlichting %d" % (i + 1)
-		lamp.position = _stadium_point(s, 29.7, 18.1)
+		lamp.position = _stadium_point(s, 27.7, 11.35)
 		lamp.light_energy = 0.28
 		lamp.omni_range = 32.0
 		lamp.shadow_enabled = false
@@ -394,7 +396,7 @@ func _build_roof() -> void:
 		var s: float = LAP * (float(i) + 0.5) / 8.0
 		var race_light := SpotLight3D.new()
 		race_light.name = "Piste schijnwerper %d" % (i + 1)
-		race_light.position = _stadium_point(s, 25.9, 19.4)
+		race_light.position = _roof_light_mount(s) - Vector3.UP * 0.65
 		add_child(race_light)
 		race_light.look_at(_stadium_point(s, 3.6, 0.4), Vector3.UP)
 		race_light.light_color = Color("f4f5ff")
@@ -403,16 +405,21 @@ func _build_roof() -> void:
 		race_light.spot_angle = 56.0
 		race_light.shadow_enabled = false
 
+func _roof_light_mount(s: float) -> Vector3:
+	# Suspend the fixtures under the sloping canopy, above and in front of the stands.
+	var edge := _stadium_point(s, 28.8, 12.0)
+	return Vector3(0.0, 23.0, 0.0).lerp(edge, 0.68) - Vector3.UP * 1.40
+
 func _build_central_canopy() -> void:
 	# A high, lightweight faceted ceiling spanning the former open centre.
 	# Its underside is above the entire intro camera path and cycling track.
 	var vertices := PackedVector3Array()
 	var indices := PackedInt32Array()
-	var hub := Vector3(0.0, 27.5, 0.0)
+	var hub := Vector3(0.0, 23.0, 0.0)
 	vertices.append(hub)
 	for i in range(129):
 		var s := LAP * float(i) / 128.0
-		vertices.append(_stadium_point(s, 28.8, 19.2))
+		vertices.append(_stadium_point(s, 28.8, 12.0))
 	for i in range(128):
 		indices.append_array(PackedInt32Array([0, i + 1, i + 2]))
 	var arrays := []

@@ -1,6 +1,6 @@
 extends RefCounted
 ## Static broadcast suite, anchored to the real finish reference and tier-2 deck.
-const MODEL := preload("res://assets/broadcast/euromax_cycling_box.glb")
+const MODEL_PATH := "res://assets/broadcast/euromax_cycling_box.glb"
 const FINISH_S := 0.0
 const OFFSET := 27.83
 const RESERVED_HALF_WIDTH := 3.30
@@ -26,7 +26,7 @@ static func build(arena: Node3D) -> Node3D:
 	suite.name = "EuroMaxCyclingCommentaryBox"
 	suite.transform = placement(arena)
 	arena.add_child(suite)
-	var model := MODEL.instantiate() as Node3D
+	var model := (load(MODEL_PATH) as PackedScene).instantiate() as Node3D
 	model.name = "BroadcastSuite"
 	suite.add_child(model)
 	suite.setup(model)

@@ -23,6 +23,10 @@ Scratch, puntenkoers en afvalling beginnen met één geneutraliseerde ronde; de 
 
 Verder bevat het spel rennerpaspoorten en instelbare AI-profielen, spelersuiterlijk, camera's, wedstrijd-HUD, lokale records en opgeslagen achtervolgingsritten. Ritopname en CSV-, TCX- en FIT-export zijn aanwezig; Strava-koppeling is optioneel en vereist eigen accountconfiguratie. Echte Strava-upload en fysieke hartslag-/trainerwerking vallen buiten de beschreven hardwarevrije controles.
 
+## Grafische standen
+
+Via **F10 → Beeld → Eenvoudige graphics (na herstart)** kun je de lichte stand kiezen. Die gebruikt 400 eenvoudige middenpleinsupporters, zes eenvoudige tenten, eenvoudiger tribunepubliek en een intro van 2,5 seconden. De commentaarcabine en uitgebreide horeca- en media-inrichting vervallen; rennersboxen, officials, keldertrap, podium en live schermen blijven behouden. Standaard staat de optie uit. Beide standen gebruiken het compactere stadion met twee tribuneringen. Zie [grafische instellingen](game/docs/graphics_settings.md) voor details en controles.
+
 ## Projectstructuur
 
 - [game/](game/) — het Godot-project: hoofdscene, GDScript, 3D-assets, interface, wedstrijdregels en AI.
