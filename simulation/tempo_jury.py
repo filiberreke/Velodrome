@@ -35,22 +35,25 @@ class Jury:
                     and len(self.sprints[-1]['order']) == len(self.points))
 
     def sprint_demand(self, r, target, lead):
-        lap = self.next_sprint_lap
+        """Tempo: only a sheltered sprinter occasionally contests a close lap.
+        Escaped attackers and time trialists hold pace rather than sprinting.
+        """
         r.sprint_started = False
-        if lap is None or self.finish_time is not None:
+        lap = self.next_sprint_lap
+        if r.role != 'sprinter' or lap is None or self.finish_time is not None:
+            return target
+        if r.mode != 'draft' or r.store/r.store_max < .48:
             return target
         remaining = lap*LAP-lead
-        # Use the next physical line for lapped riders too. All roles can try.
         own_remaining = (-r.d) % LAP
-        onset = {'tt': 235., 'attacker': 200., 'sprinter': 195.}[r.role]
-        if 0 < remaining <= LAP and 0 < own_remaining <= onset and r.store/r.store_max > .055:
-            seconds = max(5., own_remaining/max(r.v, 5.))
-            cap = pcurve(seconds, r.phys.cp, r.phys.wmax, r.phys.pmax)
-            budget = r.phys.cp + .88*r.store/max(6., seconds)
-            target = max(target, min(cap*{'tt': .75, 'attacker': .87, 'sprinter': .99}[r.role], budget))
-            r.sprint_started = True
-            self.sprint_efforts[r.id] += 1
-        return target
+        if not (0 < remaining <= 95 and 0 < own_remaining <= 95 and lead-r.d < 5):
+            return target
+        seconds = max(5., own_remaining/max(r.v, 5.))
+        cap = pcurve(seconds, r.phys.cp, r.phys.wmax, r.phys.pmax)
+        budget = r.phys.cp + .30*r.store/max(6., seconds)
+        self.sprint_efforts[r.id] += 1
+        r.sprint_started = True
+        return max(target, min(cap*.78, budget))
 
     def judge_laps(self, time, riders, distances):
         """Catch the rear / be caught by the front of the largest physical bunch.
