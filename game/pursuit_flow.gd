@@ -101,8 +101,8 @@ func _ready()->void:
 	right_arrow=button("›",70);right_arrow.custom_minimum_size.y=90;right_arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(right_arrow);right_arrow.pressed.connect(func():cycle(1))
 	counter=text("",17,MenuStyle.MUTED);opponent_page.add_child(counter)
 	var strength_row:=center_row(opponent_page);strength_row.add_child(text("Sterkte tegenstander",20))
-	strength_slider=HSlider.new();strength_slider.min_value=30;strength_slider.max_value=150;strength_slider.step=5;strength_slider.custom_minimum_size=Vector2(320,36);strength_row.add_child(strength_slider)
-	strength_input=SpinBox.new();strength_input.min_value=30;strength_input.max_value=150;strength_input.step=5;strength_input.suffix="%";strength_input.custom_minimum_size=Vector2(115,40);strength_row.add_child(strength_input)
+	strength_slider=HSlider.new();strength_slider.min_value=40;strength_slider.max_value=120;strength_slider.step=5;strength_slider.custom_minimum_size=Vector2(320,36);strength_row.add_child(strength_slider)
+	strength_input=SpinBox.new();strength_input.min_value=40;strength_input.max_value=120;strength_input.step=5;strength_input.suffix="%";strength_input.custom_minimum_size=Vector2(115,40);strength_row.add_child(strength_input)
 	strength_slider.value_changed.connect(_strength_changed);strength_input.value_changed.connect(_strength_changed)
 	strength_hint=text("",16,MenuStyle.MUTED);opponent_page.add_child(strength_hint)
 	demo_row=center_row(distance_options);demo_row.add_child(text("Demo-startvermogen",16));demo_input=SpinBox.new();demo_input.min_value=0;demo_input.max_value=900;demo_input.step=25;demo_input.suffix="W";demo_input.custom_minimum_size=Vector2(130,36);demo_row.add_child(demo_input)
@@ -189,7 +189,8 @@ func _load_candidates(restore:bool)->void:
 		var saved:=String(preferences.get_value(section(),"ai_id"if kind==0 else"ride_id",""))
 		for i in candidates.size():
 			if _id(candidates[i])==saved:current=i;break
-	var percentage:=float(preferences.get_value(section(),"ai_percent"if kind==0 else"replay_percent",80.0 if kind==0 else 100.0))
+	var percentage:=float(preferences.get_value(section(),"ai_percent"if kind==0 else"replay_percent",80.0))
+	percentage=clampf(snappedf(percentage,5.0),40.0,120.0)
 	syncing=true;strength_slider.value=percentage;strength_input.value=percentage;syncing=false
 	_sync_selection();_draw_card()
 
@@ -226,7 +227,7 @@ func _draw_card()->void:
 			if kind==0:card.data["name"]="Team "+String(entry.name);card.data["cp_w"]=options.configured_cp()
 			card_holder.add_child(card);current_card=card
 		counter.text="%d / %d"%[current+1,candidates.size()]
-	strength_hint.text="80% = basisniveau van het AI-profiel"if kind==0 else"100% = exacte eigen prestatie · hoger percentage = sneller tempo"
+	strength_hint.text="100% = volledige capaciteit van het AI-profiel"if kind==0 else"100% = exacte eigen prestatie · hoger percentage = sneller tempo"
 	update_bridge()
 
 func _strength_changed(value:float)->void:

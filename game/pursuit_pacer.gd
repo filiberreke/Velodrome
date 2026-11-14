@@ -37,8 +37,8 @@ static func duration(game: Node3D, distance: float, power: float, origin: float,
 	return INF
 
 func prepare(game: Node3D, distance: float, cp: float, origin: float, lane: float) -> void:
-	var scale: float = clampf(difficulty_percent / 100.0, 0.0, 1.0)
-	cp_w = clampf(cp * scale, 1.0, 800.0)
+	var scale: float = clampf(difficulty_percent / 100.0, 0.4, 1.2)
+	cp_w = maxf(cp * scale, 1.0)
 	# Keep configured values intact so preparing a new effort cannot compound scaling.
 	capacity_j = wprime_j * scale
 	power_limit_w = max_power_w * scale if is_finite(max_power_w) else INF

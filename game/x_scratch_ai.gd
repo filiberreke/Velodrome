@@ -105,7 +105,7 @@ func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float
 # Scale physical capacity once, after identity/form modifiers have been applied.
 # Player index 0 is deliberately excluded.
 func apply_ai_strength(percent: float) -> void:
-	var scale: float = clampf(percent / 100.0, 0.0, 1.0)
+	var scale: float = clampf(percent / 100.0, 0.4, 1.2)
 	for i in range(1, cp.size()):
 		cp[i] *= scale
 		pmax[i] *= scale

@@ -6,7 +6,7 @@ const EXIT_M := 750.0
 const FINISH_M := 1500.0
 const SAFETY_LANE := -0.8
 
-var percent := 100.0
+var percent := 80.0
 var phase := "IDLE"
 var distance := 0.0
 var speed := 25.0 / 3.6
@@ -24,7 +24,7 @@ var pilot_exit_start := 0.0
 var events: Array[Dictionary] = []
 
 static func target_kmh(p: float) -> float:
-	return lerpf(45.0, 50.0, clampf((p - 70.0) / 30.0, 0.0, 1.0))
+	return 45.0 + (clampf(p, 40.0, 120.0) - 70.0) / 6.0
 
 func configure(g) -> void:
 	phase = "READY"; time = 0.0; accumulator = 0.0; exit_time = -1.0
