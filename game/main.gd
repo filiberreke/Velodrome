@@ -436,6 +436,7 @@ var finish_photo_taken := false
 # Tracks the photographed provisional winner, independently of the last finisher.
 var finish_photo_rider := -1
 var finish_photo_capture_pending := false
+var results_completion = preload("res://results_completion.gd").new()
 var finish_results: Label
 var finish_table: GridContainer
 var finish_heading: Label
@@ -724,7 +725,7 @@ func _physics_process(delta: float) -> void:
 				_update_race(delta)
 	# After the player finishes, let AI riders complete their own races.
 	# The player's distance and time are frozen by finish_times[0].
-	if finished and start_state == "RACING" and not _all_riders_finished() and (race_mode != 3 or keirin_player_already_finished):
+	if finished and not results_completion.active and start_state == "RACING" and not _all_riders_finished() and (race_mode != 3 or keirin_player_already_finished):
 		clock += delta
 		_update_race(delta)
 	# Run each finished rider's coast immediately after THEIR finish, even while
@@ -1338,6 +1339,7 @@ func _restart_same_race() -> void:
 	start_state = "WAIT_STOP"
 
 func _reset() -> void:
+	results_completion.cancel()
 	if piste_training != null and piste_training.active:
 		piste_training.finish_session("Training verlaten",false)
 		piste_training.page.environment_requested.emit(false)
@@ -3356,6 +3358,11 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 	panel.add_child(label)
 
 func _refresh_fullscreen_results() -> void:
+	if finish_overlay != null and finish_overlay.visible: results_completion.start(self)
+	if finish_table != null:
+		finish_table.columns = 1 if race_mode == 1 else (4 if race_mode in [0,2] else 5)
+		if race_mode != 1 and finish_table.has_meta("points_result_key"): finish_table.remove_meta("points_result_key")
+	if finish_photo_rect != null: finish_photo_rect.get_parent().get_parent().visible = finish_photo_rect.texture != null
 	if race_mode == 1:
 		preload("res://points_presentation.gd").results(self)
 		return
@@ -3402,7 +3409,7 @@ func _refresh_fullscreen_results() -> void:
 	_result_cell("RENNER", gold, header_bg, 205, false, true)
 	_result_cell("EINDTIJD", gold, header_bg, 120, true, true)
 	_result_cell("VERSCHIL", gold, header_bg, 110, true, true)
-	_result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
+	if race_mode not in [0,2]: _result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
 	var leader_time: float = -1.0
 	for index in ordered:
 		if finish_times[index] >= 0.0:
@@ -3433,7 +3440,7 @@ func _refresh_fullscreen_results() -> void:
 		_result_cell(_rider_name(rider), rider_colors[_profile(rider)], row_bg, 205)
 		_result_cell(display_time, white, row_bg, 120, true)
 		_result_cell(gap, gold if rank == 0 else white, row_bg, 110, true)
-		_result_cell(laps_display, white, row_bg, 300)
+		if race_mode not in [0,2]: _result_cell(laps_display, white, row_bg, 300)
 
 func _rider_distance(rider: int, progress: float) -> float:
 	if race_mode == 5:
@@ -3965,6 +3972,7 @@ func _update_elimination_jury(dt: float) -> void:
 		_save_recording("elimination")
 
 func _take_elimination_photo(rider: int, line_m: float) -> void:
+	if results_completion.active: return
 	if finish_photo_viewport == null: return
 	var spot: Vector3 = _at(line_m - 3.4, FINISH_PHOTO_INFIELD_OFFSET)
 	spot.y = 1.5
