@@ -1,0 +1,26 @@
+name: Tempo race baseline
+on:
+  push:
+    branches: [v0.3]
+    paths:
+      - 'simulation/tempo_*.py'
+      - '.github/workflows/tempo-baseline.yml'
+  workflow_dispatch:
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run 100 races
+        working-directory: simulation
+        run: python tempo_race.py --races 100 --workers 4 --out results_tempo_100
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tempo-baseline-100
+          path: simulation/results_tempo_100/

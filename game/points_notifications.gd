@@ -9,7 +9,7 @@ func reset() -> void:
 	seen_awards.clear()
 	warned.clear()
 
-func collect(jury, leader_distance: float) -> Array[String]:
+func collect(jury, leader_distance: float, tempo: bool = false) -> Array[String]:
 	var messages: Array[String] = []
 	var awards: Array[Dictionary] = []
 	for i in range(seen_events, jury.events.size()):
