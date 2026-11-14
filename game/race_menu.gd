@@ -558,6 +558,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	ftp_page = preload("res://ftp_training.gd").new()
 	layout.add_child(ftp_page)
 	var ftp_card := preload("res://training_menu_card.gd").new()
+	ftp_page.set_meta("preparation_card", ftp_card)
 	ftp_card.configure(self, ftp_page, [ftp_page.warmup_hint], ftp_card.chart(preload("res://ftp_ramp.gd").preview_blocks(ftp_page.player_profile.ftp())))
 	ftp_page.back_requested.connect(show_training)
 	ftp_page.environment_requested.connect(_training_environment)
@@ -717,9 +718,7 @@ func refresh_workout_tiles() -> void:
 	for child in workout_grid.get_children(): workout_grid.remove_child(child); child.queue_free()
 	for child in fixed_workout_grid.get_children(): fixed_workout_grid.remove_child(child); child.queue_free()
 	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()),fixed_workout_grid,"VASTE TEST VAN VELODROME")
-	var twenty_minute := _workout_tile("20’ FTP-test","Deze vaste test wordt later toegevoegd.",func(): pass,[],fixed_workout_grid,"VASTE TEST · BINNENKORT")
-	twenty_minute.disabled = true
-	twenty_minute.add_theme_stylebox_override("disabled", MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 0, 12))
+	_workout_tile("20’ FTP-test","20 minuten vrij vermogen · FTP = 95% van je gemiddelde.",show_ftp_twenty,[],fixed_workout_grid,"VASTE TEST")
 	editor_tile = _workout_tile("Workout-editor","Maak een eigen workout of bewerk een bestaande.",show_workout_editor,[],fixed_workout_grid,"EDITOR")
 	saved_workout_tiles.clear()
 	for item in workout_library.all_workouts():
@@ -771,7 +770,14 @@ func show_workout_editor() -> void:
 	_show_section(10, "Workout-editor", workout_editor_page)
 
 func show_ftp() -> void:
+	ftp_page.select_test(false)
+	ftp_page.get_meta("preparation_card").preview.set_workout(preload("res://ftp_ramp.gd").preview_blocks(ftp_page.player_profile.ftp()))
 	_show_section(8, "FTP Ramp Test", ftp_page)
+
+func show_ftp_twenty() -> void:
+	ftp_page.select_test(true)
+	ftp_page.get_meta("preparation_card").preview.set_workout([{ "kind": "FreeRide", "duration": 1200.0, "power_low": 1.0, "power_high": 1.0 }])
+	_show_section(8, "20’ FTP-test", ftp_page)
 
 func _build_settings(layout: VBoxContainer) -> void:
 	settings_page = CenterContainer.new()

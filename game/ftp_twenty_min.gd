@@ -24,8 +24,12 @@ func running() -> bool:
 
 func sample(now: float, power: float) -> void:
 	if not running(): return
-	if not is_finite(power) or power < 0.0:
+	if not is_finite(now) or not is_finite(power) or power < 0.0:
 		stop("Ongeldige vermogensmeting")
+		return
+	if now < start_at: return
+	if last_at < 0.0 and now - start_at > SIGNAL_TIMEOUT:
+		stop("Vermogenssignaal verloren")
 		return
 	if last_at >= 0.0:
 		var dt := now - last_at
@@ -43,7 +47,7 @@ func sample(now: float, power: float) -> void:
 		reason = "20 minuten voltooid"
 
 func tick(now: float) -> void:
-	if running() and last_at >= 0.0 and now - last_at > SIGNAL_TIMEOUT:
+	if running() and now - (last_at if last_at >= 0.0 else start_at) > SIGNAL_TIMEOUT:
 		stop("Vermogenssignaal verloren")
 
 func stop(message: String) -> void:

@@ -6,9 +6,11 @@ const FTP_MAX_PAUSE_SECONDS := 60.0
 var signal_state := TrainerSignal.new()
 var interrupted_clients := {}
 var control_started_at := {}
+const Twenty := preload("res://ftp_twenty_min.gd")
+var twenty_mode := false
 const Ramp := preload("res://ftp_ramp.gd")
 const Trainer := preload("res://trainer_control.gd")
-var test = Ramp.new()
+var test: Variant = Ramp.new()
 var trainer := Trainer.new()
 var player_profile = preload("res://player_profile.gd").new()
 var ftp_persisted := false
@@ -86,6 +88,9 @@ func drive_trainer(client, active: bool, grade: float, aero: float, now: float, 
 func _ftp_pause_expired(now: float) -> bool:
 	return test is Ramp and test.running() and signal_state.paused_seconds(now) > FTP_MAX_PAUSE_SECONDS
 func receive(packet: Dictionary, now: float) -> void:
+	if twenty_mode:
+		_receive_twenty(packet, now)
+		return
 	if packet.get("type") != "telemetry": return
 	var power: Variant = packet.get("power_w")
 	var id: Variant = packet.get("power_sample_id")
@@ -120,6 +125,9 @@ func receive(packet: Dictionary, now: float) -> void:
 	if test.phase == "RESULT": _release(now)
 
 func begin() -> void:
+	if twenty_mode:
+		_begin_twenty()
+		return
 	var now := now_s()
 	if test.running() or not live(now) or not release_complete(): return
 	ftp_persisted = false
@@ -151,6 +159,13 @@ func leave() -> void:
 	back_requested.emit()
 
 func _process(_delta: float) -> void:
+	if twenty_mode:
+		if test.running():
+			if not is_visible_in_tree(): finish("Test verlaten")
+			test.tick(now_s())
+		_release(now_s())
+		_refresh()
+		return
 	var now := now_s()
 	var clock := session_now(now)
 	var receiving := live(now)
@@ -177,6 +192,9 @@ func cadence_text() -> String:
 	return "%d rpm" % roundi(cadence_rpm) if live(now_s()) and cadence_rpm >= 0.0 else "— rpm"
 
 func _refresh() -> void:
+	if twenty_mode:
+		_refresh_twenty()
+		return
 	if start_button == null: return
 	start_button.visible = not test.running()
 	start_button.disabled = not live(now_s()) or not release_complete()
@@ -217,3 +235,86 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		test.stop("Spel gesloten")
 		trainer.close()
+
+func select_test(twenty: bool) -> void:
+	if test.running(): finish("Test verlaten")
+	twenty_mode = twenty
+	test = Twenty.new() if twenty else Ramp.new()
+	ftp_persisted = false
+	ftp_save_message = ""
+	title.text = "20’ FTP-test" if twenty else "FTP Ramp Test"
+	if twenty:
+		detail.text = "Warm eerst goed op. Rijd daarna 20 minuten op het hoogste vermogen dat je gelijkmatig kunt volhouden.\nJe kiest zelf je versnelling en vermogen; ERG blijft uit.\nFTP = 95% van het gemiddelde gemeten vermogen over de volledige 20 minuten.\nEen echte trainer met verse vermogensmetingen is vereist. Bij signaalverlies of voortijdig stoppen blijft je bestaande FTP behouden."
+	else:
+		detail.text = "5 minuten vrij opwarmen op je eigen vermogen, zonder ERG-doel.\nDaarna 100 W, elke minuut +20 W. Blijf zitten en trap gelijkmatig.\nStop zodra je niet meer kunt. FTP = 75% van je beste gemeten 60 seconden.\nEen echte trainer met verse vermogensmetingen is vereist."
+	stop_button.text = "Stop test" if twenty else "Stop test · ERG vrijgeven"
+	_refresh()
+
+func _twenty_fresh(now: float) -> bool:
+	return live(now) and now - last_sample >= 0.0 and now - last_sample <= Twenty.SIGNAL_TIMEOUT
+
+func _begin_twenty() -> void:
+	var now := now_s()
+	if test.running() or not _twenty_fresh(now) or not release_complete(): return
+	ftp_persisted = false
+	ftp_save_message = ""
+	test.start(now)
+	# Seed the interval with the latest fresh measurement, without charging warmup.
+	test.sample(now, measured)
+	_refresh()
+	environment_requested.emit(true)
+	stop_button.grab_focus()
+
+func _receive_twenty(packet: Dictionary, now: float) -> void:
+	if packet.get("type") != "telemetry": return
+	bridge_update_needed = not packet.has("power_sample_id") or not packet.has("power_age_s")
+	var power: Variant = packet.get("power_w")
+	var id: Variant = packet.get("power_sample_id")
+	var age: Variant = packet.get("power_age_s")
+	var valid: bool = packet.get("valid") == true and (power is float or power is int) and is_finite(float(power)) and float(power) >= 0 and (id is float or id is int) and is_finite(float(id)) and float(id) >= 0 and floor(float(id)) == float(id) and (age is float or age is int) and is_finite(float(age)) and float(age) >= 0 and float(age) <= Twenty.SIGNAL_TIMEOUT
+	if not valid:
+		signal_state.receive(false, now)
+		if test.running(): test.tick(now)
+		return
+	if int(id) == sample_id: return
+	if int(id) < sample_id and test.running():
+		finish("Vermogensmeter opnieuw gestart; herstart de FTP-test")
+		return
+	var sampled_at: float = now - float(age)
+	if test.running() and sampled_at <= last_sample: return
+	signal_state.receive(true, now)
+	telemetry_ok = true
+	sample_id = int(id)
+	last_sample = sampled_at
+	measured = float(power)
+	var speed: Variant = packet.get("speed_kmh")
+	if (speed is int or speed is float) and is_finite(float(speed)): last_speed_kmh = maxf(0.0,float(speed))
+	var rpm: Variant = packet.get("cadence_rpm")
+	cadence_rpm = float(rpm) if (rpm is int or rpm is float) and is_finite(float(rpm)) else -1.0
+	var reported_gear: Variant = packet.get("gear")
+	gear = int(reported_gear) if (reported_gear is int or reported_gear is float) and is_finite(float(reported_gear)) and float(reported_gear) >= 1 and float(reported_gear) <= 12 else -1
+	if test.running(): test.sample(sampled_at, measured)
+
+func _refresh_twenty() -> void:
+	if start_button == null: return
+	start_button.visible = not test.running()
+	start_button.disabled = not _twenty_fresh(now_s()) or not release_complete()
+	stop_button.visible = test.running()
+	back_button.disabled = test.running()
+	warmup_hint.hide()
+	detail.visible = not test.running() and test.phase != "RESULT"
+	if test.running():
+		var remaining := ceili(maxf(0.0,Twenty.DURATION-(now_s()-test.start_at)))
+		var mean: float = test.energy / test.covered if test.covered > 0 else measured
+		result.text = "20 minuten FTP-test · nog %02d:%02d\nGemeten %.0f W · gemiddeld %.1f W\nVrij vermogen · ERG uit · %s" % [remaining/60,remaining%60,measured,mean,cadence_text()]
+		if gear > 0: result.text += "\nVersnelling %d / 12" % gear
+	elif test.phase == "RESULT":
+		result.text = test.reason
+		if test.complete():
+			if not ftp_persisted:
+				ftp_persisted = true
+				ftp_save_message = "FTP opgeslagen in je spelersprofiel." if player_profile.set_ftp(test.ftp(),"twenty_minute_test") == OK else "FTP kon niet worden opgeslagen."
+			result.text += "\nGemiddeld %.1f W · geschatte FTP %.0f W\n%s" % [test.average_power(),test.ftp(),ftp_save_message]
+		else: result.text += "\nGeen volledige test; je bestaande FTP blijft behouden."
+	else:
+		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed. Warm eerst op; Start begint direct aan de 20 minuten." if _twenty_fresh(now_s()) else "Wacht op verse trainergegevens."
