@@ -175,7 +175,7 @@ def run(seed=1, count=16, laps=40):
                 state['started']=t
                 if chosen:
                     chosen.break_turns+=1
-                    duration=rng.uniform(10,20) * (.60 if chosen.role=='sprinter' else 1.)
+                    duration=(rng.uniform(24,42) if chosen.role=='attacker' else rng.uniform(35,65) if chosen.role=='tt' else rng.uniform(8,14))
                     state['until']=t+duration
                 else:state['until']=t+6
                 state['turns']+=1
@@ -229,7 +229,7 @@ def run(seed=1, count=16, laps=40):
         # Chasers with enough reserve accelerate towards an identified break.
         break_front=max((c[0].d for c in breaks),default=-1e9)
         if break_front>main_front+12:
-            candidates=[x for x in main_cluster if x.store/x.store_max>.38 and x.cooperation>.38 and x.mode=='draft']
+            candidates=[x for x in main_cluster if x.store/x.store_max>(.22 if x.role=='sprinter' else .38) and x.cooperation>.38 and x.mode=='draft' and (x.role=='sprinter' or rng.random()<.35)]
             if candidates and rng.random()<.065*DT*chase_scale:
                 ch=rng.choice(candidates)
                 ch.mode='chase';ch.until=t+rng.uniform(10,26);ch.counterattack_count+=1
@@ -308,13 +308,13 @@ def run(seed=1, count=16, laps=40):
             recent=sum(1 for e in recent_attacks if t-e<45)
             solo_far_ahead=(r.d-mid)>20
             if r.mode=='draft' and t>r.cooldown and energy_ratio>.56 and not solo_far_ahead:
-                base={'attacker':.031,'tt':.016,'sprinter':.004}[r.role]
-                post_boost=2.5 if post_sprint else 1.
+                base={'attacker':.043,'tt':.023,'sprinter':.00015}[r.role]
+                post_boost=1.0  # Tempo: no special post-sprint attack window
                 mode_mult=1.35 if race_mode=='points' else .66
                 # Laggards are more willing to gamble for sprint points.
                 score_need=1.25 if race_mode=='points' and points_score[r.id]<max(points_score.values(),default=0) else 1.
-                pre_penalty=.18 if pre_sprint else 1.
-                busy_penalty=.40 if active_attackers else (.7 if recent else 1.)
+                pre_penalty=1.0  # Every scoring lap is a normal race lap
+                busy_penalty=(.85 if r.role=='attacker' else .22) if active_attackers else (.8 if recent else 1.)
                 # Watch whether the bunch is moving as a group; penalize attacks from far behind.
                 gap_penalty=.10 if r.d<mid-13 else 1.
                 prob=clamp(base*DT*r.aggression*2.0*post_boost*pre_penalty*busy_penalty*gap_penalty*mode_mult*score_need,0,.2)
@@ -340,11 +340,11 @@ def run(seed=1, count=16, laps=40):
                 # Sustainable solo based on CP with a small response to a closing gap.
                 remaining=max(0.,finish_line-r.d)
                 urgency=clamp((22.-(r.d-main_front))/30.,0.,1.)
-                target=r.aero*(.98+.10*urgency)
+                target=r.aero*((1.09 if r.role=='tt' else 1.015)+(.035 if r.role=='tt' else .045)*urgency)
             elif r.mode=='break_pull':
                 # Stronger than sustainable solo, but bounded by W' and fatigue.
                 # Shorter sprinter pulls compensate for their higher relative cost.
-                target=r.aero*(1.17 if r.role=='sprinter' else 1.24) if breakaway_v else r.aero*(1.14 if r.role=='sprinter' else 1.19)
+                target=r.aero*({'tt':1.23,'attacker':1.14,'sprinter':1.08}[r.role] if breakaway_v else {'tt':1.20,'attacker':1.12,'sprinter':1.06}[r.role])
                 r.lead_s+=DT
             elif r.mode=='break_draft':
                 target=r.aero*(.77 if draft else 1.01) if breakaway_v else r.aero*(.73 if draft else .86)
@@ -382,8 +382,8 @@ def run(seed=1, count=16, laps=40):
                     target=pcurve(duration,r.phys.cp,r.phys.wmax,r.phys.pmax)*(.88+.10*reserve)
                 else:
                     target=r.aero*(.76 if draft else .91)
-            elif pre_sprint and r.role=='sprinter' and energy_ratio>.30:
-                target=r.aero+.37*(r.peak-r.aero)
+            elif pre_sprint and r.role=='sprinter' and energy_ratio>.52 and lead-r.d<8:
+                target=r.aero+.19*(r.peak-r.aero)
             elif r.d<mid-15:
                 target=r.aero+.15*(r.peak-r.aero)
             else:
