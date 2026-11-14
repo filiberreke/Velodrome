@@ -181,7 +181,7 @@ static func average_power(record: Dictionary) -> float:
 static func scaled_replay(record: Dictionary, percent: float) -> Dictionary:
 	# Transform an in-memory copy; the saved personal achievement is never edited.
 	var result := record.duplicate(true)
-	var factor := clampf(percent, 30.0, 150.0) / 100.0
+	var factor := clampf(percent, 40.0, 120.0) / 100.0
 	result["source_time_s"] = float(record.time_s)
 	result["playback_percent"] = percent
 	if is_equal_approx(factor, 1.0): return result

@@ -71,6 +71,9 @@ var demo_power_input: SpinBox
 var difficulty_slider: HSlider
 var difficulty_label: Label
 var keirin_derny: SpinBox
+var difficulty_preferences := ConfigFile.new()
+var difficulty_preferences_path := "user://config/race_difficulty.cfg"
+
 var race_settings: VBoxContainer
 var hub_page: VBoxContainer
 var training_page: VBoxContainer
@@ -813,19 +816,24 @@ func _build_settings(layout: VBoxContainer) -> void:
 	race_settings.add_child(elimination_count_picker)
 	elimination_count_picker.visible = false
 	laps_input = _number(race_settings, "Ronden · 250 meter per ronde", 1, 30, 10)
-	keirin_derny = _number(race_settings, "Dernytempo · 70% = 45 km/u, 100% = 50 km/u", 70, 100, 100)
-	keirin_derny.step = 10
+	difficulty_preferences.load(difficulty_preferences_path)
+	keirin_derny = _number(race_settings, "Dernytempo · 70% = 45 km/u, 100% = 50 km/u", 40, 120, 80)
+	keirin_derny.step = 5
+	keirin_derny.value = clampf(snappedf(float(difficulty_preferences.get_value("race", "derny", 80.0)), 5.0), 40.0, 120.0)
+	keirin_derny.value_changed.connect(func(value: float): _save_difficulty("derny", value))
 	difficulty_label = label("AI-sterkte · 80%", 22)
 	race_settings.add_child(difficulty_label)
 	difficulty_slider = HSlider.new()
-	difficulty_slider.min_value = 30
-	difficulty_slider.max_value = 100
-	difficulty_slider.step = 10
-	difficulty_slider.value = 80
+	difficulty_slider.min_value = 40
+	difficulty_slider.max_value = 120
+	difficulty_slider.step = 5
+	difficulty_slider.value = clampf(snappedf(float(difficulty_preferences.get_value("race", "ai", 80.0)), 5.0), 40.0, 120.0)
+	difficulty_label.text = "AI-sterkte · %d%%" % int(difficulty_slider.value)
 	difficulty_slider.custom_minimum_size.y = 36
 	race_settings.add_child(difficulty_slider)
 	difficulty_slider.value_changed.connect(func(value: float) -> void:
 		difficulty_label.text = "AI-sterkte · %d%%" % int(value)
+		_save_difficulty("ai", value)
 		difficulty_changed.emit(value))
 	pursuit_options = preload("res://pursuit_options.gd").new()
 	pursuit_options.library = library
@@ -1076,3 +1084,8 @@ func show_startlist() -> void:
 	page_title.text = "Jouw startlijst"
 	breadcrumb.text = "01  Wedstrijdinstellingen     /     02  Startlijst"
 	startlist_page.begin()
+
+func _save_difficulty(key: String, value: float) -> void:
+	difficulty_preferences.set_value("race", key, value)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(difficulty_preferences_path.get_base_dir()))
+	difficulty_preferences.save(difficulty_preferences_path)
