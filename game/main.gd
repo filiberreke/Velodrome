@@ -1967,7 +1967,7 @@ func _advance_race(dt: float) -> void:
 		var old_finishes: Array[float] = finish_times.duplicate()
 		(tempo_rules if race_mode == 8 else points_rules).advance(previous_distances, distances, clock, dt, finish_times)
 		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
-		for message in points_notifications.collect(tempo_rules if race_mode == 8 else points_rules, float(peloton_info.get("center", _race_positions().max()))):
+		for message in points_notifications.collect(tempo_rules if race_mode == 8 else points_rules, float(peloton_info.get("center", _race_positions().max())), race_mode == 8):
 			if race_overlay != null: race_overlay.popup.enqueue(message)
 		for i in range(rider_count):
 			if old_finishes[i] < 0.0 and finish_times[i] >= 0.0:
