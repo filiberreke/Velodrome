@@ -718,7 +718,7 @@ func refresh_workout_tiles() -> void:
 	for child in workout_grid.get_children(): workout_grid.remove_child(child); child.queue_free()
 	for child in fixed_workout_grid.get_children(): fixed_workout_grid.remove_child(child); child.queue_free()
 	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()),fixed_workout_grid,"VASTE TEST VAN VELODROME")
-	_workout_tile("20’ FTP-test","20 minuten vrij vermogen · FTP = 95% van je gemiddelde.",show_ftp_twenty,[],fixed_workout_grid,"VASTE TEST")
+	_workout_tile("20’ FTP-test","20 minuten vrij vermogen · FTP = 95% van je gemiddelde.",show_ftp_twenty,[{"kind":"FreeRide","duration":1200.0,"power_low":0.0,"power_high":0.0}],fixed_workout_grid,"VASTE TEST")
 	editor_tile = _workout_tile("Workout-editor","Maak een eigen workout of bewerk een bestaande.",show_workout_editor,[],fixed_workout_grid,"EDITOR")
 	saved_workout_tiles.clear()
 	for item in workout_library.all_workouts():

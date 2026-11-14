@@ -34,6 +34,17 @@ func _draw() -> void:
 		blocks = [{"kind":"Warmup","duration":180,"power_low":.25,"power_high":.55},{"kind":"SteadyState","duration":180,"power_low":.65}]
 		for i in range(3): blocks.append({"kind":"IntervalsT","repeat":1,"on_duration":70,"off_duration":40,"on_power":.95,"off_power":.35})
 		blocks.append({"kind":"Cooldown","duration":230,"power_low":.55,"power_high":.2})
+	# A self-paced test has a duration, but no prescribed power profile.
+	if blocks.size() == 1 and blocks[0].kind == "FreeRide":
+		var font := get_theme_default_font()
+		var label := "%d min · vrij vermogen" % roundi(float(blocks[0].duration)/60.0)
+		var font_size := 18 if size.x >= 400 else 14
+		var y := origin.y + height * .5
+		draw_style_box(Style.panel(Style.PAPER,Color.TRANSPARENT,0,6),Rect2(origin.x,y-30,width,54))
+		draw_string(font,Vector2(origin.x+(width-font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x)/2,y),label,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size,Style.INK)
+		var hint := "Zonder ERG-doel"
+		draw_string(font,Vector2(origin.x+(width-font.get_string_size(hint,HORIZONTAL_ALIGNMENT_LEFT,-1,12).x)/2,y+19),hint,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Style.MUTED)
+		return
 	var sections := chart_sections(blocks)
 	var total := 0.0
 	var peak := 1.25
