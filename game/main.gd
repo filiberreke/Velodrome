@@ -833,7 +833,7 @@ func _update_countdown_display() -> void:
 	race_overlay.signals.update_last_lap(start_state == "RACING", maxf(0.0, _race_length() - distances[0]), _race_length(), finished)
 
 func _start_requires_standstill() -> bool:
-	return race_mode not in [0, 1, 2] and not (race_mode == 7 and time_trial_start_type == "flying")
+	return race_mode not in [0, 1, 2, 8] and not (race_mode == 7 and time_trial_start_type == "flying")
 
 func _start_conditions_met() -> bool:
 	if bridge_bind_error != OK:
@@ -2841,7 +2841,7 @@ func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
 		return
 	var choice: int = int(setup_panel.get("selected"))
-	if choice not in [0, 1, 2, 3, 5, 6, 7]:
+	if choice not in [0, 1, 2, 3, 5, 6, 7, 8]:
 		return
 	if choice in [1,2] and setup_panel.page != 4: return
 	var replay: Dictionary = {}
@@ -2863,15 +2863,15 @@ func _confirm_start() -> void:
 		if not replay.is_empty(): replay = PursuitRecords.scaled_replay(replay, pursuit_opponent_percent)
 	if not trainer_seen:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
-	race_mode = 3 if choice == 6 else (7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))))
+	race_mode = 8 if choice == 8 else 3 if choice == 6 else (7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))))
 	if choice == 6: keirin_percent = setup_panel.keirin_derny.value
-	race_laps = int(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice == 3 else clampi(int(laps_input.value), 1, 30))))
+	race_laps = int(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice in [3, 8] else clampi(int(laps_input.value), 1, 30))))
 	if choice == 6: race_laps = 6
 	if choice == 2:
 		team_size = options.team_size()
 		team_resistance_mode = options.resistance_mode()
 		team_library.configure_team(team_size)
-	rider_count = 1 if choice == 7 else (team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 5 else clampi(int(rider_count_input.value), 6, 16 if choice == 3 else 12))))
+	rider_count = 1 if choice == 7 else (team_size * 2 if choice == 2 else (2 if choice == 1 else (int(setup_panel.elimination_count_picker.get_selected_id()) if choice == 5 else clampi(int(rider_count_input.value), 6, 16 if choice in [3, 8] else 12))))
 	if choice == 6: rider_count = 6
 	if choice in [1, 2]:
 		var selected_ai: Dictionary = options.selected_ai()
@@ -2880,7 +2880,7 @@ func _confirm_start() -> void:
 	_clear_elimination_feedback()
 	selected_startlist.clear()
 	startlist_mode = -1
-	if choice in [0,3,5,6] and setup_panel.page == 5:
+	if choice in [0,3,5,6,8] and setup_panel.page == 5:
 		if not setup_panel.startlist_page.can_start(): return
 		selected_startlist.assign(setup_panel.startlist_page.lineup.duplicate(true))
 		startlist_mode = race_mode
