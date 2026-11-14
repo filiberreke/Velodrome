@@ -38,19 +38,19 @@ const MODES := [
 	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Start met één geneutraliseerde ronde. Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
 	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Zes renners, gelote startposities. Drie ronden begeleid achter de derny, daarna drie vrije ronden. Blijf in het wiel en kies je sprintmoment.", "race_id": 3},
 	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "500 m of 1 km met staande of vliegende start en vergelijking elke 125 meter.", "race_id": 7},
-	{"key": "tempo", "title": "Temporace", "hint": "Houd het tempo hoog.", "detail": "Deze discipline wordt later toegevoegd.", "race_id": -1},
+	{"key": "tempo", "title": "Temporace", "hint": "Houd het tempo hoog.", "detail": "40 ronden. Vanaf ronde 5 levert de eerste renner bij elke doorkomst één punt op. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 8},
 	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1}
 ]
 const INK := MenuStyle.INK
 const MUTED := MenuStyle.MUTED
 const ACCENT := MenuStyle.BLUE
 const RECORDS_INDEX := 9
-const PLAYABLE := [0, 1, 2, 3, 5, 6, 7]
+const PLAYABLE := [0, 1, 2, 3, 5, 6, 7, 8]
 const DISPLAY_ORDER := [0, 1, 2, 3, 5, 4, 6, 7, 8, 9]
 var gallery_grid: GridContainer
 var page := 1
 var selected := 0
-var field_settings := {0: [8, 10], 3: [16, 40], 5: [12, 22], 6: [6, 6]}
+var field_settings := {0: [8, 10], 3: [16, 40], 5: [12, 22], 6: [6, 6], 8: [16, 40]}
 var cards: Array[Button] = []
 var previews: Array[SubViewport] = []
 var choice_page: VBoxContainer
@@ -891,8 +891,8 @@ func _build_settings(layout: VBoxContainer) -> void:
 	start_button.add_theme_stylebox_override("hover", panel_style(MenuStyle.BLUE.lightened(.10)))
 	MenuStyle.primary(start_button)
 	start_button.pressed.connect(func() -> void:
-		if not start_button.disabled and (selected in [0, 3, 5, 6, 7] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
-			if selected in [0, 3, 5, 6]: show_startlist()
+		if not start_button.disabled and (selected in [0, 3, 5, 6, 7, 8] or (selected in [1, 2] and (pursuit_options if selected == 1 else team_options).can_start())):
+			if selected in [0, 3, 5, 6, 8]: show_startlist()
 			else: start_requested.emit())
 	navigation.add_child(start_button)
 
@@ -918,7 +918,7 @@ func show_choices() -> void:
 	page_title.add_theme_font_size_override("font_size",44)
 	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
-	if page == 2 and selected in [0, 3, 5, 6]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
+	if page == 2 and selected in [0, 3, 5, 6, 8]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	page = 1
 	page_title.text = "Kies jouw wedstrijd"
 	choice_page.show()
@@ -930,7 +930,7 @@ func show_choices() -> void:
 
 func select_mode(index: int) -> void:
 	_hide_hub_pages()
-	if page == 2 and selected in [0, 3, 5, 6]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
+	if page == 2 and selected in [0, 3, 5, 6, 8]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	footer_label.show()
 	page_title.add_theme_font_size_override("font_size",44)
 	selected = clampi(index, 0, MODES.size() - 1)
@@ -948,7 +948,7 @@ func select_mode(index: int) -> void:
 	selected_title.text = MODES[selected]["title"]
 	selected_description.text = MODES[selected]["detail"]
 	selected_art.texture = previews[selected].get_texture()
-	race_settings.visible = selected in [0, 3, 5, 6]
+	race_settings.visible = selected in [0, 3, 5, 6, 8]
 	time_trial_settings.visible = selected == 7
 	count_input.visible = selected not in [5,6]
 	count_input.get_meta("caption").visible = selected not in [5,6]
@@ -962,11 +962,11 @@ func select_mode(index: int) -> void:
 		laps_input.min_value = 1
 		laps_input.step = 1
 		laps_input.value = 6
-	if selected in [0, 3]:
-		count_input.max_value = 16 if selected == 3 else 12
-		laps_input.max_value = 120 if selected == 3 else 30
-		laps_input.min_value = 10 if selected == 3 else 1
-		laps_input.step = 10 if selected == 3 else 1
+	if selected in [0, 3, 8]:
+		count_input.max_value = 16 if selected in [3, 8] else 12
+		laps_input.max_value = 120 if selected in [3, 8] else 30
+		laps_input.min_value = 10 if selected in [3, 8] else 1
+		laps_input.step = 10 if selected in [3, 8] else 1
 		count_input.value = field_settings[selected][0]
 		laps_input.value = field_settings[selected][1]
 	if selected == 5:
@@ -975,10 +975,10 @@ func select_mode(index: int) -> void:
 	pursuit_options.visible = selected == 1
 	team_options.visible = selected == 2
 	team_scroll.visible = selected == 2
-	demo_settings.visible = selected in [0, 1, 2, 3, 5, 6, 7] and not bridge_seen and not bridge_unavailable
-	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5, 6, 7] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
-	start_button.disabled = selected not in [0, 1, 2, 3, 5, 6, 7]
-	start_button.text = "Startlijst →" if selected in [0, 3, 5, 6] else "Start wedstrijd →" if selected in [1, 2, 7] else "Binnenkort"
+	demo_settings.visible = selected in [0, 1, 2, 3, 5, 6, 7, 8] and not bridge_seen and not bridge_unavailable
+	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5, 6, 7, 8] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+	start_button.disabled = selected not in [0, 1, 2, 3, 5, 6, 7, 8]
+	start_button.text = "Startlijst →" if selected in [0, 3, 5, 6, 8] else "Start wedstrijd →" if selected in [1, 2, 7] else "Binnenkort"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
@@ -995,8 +995,8 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_status_text = "●  Trainer verbonden" if live else ("Trainer gevonden · wacht op gegevens" if seen else "Demo beschikbaar · geen trainer")
 	if unavailable:
 		bridge_status_text = "Verbinding bezet · sluit de andere spelinstantie"
-	demo_settings.visible = selected in [0, 1, 2, 3, 5, 6, 7] and not seen and not unavailable
-	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5, 6, 7]
+	demo_settings.visible = selected in [0, 1, 2, 3, 5, 6, 7, 8] and not seen and not unavailable
+	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5, 6, 7, 8]
 	if selected in [1, 2]:
 		start_button.disabled = start_button.disabled or not (pursuit_options if selected == 1 else team_options).can_start()
 	if pursuit_flow != null and pursuit_flow.visible: pursuit_flow.update_bridge()
@@ -1073,7 +1073,7 @@ func show_records() -> void:
 	records_page.back_button.grab_focus.call_deferred()
 
 func show_startlist() -> void:
-	if selected not in [0, 3, 5, 6] or bridge_unavailable: return
+	if selected not in [0, 3, 5, 6, 8] or bridge_unavailable: return
 	field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	page = 5
 	choice_page.hide()
