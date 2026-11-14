@@ -1449,8 +1449,8 @@ func _draft_target(rider: int) -> float:
 	if race_mode in [4, 5, 7]:
 		draft_leaders[rider] = -1
 		return 0.0
-	# Non-scratch modes retain the exact prior drafting model.
-	if race_mode not in [0, 1, 2, 3]:
+	# Bunch races use physical track gaps, regardless of laps gained or lost.
+	if race_mode not in [0, 1, 2, 3, 8]:
 		if speeds[rider] < DRAFT_MIN_SPEED_MPS:
 			return 0.0
 		var old_best := 0.0
