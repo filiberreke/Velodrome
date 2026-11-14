@@ -143,7 +143,7 @@ var rider_names: Array[String] = ["JIJ", "TIJDRIJDER", "SPRINTER", "AANVALLER"]
 var rider_forms: Array[float] = [1.0, 1.0, 1.0, 1.0]
 var rider_kits: Array[Dictionary] = []
 var race_mode := 0
-var keirin_percent := 100.0
+var keirin_percent := 80.0
 var keirin = preload("res://keirin_race.gd").new()
 var rider_count_input: SpinBox
 var form_rng := RandomNumberGenerator.new()
@@ -2464,7 +2464,7 @@ func _build_hud() -> void:
 	difficulty_label = menu.difficulty_label
 	rider_count_input.value = rider_count
 	laps_input.value = race_laps
-	difficulty_slider.value = ai_difficulty
+	ai_difficulty = difficulty_slider.value
 	menu.difficulty_changed.connect(_difficulty_changed)
 	menu.start_requested.connect(_confirm_start)
 	menu.training_environment_requested.connect(_training_environment_requested)
