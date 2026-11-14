@@ -19,6 +19,9 @@ var scratch_rules = ScratchRules.new()
 const XScratchAI := preload("res://x_scratch_ai.gd")
 var x_ai = XScratchAI.new()
 const PointsAI := preload("res://points_ai.gd")
+const TempoAI := preload("res://tempo_ai.gd")
+const TempoRules := preload("res://tempo_race_rules.gd")
+var tempo_rules = TempoRules.new()
 const EliminationRules := preload("res://elimination_race_rules.gd")
 const EliminationAI := preload("res://elimination_ai.gd")
 const EliminationMotion := preload("res://elimination_motion.gd")
@@ -204,7 +207,7 @@ func _configure_peloton() -> void:
 		var kind: int = 0 if i == 0 else 1 + ((i - 1) % 3)
 		# 1 = TT, 2 = sprinter, 3 = attacker.
 		var configured: Dictionary = _configured_rider(i, kind) if i > 0 else {"profile": 0, "name": player_display_name}
-		if race_mode in [0,1,2,3] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
+		if race_mode in [0,1,2,3,8] and race_mode == startlist_mode and i > 0 and selected_startlist.size() == rider_count - 1:
 			configured = selected_startlist[i - 1].duplicate(true)
 		if race_mode == 4 and i > 0:
 			configured = pursuit_opponent_config.duplicate(true) if not pursuit_opponent_config.is_empty() else _configured_rider(1, 1)
@@ -230,6 +233,7 @@ func _configure_peloton() -> void:
 	finish_times.resize(count); finish_times.fill(-1.0)
 	scratch_rules.reset(count)
 	if race_mode == 1: points_rules.reset(count, race_laps)
+	if race_mode == 8: tempo_rules.reset(count, race_laps)
 	elimination_exit.clear()
 	peloton_state.reset(); peloton_info.clear()
 	race_event_message = ""; race_event_until = -1.0
@@ -263,19 +267,20 @@ func _configure_peloton() -> void:
 		var lane: float = LANES[0] if race_mode in [4, 5, 7] else START_LANES[i % START_LANES.size()]
 		# A narrow grid on the lower straight gives every rider room to roll away.
 		# Wider rows stretch apart because outside riders cover longer bends.
-		if race_mode in [0, 1, 2]:
+		if race_mode in [0, 1, 2, 8]:
 			lane = LANES[0] + 1.2 * float(i % 2)
 			distances[i] = NEUTRAL_DEPARTURE_M - 2.4 * float(i / 2)
 		lane_offsets[i] = lane
 		ai_lane_targets[i] = lane
 		var type_id := _profile(i)
 		ai_energy_j[i] = 0.0 if i == 0 else AI_CAPACITY_J[type_id] * _form(i)
-	if race_mode in [0, 1, 2]:
+	if race_mode in [0, 1, 2, 8]:
 		neutral_start.distance_offset = -NEUTRAL_DEPARTURE_M
 	# The scratch AI owns CP, Wprime and fatigue; no older beta.16 energy state.
-	if race_mode in [0, 1, 2, 3]:
-		x_ai = preload("res://keirin_ai.gd").new() if race_mode == 3 else (PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new()))
+	if race_mode in [0, 1, 2, 3, 8]:
+		x_ai = preload("res://keirin_ai.gd").new() if race_mode == 3 else (TempoAI.new() if race_mode == 8 else (PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())))
 		if race_mode == 1: x_ai.jury = points_rules
+		if race_mode == 8: x_ai.jury = tempo_rules
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 		x_ai.configure_riders(rider_identities, rider_forms)
 		x_ai.apply_ai_strength(ai_difficulty)
@@ -289,7 +294,7 @@ func _configure_peloton() -> void:
 	bikes.clear()
 	crowded_labels.clear()
 	_spawn_peloton()
-	if race_mode in [0, 1, 2]:
+	if race_mode in [0, 1, 2, 8]:
 		for i in range(bikes.size()):
 			var badge = preload("res://rider_energy_badge.gd").new()
 			add_child(badge)
@@ -758,7 +763,7 @@ func _begin_riding() -> void:
 	else:
 		recording_active = true
 		ride_start_unix = int(Time.get_unix_time_from_system())
-	if race_mode in [0, 1, 2]:
+	if race_mode in [0, 1, 2, 8]:
 		neutral_start.begin(self)
 	elif race_mode == 3:
 		keirin.begin(self)
@@ -780,6 +785,7 @@ func _finish_neutral_start() -> void:
 	for laps in lap_times: laps.clear()
 	scratch_rules.reset(rider_count)
 	if race_mode == 1: points_rules.reset(rider_count, race_laps)
+	if race_mode == 8: tempo_rules.reset(rider_count, race_laps)
 	if race_mode == 2:
 		var rear: Array[float] = []
 		for distance in distances: rear.append(distance - REAR_TRAILING_EDGE_M)
@@ -817,7 +823,7 @@ func _update_countdown_display() -> void:
 	if not finished and start_state == "COUNTDOWN":
 		value = str(maxi(1, ceili(countdown)))
 	elif not finished and start_state == "RACING" and clock < 1.1:
-		value = "START!" if race_mode in [0, 1, 2] else "GO!"
+		value = "START!" if race_mode in [0, 1, 2, 8] else "GO!"
 	countdown_shown = value
 	if countdown_label != null:
 		countdown_label.text = value
@@ -1475,7 +1481,7 @@ func _draft_target(rider: int) -> float:
 	for other in range(rider_count):
 		if other == rider or finish_times[other] >= 0.0:
 			continue
-		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2, 3] else distances[other] - distances[rider]
+		var gap: float = ScratchRules.ahead_gap(distances[rider], distances[other]) if race_mode in [0, 1, 2, 3, 8] else distances[other] - distances[rider]
 		if gap <= 0.35 or gap >= 9.0:
 			continue
 		var lateral: float = absf(lane_offsets[other] - lane_offsets[rider])
@@ -1485,7 +1491,7 @@ func _draft_target(rider: int) -> float:
 		if real_gap < 1.0 or real_gap > 9.0:
 			continue
 		var drag_benefit: float = 0.62 * maxf(0.0, 1.0 - gap / 10.0) * maxf(0.18, 1.0 - lateral / 1.25)
-		if race_mode in [0, 1, 2, 3]:
+		if race_mode in [0, 1, 2, 3, 8]:
 			var more_wheels := 0
 			for third in range(rider_count):
 				if third == rider or finish_times[third] >= 0.0:
@@ -1522,14 +1528,14 @@ func _effective_draft_strength(rider: int) -> float:
 func _draft_drag_reduction(rider: int) -> float:
 	if race_mode in [4, 5, 7]:
 		return 0.0
-	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2, 3] else DRAFT_MAX_DRAG_REDUCTION
+	var limit: float = SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 2, 3, 8] else DRAFT_MAX_DRAG_REDUCTION
 	return limit * _effective_draft_strength(rider)
 
 func _next_speed(current_speed: float, power_w: float, dt: float, draft_strength: float = 0.0) -> float:
 	if race_mode in [4, 5, 7]:
 		draft_strength = 0.0
 	# Both player and AI use the same force balance in scratch mode, with NO speed cap.
-	if race_mode in [0, 1, 2, 3, 4, 5]:
+	if race_mode in [0, 1, 2, 3, 4, 5, 8]:
 		var v: float = maxf(current_speed, 0.0)
 		var aero_factor: float = maxf(1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION, 1.0 - SCRATCH_DRAFT_MAX_DRAG_REDUCTION * draft_strength)
 		var drag: float = 0.5 * 1.20 * 0.334 * v * v * aero_factor
@@ -1707,7 +1713,7 @@ func _move_lanes(dt: float) -> Array[float]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
 		var previous_height: float = _at(distances[i], lane_offsets[i]).y
-		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2] and x_ai.initialized else ai_lane_targets[i])
+		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2, 8] and x_ai.initialized else ai_lane_targets[i])
 		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
 		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
 	if race_mode == 2:
@@ -1743,6 +1749,8 @@ func _register_lap_crossings(rider: int, previous: float, step: float, dt: float
 		next_lap += 1
 
 func _race_better(a: int, b: int) -> bool:
+	if race_mode == 8:
+		return tempo_rules.better(a, b, distances)
 	if race_mode == 1:
 		return points_rules.better(a, b, distances)
 	if race_mode == 5:
@@ -1858,10 +1866,10 @@ func _advance_race(dt: float) -> void:
 	var effective_drafts: Array[float] = []
 	for rider in range(rider_count):
 		effective_drafts.append(_effective_draft_strength(rider))
-	var new_lap_event: int = points_rules.events.size() if race_mode == 1 else scratch_rules.events.size()
+	var new_lap_event: int = (tempo_rules.events.size() if race_mode == 8 else points_rules.events.size()) if race_mode in [1, 8] else scratch_rules.events.size()
 	var player_actual_power: float = (_pc_power(dt) if finish_times[0] < 0.0 else 0.0) if race_mode == 2 else 0.0
 	var x_powers: Array[float] = []
-	if race_mode in [0, 1, 2]:
+	if race_mode in [0, 1, 2, 8]:
 		x_ai.human_power_w = player_actual_power if race_mode == 2 else watts
 		if race_mode == 2:
 			x_ai.elimination_line_m = elimination_rules.next_line_m
@@ -1876,15 +1884,15 @@ func _advance_race(dt: float) -> void:
 			x_ai.metric_predictor = Callable(self, "_elimination_metric_for")
 			x_ai.speed_predictor = Callable(self, "_elimination_predict_speed")
 			x_ai.lane_targets[0] = LANES[player_lane]
-		var tactical_positions: Array[float] = _race_positions() if race_mode == 1 else distances
-		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, scratch_rules.credits)
+		var tactical_positions: Array[float] = _race_positions() if race_mode in [1, 8] else distances
+		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, _lap_credits())
 	if race_mode != 2: player_actual_power = _pc_power(dt)
 	var new_finisher := false
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
 			continue
-		var power: float = player_actual_power if i == 0 else (x_powers[i] if race_mode in [0, 1, 2] else _ai_choose_power(i, dt))
-		if race_mode in [0, 1, 2] and i > 0:
+		var power: float = player_actual_power if i == 0 else (x_powers[i] if race_mode in [0, 1, 2, 8] else _ai_choose_power(i, dt))
+		if race_mode in [0, 1, 2, 8] and i > 0:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
 			ai_role[i] = x_ai.modes[i]
@@ -1924,7 +1932,7 @@ func _advance_race(dt: float) -> void:
 		var actual_step: float = speeds[i] * dt / metric
 		if race_mode != 2:
 			_register_lap_crossings(i, previous, actual_step, dt)
-		distances[i] = previous + actual_step if race_mode == 1 else minf(_race_length(), previous + actual_step)
+		distances[i] = previous + actual_step if race_mode in [1, 8] else minf(_race_length(), previous + actual_step)
 		if _profile(i) == 1:
 			tt_effort_remaining = clampf(1.0 - distances[i] / _race_length(), 0.0, 1.0)
 		if i == 0 and not trainer_seen:
@@ -1955,11 +1963,11 @@ func _advance_race(dt: float) -> void:
 				coast_speeds[i] = speeds[i]
 				new_finisher = true
 		_update_elimination_jury(dt)
-	if race_mode == 1:
+	if race_mode in [1, 8]:
 		var old_finishes: Array[float] = finish_times.duplicate()
-		points_rules.advance(previous_distances, distances, clock, dt, finish_times)
+		(tempo_rules if race_mode == 8 else points_rules).advance(previous_distances, distances, clock, dt, finish_times)
 		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
-		for message in points_notifications.collect(points_rules, float(peloton_info.get("center", _race_positions().max()))):
+		for message in points_notifications.collect(tempo_rules if race_mode == 8 else points_rules, float(peloton_info.get("center", _race_positions().max()))):
 			if race_overlay != null: race_overlay.popup.enqueue(message)
 		for i in range(rider_count):
 			if old_finishes[i] < 0.0 and finish_times[i] >= 0.0:
@@ -1970,10 +1978,10 @@ func _advance_race(dt: float) -> void:
 				coast_speeds[i] = speeds[i]
 	if race_mode == 0:
 		scratch_rules.examine(distances, finish_times, clock)
-	if race_mode in [0, 1]:
-		var lap_events: Array = points_rules.events if race_mode == 1 else scratch_rules.events
+	if race_mode in [0, 1, 8]:
+		var lap_events: Array = (tempo_rules.events if race_mode == 8 else points_rules.events) if race_mode in [1, 8] else scratch_rules.events
 		for index in range(new_lap_event, lap_events.size()):
-			if race_mode == 1: continue # Points have their own filtered, transient popup queue.
+			if race_mode in [1, 8]: continue # Scored races use filtered popup queue.
 			var event: Dictionary = lap_events[index]
 			var change: int = int(event.get("delta", 1 if event.get("kind", "") == "gain" else -1))
 			if int(event.rider) == 0:
@@ -1982,7 +1990,7 @@ func _advance_race(dt: float) -> void:
 				_announce_race_event(message)
 			else:
 				var detail: String = "ronde gewonnen" if change > 0 else "ronde verloren"
-				if race_mode == 1: detail += " (+20 pt)" if change > 0 else " (−20 pt)"
+				if race_mode in [1, 8]: detail += " (+20 pt)" if change > 0 else " (−20 pt)"
 				_announce_race_event("%s · %s" % [_rider_name(int(event.rider)), detail], false)
 		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	# Capture while the winner is crossing, rather than after the LAST rider
@@ -2138,7 +2146,7 @@ func _update_visuals(dt: float) -> void:
 			visual.call("pedal", dt, clampf(coast_speeds[i] * 5.5, 0.0, 110.0), 120.0)
 		else:
 			visual.call("set_victory", false)
-			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1, 2, 3] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
+			visual.call("pedal", dt, cadence_visual, watts if i == 0 else (ai_power_w[i] if race_mode in [0, 1, 2, 3, 8] or _profile(i) == 1 else ai_power_w[i] * ai_difficulty / 80.0))
 	pursuit_start.update(self, dt)
 	team_race.update_badges(self)
 	_update_bunch_presentation()
@@ -3141,7 +3149,7 @@ func _lean_debug_text() -> String:
 	return "BANK DEBUG: %s | offset %.1f m | lean %.1f deg" % ["BOCHT" if on_bend else "RECHT", _track_s(distances[0]), rad_to_deg(visual_rolls[0])]
 
 func _ai_diagnostics_text() -> String:
-	var uses_wprime: bool = race_mode in [0, 1, 2, 3]
+	var uses_wprime: bool = race_mode in [0, 1, 2, 3, 8]
 	var text: String = "\nAI: %d%% | CP / W-prime model X\n" % int(ai_difficulty) if uses_wprime else "\nAI: %d%% (80%% = beta.10)\nAI resterende inspanning (TT) / anaeroob\n" % int(ai_difficulty)
 	for j in range(1, rider_count):
 		# The reserve and its maximum must come from the same model, including
@@ -3270,9 +3278,9 @@ func _update_compact_hud(order: Array[int]) -> void:
 		return
 	if race_overlay == null:
 		return
-	if race_mode in [0,1]: peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
+	if race_mode in [0,1,8]: peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	var race_positions: Array[float] = _race_positions()
-	if race_mode in [0, 1]: order = _physical_order(race_positions)
+	if race_mode in [0, 1, 8]: order = _physical_order(race_positions)
 	var physical_positions: Array[float] = []
 	var names: Array[String] = []
 	var gaps: Array[String] = []
@@ -3333,7 +3341,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "eliminated": elimination_rules.eliminated if race_mode == 2 else [], "points_race": race_mode == 1, "race_positions": race_positions if race_mode in [0,1] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else "", "points_order": _points_order() if race_mode == 1 else [], "point_scores": points_rules.points if race_mode == 1 else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 3] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "cadence_rpm": cadence if cadence >= 0.0 and connected else null, "lap_credit": points_rules.credits[0] if race_mode == 1 else 0, "lap": mini(race_laps, int(float(peloton_info.get("center", distances[0])) / LAP) + 1) if race_mode == 1 and not peloton_info.is_empty() else mini(race_laps, int((distances[0] - float(points_rules.credits[0]) * LAP if race_mode == 1 else distances[0]) / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "eliminated": elimination_rules.eliminated if race_mode == 2 else [], "points_race": race_mode in [1, 8], "race_positions": race_positions if race_mode in [0,1,8] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1,8] else "", "points_order": _points_order() if race_mode in [1, 8] else [], "point_scores": (tempo_rules.points if race_mode == 8 else points_rules.points) if race_mode in [1, 8] else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 3, 8] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "cadence_rpm": cadence if cadence >= 0.0 and connected else null, "lap_credit": _lap_credits()[0] if race_mode in [1, 8] else 0, "lap": mini(race_laps, int(float(peloton_info.get("center", distances[0])) / LAP) + 1) if race_mode in [1, 8] and not peloton_info.is_empty() else mini(race_laps, int((distances[0] - float(_lap_credits()[0]) * LAP if race_mode in [1, 8] else distances[0]) / LAP) + 1), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1,8] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3356,7 +3364,7 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 	panel.add_child(label)
 
 func _refresh_fullscreen_results() -> void:
-	if race_mode == 1:
+	if race_mode in [1, 8]:
 		preload("res://points_presentation.gd").results(self)
 		return
 	if race_mode == 5:
@@ -3692,8 +3700,8 @@ func _strava_result_description() -> String:
 	for rider in range(rider_count): order.append(rider)
 	order.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var description := "Uitslag: %d/%d" % [order.find(0) + 1, rider_count]
-	if race_mode == 1:
-		description += ", %d punten" % points_rules.points[0]
+	if race_mode in [1, 8]:
+		description += ", %d punten" % (tempo_rules.points[0] if race_mode == 8 else points_rules.points[0])
 	return description
 
 func _export_to_strava() -> void:
@@ -3831,10 +3839,10 @@ func _register_performance() -> void:
 
 
 func _lap_credits() -> Array[int]:
-	return points_rules.credits if race_mode == 1 else scratch_rules.credits
+	return tempo_rules.credits if race_mode == 8 else (points_rules.credits if race_mode == 1 else scratch_rules.credits)
 
 func _race_positions() -> Array[float]:
-	return PelotonState.race_positions(distances, _lap_credits()) if race_mode in [0,1] else distances.duplicate()
+	return PelotonState.race_positions(distances, _lap_credits()) if race_mode in [0,1,8] else distances.duplicate()
 
 func _physical_order(positions: Array[float]) -> Array[int]:
 	var order: Array[int] = []
@@ -3845,13 +3853,13 @@ func _physical_order(positions: Array[float]) -> Array[int]:
 func _points_order() -> Array[int]:
 	var order: Array[int] = []
 	for i in range(rider_count): order.append(i)
-	order.sort_custom(func(a: int, b: int) -> bool: return points_rules.better(a,b,distances))
+	order.sort_custom(func(a: int, b: int) -> bool: return (tempo_rules if race_mode == 8 else points_rules).better(a,b,distances))
 	return order
 
 func _update_bunch_presentation() -> void:
 	# Scratch/points/elimination start with a neutral lap. Show the full rider
 	# card there too, instead of falling back to a name-only Label3D.
-	var active: bool = race_mode in [0, 1, 2, 3] and start_state in ["NEUTRAL", "RACING"]
+	var active: bool = race_mode in [0, 1, 2, 3, 8] and start_state in ["NEUTRAL", "RACING"]
 	if active: peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
 	if peloton_markers != null: peloton_markers.update_bunch(self, peloton_info, active)
 	for i in range(bikes.size()):
@@ -3860,7 +3868,7 @@ func _update_bunch_presentation() -> void:
 	for i in range(rider_energy_badges.size()):
 		var reserve: float = (pc_energy_model.wprime[1] / maxf(1.0, pc_energy_model.wmax[1]) if pc_energy_model.initialized and not trainer_seen else -1.0) if i == 0 else (x_ai.wprime[i]/maxf(1.,x_ai.wmax[i]) if x_ai.initialized else -1.0)
 		var power: float = (watts if trainer_seen else pc_delivered_watts) if i == 0 else ai_power_w[i]
-		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0 and _rider_label_visible(i), points_rules.points[i] if race_mode == 1 else 0, race_mode == 1, _compact_rider_name(_rider_name(i)))
+		rider_energy_badges[i].show_rider(power, reserve, bikes[i].global_position, active and finish_times[i] < 0.0 and _rider_label_visible(i), (tempo_rules.points[i] if race_mode == 8 else points_rules.points[i]) if race_mode in [1, 8] else 0, race_mode in [1, 8], _compact_rider_name(_rider_name(i)))
 
 func _announce_race_event(message: String, player_event: bool = true) -> void:
 	if not player_event and clock < race_event_until: return
@@ -3940,7 +3948,7 @@ func _record_ai_performances() -> void:
 			ai_recorded[i] = true
 			var identity: Dictionary = rider_identities[i]
 			var parameters := {"cp_w":pursuit_pacer.cp_w if race_mode == 4 else float(identity.get("cp_w",0.0)), "max_power_w":float(identity.get("max_power_w",0.0)), "w_prime_j":float(identity.get("w_prime_j",0.0))}
-			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1,3] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
+			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1,3,8] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
 
 func _update_elimination_jury(dt: float) -> void:
 	var rear: Array[float] = []
