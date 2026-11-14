@@ -1,10 +1,10 @@
 extends "res://x_scratch_ai.gd"
-## Points-only tactical adaptation; shared CP/Wprime physiology is inherited.
+## Tempo-only tactics; shared CP/Wprime physiology is inherited.
 ## Both disciplines share the approved 265/240/250 W bases; tactics stay discipline-specific.
 var jury
 const IntermediateSprint := preload("res://points_intermediate_sprint.gd")
 var intermediate_sprint = IntermediateSprint.new()
-var intermediate_sprint_enabled := true # Diagnostic baseline switch; enabled in gameplay.
+var intermediate_sprint_enabled := false # Tempo has no points-race intermediate sprints.
 
 func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float]) -> void:
 	super.reset(profiles, forms, initial_lanes)
@@ -32,7 +32,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 	intermediate_sprint.prepared = false # Tempo: no points-race sprint forecast
 	var finish_d: float = float(laps) * LAP
 	var remaining_group: float = finish_d - median_d
-	var final_stage: bool = false
+	var final_stage: bool = false # No final sprint positioning in tempo.
 	var main: Array[int] = []
 	for i in active:
 		if absf(distances[i] - median_d) <= 13.0:
@@ -215,6 +215,12 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 				_set_mode(i, MODE_ATTACK, rng.randf_range(10.0, 19.0), clock)
 				m = MODE_ATTACK
 				attacks[i] += 1
+		# Time trialists impose a high sustainable bunch pace and volunteer for longer chases.
+		if kind == 1 and m == MODE_DRAFT and main.has(i) and not in_escape and clock > cooldown[i] and reserve > 0.32:
+			var gap_ahead: bool = break_front > main_front + 12.0
+			if rng.randf() < (0.065 if gap_ahead else 0.032) * dt:
+				_set_mode(i, MODE_CHASE if gap_ahead else MODE_PULL, rng.randf_range(22.0, 42.0), clock)
+				m = modes[i]
 		# Discover wheels independent of lateral lane: the rider must first SEE a
 		# potential wheel before being able to steer behind it. The human rider
 		# (index 0) is a normal draftable target, including in a breakaway.
@@ -286,7 +292,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 					var wanted_v: float = maxf(5.5, speeds[partner_i] + clampf(0.34 * (partner_gap - 2.5), -1.0, 1.8))
 					target = clampf(road_power(wanted_v, draft_factor) / DRIVETRAIN, 0.65 * cp[i], cp[i] + minf(150.0, 80.0 + 100.0 * reserve))
 			MODE_CHASE:
-				target = cp[i] * 1.18
+				target = cp[i] * (1.12 if kind == 1 else 1.18)
 			MODE_PULL:
 				target = cp[i] * (1.08 if kind == 1 else 1.12)
 			MODE_RECOVER:
@@ -332,55 +338,10 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 				target = minf(target, cp[i] * 0.62)
 		else:
 			idle_since[i] = -1.0
-		# FINAL_750: position, stay in the bunch and choose an individual kick.
-		var remaining: float = finish_d - distances[i]
-		if final_stage and absf(distances[i] - median_d) < 32.0 and m in [MODE_DRAFT, MODE_PULL]:
-			var rank := 1
-			for j in active:
-				if distances[j] > distances[i]:
-					rank += 1
-			var phase: float = clampf((750.0 - remaining) / 520.0, 0.0, 1.0)
-			var preferred_rank := 3 if kind != 3 else 4
-			var lag: int = maxi(0, rank - preferred_rank)
-			var gap_front: float = maxf(0.0, head_d - distances[i])
-			var ratio: float = clampf(0.82 + 0.19 * phase + 0.018 * float(mini(5, lag)) + 0.010 * minf(20.0, gap_front), 0.0, 1.20 if reserve > 0.23 else 1.03)
-			if rank <= preferred_rank and drafts[i] > 0.12:
-				ratio -= 0.13
-			if remaining < 350.0 and gap_front > 9.0:
-				ratio = maxf(ratio, 1.09)
-			if remaining > 100.0 and not sprint_started[i]:
-				target = maxf(target, cp[i] * ratio)
-			var onset: float = (235.0 if kind == 1 else (195.0 if kind == 2 else 200.0))
-			onset *= 1.0 + 0.08 * float(mini(3, maxi(0, rank - 3)))
-			if reserve < 0.16:
-				onset *= 0.85
-			if remaining <= onset and reserve > 0.055:
-				var seconds: float = maxf(5.0, remaining / maxf(speeds[i], 5.0))
-				var effort: float = pcurve(seconds, cp[i], wmax[i], pmax[i]) * (0.75 if kind == 1 else (0.99 if kind == 2 else 0.87))
-				var budget: float = cp[i] + 0.88 * wprime[i] / maxf(6.0, seconds)
-				target = maxf(target, minf(effort, budget))
-				sprint_started[i] = true
-		var sprint_lap: int = jury.next_sprint_lap()
-		var sprint_remaining: float = sprint_lap * LAP - maxf(head_d, distances[0])
-		var sprint_positioning: bool = jury.finish_clock < 0.0 and sprint_lap > 0 and sprint_remaining > 0.0 and sprint_remaining <= LAP
-		_update_rider_line(i, clock, distances, speeds, lanes, finished, m, wheel_i, gap, final_stage, economical, median_d, head_d, escape_group, sprint_positioning)
-		# An attack is short; solo pace or group work only after establishing a gap.
-		var cap_duration: float = (18.0 if m == MODE_ATTACK else (25.0 if m in [MODE_PULL, MODE_BREAK_PULL, MODE_CHASE] else 12.0))
-		target = minf(target, pcurve(cap_duration, cp[i], wmax[i], pmax[i])) if not sprint_started[i] else target
-		var next: int = jury.next_sprint_lap()
-		var leader: float = maxf(head_d, distances[0])
-		var remaining_sprint: float = next * LAP - leader
-		var own_remaining: float = fposmod(-distances[i], LAP)
-		var onset: float = 235.0 if kind == 1 else (195.0 if kind == 2 else 200.0)
-		if intermediate_sprint_enabled and next > 0 and next < laps:
-			target = intermediate_sprint.demand(i, target, kind)
-			sprint_started[i] = intermediate_sprint.attempting[i]
-		elif jury.finish_clock < 0.0 and next > 0 and remaining_sprint > 0.0 and remaining_sprint <= LAP and own_remaining > 0.0 and own_remaining <= onset and reserve > 0.055:
-			var seconds: float = maxf(5.0, own_remaining / maxf(speeds[i], 5.0))
-			var effort: float = pcurve(seconds, cp[i], wmax[i], pmax[i]) * (0.75 if kind == 1 else (0.99 if kind == 2 else 0.87))
-			var budget: float = cp[i] + 0.88 * wprime[i] / maxf(6.0, seconds)
-			target = maxf(target, minf(effort, budget))
-			sprint_started[i] = true
+		# Tempo positioning: free passing, no final-sprint rank or sprint-lane blocking.
+		_update_rider_line(i, clock, distances, speeds, lanes, finished, m, wheel_i, gap, false, economical, median_d, head_d, escape_group, false)
+		var cap_duration: float = 18.0 if m == MODE_ATTACK else (30.0 if m in [MODE_PULL, MODE_BREAK_PULL, MODE_CHASE] else 12.0)
+		target = minf(target, pcurve(cap_duration, cp[i], wmax[i], pmax[i]))
 		var actual: float = _phys_power(i, target, dt)
 		power_w[i] = actual
 		output[i] = actual
