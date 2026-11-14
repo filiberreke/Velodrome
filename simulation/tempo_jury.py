@@ -134,7 +134,7 @@ class Jury:
                     continue
                 rank = len(sprint['order'])
                 rewards = (1,)
-                award = rewards[rank] if rank < 4 else 0
+                award = 1 if rank == 0 else 0
                 sprint['order'].append(ident)
                 sprint['crossing_times'].append(crossing)
                 sprint['awards'].append(award)
