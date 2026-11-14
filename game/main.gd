@@ -3357,7 +3357,7 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 
 func _refresh_fullscreen_results() -> void:
 	if finish_table != null:
-		finish_table.columns = 1 if race_mode == 1 else 5
+		finish_table.columns = 1 if race_mode == 1 else (4 if race_mode in [0,2] else 5)
 		if race_mode != 1 and finish_table.has_meta("points_result_key"): finish_table.remove_meta("points_result_key")
 	if finish_photo_rect != null: finish_photo_rect.get_parent().get_parent().visible = finish_photo_rect.texture != null
 	if race_mode == 1:
@@ -3406,7 +3406,7 @@ func _refresh_fullscreen_results() -> void:
 	_result_cell("RENNER", gold, header_bg, 205, false, true)
 	_result_cell("EINDTIJD", gold, header_bg, 120, true, true)
 	_result_cell("VERSCHIL", gold, header_bg, 110, true, true)
-	_result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
+	if race_mode not in [0,2]: _result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
 	var leader_time: float = -1.0
 	for index in ordered:
 		if finish_times[index] >= 0.0:
@@ -3437,7 +3437,7 @@ func _refresh_fullscreen_results() -> void:
 		_result_cell(_rider_name(rider), rider_colors[_profile(rider)], row_bg, 205)
 		_result_cell(display_time, white, row_bg, 120, true)
 		_result_cell(gap, gold if rank == 0 else white, row_bg, 110, true)
-		_result_cell(laps_display, white, row_bg, 300)
+		if race_mode not in [0,2]: _result_cell(laps_display, white, row_bg, 300)
 
 func _rider_distance(rider: int, progress: float) -> float:
 	if race_mode == 5:
