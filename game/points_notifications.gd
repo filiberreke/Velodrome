@@ -28,7 +28,13 @@ func collect(jury, leader_distance: float, tempo: bool = false) -> Array[String]
 	awards.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
 		return a.kind < b.kind if a.seconds == b.seconds else a.seconds < b.seconds)
 	for award in awards: messages.append(award.text)
-	if jury.finish_clock < 0.0:
+	if tempo:
+		# One introduction at the fifth physical passage (neutral lap included).
+		# The first scoring passage follows one lap later.
+		if not warned.has("tempo_points_start") and leader_distance >= 4.0 * jury.LAP:
+			warned["tempo_points_start"] = true
+			messages.append("Vanaf nu elke ronde 1 punt")
+	elif jury.finish_clock < 0.0:
 		for lap in range(jury.INTERVAL, jury.laps + 1, jury.INTERVAL):
 			if not warned.has(lap) and leader_distance >= (lap - 1) * jury.LAP:
 				warned[lap] = true
