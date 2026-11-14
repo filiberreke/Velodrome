@@ -3365,7 +3365,7 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 
 func _refresh_fullscreen_results() -> void:
 	if race_mode in [1, 8]:
-		preload("res://points_presentation.gd").results(self)
+		(preload("res://tempo_presentation.gd") if race_mode == 8 else preload("res://points_presentation.gd")).results(self)
 		return
 	if race_mode == 5:
 		team_race.results(self)
