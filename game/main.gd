@@ -3356,6 +3356,10 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 	panel.add_child(label)
 
 func _refresh_fullscreen_results() -> void:
+	if finish_table != null:
+		finish_table.columns = 1 if race_mode == 1 else 5
+		if race_mode != 1 and finish_table.has_meta("points_result_key"): finish_table.remove_meta("points_result_key")
+	if finish_photo_rect != null: finish_photo_rect.get_parent().get_parent().visible = finish_photo_rect.texture != null
 	if race_mode == 1:
 		preload("res://points_presentation.gd").results(self)
 		return
