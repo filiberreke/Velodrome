@@ -765,6 +765,10 @@ func _process(delta: float) -> void:
 		tail = minf(tail, distance)
 		if i < times.size() and float(times[i]) >= 0.0:
 			done += 1
+	# Scratch and tempo officials follow the same peloton clock as the HUD, not odometers.
+	if int(game.get("race_mode")) in [0, 8] and racing:
+		lead = float(game._last_lap_progress())
+		tail = lead
 	var length: float = float(int(game.get("race_laps"))) * LAP
 	if not official_new_model:
 		if done > finished_seen:

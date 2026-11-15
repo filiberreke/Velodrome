@@ -742,7 +742,7 @@ func update_race(data: Dictionary) -> void:
 	gear_label.text = "ERG %.0f W" % float(erg_watts) if erg_active else str(data["gear"])
 	gear_label.get_parent().get_child(0).text = "WEERSTAND" if erg_active else "VERSNELLING"
 	var lap_suffix: int = int(data.get("lap_credit", 0))
-	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if bool(data.get("points_race", false)) and lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
+	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]
