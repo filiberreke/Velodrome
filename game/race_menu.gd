@@ -104,6 +104,7 @@ var menu_margin: MarginContainer
 var menu_layout: VBoxContainer
 var menu_tint: ColorRect
 var session_panel: PanelContainer
+var ftp_ramp_hud: Control
 
 static func panel_style(colour: Color, outline: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -580,16 +581,29 @@ func _build_hub(layout: VBoxContainer) -> void:
 	session_panel.add_theme_stylebox_override("panel", MenuStyle.panel(MenuStyle.IVORY, MenuStyle.LINE, 24, 14))
 	add_child(session_panel)
 	session_panel.hide()
+	ftp_ramp_hud = preload("res://ftp_ramp_hud.gd").new()
+	add_child(ftp_ramp_hud)
+	ftp_ramp_hud.hide()
+
+func _process(_delta: float) -> void:
+	if ftp_ramp_hud != null and ftp_ramp_hud.visible and ftp_page != null:
+		ftp_ramp_hud.update_ftp(ftp_page)
 
 func _training_environment(active: bool) -> void:
 	if active:
 		if ftp_page.get_parent() != session_panel: ftp_page.reparent(session_panel)
 		menu_margin.hide()
 		menu_tint.hide()
+		# Keep the session controller processing offscreen, never draw its menu layout
+		# over the velodrome. The race-style HUD owns all visible training widgets.
+		session_panel.position = Vector2(-3000, -3000)
 		session_panel.show()
+		ftp_ramp_hud.visible = not ftp_page.twenty_mode
 	else:
+		ftp_ramp_hud.hide()
 		if ftp_page.get_parent() != menu_layout: ftp_page.reparent(menu_layout)
 		session_panel.hide()
+		session_panel.position = Vector2(30, 30)
 		menu_margin.show()
 		menu_tint.show()
 	training_environment_requested.emit(active)
@@ -597,6 +611,7 @@ func _training_environment(active: bool) -> void:
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
 	# A finished FTP session must never leave its floating session panel over races or menus.
+	if ftp_ramp_hud != null: ftp_ramp_hud.hide()
 	if session_panel != null:
 		session_panel.hide()
 		if ftp_page != null and ftp_page.get_parent() == session_panel:
