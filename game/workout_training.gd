@@ -51,6 +51,11 @@ func begin() -> void:
 		if block.kind != "FreeRide" and maxf(float(block.power_low),float(block.power_high))*test.ftp_w > 1300:
 			result.text = "Deze FTP levert een doel boven 1300 W op. Pas de workout of je FTP aan."; return
 	reset_session(now,trainer)
+	ramp_chart_start = session_now(now)
+	activity_started_unix = int(Time.get_unix_time_from_system())
+	activity_samples.clear()
+	activity_distance = 0.0
+	selected_activity = {}
 	last_session_clock = session_now(now)
 	test.start(last_session_clock)
 	desired_target = -1
@@ -119,4 +124,4 @@ func _refresh() -> void:
 		result.text += "\nCadans · " + cadence_text()
 		var status := signal_state.status(now_s())
 		if not status.is_empty(): result.text += "\n"+status
-	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.")
+	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.") + ("\n" + upload_status if not upload_status.is_empty() else "")
