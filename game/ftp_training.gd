@@ -188,7 +188,7 @@ func _ready() -> void:
 	start_button = _button("Start FTP-test", begin)
 	stop_button = _button("Stop test · ERG vrijgeven", func(): finish("Handmatig gestopt"))
 	upload_button = _button("Opslaan op Strava", func(): upload_requested.emit(selected_activity))
-	back_button = _button("← Training", leave)
+	back_button = _button("← ERG-training", leave)
 	_build_ramp_dashboard()
 	_refresh()
 
