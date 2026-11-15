@@ -53,6 +53,7 @@ func begin() -> void:
 	reset_session(now,trainer)
 	ramp_chart_start = session_now(now)
 	activity_started_unix = int(Time.get_unix_time_from_system())
+	upload_status = ""
 	activity_samples.clear()
 	activity_distance = 0.0
 	selected_activity = {}
