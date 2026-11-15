@@ -1,6 +1,7 @@
 extends "res://race_hud.gd"
 ## FTP test overlay reusing the race metrics and power meter, not the menu sheet.
 var ftp_page: Control
+var live_power_label: Label
 var step_panel: PanelContainer
 var step_rows: VBoxContainer
 var step_scroll: ScrollContainer
@@ -27,6 +28,7 @@ func _ready() -> void:
 	left_stack.offset_top = 150.0
 	left_stack.offset_bottom = 780.0
 	power_panel.show()
+	live_power_label = _metric(power_panel.get_child(0), "VERMOGEN", "— W")
 	# Standard top-left race panel supplies speed, heart rate, cadence, and gearing.
 	# The centre remains the unmodified race power meter with its red target arrow.
 	power_meter.show()
@@ -93,9 +95,10 @@ func _build_stop() -> void:
 	stop_test.offset_right = -32
 	stop_test.offset_top = 366
 	stop_test.offset_bottom = 416
-	stop_test.pressed.connect(func(): 
-		if ftp_page != null: ftp_page.finish("Handmatig gestopt")
-	)
+	stop_test.pressed.connect(_stop_ramp)
+
+func _stop_ramp() -> void:
+	if ftp_page != null: ftp_page.finish("Handmatig gestopt")
 	add_child(stop_test)
 
 func _make_step_row(key: int) -> Dictionary:
@@ -120,6 +123,7 @@ func update_ftp(page: Control) -> void:
 	var clock: float = page.session_now(now)
 	var fresh: bool = page.live(now)
 	speed_label.text = "%.1f" % page.last_speed_kmh if fresh else "—"
+	live_power_label.text = "%.0f W" % page.measured if fresh else "— W"
 	heart_label.text = "%d bpm" % roundi(page.heart_rate_bpm) if fresh and page.heart_rate_bpm > 0 else "— bpm"
 	cadence_label.text = page.cadence_text()
 	gear_label.text = str(page.gear) if fresh and page.gear > 0 else "—"
