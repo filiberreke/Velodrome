@@ -1,6 +1,6 @@
 extends "res://race_hud.gd"
 ## FTP test overlay reusing the race metrics and power meter, not the menu sheet.
-var ftp_page: Control
+var ftp_page
 var live_power_label: Label
 var step_panel: PanelContainer
 var step_rows: VBoxContainer
@@ -28,7 +28,8 @@ func _ready() -> void:
 	left_stack.offset_top = 150.0
 	left_stack.offset_bottom = 780.0
 	power_panel.show()
-	live_power_label = _metric(power_panel.get_child(0), "VERMOGEN", "— W")
+	var metrics_column: VBoxContainer = power_panel.get_child(0) as VBoxContainer
+	live_power_label = _metric(metrics_column, "VERMOGEN", "— W")
 	# Standard top-left race panel supplies speed, heart rate, cadence, and gearing.
 	# The centre remains the unmodified race power meter with its red target arrow.
 	power_meter.show()
@@ -116,7 +117,7 @@ func _make_step_row(key: int) -> Dictionary:
 	line.add_child(hr)
 	return {"row":line,"label":label,"watts":watts,"hr":hr}
 
-func update_ftp(page: Control) -> void:
+func update_ftp(page) -> void:
 	ftp_page = page
 	if not page.test.running(): return
 	var now: float = page.now_s()
