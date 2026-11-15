@@ -79,6 +79,7 @@ func refresh() -> void:
 	for item in menu.training_store.recent(300):
 		if str(item.get("kind","")) in ["ftp_test","erg_workout"]:
 			workouts.append(item)
+	workouts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("started_unix",0)) > int(b.get("started_unix",0)))
 	if workouts.is_empty():
 		var empty := Label.new()
 		empty.text = "Nog geen geregistreerde ERG-trainingen of FTP-tests.\nNa een rit verschijnen hier de gemeten waarden en de trainingsgrafiek."
