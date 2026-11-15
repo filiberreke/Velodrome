@@ -19,6 +19,14 @@ var current_step := -999
 var step_labels: Dictionary = {}
 var twenty_detail: Label
 
+func reset_for_session() -> void:
+	current_step = -999
+	step_labels.clear()
+	if step_rows != null:
+		for child in step_rows.get_children():
+			step_rows.remove_child(child)
+			child.queue_free()
+
 func _ready() -> void:
 	super._ready()
 	for node in [map_panel, nearby_panel, points_panel, team_laps_panel, solo_panel, bottom_bar, developer_panel, signals]:
