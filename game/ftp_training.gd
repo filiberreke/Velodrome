@@ -26,7 +26,7 @@ func _reset_ramp_dashboard() -> void:
 	ramp_last_hr = -1.0
 
 func _record_ramp_sample(at: float, power: float) -> void:
-	if twenty_mode or not test.running(): return
+	if twenty_mode or not test is Ramp or not test.running(): return
 	if ramp_last_measurement_at >= 0.0:
 		var dt := at - ramp_last_measurement_at
 		if dt > 0.0 and dt <= TrainerSignal.HOLD_SECONDS:
@@ -248,8 +248,9 @@ func leave() -> void:
 func _process(_delta: float) -> void:
 	if twenty_mode:
 		if twenty_warmup:
+			if _ftp_pause_expired(now_s()) or not is_visible_in_tree(): finish("FTP-test gestopt: pauze of verlaten")
 			var warm_now: float = session_now(now_s())
-			if warm_now - twenty_warmup_at >= Ramp.WARMUP_SECONDS:
+			if twenty_warmup and warm_now - twenty_warmup_at >= Ramp.WARMUP_SECONDS:
 				twenty_warmup = false
 				test.start(warm_now)
 				# The warmup is excluded from the FTP test average.
@@ -348,6 +349,7 @@ func _notification(what: int) -> void:
 		trainer.close()
 
 func select_test(twenty: bool) -> void:
+	twenty_warmup = false
 	if test.running() or twenty_warmup: finish("Test verlaten")
 	twenty_mode = twenty
 	test = Twenty.new() if twenty else Ramp.new()
