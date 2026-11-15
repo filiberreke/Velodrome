@@ -596,6 +596,7 @@ func _process(_delta: float) -> void:
 
 func _training_environment(active: bool) -> void:
 	if active:
+		ftp_ramp_hud.reset_for_session()
 		if ftp_page.get_parent() != session_panel: ftp_page.reparent(session_panel)
 		menu_margin.hide()
 		menu_tint.hide()
@@ -632,7 +633,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	if derny_page.scene != null and derny_page.scene.active: _piste_environment(false)
 	if exercise_page.scene != null and exercise_page.scene.active: _exercise_environment(false)
 	if workout_play_page.test.running(): workout_play_page.finish("Training verlaten")
-	if ftp_page.test.running(): ftp_page.finish("Test verlaten")
+	if ftp_page.test.running() or ftp_page.twenty_warmup: ftp_page.finish("Test verlaten")
 	_hide_hub_pages()
 	for child in [choice_page, settings_page, records_page, pursuit_flow, startlist_page]: child.hide()
 	page = index
