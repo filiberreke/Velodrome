@@ -754,7 +754,7 @@ func refresh_workout_tiles() -> void:
 	for child in workout_grid.get_children(): workout_grid.remove_child(child); child.queue_free()
 	for child in fixed_workout_grid.get_children(): fixed_workout_grid.remove_child(child); child.queue_free()
 	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()),fixed_workout_grid,"VASTE TEST VAN VELODROME")
-	_workout_tile("20’ FTP-test","20 minuten vrij vermogen · FTP = 95% van je gemiddelde.",show_ftp_twenty,_twenty_ftp_preview(),fixed_workout_grid,"VASTE TEST")
+	_workout_tile("20’ FTP-test","5 minuten opwarming, 20 minuten vrij vermogen · FTP = 95% gemiddeld.",show_ftp_twenty,_twenty_ftp_preview(),fixed_workout_grid,"VASTE TEST")
 	editor_tile = _workout_tile("Workout-editor","Maak een eigen workout of bewerk een bestaande.",show_workout_editor,[],fixed_workout_grid,"EDITOR")
 	_workout_tile("Historiek","Alle gereden ERG-trainingen en FTP-tests.",show_erg_history,[],fixed_workout_grid,"RESULTATEN")
 	saved_workout_tiles.clear()
@@ -811,12 +811,11 @@ func show_ftp() -> void:
 	ftp_page.get_meta("preparation_card").preview.set_workout(preload("res://ftp_ramp.gd").preview_blocks(ftp_page.player_profile.ftp()))
 	_show_section(8, "FTP Ramp Test", ftp_page)
 
-# Illustration only; the actual test still starts directly with twenty free minutes.
+# Five minutes of free warmup followed by a 20-minute voluntary target at 95% of current FTP.
 func _twenty_ftp_preview() -> Array:
 	return [
-		{"kind":"Warmup","duration":300.0,"power_low":0.35,"power_high":0.65},
-		{"kind":"SteadyState","duration":1200.0,"power_low":1.05,"power_high":1.05},
-		{"kind":"Cooldown","duration":300.0,"power_low":0.60,"power_high":0.25}
+		{"kind":"FreeRide","duration":300.0,"power_low":0.0,"power_high":0.0},
+		{"kind":"SteadyState","duration":1200.0,"power_low":0.95,"power_high":0.95}
 	]
 
 func show_ftp_twenty() -> void:
