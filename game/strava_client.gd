@@ -217,12 +217,16 @@ func _send_fit(access_token: String) -> void:
 			_emit("Statuscontrole mislukt (HTTP %d)" % state.get("code", 0))
 			return
 		var data: Dictionary = state["data"]
-		if int(data.get("activity_id", 0)) > 0:
-			var activity_id: String = str(data["activity_id"])
+		# Strava returns activity_id: null while the upload is processing.
+		# Dictionary.get defaults only apply to missing keys, not explicit nulls.
+		var activity_value: Variant = data.get("activity_id")
+		if (activity_value is int or activity_value is float) and activity_value > 0:
+			var activity_id: String = str(int(activity_value))
 			_emit("Strava-activiteit geplaatst! ID: " + activity_id)
 			activity_created.emit(activity_id)
 			return
-		if str(data.get("error", "")) != "":
-			_emit("Strava kon de rit niet verwerken: " + str(data["error"]))
+		var upload_error: Variant = data.get("error")
+		if upload_error != null and not str(upload_error).is_empty():
+			_emit("Strava kon de rit niet verwerken: " + str(upload_error))
 			return
 	_emit("Strava verwerkt nog. Controleer je activiteitenlijst later.")
