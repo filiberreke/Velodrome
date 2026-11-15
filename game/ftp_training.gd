@@ -66,6 +66,7 @@ var selected_activity: Dictionary = {}
 var activity_samples: Array[Dictionary] = []
 var activity_distance := 0.0
 var activity_started_unix := 0
+var activity_started_local := ""
 var result_view_restored := false
 func _record_activity(at: float, power: float) -> void:
 	if not test.running() and not twenty_warmup: return
@@ -79,7 +80,7 @@ func _record_activity(at: float, power: float) -> void:
 	activity_samples.append({"time_s":elapsed,"distance_m":activity_distance,"game_speed_kmh":speed,"power_w":power,"cadence_rpm":cadence_rpm,"heart_rate_bpm":heart_rate_bpm if heart_rate_bpm > 0 else null})
 func _complete_activity() -> void:
 	if not selected_activity.is_empty() or activity_samples.size() < 2: return
-	selected_activity = {"version":1,"started_local":Time.get_datetime_string_from_unix_time(activity_started_unix).replace("T"," "),"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":"FTP 20 minuten" if twenty_mode else "FTP Ramp Test","reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp()}
+	selected_activity = {"version":1,"started_local":activity_started_local,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":"FTP 20 minuten" if twenty_mode else "FTP Ramp Test","reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp(),"ftp_reference_w":player_profile.ftp()}
 	var store := preload("res://training_store.gd").new()
 	upload_status = "Training lokaal opgeslagen." if store.save(selected_activity) else store.error
 
@@ -209,6 +210,7 @@ func begin() -> void:
 	activity_samples.clear()
 	activity_distance = 0.0
 	activity_started_unix = int(Time.get_unix_time_from_system())
+	activity_started_local = Time.get_datetime_string_from_system().replace("T"," ")
 	if twenty_mode:
 		_begin_twenty()
 		return
