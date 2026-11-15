@@ -6,6 +6,8 @@ var step_panel: PanelContainer
 var step_rows: VBoxContainer
 var step_scroll: ScrollContainer
 var step_caption: Label
+var ramp_dial: Control
+const RampProtocol := preload("res://ftp_ramp.gd")
 var phase_caption: Label
 var ftp_panel: PanelContainer
 var ftp_value: Label
@@ -33,13 +35,18 @@ func _ready() -> void:
 	# Standard top-left race panel supplies speed, heart rate, cadence, and gearing.
 	# The centre remains the unmodified race power meter with its red target arrow.
 	power_meter.show()
-	_build_steps()
+	_build_dial()
 	_build_ftp()
+	_build_steps()
 	_build_profile()
 	_build_stop()
 
+func _build_dial() -> void:
+	ramp_dial = preload("res://ftp_ramp_dial.gd").new()
+	left_stack.add_child(ramp_dial)
+
 func _build_steps() -> void:
-	step_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
+	step_panel = panel(self, Control.PRESET_TOP_RIGHT, -378, 367, -32, 685)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	step_panel.add_child(column)
@@ -54,7 +61,7 @@ func _build_steps() -> void:
 	heading.add_child(watt_label)
 	heading.add_child(text("Gem. HR", 16, MUTED))
 	step_scroll = ScrollContainer.new()
-	step_scroll.custom_minimum_size.y = 210
+	step_scroll.custom_minimum_size.y = 215
 	step_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(step_scroll)
 	step_rows = VBoxContainer.new()
@@ -94,13 +101,13 @@ func _build_stop() -> void:
 	stop_test.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	stop_test.offset_left = -310
 	stop_test.offset_right = -32
-	stop_test.offset_top = 366
-	stop_test.offset_bottom = 416
+	stop_test.offset_top = 702
+	stop_test.offset_bottom = 752
 	stop_test.pressed.connect(_stop_ramp)
+	add_child(stop_test)
 
 func _stop_ramp() -> void:
 	if ftp_page != null: ftp_page.finish("Handmatig gestopt")
-	add_child(stop_test)
 
 func _make_step_row(key: int) -> Dictionary:
 	var line := HBoxContainer.new()
@@ -131,8 +138,16 @@ func update_ftp(page) -> void:
 	power_meter.set_power(page.measured if fresh else 0.0, float(page.test.target(clock)), page.test.phase == "RAMP", "")
 	var elapsed: float = maxf(0.0, clock - page.ramp_chart_start)
 	var ramp_at: float = float(page.test.ramp_at)
-	var profile_ramp_at: float = ramp_at-page.ramp_chart_start if ramp_at >= 0.0 else -1.0
+	var profile_ramp_at: float = ramp_at-page.ramp_chart_start if ramp_at >= 0.0 else RampProtocol.WARMUP_SECONDS
 	profile_graph.update_profile(page.ramp_samples, elapsed, profile_ramp_at, true)
+	var current_w: int = int(page.test.target(clock)) if page.test.phase == "RAMP" else 0
+	var next_w: int = RampProtocol.START_W if page.test.phase != "RAMP" else mini(RampProtocol.MAX_W, current_w + RampProtocol.STEP_W)
+	var remaining_s: float = 0.0
+	if page.test.phase == "WARMUP":
+		remaining_s = maxf(0.0, RampProtocol.WARMUP_SECONDS - (clock - page.test.started_at))
+	elif page.test.phase == "RAMP":
+		remaining_s = maxf(0.0, RampProtocol.STEP_SECONDS - fposmod(clock - ramp_at, RampProtocol.STEP_SECONDS))
+	ramp_dial.update_step(current_w, next_w, remaining_s, page.test.phase)
 	ftp_value.text = "%.0f W" % page.test.ftp() if page.test.best_60 > 0 else "— W"
 	best_value.text = "Beste 60 s: %.1f W" % page.test.best_60 if page.test.best_60 > 0 else "Beste 60 s: —"
 	var step_key: int = -1 if page.test.phase == "WARMUP" else int(maxf(0.0,clock-ramp_at)/60.0) if ramp_at >= 0.0 else -2
