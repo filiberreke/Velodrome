@@ -1093,6 +1093,9 @@ func bridge_action(button: String) -> void:
 		elif page == 14: workout_play_page.leave()
 		elif page == 15: exercise_page.leave()
 		elif page == 16: madison_page.leave()
+		elif page == 17:
+			if erg_history_page.detail.visible: erg_history_page.detail_back.pressed.emit()
+			else: show_training()
 		return
 	var actions := {"LEFT": "ui_left", "RIGHT": "ui_right", "UP": "ui_up", "DOWN": "ui_down", "A": "ui_accept"}
 	if not actions.has(button): return
