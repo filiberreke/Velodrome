@@ -30,19 +30,28 @@ func _draw() -> void:
 		var yy := area.end.y - watts / max_w * area.size.y
 		draw_line(Vector2(area.position.x, yy), Vector2(area.end.x, yy), HudTheme.LINE, 1.0)
 		draw_string(font, Vector2(2, yy+5), "%d" % roundi(watts), HORIZONTAL_ALIGNMENT_LEFT, 40, 13, HudTheme.MUTED)
-	var step := 30.0
-	var t := from_s
-	var previous := Vector2.ZERO
-	var has_previous := false
-	while t <= to_s + 0.01:
-		var target := 0.0
-		if ramp_started >= 0.0 and t >= ramp_started:
-			target = minf(1300.0, 100.0 + 20.0 * floorf((t-ramp_started)/60.0))
-		var point := Vector2(area.position.x + (t-from_s)/(to_s-from_s)*area.size.x, area.end.y - target/max_w*area.size.y)
-		if has_previous: draw_line(previous, point, Color("a0a7b0", 0.75), 5.0, true)
-		previous = point
-		has_previous = true
-		t += step
+	# Draw actual square training steps instead of interpolating diagonally.
+	# Completed target intervals use the race wattage colours; future steps are grey.
+	var step_start: float = from_s
+	while step_start < to_s:
+		var step_end: float = minf(to_s, step_start + 30.0)
+		if ramp_started >= 0.0 and step_start < ramp_started:
+			step_end = minf(step_end, ramp_started)
+		elif ramp_started >= 0.0:
+			var boundary: float = ramp_started + (floorf((step_start-ramp_started)/60.0)+1.0)*60.0
+			step_end = minf(step_end, boundary)
+		var planned: float = 0.0
+		if ramp_started >= 0.0 and step_start >= ramp_started:
+			planned = minf(1300.0,100.0+20.0*floorf((step_start-ramp_started)/60.0))
+		var y: float = area.end.y-planned/max_w*area.size.y
+		var x0: float = area.position.x+(step_start-from_s)/(to_s-from_s)*area.size.x
+		var x1: float = area.position.x+(step_end-from_s)/(to_s-from_s)*area.size.x
+		if planned > 0.0:
+			var colour: Color = Meter.zone_color(planned) if step_end <= elapsed else Color("9ba4af")
+			draw_line(Vector2(x0,y),Vector2(x1,y),colour,5.0,true)
+		elif step_start < elapsed:
+			draw_line(Vector2(x0,area.end.y),Vector2(x1,area.end.y),Color("9ba4af"),2.0,true)
+		step_start = step_end + 0.00001
 	var last := Vector2.ZERO
 	var valid := false
 	for s in samples:
