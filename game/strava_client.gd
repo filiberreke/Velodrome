@@ -7,6 +7,7 @@ const TOKEN_URL := "https://www.strava.com/oauth/token"
 const UPLOAD_URL := "https://www.strava.com/api/v3/uploads"
 const CONFIG_PATH := "res://config/strava_config.cfg"
 const TOKEN_STORE := "user://config/strava_tokens.cfg"
+const HTTP_TIMEOUT_SECONDS := 15.0
 var upload_path := ""
 var upload_name := "Velodrome"
 var upload_description := ""
