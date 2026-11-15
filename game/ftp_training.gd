@@ -1,4 +1,5 @@
 extends VBoxContainer
+signal upload_requested(activity: Dictionary)
 signal back_requested
 signal environment_requested(active: bool)
 const Skin := preload("res://menu_theme.gd")
@@ -133,7 +134,29 @@ const Trainer := preload("res://trainer_control.gd")
 var test: Variant = Ramp.new()
 var trainer := Trainer.new()
 var player_profile = preload("res://player_profile.gd").new()
+var upload_button: Button
+var upload_status := ""
+var selected_activity: Dictionary = {}
+var activity_samples: Array[Dictionary] = []
+var activity_distance := 0.0
+var activity_started_unix := 0
 var result_view_restored := false
+func _record_activity(at: float, power: float) -> void:
+	if not test.running(): return
+	var elapsed := maxf(0.0,at-ramp_chart_start)
+	var speed := maxf(0.0,last_speed_kmh)
+	if not activity_samples.is_empty():
+		var dt: float = elapsed-float(activity_samples[-1].time_s)
+		if dt > 0.0 and dt <= TrainerSignal.HOLD_SECONDS:
+			activity_distance += dt*speed/3.6
+	if not activity_samples.is_empty() and elapsed-float(activity_samples[-1].time_s) < 1.0: return
+	activity_samples.append({"time_s":elapsed,"distance_m":activity_distance,"game_speed_kmh":speed,"power_w":power,"cadence_rpm":cadence_rpm,"heart_rate_bpm":heart_rate_bpm if heart_rate_bpm > 0 else null})
+func _complete_activity() -> void:
+	if not selected_activity.is_empty() or activity_samples.size() < 2: return
+	selected_activity = {"version":1,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":"FTP 20 minuten" if twenty_mode else "FTP Ramp Test","reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp()}
+	var store := preload("res://training_store.gd").new()
+	upload_status = "Training lokaal opgeslagen." if store.save(selected_activity) else store.error
+
 var ftp_persisted := false
 var ftp_save_message := ""
 var last_sample := -100.0
@@ -164,6 +187,7 @@ func _ready() -> void:
 	warmup_hint = _label("Richtvermogen: ongeveer 80–120 W, of lager als dat prettiger is.\nDit is een vrijblijvende indicatie: kies een rustig, comfortabel vermogen.", 22)
 	start_button = _button("Start FTP-test", begin)
 	stop_button = _button("Stop test · ERG vrijgeven", func(): finish("Handmatig gestopt"))
+	upload_button = _button("Opslaan op Strava", func(): upload_requested.emit(selected_activity))
 	back_button = _button("← Training", leave)
 	_build_ramp_dashboard()
 	_refresh()
@@ -244,11 +268,16 @@ func receive(packet: Dictionary, now: float) -> void:
 	var rpm: Variant = packet.get("cadence_rpm")
 	cadence_rpm = float(rpm) if (rpm is int or rpm is float) and is_finite(float(rpm)) and float(rpm) >= 0.0 else -1.0
 	_record_ramp_sample(session_now(maxf(last_sample,signal_state.resumed_at)), measured)
+	_record_activity(session_now(maxf(last_sample,signal_state.resumed_at)), measured)
 	test.sample(session_now(maxf(last_sample,signal_state.resumed_at)), measured, cadence_rpm)
 	if test.phase == "RESULT": _release(now)
 
 func begin() -> void:
 	result_view_restored = false
+	selected_activity = {}
+	activity_samples.clear()
+	activity_distance = 0.0
+	activity_started_unix = int(Time.get_unix_time_from_system())
 	if twenty_mode:
 		_begin_twenty()
 		return
@@ -317,6 +346,7 @@ func _process(_delta: float) -> void:
 
 func _restore_result_navigation() -> void:
 	if test.phase != "RESULT" or result_view_restored: return
+	_complete_activity()
 	result_view_restored = true
 	# Return from the in-race session container to the normal training menu.
 	# This exposes the Back button and the result without requiring another ride.
@@ -331,6 +361,9 @@ func cadence_text() -> String:
 
 func _refresh() -> void:
 	_restore_result_navigation()
+	if upload_button != null:
+		upload_button.visible = test.phase == "RESULT" and not selected_activity.is_empty()
+		upload_button.disabled = activity_samples.size() < 2
 	_refresh_ramp_dashboard()
 	if twenty_mode:
 		_refresh_twenty()
@@ -361,7 +394,7 @@ func _refresh() -> void:
 			ftp_save_message = "FTP opgeslagen in je spelersprofiel." if player_profile.set_ftp(test.ftp(),"ramp_test") == OK else "FTP kon niet worden opgeslagen."
 		result.text = "%s\n" % test.reason
 		result.text += "Geschatte FTP: %.0f W · beste 60 s: %.1f W" % [test.ftp(), test.best_60] if test.best_60 > 0.0 else "Geen FTP: minder dan 60 seconden aaneengesloten rampmetingen."
-		result.text += "\n" + ftp_save_message
+		result.text += "\n" + ftp_save_message + "\n" + upload_status
 		result.text += "\nERG vrijgegeven." if release_complete() else "\nERG-vrijgave nog niet bevestigd. Bridge bewaakt ook de lease."
 	else:
 		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed." if live(now_s()) else "Wacht op verse trainergegevens."
@@ -396,6 +429,11 @@ func _twenty_fresh(now: float) -> bool:
 
 func _begin_twenty() -> void:
 	result_view_restored = false
+	selected_activity = {}
+	activity_samples.clear()
+	activity_distance = 0.0
+	activity_started_unix = int(Time.get_unix_time_from_system())
+	ramp_chart_start = session_now(now_s())
 	var now := now_s()
 	if test.running() or not _twenty_fresh(now) or not release_complete(): return
 	ftp_persisted = false
@@ -410,6 +448,9 @@ func _begin_twenty() -> void:
 
 func _refresh_twenty() -> void:
 	_restore_result_navigation()
+	if upload_button != null:
+		upload_button.visible = test.phase == "RESULT" and not selected_activity.is_empty()
+		upload_button.disabled = activity_samples.size() < 2
 	if start_button == null: return
 	start_button.visible = not test.running()
 	start_button.disabled = not _twenty_fresh(now_s()) or not release_complete()
@@ -430,7 +471,7 @@ func _refresh_twenty() -> void:
 			if not ftp_persisted:
 				ftp_persisted = true
 				ftp_save_message = "FTP opgeslagen in je spelersprofiel." if player_profile.set_ftp(test.ftp(),"twenty_minute_test") == OK else "FTP kon niet worden opgeslagen."
-			result.text += "\nGemiddeld %.1f W · geschatte FTP %.0f W\n%s" % [test.average_power(),test.ftp(),ftp_save_message]
+			result.text += "\nGemiddeld %.1f W · geschatte FTP %.0f W\n%s" % [test.average_power(),test.ftp(),ftp_save_message + "\n" + upload_status]
 		else: result.text += "\nGeen volledige test; je bestaande FTP blijft behouden."
 	else:
 		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed. Warm eerst op; Start begint direct aan de 20 minuten." if _twenty_fresh(now_s()) else "Wacht op verse trainergegevens."
