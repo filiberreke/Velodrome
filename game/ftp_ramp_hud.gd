@@ -17,6 +17,7 @@ var profile_graph: Control
 var stop_test: Button
 var current_step := -999
 var step_labels: Dictionary = {}
+var twenty_detail: Label
 
 func _ready() -> void:
 	super._ready()
@@ -79,7 +80,8 @@ func _build_ftp() -> void:
 	column.add_child(ftp_value)
 	best_value = text("Beste 60 s: —", 19, MUTED)
 	column.add_child(best_value)
-	column.add_child(text("75% van beste 60 seconden", 15, MUTED))
+	twenty_detail = text("75% van beste 60 seconden", 15, MUTED)
+	column.add_child(twenty_detail)
 	phase_caption = text("", 19, ACCENT)
 	phase_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(phase_caption)
@@ -96,7 +98,7 @@ func _build_profile() -> void:
 
 func _build_stop() -> void:
 	stop_test = Button.new()
-	stop_test.text = "Stop test · ERG vrijgeven"
+	stop_test.text = "Stop test"
 	stop_test.custom_minimum_size = Vector2(260, 48)
 	stop_test.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	stop_test.offset_left = -310
@@ -126,7 +128,8 @@ func _make_step_row(key: int) -> Dictionary:
 
 func update_ftp(page) -> void:
 	ftp_page = page
-	if not page.test.running(): return
+	if not page.test.running() and not page.twenty_warmup: return
+	var twenty: bool = page.twenty_mode
 	var now: float = page.now_s()
 	var clock: float = page.session_now(now)
 	var fresh: bool = page.live(now)
@@ -135,11 +138,12 @@ func update_ftp(page) -> void:
 	heart_label.text = "%d bpm" % roundi(page.heart_rate_bpm) if fresh and page.heart_rate_bpm > 0 else "— bpm"
 	cadence_label.text = page.cadence_text()
 	gear_label.text = str(page.gear) if fresh and page.gear > 0 else "—"
-	power_meter.set_power(page.measured if fresh else 0.0, float(page.test.target(clock)), page.test.phase == "RAMP", "")
+	power_meter.set_power(page.measured if fresh else 0.0, float(page.test.target(clock)) if not twenty else 0.0, not twenty and page.test.phase == "RAMP", "")
 	var elapsed: float = maxf(0.0, clock - page.ramp_chart_start)
-	var ramp_at: float = float(page.test.ramp_at)
+	var ramp_at: float = float(page.test.ramp_at) if not twenty else -1.0
 	var profile_ramp_at: float = ramp_at-page.ramp_chart_start if ramp_at >= 0.0 else RampProtocol.WARMUP_SECONDS
-	profile_graph.update_profile(page.ramp_samples, elapsed, profile_ramp_at, true)
+	if twenty: profile_graph.update_twenty(page.ramp_samples,elapsed,page.twenty_reference_w, RampProtocol.WARMUP_SECONDS)
+	else: profile_graph.update_profile(page.ramp_samples, elapsed, profile_ramp_at, true)
 	var current_w: int = int(page.test.target(clock)) if page.test.phase == "RAMP" else 0
 	var next_w: int = RampProtocol.START_W if page.test.phase != "RAMP" else mini(RampProtocol.MAX_W, current_w + RampProtocol.STEP_W)
 	var remaining_s: float = 0.0
@@ -148,11 +152,25 @@ func update_ftp(page) -> void:
 	elif page.test.phase == "RAMP":
 		remaining_s = maxf(0.0, RampProtocol.STEP_SECONDS - fposmod(clock - ramp_at, RampProtocol.STEP_SECONDS))
 	ramp_dial.update_step(current_w, next_w, remaining_s, page.test.phase)
+	if twenty:
+		var left_s: float = maxf(0.0,RampProtocol.WARMUP_SECONDS - (clock-page.twenty_warmup_at)) if page.twenty_warmup else maxf(0.0,1200.0-(clock-page.test.start_at))
+		ramp_dial.update_step(0,roundi(page.twenty_reference_w),left_s,"WARMUP" if page.twenty_warmup else "TWENTY")
+	if twenty:
+		step_panel.hide()
+		twenty_detail.text = "95% van gemiddeld vermogen"
+		var avg: float = page.test.energy / page.test.covered if page.test.covered > 0.0 else 0.0
+		ftp_value.text = "%.0f W" % (avg*0.95) if page.test.covered > 0.0 else "— W"
+		best_value.text = "Gemiddeld %.0f W" % avg if page.test.covered > 0.0 else "Opwarming · geen FTP-meting"
+		var remaining_t: int = ceili(maxf(0.0,RampProtocol.WARMUP_SECONDS-(clock-page.twenty_warmup_at))) if page.twenty_warmup else ceili(maxf(0.0,1200.0-(clock-page.test.start_at)))
+		phase_caption.text = "%s · nog %02d:%02d" % ["Opwarming" if page.twenty_warmup else "Vrije 20'-test",remaining_t/60,remaining_t%60]
+		return
+	step_panel.show()
+	twenty_detail.text = "75% van beste 60 seconden"
 	ftp_value.text = "%.0f W" % page.test.ftp() if page.test.best_60 > 0 else "— W"
 	best_value.text = "Beste 60 s: %.1f W" % page.test.best_60 if page.test.best_60 > 0 else "Beste 60 s: —"
 	var step_key: int = -1 if page.test.phase == "WARMUP" else int(maxf(0.0,clock-ramp_at)/60.0) if ramp_at >= 0.0 else -2
 	if page.test.phase == "WARMUP":
-		var seconds: int = ceili(maxf(0.0, 300.0-(clock-page.test.started_at)))
+		var seconds: int = ceili(maxf(0.0,300.0-(clock-page.test.started_at)))
 		phase_caption.text = "Vrije opwarming · nog %d:%02d" % [seconds/60,seconds%60]
 	elif page.test.phase == "CONNECTING":
 		phase_caption.text = "Wachten op ERG-bevestiging"
