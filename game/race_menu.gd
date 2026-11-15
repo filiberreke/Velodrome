@@ -83,6 +83,7 @@ var derny_page: VBoxContainer
 var exercise_page: VBoxContainer
 var madison_page: VBoxContainer
 var training_history_page: VBoxContainer
+var erg_history_page: VBoxContainer
 var training_store = preload("res://training_store.gd").new()
 var tournament_page: VBoxContainer
 var tournament_back: Button
@@ -385,7 +386,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	workout_margin.add_child(workout_sections)
 	fixed_workout_grid = GridContainer.new()
 	fixed_workout_grid.name = "VasteTestsEnEditor"
-	fixed_workout_grid.columns = 3
+	fixed_workout_grid.columns = 4
 	fixed_workout_grid.add_theme_constant_override("h_separation", 16)
 	workout_sections.add_child(fixed_workout_grid)
 	var custom_header := HBoxContainer.new()
@@ -510,6 +511,10 @@ func _build_hub(layout: VBoxContainer) -> void:
 	madison_page.back_requested.connect(show_piste_training)
 	madison_page.environment_requested.connect(_madison_environment)
 	madison_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
+	erg_history_page = preload("res://erg_history.gd").new()
+	erg_history_page.menu = self
+	layout.add_child(erg_history_page)
+	place_back(erg_history_page.back_button, erg_history_page)
 	training_history_page = preload("res://training_history.gd").new()
 	training_history_page.menu = self
 	layout.add_child(training_history_page)
@@ -596,9 +601,9 @@ func _training_environment(active: bool) -> void:
 		menu_tint.hide()
 		# Keep the session controller processing offscreen, never draw its menu layout
 		# over the velodrome. The race-style HUD owns all visible training widgets.
-		session_panel.position = Vector2(30, 30) if ftp_page.twenty_mode else Vector2(-3000, -3000)
+		session_panel.position = Vector2(-3000, -3000)
 		session_panel.show()
-		ftp_ramp_hud.visible = not ftp_page.twenty_mode
+		ftp_ramp_hud.show()
 	else:
 		ftp_ramp_hud.hide()
 		if ftp_page.get_parent() != menu_layout: ftp_page.reparent(menu_layout)
@@ -620,7 +625,7 @@ func _hide_hub_pages() -> void:
 			workout_play_page.reparent(menu_layout)
 	menu_margin.show()
 	menu_tint.show()
-	for node in [hub_page, training_page, piste_page, derny_page, exercise_page, madison_page, training_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
+	for node in [hub_page, training_page, piste_page, derny_page, exercise_page, madison_page, training_history_page, erg_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
 	if madison_page.scene != null and madison_page.scene.active: _madison_environment(false)
@@ -646,6 +651,7 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	if node == exercise_page: focus = exercise_page.tempo_input.get_line_edit() if exercise_page.kind == "take_lap" else exercise_page.start_button
 	if node == madison_page: focus = madison_page.difficulty if madison_page.selected_activity.is_empty() else madison_page.start_button
 	if node == training_history_page: focus = training_history_page.back_button
+	if node == erg_history_page: focus = erg_history_page.back_button
 	if node == workout_editor_page: focus = workout_editor_page.name_edit
 	if node == workout_play_page: focus = workout_play_page.start_button
 	if node == ftp_page: focus = ftp_page.start_button if not ftp_page.start_button.disabled else ftp_page.back_button
@@ -686,6 +692,10 @@ func _exercise_environment(active: bool) -> void:
 	session_panel.hide()
 	menu_margin.visible = not active
 	menu_tint.visible = not active
+
+func show_erg_history() -> void:
+	erg_history_page.refresh()
+	_show_section(17,"Historiek · ERG-training",erg_history_page)
 
 func show_training_history() -> void:
 	training_history_page.refresh()
@@ -745,6 +755,7 @@ func refresh_workout_tiles() -> void:
 	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()),fixed_workout_grid,"VASTE TEST VAN VELODROME")
 	_workout_tile("20’ FTP-test","20 minuten vrij vermogen · FTP = 95% van je gemiddelde.",show_ftp_twenty,_twenty_ftp_preview(),fixed_workout_grid,"VASTE TEST")
 	editor_tile = _workout_tile("Workout-editor","Maak een eigen workout of bewerk een bestaande.",show_workout_editor,[],fixed_workout_grid,"EDITOR")
+	_workout_tile("Historiek","Alle gereden ERG-trainingen en FTP-tests.",show_erg_history,[],fixed_workout_grid,"RESULTATEN")
 	saved_workout_tiles.clear()
 	for item in workout_library.all_workouts():
 		var seconds: float = workout_library.total_seconds(item.blocks)
