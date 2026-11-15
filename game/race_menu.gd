@@ -1061,7 +1061,7 @@ func _pursuit_changed() -> void:
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if keyboard_mapping == null or not keyboard_mapping.enabled: return
-	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and keyboard_mapping.action_for("menu", event) == "back" and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14]:
+	if visible and event is InputEventKey and event.is_pressed() and not event.is_echo() and keyboard_mapping.action_for("menu", event) == "back" and page in [0, 1, 6, 7, 8, 10, 11, 12, 13, 14, 17]:
 		bridge_action("B")
 		get_viewport().set_input_as_handled()
 		return
