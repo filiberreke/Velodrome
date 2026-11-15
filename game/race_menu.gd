@@ -596,6 +596,15 @@ func _training_environment(active: bool) -> void:
 
 func _hide_hub_pages() -> void:
 	if hub_page == null: return
+	# A finished FTP session must never leave its floating session panel over races or menus.
+	if session_panel != null:
+		session_panel.hide()
+		if ftp_page != null and ftp_page.get_parent() == session_panel:
+			ftp_page.reparent(menu_layout)
+		if workout_play_page != null and workout_play_page.get_parent() == session_panel:
+			workout_play_page.reparent(menu_layout)
+	menu_margin.show()
+	menu_tint.show()
 	for node in [hub_page, training_page, piste_page, derny_page, exercise_page, madison_page, training_history_page, tournament_page, ftp_page, workout_editor_page, workout_play_page]: node.hide()
 
 func _show_section(index: int, caption: String, node: Control) -> void:
