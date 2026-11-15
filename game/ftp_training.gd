@@ -15,55 +15,6 @@ var ramp_last_power := 0.0
 var ramp_last_hr := -1.0
 var heart_rate_bpm := -1.0
 
-func _dashboard_panel(parent: Control, left: float, right: float, top: float, bottom: float) -> PanelContainer:
-	var panel := PanelContainer.new()
-	parent.add_child(panel)
-	panel.anchor_left = 0.0 if left >= 0 else 1.0
-	panel.anchor_right = 0.0 if right >= 0 else 1.0
-	panel.anchor_top = 0.0
-	panel.anchor_bottom = 0.0
-	panel.offset_left = left
-	panel.offset_right = right
-	panel.offset_top = top
-	panel.offset_bottom = bottom
-	panel.add_theme_stylebox_override("panel", HudTheme.panel(HudTheme.PAPER, HudTheme.LINE, 14))
-	return panel
-
-func _dashboard_label(parent: Node, size: int) -> Label:
-	var label := Label.new()
-	label.add_theme_color_override("font_color", HudTheme.INK)
-	label.add_theme_font_size_override("font_size", size)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	parent.add_child(label)
-	return label
-
-func _build_ramp_dashboard() -> void:
-	ramp_dashboard = Control.new()
-	ramp_dashboard.custom_minimum_size = Vector2(1200, 650)
-	ramp_dashboard.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ramp_dashboard.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(ramp_dashboard)
-	var left := _dashboard_panel(ramp_dashboard, 24, 320, 90, 470)
-	var left_scroll := ScrollContainer.new()
-	left.add_child(left_scroll)
-	left_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ramp_left = _dashboard_label(left_scroll, 17)
-	var middle := _dashboard_panel(ramp_dashboard, 340, -340, 90, 210)
-	ramp_live = _dashboard_label(middle, 22)
-	var right := _dashboard_panel(ramp_dashboard, -320, -24, 90, 260)
-	ramp_ftp = _dashboard_label(right, 23)
-	var bottom := PanelContainer.new()
-	ramp_dashboard.add_child(bottom)
-	bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_left = 24
-	bottom.offset_right = -24
-	bottom.offset_top = -215
-	bottom.offset_bottom = -20
-	bottom.add_theme_stylebox_override("panel", HudTheme.panel(HudTheme.PAPER, HudTheme.LINE, 10))
-	ramp_graph = preload("res://ftp_ramp_profile_graph.gd").new()
-	bottom.add_child(ramp_graph)
-	ramp_dashboard.hide()
-
 func _reset_ramp_dashboard() -> void:
 	ramp_samples.clear()
 	ramp_step_stats.clear()
@@ -73,9 +24,6 @@ func _reset_ramp_dashboard() -> void:
 
 func _record_ramp_sample(at: float, power: float) -> void:
 	if twenty_mode or not test.running(): return
-	var elapsed: float = maxf(0.0, at - test.started_at)
-	# The ramp's started_at is reset on transition; keep an absolute display clock
-	# anchored to the signal clock independently of the protocol.
 	if ramp_last_measurement_at >= 0.0:
 		var dt := at - ramp_last_measurement_at
 		if dt > 0.0 and dt <= TrainerSignal.HOLD_SECONDS:
@@ -97,31 +45,6 @@ func _record_ramp_sample(at: float, power: float) -> void:
 	if ramp_samples.size() > 12000: ramp_samples.pop_front()
 
 var ramp_chart_start := 0.0
-func _refresh_ramp_dashboard() -> void:
-	if ramp_dashboard == null: return
-	var visible_now: bool = not twenty_mode and test.running()
-	ramp_dashboard.visible = visible_now
-	result.visible = not visible_now
-	if not visible_now: return
-	var clock := session_now(now_s())
-	var elapsed := maxf(0.0,clock-ramp_chart_start)
-	var ramp_start: float = float(test.ramp_at) - ramp_chart_start if float(test.ramp_at) >= 0.0 else -1.0
-	var target: int = int(test.target(clock))
-	var hr_text := "%d bpm" % roundi(heart_rate_bpm) if heart_rate_bpm > 0.0 and live(now_s()) else "— bpm"
-	var rpm_text := cadence_text()
-	ramp_live.text = "SNELHEID  %.1f km/u       VERMOGEN  %.0f W\nCADANS  %s       HARTSLAG  %s\n%s" % [last_speed_kmh,measured,rpm_text,hr_text,"Opwarming · vrij rijden" if test.phase == "WARMUP" else "Doel %d W" % target]
-	ramp_ftp.text = "VOORLOPIGE FTP\n%s\nBeste 60 s: %.1f W\n75%% van beste 60 s" % ["%.0f W" % test.ftp() if test.best_60 > 0.0 else "— W",test.best_60]
-	var rows := "AFGELEGDE STAPPEN\nDoel       Gem. W    Gem. HR\n"
-	var current_key: int = -1 if test.phase == "WARMUP" else int(maxf(0.0,clock-test.ramp_at)/60.0) if test.ramp_at >= 0.0 else -2
-	for key in range(current_key,-2,-1):
-		if key == -2: continue
-		var stat: Dictionary = ramp_step_stats.get(key,{})
-		var power_text := "%.0f" % (float(stat.get("energy",0.0))/float(stat.get("seconds",1.0))) if float(stat.get("seconds",0.0)) > 0 else "—"
-		var heart_text := "%.0f" % (float(stat.get("hr_total",0.0))/float(stat.get("hr_seconds",1.0))) if float(stat.get("hr_seconds",0.0)) > 0 else "—"
-		rows += "%s%s     %s W    %s bpm\n" % ["> " if key == current_key else "  ","Opwarming" if key == -1 else "%d W" % (100+20*key),power_text,heart_text]
-	ramp_left.text = rows
-	ramp_graph.update_profile(ramp_samples,elapsed,ramp_start,true)
-
 const TrainerSignal := preload("res://trainer_signal.gd")
 const FTP_MAX_PAUSE_SECONDS := 60.0
 var signal_state := TrainerSignal.new()
@@ -189,7 +112,6 @@ func _ready() -> void:
 	stop_button = _button("Stop test · ERG vrijgeven", func(): finish("Handmatig gestopt"))
 	upload_button = _button("Opslaan op Strava", func(): upload_requested.emit(selected_activity))
 	back_button = _button("← ERG-training", leave)
-	_build_ramp_dashboard()
 	_refresh()
 
 func _label(text: String, size: int) -> Label:
@@ -363,7 +285,6 @@ func _refresh() -> void:
 	if upload_button != null:
 		upload_button.visible = test.phase == "RESULT" and not selected_activity.is_empty()
 		upload_button.disabled = activity_samples.size() < 2
-	_refresh_ramp_dashboard()
 	if twenty_mode:
 		_refresh_twenty()
 		return
