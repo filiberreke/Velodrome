@@ -4099,7 +4099,7 @@ func available_startlist_riders() -> Array[Dictionary]:
 	return result
 
 func _upload_training(activity: Dictionary) -> void:
-	var page = setup_panel.derny_page if activity.get("kind","derny") == "derny" else setup_panel.exercise_page
+	var page = setup_panel.ftp_page if activity.get("kind","") == "ftp_test" else setup_panel.derny_page if activity.get("kind","derny") == "derny" else setup_panel.exercise_page
 	if strava_client.working:
 		page.upload_status = "Er is al een Strava-upload bezig."
 		return
@@ -4115,11 +4115,13 @@ func _upload_training(activity: Dictionary) -> void:
 	file.close()
 	strava_desired_title = "Velodrome - " + str(activity.get("title","Dernytraining")) + (" (PC-proefrit)" if activity.get("demo",false) else "")
 	strava_desired_description = "Dernytraining · gemiddelde startsnelheid %d km/u · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
-	if activity.get("kind","derny") != "derny":
+	if activity.get("kind","derny") != "derny" and activity.get("kind","") != "ftp_test":
 		strava_desired_description = "%s · %s. Begonnen met virtuele rolsnelheid %.0f km/u. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("title","Pistetraining"),activity.get("reason",""),activity.get("initial_speed_kmh",30)]
 		if activity.get("kind") == "flying_start": strava_desired_description += " Passage %.2f km/u · piek %.0f W." % [activity.get("entry_speed_kmh",0),activity.get("peak_power_w",0)]
 		elif activity.get("kind") == "free_ride": strava_desired_description += " Vrij rijden · %.2f km · %d voltooide rondes." % [float(activity.get("distance_m",0))/1000,activity.get("laps",[]).size()]
 		else: strava_desired_description += " Peloton %.0f km/u · %.1f m gewonnen." % [activity.get("peloton_kmh",30),activity.get("gained_m",0)]
+	if activity.get("kind","") == "ftp_test":
+		strava_desired_description = "FTP-test · %s · geschatte FTP %.0f W. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("reason",""),float(activity.get("ftp_w",0.0))]
 	if activity.get("demo",false): strava_desired_description = "GESIMULEERDE PC-PROEFRIT. " + strava_desired_description
 	strava_save_screenshot = false
 	strava_screenshot_path = ""
