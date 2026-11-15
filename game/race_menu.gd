@@ -596,7 +596,7 @@ func _training_environment(active: bool) -> void:
 		menu_tint.hide()
 		# Keep the session controller processing offscreen, never draw its menu layout
 		# over the velodrome. The race-style HUD owns all visible training widgets.
-		session_panel.position = Vector2(-3000, -3000)
+		session_panel.position = Vector2(30, 30) if ftp_page.twenty_mode else Vector2(-3000, -3000)
 		session_panel.show()
 		ftp_ramp_hud.visible = not ftp_page.twenty_mode
 	else:
