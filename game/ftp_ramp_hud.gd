@@ -162,7 +162,7 @@ func update_ftp(page) -> void:
 	ramp_dial.update_step(current_w, next_w, remaining_s, page.test.phase)
 	if twenty:
 		var left_s: float = maxf(0.0,RampProtocol.WARMUP_SECONDS - (clock-page.twenty_warmup_at)) if page.twenty_warmup else maxf(0.0,1200.0-(clock-page.test.start_at))
-		ramp_dial.update_step(0,roundi(page.twenty_reference_w),left_s,"WARMUP" if page.twenty_warmup else "TWENTY")
+		ramp_dial.update_step(0,roundi(page.twenty_reference_w),left_s,"WARMUP20" if page.twenty_warmup else "TWENTY")
 	if twenty:
 		step_panel.hide()
 		twenty_detail.text = "95% van gemiddeld vermogen"
