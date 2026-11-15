@@ -38,7 +38,8 @@ func _dashboard_label(parent: Node, size: int) -> Label:
 
 func _build_ramp_dashboard() -> void:
 	ramp_dashboard = Control.new()
-	ramp_dashboard.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ramp_dashboard.custom_minimum_size = Vector2(1200, 650)
+	ramp_dashboard.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ramp_dashboard.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ramp_dashboard)
 	var left := _dashboard_panel(ramp_dashboard, 24, 320, 90, 470)
@@ -99,6 +100,7 @@ func _refresh_ramp_dashboard() -> void:
 	if ramp_dashboard == null: return
 	var visible_now: bool = not twenty_mode and test.running()
 	ramp_dashboard.visible = visible_now
+	result.visible = not visible_now
 	if not visible_now: return
 	var clock := session_now(now_s())
 	var elapsed := maxf(0.0,clock-ramp_chart_start)
@@ -325,7 +327,7 @@ func _refresh() -> void:
 	stop_button.visible = test.running()
 	back_button.disabled = test.running()
 	detail.visible = not test.running() and test.phase != "RESULT"
-	warmup_hint.visible = test.phase in ["IDLE", "WARMUP"]
+	warmup_hint.visible = test.phase == "IDLE"
 	if test.running():
 		var elapsed := maxf(0.0, session_now(now_s()) - test.started_at)
 		var target_text := "Vrij vermogen" if test.phase == "WARMUP" else "Doel %d W" % test.target(session_now(now_s()))
