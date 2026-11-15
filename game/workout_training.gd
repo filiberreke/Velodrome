@@ -103,6 +103,26 @@ func _process(dt: float) -> void:
 	_refresh()
 func finish(message: String) -> void:
 	test.stop(message)
+	if selected_activity.is_empty() and activity_samples.size() >= 2:
+		var energy := 0.0
+		var covered := 0.0
+		for i in range(1,activity_samples.size()):
+			var dt: float = float(activity_samples[i].time_s) - float(activity_samples[i-1].time_s)
+			if dt <= 0.0 or dt > 10.0: continue
+			energy += dt * float(activity_samples[i-1].power_w)
+			covered += dt
+		var average: float = energy / covered if covered > 0.0 else 0.0
+		var activity := {
+			"version":1, "id":"erg_%d" % activity_started_unix, "kind":"erg_workout",
+			"title":str(item.get("name","ERG-workout")), "reason":test.reason,
+			"started_unix":activity_started_unix, "started_local":activity_started_local,
+			"duration_s":float(activity_samples[-1].time_s), "distance_m":activity_distance,
+			"samples":activity_samples.duplicate(true), "mean_power_w":average,
+			"ftp_reference_w":float(ftp_input.value)
+		}
+		var archive := preload("res://training_store.gd").new()
+		selected_activity = activity
+		upload_status = "Training lokaal opgeslagen." if archive.save(activity) else archive.error
 	_release(now_s())
 	if active_environment:
 		active_environment = false
