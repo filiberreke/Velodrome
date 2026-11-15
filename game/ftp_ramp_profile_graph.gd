@@ -30,28 +30,32 @@ func _draw() -> void:
 		var yy := area.end.y - watts / max_w * area.size.y
 		draw_line(Vector2(area.position.x, yy), Vector2(area.end.x, yy), HudTheme.LINE, 1.0)
 		draw_string(font, Vector2(2, yy+5), "%d" % roundi(watts), HORIZONTAL_ALIGNMENT_LEFT, 40, 13, HudTheme.MUTED)
-	# Draw actual square training steps instead of interpolating diagonally.
-	# Completed target intervals use the race wattage colours; future steps are grey.
-	var step_start: float = from_s
-	while step_start < to_s:
-		var step_end: float = minf(to_s, step_start + 30.0)
-		if ramp_started >= 0.0 and step_start < ramp_started:
-			step_end = minf(step_end, ramp_started)
-		elif ramp_started >= 0.0:
-			var boundary: float = ramp_started + (floorf((step_start-ramp_started)/60.0)+1.0)*60.0
-			step_end = minf(step_end, boundary)
-		var planned: float = 0.0
-		if ramp_started >= 0.0 and step_start >= ramp_started:
-			planned = minf(1300.0,100.0+20.0*floorf((step_start-ramp_started)/60.0))
-		var y: float = area.end.y-planned/max_w*area.size.y
-		var x0: float = area.position.x+(step_start-from_s)/(to_s-from_s)*area.size.x
-		var x1: float = area.position.x+(step_end-from_s)/(to_s-from_s)*area.size.x
-		if planned > 0.0:
-			var colour: Color = Meter.zone_color(planned) if step_end <= elapsed else Color("9ba4af")
-			draw_line(Vector2(x0,y),Vector2(x1,y),colour,5.0,true)
-		elif step_start < elapsed:
-			draw_line(Vector2(x0,area.end.y),Vector2(x1,area.end.y),Color("9ba4af"),2.0,true)
-		step_start = step_end + 0.00001
+	# The five-minute free warmup is followed by 100 W and +20 W every minute.
+	# During warmup the planned start is already known; after ERG confirmation
+	# the supplied ramp start aligns the blocks to the trainer's actual clock.
+	if ramp_started >= 0.0:
+		for index in range(61):
+			var start_s: float = ramp_started + index * 60.0
+			var end_s: float = start_s + 60.0
+			if start_s > to_s: break
+			if end_s < from_s: continue
+			var watts: float = float(mini(1300, 100 + index * 20))
+			var y: float = area.end.y - watts / max_w * area.size.y
+			var xa: float = area.position.x + (maxf(start_s, from_s) - from_s) / (to_s - from_s) * area.size.x
+			var xb: float = area.position.x + (minf(end_s, to_s) - from_s) / (to_s - from_s) * area.size.x
+			var covered_end: float = minf(end_s, elapsed)
+			if covered_end > maxf(start_s, from_s):
+				var completed_x: float = area.position.x + (minf(covered_end, to_s) - from_s) / (to_s - from_s) * area.size.x
+				draw_line(Vector2(xa, y), Vector2(completed_x, y), Meter.zone_color(watts), 5.0, true)
+				if completed_x < xb:
+					draw_line(Vector2(completed_x, y), Vector2(xb, y), Color("9ba4af"), 5.0, true)
+			else:
+				draw_line(Vector2(xa, y), Vector2(xb, y), Color("9ba4af"), 5.0, true)
+			if index > 0 and start_s >= from_s:
+				var prior_w: float = float(100 + (index - 1) * 20)
+				var prev_y: float = area.end.y - prior_w / max_w * area.size.y
+				var col: Color = Meter.zone_color(watts) if start_s <= elapsed else Color("9ba4af")
+				draw_line(Vector2(xa, prev_y), Vector2(xa, y), col, 3.0, true)
 	var last := Vector2.ZERO
 	var valid := false
 	for s in samples:
