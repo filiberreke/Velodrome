@@ -26,7 +26,7 @@ func _reset_ramp_dashboard() -> void:
 	ramp_last_hr = -1.0
 
 func _record_ramp_sample(at: float, power: float) -> void:
-	if twenty_mode or not test is Ramp or not test.running(): return
+	if twenty_mode or not (test is Ramp) or not test.running(): return
 	if ramp_last_measurement_at >= 0.0:
 		var dt := at - ramp_last_measurement_at
 		if dt > 0.0 and dt <= TrainerSignal.HOLD_SECONDS:
@@ -157,7 +157,7 @@ func drive_trainer(client, active: bool, grade: float, aero: float, now: float, 
 			client.arm(client.allow_released_session); interrupted_clients.erase(id); control_started_at[id] = now
 	client.tick(active and fresh(now) and (receiving or transient) and not resume_pending(client),grade,aero,now,target)
 func _ftp_pause_expired(now: float) -> bool:
-	return (test is Ramp or test is Twenty) and test.running() and signal_state.paused_seconds(now) > FTP_MAX_PAUSE_SECONDS
+	return (test.running() or twenty_warmup) and signal_state.paused_seconds(now) > FTP_MAX_PAUSE_SECONDS
 func receive(packet: Dictionary, now: float) -> void:
 	if packet.get("type") != "telemetry": return
 	var power: Variant = packet.get("power_w")
@@ -235,6 +235,9 @@ func _release(now: float) -> void:
 	trainer.tick(false, 0.0, 1.0, now)
 
 func finish(reason: String) -> void:
+	if twenty_warmup and test is Twenty:
+		# Early stopping during warmup produces a result but never changes FTP.
+		test.start(session_now(now_s()))
 	twenty_warmup = false
 	test.stop(reason)
 	_release(now_s())
@@ -357,7 +360,7 @@ func select_test(twenty: bool) -> void:
 	ftp_save_message = ""
 	title.text = "20’ FTP-test" if twenty else "FTP Ramp Test"
 	if twenty:
-		detail.text = "Warm eerst goed op. Rijd daarna 20 minuten op het hoogste vermogen dat je gelijkmatig kunt volhouden.\nJe kiest zelf je versnelling en vermogen; ERG blijft uit.\nFTP = 95% van het gemiddelde gemeten vermogen over de volledige 20 minuten.\nEen echte trainer met verse vermogensmetingen is vereist. Bij signaalverlies wordt het laatste vermogen maximaal 10 seconden behouden. Daarna pauzeert de test; bij een pauze langer dan 1 minuut stopt hij. Bij voortijdig stoppen blijft je bestaande FTP behouden."
+		detail.text = "Eerst 5 minuten vrij opwarmen. Rijd daarna 20 minuten op het hoogste vermogen dat je gelijkmatig kunt volhouden.\nJe kiest zelf je versnelling en vermogen; ERG blijft uit.\nFTP = 95% van het gemiddelde gemeten vermogen over de volledige 20 minuten.\nEen echte trainer met verse vermogensmetingen is vereist. Bij signaalverlies wordt het laatste vermogen maximaal 10 seconden behouden. Daarna pauzeert de test; bij een pauze langer dan 1 minuut stopt hij. Bij voortijdig stoppen blijft je bestaande FTP behouden."
 	else:
 		detail.text = "5 minuten vrij opwarmen op je eigen vermogen, zonder ERG-doel.\nDaarna 100 W, elke minuut +20 W. Blijf zitten en trap gelijkmatig.\nStop zodra je niet meer kunt. FTP = 75% van je beste gemeten 60 seconden.\nEen echte trainer met verse vermogensmetingen is vereist."
 	stop_button.text = "Stop test" if twenty else "Stop test · ERG vrijgeven"
@@ -400,7 +403,7 @@ func _refresh_twenty() -> void:
 	detail.visible = not test.running() and test.phase != "RESULT"
 	if twenty_warmup:
 		var remaining_warm: int = ceili(maxf(0.0,Ramp.WARMUP_SECONDS-(session_now(now_s())-twenty_warmup_at)))
-		result.text = "Vrije opwarming · nog %02d:%02d\\nDaarna 20 minuten vrij vermogen · richtlijn %.0f W" % [remaining_warm/60,remaining_warm%60,twenty_reference_w]
+		result.text = "Vrije opwarming · nog %02d:%02d\nDaarna 20 minuten vrij vermogen · richtlijn %.0f W" % [remaining_warm/60,remaining_warm%60,twenty_reference_w]
 	elif test.running():
 		var remaining := ceili(maxf(0.0,Twenty.DURATION-(session_now(now_s())-test.start_at)))
 		var mean: float = test.energy / test.covered if test.covered > 0 else measured
@@ -417,4 +420,4 @@ func _refresh_twenty() -> void:
 			result.text += "\nGemiddeld %.1f W · geschatte FTP %.0f W\n%s" % [test.average_power(),test.ftp(),ftp_save_message + "\n" + upload_status]
 		else: result.text += "\nGeen volledige test; je bestaande FTP blijft behouden."
 	else:
-		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed. Warm eerst op; Start begint direct aan de 20 minuten." if _twenty_fresh(now_s()) else "Wacht op verse trainergegevens."
+		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed. Start begint met 5 minuten vrije opwarming." if _twenty_fresh(now_s()) else "Wacht op verse trainergegevens."
