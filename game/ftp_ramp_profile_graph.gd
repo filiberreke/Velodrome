@@ -1,6 +1,6 @@
 extends Control
 ## FTP ramp target profile and actual measured watts; uses race power-meter colours.
-const Skin := preload("res://menu_theme.gd")
+const HudTheme := preload("res://menu_theme.gd")
 const Meter := preload("res://power_meter.gd")
 var samples: Array[Dictionary] = []
 var elapsed := 0.0
@@ -28,8 +28,8 @@ func _draw() -> void:
 	for i in range(5):
 		var watts := max_w * i / 4.0
 		var yy := area.end.y - watts / max_w * area.size.y
-		draw_line(Vector2(area.position.x, yy), Vector2(area.end.x, yy), Skin.LINE, 1.0)
-		draw_string(font, Vector2(2, yy+5), "%d" % roundi(watts), HORIZONTAL_ALIGNMENT_LEFT, 40, 13, Skin.MUTED)
+		draw_line(Vector2(area.position.x, yy), Vector2(area.end.x, yy), HudTheme.LINE, 1.0)
+		draw_string(font, Vector2(2, yy+5), "%d" % roundi(watts), HORIZONTAL_ALIGNMENT_LEFT, 40, 13, HudTheme.MUTED)
 	var step := 30.0
 	var t := from_s
 	var previous := Vector2.ZERO
@@ -57,7 +57,7 @@ func _draw() -> void:
 		valid = true
 	if running:
 		var x := area.position.x + clampf((elapsed-from_s)/(to_s-from_s), 0, 1)*area.size.x
-		draw_line(Vector2(x,area.position.y),Vector2(x,area.end.y),Skin.BLUE,1.5)
+		draw_line(Vector2(x,area.position.y),Vector2(x,area.end.y),HudTheme.BLUE,1.5)
 	for i in range(5):
 		var seconds := lerpf(from_s,to_s,float(i)/4.0)
-		draw_string(font,Vector2(area.position.x+area.size.x*i/4.0-12,size.y-9),"%d:%02d" % [int(seconds)/60,int(seconds)%60],HORIZONTAL_ALIGNMENT_LEFT,60,13,Skin.MUTED)
+		draw_string(font,Vector2(area.position.x+area.size.x*i/4.0-12,size.y-9),"%d:%02d" % [int(seconds)/60,int(seconds)%60],HORIZONTAL_ALIGNMENT_LEFT,60,13,HudTheme.MUTED)
