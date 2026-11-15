@@ -133,6 +133,7 @@ const Trainer := preload("res://trainer_control.gd")
 var test: Variant = Ramp.new()
 var trainer := Trainer.new()
 var player_profile = preload("res://player_profile.gd").new()
+var result_view_restored := false
 var ftp_persisted := false
 var ftp_save_message := ""
 var last_sample := -100.0
@@ -247,6 +248,7 @@ func receive(packet: Dictionary, now: float) -> void:
 	if test.phase == "RESULT": _release(now)
 
 func begin() -> void:
+	result_view_restored = false
 	if twenty_mode:
 		_begin_twenty()
 		return
@@ -313,10 +315,22 @@ func _process(_delta: float) -> void:
 			if not test.running(): _release(now)
 	_refresh()
 
+func _restore_result_navigation() -> void:
+	if test.phase != "RESULT" or result_view_restored: return
+	result_view_restored = true
+	# Return from the in-race session container to the normal training menu.
+	# This exposes the Back button and the result without requiring another ride.
+	environment_requested.emit(false)
+	if back_button != null:
+		back_button.show()
+		back_button.disabled = false
+		back_button.grab_focus.call_deferred()
+
 func cadence_text() -> String:
 	return "%d rpm" % roundi(cadence_rpm) if live(now_s()) and cadence_rpm >= 0.0 else "— rpm"
 
 func _refresh() -> void:
+	_restore_result_navigation()
 	_refresh_ramp_dashboard()
 	if twenty_mode:
 		_refresh_twenty()
@@ -326,6 +340,7 @@ func _refresh() -> void:
 	start_button.disabled = not live(now_s()) or not release_complete()
 	stop_button.visible = test.running()
 	back_button.disabled = test.running()
+	back_button.visible = true
 	detail.visible = not test.running() and test.phase != "RESULT"
 	warmup_hint.visible = test.phase == "IDLE"
 	if test.running():
@@ -380,6 +395,7 @@ func _twenty_fresh(now: float) -> bool:
 	return live(now) and now - last_sample >= 0.0 and now - last_sample <= TrainerSignal.LIVE_SECONDS
 
 func _begin_twenty() -> void:
+	result_view_restored = false
 	var now := now_s()
 	if test.running() or not _twenty_fresh(now) or not release_complete(): return
 	ftp_persisted = false
@@ -393,6 +409,7 @@ func _begin_twenty() -> void:
 	stop_button.grab_focus()
 
 func _refresh_twenty() -> void:
+	_restore_result_navigation()
 	if start_button == null: return
 	start_button.visible = not test.running()
 	start_button.disabled = not _twenty_fresh(now_s()) or not release_complete()
