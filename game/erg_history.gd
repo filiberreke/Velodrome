@@ -69,6 +69,19 @@ static func mean_power(activity: Dictionary) -> float:
 		duration += dt
 	return energy / duration if duration > 0.0 else 0.0
 
+static func mean_metric(activity: Dictionary, field: String) -> float:
+	var records: Array = activity.get("samples",[])
+	var total := 0.0
+	var seconds := 0.0
+	for i in range(1,records.size()):
+		var value: Variant = records[i-1].get(field)
+		if not (value is int or value is float) or not is_finite(float(value)) or float(value) <= 0.0: continue
+		var dt: float = float(records[i].get("time_s",0.0)) - float(records[i-1].get("time_s",0.0))
+		if dt <= 0.0 or dt > 10.0: continue
+		total += dt * float(value)
+		seconds += dt
+	return total / seconds if seconds > 0.0 else -1.0
+
 func refresh() -> void:
 	detail.hide()
 	listing.show()
@@ -116,10 +129,15 @@ func refresh() -> void:
 func _show_activity(activity: Dictionary) -> void:
 	listing.hide()
 	detail.show()
-	details_title.text = str(activity.get("title","Training")) + " · " + str(activity.get("started_local",""))
+	var date_text: String = str(activity.get("started_local",""))
+	if date_text.is_empty(): date_text = Time.get_datetime_string_from_unix_time(int(activity.get("started_unix",0))).replace("T"," ")
+	details_title.text = str(activity.get("title","Training")) + " · " + date_text
 	var seconds: int = int(activity.get("duration_s",0))
 	var watts: float = mean_power(activity)
 	var description: String = "Gereden tijd %d:%02d · gemiddeld %.0f W · %.2f km" % [seconds/60,seconds%60,watts,float(activity.get("distance_m",0.0))/1000.0]
+	var hr: float = mean_metric(activity,"heart_rate_bpm")
+	var rpm: float = mean_metric(activity,"cadence_rpm")
+	description += " · gem. HR %s · gem. cadans %s" % ["%.0f bpm" % hr if hr > 0.0 else "—", "%.0f rpm" % rpm if rpm > 0.0 else "—"]
 	if activity.has("ftp_w"): description += " · berekende FTP %.0f W" % float(activity.ftp_w)
 	description += "\n" + str(activity.get("reason",""))
 	details_text.text = description
