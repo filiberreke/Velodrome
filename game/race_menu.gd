@@ -592,7 +592,8 @@ func _build_hub(layout: VBoxContainer) -> void:
 
 func _process(_delta: float) -> void:
 	if ftp_ramp_hud != null and ftp_ramp_hud.visible and ftp_page != null:
-		ftp_ramp_hud.update_ftp(ftp_page)
+		if workout_play_page.active_environment: ftp_ramp_hud.update_workout(workout_play_page)
+		else: ftp_ramp_hud.update_ftp(ftp_page)
 
 func _training_environment(active: bool) -> void:
 	if active:
@@ -795,9 +796,14 @@ func edit_workout(id: String) -> void:
 	workout_editor_page.load_workout(id)
 func _workout_environment(active: bool) -> void:
 	if active:
+		ftp_ramp_hud.reset_for_session()
+		session_panel.position = Vector2(-3000,-3000)
+		ftp_ramp_hud.show()
 		if workout_play_page.get_parent() != session_panel: workout_play_page.reparent(session_panel)
 		menu_margin.hide(); menu_tint.hide(); session_panel.show()
 	else:
+		ftp_ramp_hud.hide()
+		session_panel.position = Vector2(30,30)
 		if workout_play_page.get_parent() != menu_layout: workout_play_page.reparent(menu_layout)
 		session_panel.hide(); menu_margin.show(); menu_tint.show()
 	workout_environment_requested.emit(active)

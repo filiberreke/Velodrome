@@ -55,6 +55,7 @@ func begin() -> void:
 	activity_started_unix = int(Time.get_unix_time_from_system())
 	activity_started_local = Time.get_datetime_string_from_system().replace("T"," ")
 	upload_status = ""
+	_reset_ramp_dashboard()
 	activity_samples.clear()
 	activity_distance = 0.0
 	selected_activity = {}
@@ -147,3 +148,8 @@ func _refresh() -> void:
 		var status := signal_state.status(now_s())
 		if not status.is_empty(): result.text += "\n"+status
 	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.") + ("\n" + upload_status if not upload_status.is_empty() else "")
+
+func _record_ramp_sample(_at: float, power: float) -> void:
+	if not test.running(): return
+	if ramp_samples.is_empty() or test.elapsed > float(ramp_samples[-1].t):
+		ramp_samples.append({"t":test.elapsed,"w":power,"hr":heart_rate_bpm,"rpm":cadence_rpm})

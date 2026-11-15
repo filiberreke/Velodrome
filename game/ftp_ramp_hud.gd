@@ -137,6 +137,8 @@ func _make_step_row(key: int) -> Dictionary:
 func update_ftp(page) -> void:
 	ftp_page = page
 	if not page.test.running() and not page.twenty_warmup: return
+	ftp_panel.show()
+	stop_test.text = "Stop test"
 	var twenty: bool = page.twenty_mode
 	var now: float = page.now_s()
 	var clock: float = page.session_now(now)
@@ -203,3 +205,28 @@ func update_ftp(page) -> void:
 		row.watts.text = "%.0f W" % (float(stat.get("energy",0.0))/duration) if duration > 0.0 else "—"
 		row.hr.text = "%.0f" % (float(stat.get("hr_total",0.0))/hr_duration) if hr_duration > 0.0 else "—"
 		row.label.add_theme_color_override("font_color", ACCENT if key == step_key else INK)
+
+func update_workout(page) -> void:
+	ftp_page = page
+	if not page.test.running(): return
+	ftp_panel.hide()
+	step_panel.hide()
+	stop_test.text = "Stop training"
+	var fresh: bool = page.live(page.now_s())
+	speed_label.text = "%.1f" % page.last_speed_kmh if fresh else "—"
+	live_power_label.text = "%.0f W" % page.measured if fresh else "— W"
+	heart_label.text = "%d bpm" % roundi(page.heart_rate_bpm) if fresh and page.heart_rate_bpm > 0 else "— bpm"
+	cadence_label.text = page.cadence_text()
+	gear_label.text = str(page.gear) if fresh and page.gear > 0 else "—"
+	var target: int = page.test.target(page.now_s())
+	power_meter.set_power(page.measured if fresh else 0.0,float(target),target > 0,"")
+	profile_graph.update_workout(page.ramp_samples,page.test.elapsed,page.test.blocks,float(page.test.ftp_w),page.test.duration())
+	var part: Dictionary = page.test.current()
+	if part.is_empty(): return
+	var remaining: float = float(part.block.duration)-float(part.seconds)
+	var following := 0
+	var index: int = int(part.index)+1
+	if index < page.test.blocks.size():
+		var block: Dictionary = page.test.blocks[index]
+		if block.kind != "FreeRide": following = roundi(float(block.power_low)*page.test.ftp_w)
+	ramp_dial.update_workout(target,following,remaining,float(part.block.duration),index >= page.test.blocks.size(),page.test.instruction(),page.signal_state.status(page.now_s()))
