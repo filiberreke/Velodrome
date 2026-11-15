@@ -14,6 +14,9 @@ var ramp_last_measurement_at := -1.0
 var ramp_last_power := 0.0
 var ramp_last_hr := -1.0
 var heart_rate_bpm := -1.0
+var twenty_warmup := false
+var twenty_warmup_at := 0.0
+var twenty_reference_w := 0.0
 
 func _reset_ramp_dashboard() -> void:
 	ramp_samples.clear()
@@ -41,7 +44,7 @@ func _record_ramp_sample(at: float, power: float) -> void:
 	ramp_last_hr = heart_rate_bpm
 	var chart_time := maxf(0.0, at - ramp_chart_start)
 	if ramp_samples.is_empty() or chart_time > float(ramp_samples[-1].t):
-		ramp_samples.append({"t":chart_time,"w":power})
+		ramp_samples.append({"t":chart_time,"w":power,"hr":heart_rate_bpm,"rpm":cadence_rpm})
 	if ramp_samples.size() > 12000: ramp_samples.pop_front()
 
 var ramp_chart_start := 0.0
@@ -65,7 +68,7 @@ var activity_distance := 0.0
 var activity_started_unix := 0
 var result_view_restored := false
 func _record_activity(at: float, power: float) -> void:
-	if not test.running(): return
+	if not test.running() and not twenty_warmup: return
 	var elapsed := maxf(0.0,at-ramp_chart_start)
 	var speed := maxf(0.0,last_speed_kmh)
 	if not activity_samples.is_empty():
@@ -76,7 +79,7 @@ func _record_activity(at: float, power: float) -> void:
 	activity_samples.append({"time_s":elapsed,"distance_m":activity_distance,"game_speed_kmh":speed,"power_w":power,"cadence_rpm":cadence_rpm,"heart_rate_bpm":heart_rate_bpm if heart_rate_bpm > 0 else null})
 func _complete_activity() -> void:
 	if not selected_activity.is_empty() or activity_samples.size() < 2: return
-	selected_activity = {"version":1,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":"FTP 20 minuten" if twenty_mode else "FTP Ramp Test","reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp()}
+	selected_activity = {"version":1,"started_local":Time.get_datetime_string_from_unix_time(activity_started_unix).replace("T"," "),"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":"FTP 20 minuten" if twenty_mode else "FTP Ramp Test","reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp()}
 	var store := preload("res://training_store.gd").new()
 	upload_status = "Training lokaal opgeslagen." if store.save(selected_activity) else store.error
 
@@ -189,9 +192,15 @@ func receive(packet: Dictionary, now: float) -> void:
 	gear = int(reported_gear) if (reported_gear is int or reported_gear is float) and is_finite(float(reported_gear)) and float(reported_gear) >= 1 and float(reported_gear) <= 12 else -1
 	var rpm: Variant = packet.get("cadence_rpm")
 	cadence_rpm = float(rpm) if (rpm is int or rpm is float) and is_finite(float(rpm)) and float(rpm) >= 0.0 else -1.0
-	_record_ramp_sample(session_now(maxf(last_sample,signal_state.resumed_at)), measured)
-	_record_activity(session_now(maxf(last_sample,signal_state.resumed_at)), measured)
-	test.sample(session_now(maxf(last_sample,signal_state.resumed_at)), measured, cadence_rpm)
+	var sample_clock: float = session_now(maxf(last_sample,signal_state.resumed_at))
+	if twenty_mode and (twenty_warmup or test.running()):
+		var chart_time: float = maxf(0.0,sample_clock-ramp_chart_start)
+		if ramp_samples.is_empty() or chart_time > float(ramp_samples[-1].t):
+			ramp_samples.append({"t":chart_time,"w":measured,"hr":heart_rate_bpm,"rpm":cadence_rpm})
+	else:
+		_record_ramp_sample(sample_clock, measured)
+	_record_activity(sample_clock, measured)
+	if not twenty_warmup: test.sample(sample_clock, measured, cadence_rpm)
 	if test.phase == "RESULT": _release(now)
 
 func begin() -> void:
@@ -226,6 +235,7 @@ func _release(now: float) -> void:
 	trainer.tick(false, 0.0, 1.0, now)
 
 func finish(reason: String) -> void:
+	twenty_warmup = false
 	test.stop(reason)
 	_release(now_s())
 	_refresh()
@@ -237,6 +247,13 @@ func leave() -> void:
 
 func _process(_delta: float) -> void:
 	if twenty_mode:
+		if twenty_warmup:
+			var warm_now: float = session_now(now_s())
+			if warm_now - twenty_warmup_at >= Ramp.WARMUP_SECONDS:
+				twenty_warmup = false
+				test.start(warm_now)
+				# The warmup is excluded from the FTP test average.
+				test.sample(warm_now, measured)
 		if test.running():
 			if not is_visible_in_tree(): finish("Test verlaten")
 			if _ftp_pause_expired(now_s()): finish("FTP-test gestopt: pauze langer dan 1 minuut")
@@ -331,7 +348,7 @@ func _notification(what: int) -> void:
 		trainer.close()
 
 func select_test(twenty: bool) -> void:
-	if test.running(): finish("Test verlaten")
+	if test.running() or twenty_warmup: finish("Test verlaten")
 	twenty_mode = twenty
 	test = Twenty.new() if twenty else Ramp.new()
 	ftp_persisted = false
@@ -351,17 +368,18 @@ func _begin_twenty() -> void:
 	result_view_restored = false
 	selected_activity = {}
 	activity_samples.clear()
+	ramp_samples.clear()
 	activity_distance = 0.0
 	activity_started_unix = int(Time.get_unix_time_from_system())
-	ramp_chart_start = session_now(now_s())
 	var now := now_s()
-	if test.running() or not _twenty_fresh(now) or not release_complete(): return
+	if test.running() or twenty_warmup or not _twenty_fresh(now) or not release_complete(): return
 	ftp_persisted = false
 	ftp_save_message = ""
 	reset_session(now,trainer)
-	test.start(session_now(now))
-	# Seed the interval with the latest fresh measurement, without charging warmup.
-	test.sample(session_now(now), measured)
+	ramp_chart_start = session_now(now)
+	twenty_warmup_at = session_now(now)
+	twenty_warmup = true
+	twenty_reference_w = 0.95 * player_profile.ftp()
 	_refresh()
 	environment_requested.emit(true)
 	stop_button.grab_focus()
@@ -372,13 +390,16 @@ func _refresh_twenty() -> void:
 		upload_button.visible = test.phase == "RESULT" and not selected_activity.is_empty()
 		upload_button.disabled = activity_samples.size() < 2
 	if start_button == null: return
-	start_button.visible = not test.running()
+	start_button.visible = not test.running() and not twenty_warmup
 	start_button.disabled = not _twenty_fresh(now_s()) or not release_complete()
-	stop_button.visible = test.running()
-	back_button.disabled = test.running()
+	stop_button.visible = test.running() or twenty_warmup
+	back_button.disabled = test.running() or twenty_warmup
 	warmup_hint.hide()
 	detail.visible = not test.running() and test.phase != "RESULT"
-	if test.running():
+	if twenty_warmup:
+		var remaining_warm: int = ceili(maxf(0.0,Ramp.WARMUP_SECONDS-(session_now(now_s())-twenty_warmup_at)))
+		result.text = "Vrije opwarming · nog %02d:%02d\\nDaarna 20 minuten vrij vermogen · richtlijn %.0f W" % [remaining_warm/60,remaining_warm%60,twenty_reference_w]
+	elif test.running():
 		var remaining := ceili(maxf(0.0,Twenty.DURATION-(session_now(now_s())-test.start_at)))
 		var mean: float = test.energy / test.covered if test.covered > 0 else measured
 		result.text = "20 minuten FTP-test · nog %02d:%02d\nGemeten %.0f W · gemiddeld %.1f W\nVrij vermogen · ERG uit · %s" % [remaining/60,remaining%60,measured,mean,cadence_text()]
