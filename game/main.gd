@@ -2500,6 +2500,7 @@ func _build_hud() -> void:
 		menu.derny_page.upload_status = message
 		menu.exercise_page.upload_status = message
 		menu.madison_page.upload_status = message
+		menu.ftp_page.upload_status = message
 	)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(24, 255)
