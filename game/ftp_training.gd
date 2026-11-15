@@ -2,7 +2,7 @@ extends VBoxContainer
 signal upload_requested(activity: Dictionary)
 signal back_requested
 signal environment_requested(active: bool)
-const Skin := preload("res://menu_theme.gd")
+const HudTheme := preload("res://menu_theme.gd")
 var ramp_dashboard: Control
 var ramp_left: Label
 var ramp_live: Label
@@ -26,12 +26,12 @@ func _dashboard_panel(parent: Control, left: float, right: float, top: float, bo
 	panel.offset_right = right
 	panel.offset_top = top
 	panel.offset_bottom = bottom
-	panel.add_theme_stylebox_override("panel", Skin.panel(Skin.PAPER, Skin.LINE, 14))
+	panel.add_theme_stylebox_override("panel", HudTheme.panel(HudTheme.PAPER, HudTheme.LINE, 14))
 	return panel
 
 func _dashboard_label(parent: Node, size: int) -> Label:
 	var label := Label.new()
-	label.add_theme_color_override("font_color", Skin.INK)
+	label.add_theme_color_override("font_color", HudTheme.INK)
 	label.add_theme_font_size_override("font_size", size)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	parent.add_child(label)
@@ -59,7 +59,7 @@ func _build_ramp_dashboard() -> void:
 	bottom.offset_right = -24
 	bottom.offset_top = -215
 	bottom.offset_bottom = -20
-	bottom.add_theme_stylebox_override("panel", Skin.panel(Skin.PAPER, Skin.LINE, 10))
+	bottom.add_theme_stylebox_override("panel", HudTheme.panel(HudTheme.PAPER, HudTheme.LINE, 10))
 	ramp_graph = preload("res://ftp_ramp_profile_graph.gd").new()
 	bottom.add_child(ramp_graph)
 	ramp_dashboard.hide()
@@ -79,7 +79,7 @@ func _record_ramp_sample(at: float, power: float) -> void:
 	if ramp_last_measurement_at >= 0.0:
 		var dt := at - ramp_last_measurement_at
 		if dt > 0.0 and dt <= TrainerSignal.HOLD_SECONDS:
-			var key := -1 if test.phase == "WARMUP" else int(maxf(0.0, ramp_last_measurement_at-test.ramp_at)/60.0) if test.ramp_at >= 0.0 else -2
+			var key: int = -1 if test.phase == "WARMUP" else int(maxf(0.0, ramp_last_measurement_at-test.ramp_at)/60.0) if test.ramp_at >= 0.0 else -2
 			if key >= -1:
 				var entry: Dictionary = ramp_step_stats.get(key, {"seconds":0.0,"energy":0.0,"hr_seconds":0.0,"hr_total":0.0})
 				entry.seconds += dt
@@ -105,14 +105,14 @@ func _refresh_ramp_dashboard() -> void:
 	if not visible_now: return
 	var clock := session_now(now_s())
 	var elapsed := maxf(0.0,clock-ramp_chart_start)
-	var ramp_start := test.ramp_at-ramp_chart_start if test.ramp_at >= 0.0 else -1.0
-	var target := test.target(clock)
+	var ramp_start: float = float(test.ramp_at) - ramp_chart_start if float(test.ramp_at) >= 0.0 else -1.0
+	var target: int = int(test.target(clock))
 	var hr_text := "%d bpm" % roundi(heart_rate_bpm) if heart_rate_bpm > 0.0 and live(now_s()) else "— bpm"
 	var rpm_text := cadence_text()
 	ramp_live.text = "SNELHEID  %.1f km/u       VERMOGEN  %.0f W\nCADANS  %s       HARTSLAG  %s\n%s" % [last_speed_kmh,measured,rpm_text,hr_text,"Opwarming · vrij rijden" if test.phase == "WARMUP" else "Doel %d W" % target]
 	ramp_ftp.text = "VOORLOPIGE FTP\n%s\nBeste 60 s: %.1f W\n75%% van beste 60 s" % ["%.0f W" % test.ftp() if test.best_60 > 0.0 else "— W",test.best_60]
 	var rows := "AFGELEGDE STAPPEN\nDoel       Gem. W    Gem. HR\n"
-	var current_key := -1 if test.phase == "WARMUP" else int(maxf(0.0,clock-test.ramp_at)/60.0) if test.ramp_at >= 0.0 else -2
+	var current_key: int = -1 if test.phase == "WARMUP" else int(maxf(0.0,clock-test.ramp_at)/60.0) if test.ramp_at >= 0.0 else -2
 	for key in range(current_key,-2,-1):
 		if key == -2: continue
 		var stat: Dictionary = ramp_step_stats.get(key,{})
