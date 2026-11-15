@@ -561,6 +561,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	ftp_page.set_meta("preparation_card", ftp_card)
 	ftp_card.configure(self, ftp_page, [ftp_page.warmup_hint], ftp_card.chart(preload("res://ftp_ramp.gd").preview_blocks(ftp_page.player_profile.ftp())))
 	ftp_page.back_requested.connect(show_training)
+	ftp_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	ftp_page.environment_requested.connect(_training_environment)
 	workout_play_page = preload("res://workout_training.gd").new()
 	workout_play_page.menu = self
