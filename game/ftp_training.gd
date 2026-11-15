@@ -352,9 +352,8 @@ func _restore_result_navigation() -> void:
 	# This exposes the Back button and the result without requiring another ride.
 	environment_requested.emit(false)
 	if back_button != null:
-		back_button.show()
 		back_button.disabled = false
-		back_button.grab_focus.call_deferred()
+		if is_visible_in_tree(): back_button.grab_focus.call_deferred()
 
 func cadence_text() -> String:
 	return "%d rpm" % roundi(cadence_rpm) if live(now_s()) and cadence_rpm >= 0.0 else "— rpm"
@@ -373,7 +372,7 @@ func _refresh() -> void:
 	start_button.disabled = not live(now_s()) or not release_complete()
 	stop_button.visible = test.running()
 	back_button.disabled = test.running()
-	back_button.visible = true
+	# The menu owns visibility after moving this button into the shared header.
 	detail.visible = not test.running() and test.phase != "RESULT"
 	warmup_hint.visible = test.phase == "IDLE"
 	if test.running():
