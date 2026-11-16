@@ -75,5 +75,117 @@
     "code": "USA",
     "base": "#14284d",
     "ink": "#ffffff"
+  },
+  {
+    "id": "spain",
+    "name": "Spanje",
+    "code": "ESP",
+    "title": "ESPAÑA",
+    "base": "#e8be27",
+    "ink": "#a51f30"
+  },
+  {
+    "id": "switzerland",
+    "name": "Zwitserland",
+    "code": "SUI",
+    "title": "SUISSE",
+    "base": "#cf2436",
+    "ink": "#ffffff"
+  },
+  {
+    "id": "poland",
+    "name": "Polen",
+    "code": "POL",
+    "title": "POLSKA",
+    "base": "#f6f7fa",
+    "ink": "#c8223b"
+  },
+  {
+    "id": "japan",
+    "name": "Japan",
+    "code": "JAP",
+    "title": "JAPAN",
+    "base": "#f6f7fa",
+    "ink": "#171d24"
+  },
+  {
+    "id": "china",
+    "name": "China",
+    "code": "CHN",
+    "title": "CHINA",
+    "base": "#c6262c",
+    "ink": "#f6d332"
+  },
+  {
+    "id": "czechia",
+    "name": "Tsjechië",
+    "code": "CZE",
+    "title": "CZECHIA",
+    "base": "#007fbb",
+    "ink": "#f6f7fa"
+  },
+  {
+    "id": "austria",
+    "name": "Oostenrijk",
+    "code": "AUT",
+    "title": "AUSTRIA",
+    "base": "#f6f7fa",
+    "ink": "#20252d"
+  },
+  {
+    "id": "kazakhstan",
+    "name": "Kazachstan",
+    "code": "KAZ",
+    "title": "KAZAKHSTAN",
+    "base": "#13a9c0",
+    "ink": "#f6d332"
+  },
+  {
+    "id": "mexico",
+    "name": "Mexico",
+    "code": "MEX",
+    "title": "MÉXICO",
+    "base": "#f6f7fa",
+    "ink": "#20252d"
+  },
+  {
+    "id": "argentina",
+    "name": "Argentinië",
+    "code": "ARG",
+    "title": "ARGENTINA",
+    "base": "#92ccea",
+    "ink": "#14243c"
+  },
+  {
+    "id": "turkey",
+    "name": "Turkije",
+    "code": "TUR",
+    "title": "TÜRKİYE",
+    "base": "#f6f7fa",
+    "ink": "#171b24"
+  },
+  {
+    "id": "venezuela",
+    "name": "Venezuela",
+    "code": "VEN",
+    "title": "VENEZUELA",
+    "base": "#f6f7fa",
+    "ink": "#171b24"
+  },
+  {
+    "id": "ireland",
+    "name": "Ierland",
+    "code": "IRL",
+    "title": "IRELAND",
+    "base": "#126346",
+    "ink": "#f6f7fa"
+  },
+  {
+    "id": "colombia",
+    "name": "Colombia",
+    "code": "COL",
+    "title": "COLOMBIA",
+    "base": "#86c9eb",
+    "ink": "#143456"
   }
 ]

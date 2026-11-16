@@ -4,14 +4,14 @@ signal activity_changed(active: bool)
 ## One metre = one Godot unit. Front = local +Z.
 ## Reuses the game's Blender Bike meshes from res://assets/riders/.
 
-const COUNTRIES := ["belgium", "netherlands", "france", "italy", "germany", "great_britain", "denmark", "australia", "new_zealand", "portugal", "united_states"]
+const COUNTRIES := ["belgium", "netherlands", "france", "italy", "germany", "great_britain", "denmark", "australia", "new_zealand", "portugal", "united_states","spain", "switzerland", "poland", "japan", "china", "czechia", "austria", "kazakhstan", "mexico", "argentina", "turkey", "venezuela", "ireland", "colombia"]
 const BOX_SIZE := Vector3(2.60, 2.10, 2.50)
 const ZONE_SIZE := Vector2(8.60, 3.80)
 const Themes = preload("res://rennersboxen/themes.gd")
 const BIKE_SCENES := {"track": preload("res://assets/riders/velodrome_rider.glb"), "pursuit": preload("res://assets/riders/velodrome_pursuit.glb")}
 const BIKE_PATHS := {"track":"res://assets/riders/velodrome_rider.glb", "pursuit":"res://assets/riders/velodrome_pursuit.glb"}
 
-@export_enum("belgium", "netherlands", "france", "italy", "germany", "great_britain", "denmark", "australia", "new_zealand", "portugal", "united_states") var country: String = "belgium":
+@export_enum("belgium", "netherlands", "france", "italy", "germany", "great_britain", "denmark", "australia", "new_zealand", "portugal", "united_states","spain", "switzerland", "poland", "japan", "china", "czechia", "austria", "kazakhstan", "mexico", "argentina", "turkey", "venezuela", "ireland", "colombia") var country: String = "belgium":
 	set(value):
 		if value not in COUNTRIES: return
 		country = value
