@@ -3,6 +3,8 @@ const Store := preload("res://training_store.gd")
 const History := preload("res://training_history.gd")
 class ActivityPage extends RefCounted:
 	var selected := {}
+	var return_to_history := false
+	func set_history_origin(value: bool) -> void: return_to_history = value
 	func show_activity(activity: Dictionary) -> void: selected = activity
 class Menu extends RefCounted:
 	var training_store := Store.new()
@@ -52,9 +54,9 @@ func run() -> void:
 	check(page.rows.get_child_count() == 6,"Only piste kinds and legacy derny appear, excluding FTP, ERG and races")
 	check(page.rows.get_child(0).get_meta("activity_id") == "aaaa-new" and page.rows.get_child(5).get_meta("activity_id") == "legacy","Newest session appears first and oldest last")
 	page.rows.get_child(0).pressed.emit()
-	check(menu.route == "flying_start" and menu.exercise_page.selected.id == "aaaa-new","Click opens correct exercise details")
-	page._open_activity(records[0]); check(menu.route == "derny","Derny navigation preserved")
-	page._open_activity(records[3]); check(menu.route == "madison","Madison navigation preserved")
+	check(menu.route == "flying_start" and menu.exercise_page.selected.id == "aaaa-new" and menu.exercise_page.return_to_history,"Click opens correct exercise details")
+	page._open_activity(records[0]); check(menu.route == "derny" and menu.derny_page.return_to_history,"Derny details remember history origin")
+	page._open_activity(records[3]); check(menu.route == "madison" and menu.madison_page.return_to_history,"Madison details remember history origin")
 	await process_frame
 	if "--capture" in OS.get_cmdline_user_args():
 		await RenderingServer.frame_post_draw

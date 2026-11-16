@@ -116,6 +116,15 @@ func refresh() -> void:
 
 func _open_activity(activity: Dictionary) -> void:
 	var kind := str(activity.get("kind","derny"))
-	if kind == "derny": menu.show_derny(); menu.derny_page.show_activity(activity)
-	elif kind == "madison": menu.show_madison_training(); menu.madison_page.show_activity(activity)
-	else: menu.show_piste_exercise(kind); menu.exercise_page.show_activity(activity)
+	var training
+	if kind == "derny":
+		menu.show_derny()
+		training = menu.derny_page
+	elif kind == "madison":
+		menu.show_madison_training()
+		training = menu.madison_page
+	else:
+		menu.show_piste_exercise(kind)
+		training = menu.exercise_page
+	training.show_activity(activity)
+	training.set_history_origin(true)

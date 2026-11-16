@@ -490,7 +490,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	layout.add_child(derny_page)
 	var derny_card := preload("res://training_menu_card.gd").new()
 	derny_card.configure(self, derny_page, [derny_page.motor_picker, derny_page.start_speed_row], derny_card.picture(piste_tiles["derny"].get_meta("preview_texture")))
-	derny_page.back_requested.connect(show_piste_training)
+	derny_page.back_requested.connect(_piste_back_requested.bind(derny_page))
 	derny_page.environment_requested.connect(_piste_environment)
 	derny_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	exercise_page = preload("res://piste_exercise_page.gd").new()
@@ -501,14 +501,14 @@ func _build_hub(layout: VBoxContainer) -> void:
 	exercise_card.configure(self, exercise_page, [exercise_page.tempo_row, exercise_page.limit_row], exercise_card.picture(exercise_art))
 	for kind in ["free_ride", "flying_start", "take_lap"]:
 		exercise_card.exercise_previews[kind] = piste_tiles[kind].get_meta("preview_texture")
-	exercise_page.back_requested.connect(show_piste_training)
+	exercise_page.back_requested.connect(_piste_back_requested.bind(exercise_page))
 	exercise_page.environment_requested.connect(_exercise_environment)
 	exercise_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	madison_page = preload("res://madison_training.gd").new()
 	layout.add_child(madison_page)
 	var madison_card := preload("res://training_menu_card.gd").new()
 	madison_card.configure(self, madison_page, [madison_page.difficulty, madison_page.count, madison_page.unlock_label], madison_card.picture(piste_tiles["madison"].get_meta("preview_texture")))
-	madison_page.back_requested.connect(show_piste_training)
+	madison_page.back_requested.connect(_piste_back_requested.bind(madison_page))
 	madison_page.environment_requested.connect(_madison_environment)
 	madison_page.upload_requested.connect(func(activity): training_upload_requested.emit(activity))
 	erg_history_page = preload("res://erg_history.gd").new()
@@ -665,6 +665,10 @@ func show_hub() -> void:
 func show_training() -> void:
 	refresh_workout_tiles()
 	_show_section(6, "ERG-training", training_page)
+
+func _piste_back_requested(training) -> void:
+	if training.return_to_history: show_training_history()
+	else: show_piste_training()
 
 func show_piste_training() -> void:
 	_show_section(11, "Pistetraining", piste_page)
