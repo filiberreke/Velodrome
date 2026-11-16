@@ -55,6 +55,7 @@ func _ready() -> void:
 		load("res://tour_spectator_details.gd").new().build(self)
 	_build_facades_and_railings()
 	_build_roof()
+	preload("res://arena_flags.gd").new().build(self)
 	var show := preload("res://stadium_show.gd").new()
 	show.name = "VelodromeStadiumShow"
 	add_child(show)
