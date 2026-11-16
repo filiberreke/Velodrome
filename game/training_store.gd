@@ -27,18 +27,29 @@ func load_activity(id: String) -> Dictionary:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not data is Dictionary or data.get("version") != 1 or not data.get("samples") is Array: return {}
 	return data
-func recent(limit: int = 30) -> Array[Dictionary]:
+static func activity_time(activity: Dictionary) -> int:
+	var timestamp := int(activity.get("started_unix",0))
+	if timestamp > 0: return timestamp
+	var local := str(activity.get("started_local","")).replace(" ","T")
+	return int(Time.get_unix_time_from_datetime_string(local)) if not local.is_empty() else 0
+
+func recent(limit: int = 30, kinds: Array = []) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	var directory := DirAccess.open(folder)
 	if directory == null: return result
-	var files := directory.get_files()
-	files.sort()
-	files.reverse()
-	for filename in files:
+	for filename in directory.get_files():
 		if not filename.ends_with(".json"): continue
 		var activity := load_activity(filename.get_basename())
-		if not activity.is_empty(): result.append(activity)
-		if result.size() >= limit: break
+		if activity.is_empty(): continue
+		# Older derny recordings predate the explicit kind field.
+		if not kinds.is_empty() and str(activity.get("kind","derny")) not in kinds: continue
+		result.append(activity)
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var first := activity_time(a)
+		var second := activity_time(b)
+		return first > second if first != second else str(a.get("id","")) > str(b.get("id",""))
+	)
+	if limit > 0 and result.size() > limit: result.resize(limit)
 	return result
 static func fit_payload(activity: Dictionary) -> PackedByteArray:
 	var samples: Array[Dictionary] = []
