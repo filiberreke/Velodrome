@@ -660,7 +660,8 @@ func show_derny(new_training: bool = true) -> void:
 	_show_section(12, "Dernytraining", derny_page)
 
 func show_piste_exercise(kind: String, new_training: bool = true) -> void:
-	exercise_page.omnium_origin = ""
+	# Opening the result of the same ride must preserve its return destination.
+	if new_training: exercise_page.omnium_origin = ""
 	if new_training: exercise_page.prepare_new_training()
 	exercise_page.configure(kind)
 	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
