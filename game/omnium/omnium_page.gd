@@ -85,7 +85,7 @@ func edit_active() -> void:
 	draft.copy_from(manager.state.active, player()); editing = true; refresh()
 
 func render_editor() -> void:
-	body.add_child(menu.label("Deelnemers bevestigen · %d/24" % draft.riders.size(), 26))
+	body.add_child(menu.label("Startlijst · speler + %d/23 tegenstanders · %d/24 totaal" % [draft.opponent_count(), draft.riders.size()], 26))
 	for i in range(draft.riders.size()):
 		var entry: Dictionary = draft.riders[i]
 		var row := HBoxContainer.new(); body.add_child(row)
@@ -101,13 +101,14 @@ func render_editor() -> void:
 			var remove_button := button("Verwijderen", func(): draft.remove(i); refresh(), row)
 			remove_button.disabled = draft.riders.size() <= 12
 	var add_button := button("Renner toevoegen", open_picker.bind(-1))
-	add_button.disabled = draft.riders.size() >= 24
+	add_button.disabled = not draft.can_add()
 	message = menu.label("", 18); body.add_child(message)
 	var confirm := button("Startlijst bevestigen", confirm_draft)
 	confirm.disabled = draft.riders.size() < 12 or draft.riders.size() > 24
 	button("Annuleren", go_back)
 
 func open_picker(slot: int) -> void:
+	if slot < 0 and not draft.can_add(): return
 	if is_instance_valid(picker_layer): return
 	var picker = preload("res://rider_picker.gd").new()
 	picker.entries = draft.catalog.candidates(draft.riders, "mixed", slot)
