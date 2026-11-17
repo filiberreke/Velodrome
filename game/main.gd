@@ -4128,6 +4128,8 @@ func _upload_training(activity: Dictionary) -> void:
 	file.store_buffer(payload)
 	file.close()
 	strava_desired_title = "Velodrome - " + str(activity.get("title","Dernytraining")) + (" (PC-proefrit)" if activity.get("demo",false) else "")
+	if not String(activity.get("omnium_id", "")).is_empty():
+		strava_desired_title = "Vélodrome - Omnium - Losrijden"
 	strava_desired_description = "Dernytraining · gemiddelde startsnelheid %d km/u · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
 	if activity.get("kind","derny") != "derny" and activity.get("kind","") != "ftp_test":
 		strava_desired_description = "%s · %s. Begonnen met virtuele rolsnelheid %.0f km/u. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("title","Pistetraining"),activity.get("reason",""),activity.get("initial_speed_kmh",30)]

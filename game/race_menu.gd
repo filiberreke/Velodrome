@@ -630,6 +630,14 @@ func show_training() -> void:
 	_show_section(6, "ERG-training", training_page)
 
 func _piste_back_requested(training) -> void:
+	if training == exercise_page and not exercise_page.omnium_origin.is_empty():
+		exercise_page.omnium_origin = ""
+		tournament_page.opened = true
+		tournament_page.editing = false
+		tournament_page.refresh()
+		_show_section(7, "Omnium", tournament_page)
+		tournament_back.grab_focus.call_deferred()
+		return
 	if training.return_to_history: show_training_history()
 	else: show_piste_training()
 
@@ -652,6 +660,7 @@ func show_derny(new_training: bool = true) -> void:
 	_show_section(12, "Dernytraining", derny_page)
 
 func show_piste_exercise(kind: String, new_training: bool = true) -> void:
+	exercise_page.omnium_origin = ""
 	if new_training: exercise_page.prepare_new_training()
 	exercise_page.configure(kind)
 	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
@@ -1120,3 +1129,10 @@ func _save_difficulty(key: String, value: float) -> void:
 	difficulty_preferences.set_value("race", key, value)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(difficulty_preferences_path.get_base_dir()))
 	difficulty_preferences.save(difficulty_preferences_path)
+
+func start_omnium_warmup() -> void:
+	if tournament_page.manager.state.active.is_empty(): return
+	show_piste_exercise("free_ride")
+	exercise_page.omnium_origin = String(tournament_page.manager.state.active.id)
+	exercise_page.begin()
+	exercise_page.back_button.text = "← Omnium"

@@ -136,7 +136,7 @@ func race_card(parent: Node, spec: Array, discipline_index: int) -> void:
 		var earned: int = int(result.get("points", {}).get(player_id, 0)) if discipline_index == 3 else Scores.place_points(place)
 		copy.add_child(menu.label("%s · plaats %d · %d punten" % [date_text(int(result.get("finished_unix", 0))), place, earned], 17, Style.BLUE))
 		card.pressed.connect(show_result.bind(discipline_index))
-	elif warmup: card.pressed.connect(menu.show_piste_training)
+	elif warmup: card.pressed.connect(menu.start_omnium_warmup)
 	elif next: card.pressed.connect(show_start_notice)
 	ignore_children(content)
 
