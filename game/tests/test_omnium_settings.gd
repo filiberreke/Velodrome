@@ -12,6 +12,11 @@ class Host extends VBoxContainer:
 	var refreshes := 0
 	func refresh() -> void:
 		refreshes += 1
+	func button(text: String, action: Callable, parent: Node) -> Button:
+		var control := Button.new(); control.text = text
+		control.pressed.connect(action); parent.add_child(control)
+		return control
+	func confirm_stop() -> void: pass
 	func _ready() -> void: add_child(body)
 
 func _initialize() -> void: run.call_deferred()

@@ -64,11 +64,6 @@ func render(owner_page: Node) -> void:
 		if previous_score == null or totals[rider.id] != previous_score: rank = i + 1
 		previous_score = totals[rider.id]
 		rider_row(list, rider, "%d." % rank, "%d" % totals[rider.id])
-	var stop: Button = page.button("Omnium stoppen", page.confirm_stop, sidebar)
-	stop.add_theme_color_override("font_color", Color("a63838"))
-	var note: Label = menu.label("Je resultaten blijven bewaard. Na stoppen kun je dit omnium niet hervatten.", 17, Style.MUTED)
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sidebar.add_child(note)
 
 func distance_and_duration(laps: int) -> String:
 	return "%d ronden · %s" % [laps, duration(laps)]
@@ -196,6 +191,10 @@ func render_settings() -> void:
 	title_row.add_spacer(false)
 	var locked := int(active.started) > 0
 	title_row.add_child(menu.label("Vergrendeld · scratch gestart" if locked else "Bewerkbaar tot de start van de scratch", 17, Style.MUTED))
+	var stop: Button = page.button("Omnium stoppen", page.confirm_stop, title_row)
+	stop.tooltip_text = "Je resultaten blijven bewaard. Na stoppen kun je dit omnium niet hervatten."
+	stop.add_theme_color_override("font_color", Color("a63838"))
+
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 20)
 	box.add_child(row)
