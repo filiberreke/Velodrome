@@ -29,13 +29,13 @@ func render(owner_page: Node) -> void:
 	sidebar.add_theme_constant_override("separation", 16)
 	columns.add_child(sidebar)
 	var settings := Formats.settings(active.format)
-	var elimination_laps: int = (active.riders.size() - 2) * int(settings.elimination_interval) + 1
+	var elimination_laps: int = Formats.race_laps(String(active.format), "elimination", active.riders.size())
 	var specs := [
 		["Losrijden", "Rustig opwarmen op de piste.", "Vrije duur", 0],
-		["Scratch", "Kies je moment: de finish bepaalt je plaats.", duration(settings.scratch), 0],
-		["Temporace", "Verzamel punten bij de doorkomsten.", duration(settings.tempo), 8],
-		["Afvalling", "Blijf uit de gevarenzone · elke %d ronde(n) een afvaller." % settings.elimination_interval, duration(elimination_laps), 5],
-		["Puntenkoers", "Sprintpunten en rondewinst bepalen het eindklassement.", duration(settings.points), 3]
+		["Scratch", "Kies je moment: de finish bepaalt je plaats.", distance_and_duration(int(settings.scratch)), 0],
+		["Temporace", "Verzamel punten bij de doorkomsten.", distance_and_duration(int(settings.tempo)), 8],
+		["Afvalling", "Blijf uit de gevarenzone · elke %d ronde(n) een afvaller." % settings.elimination_interval, distance_and_duration(elimination_laps), 5],
+		["Puntenkoers", "Sprintpunten en rondewinst bepalen het eindklassement.", distance_and_duration(int(settings.points)), 3]
 	]
 	for i in range(specs.size()): race_card(races, specs[i], i - 1)
 	var participants := panel(sidebar)
@@ -69,6 +69,9 @@ func render(owner_page: Node) -> void:
 	var note: Label = menu.label("Je resultaten blijven bewaard. Na stoppen kun je dit omnium niet hervatten.", 17, Style.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sidebar.add_child(note)
+
+func distance_and_duration(laps: int) -> String:
+	return "%d ronden · %s" % [laps, duration(laps)]
 
 func duration(laps: int) -> String:
 	# Estimate at 40 km/h on a 250 m track; never affects race timing.
