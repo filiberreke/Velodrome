@@ -42,9 +42,9 @@ in a tooltip. Keyboard activation and focus remain available.
 Completed discipline cards open a full read-only results page, rather than an
 AcceptDialog. All participants, national flags, placing, finish time/time or lap
 gap, earned omnium points, and the player's cumulative score at that discipline
-are shown. Tempo additionally shows race points. Both the blue `← Omnium` button
-and `Ga verder met omnium` return to the detail page without replaying a race or
-changing the valid result. This page uses persisted data and never restores the
+are shown. Tempo additionally shows race points. The blue `← Omnium` button
+returns to the detail page without replaying a race or changing the valid result.
+There is no duplicate continuation button at the bottom of a reopened result. This page uses persisted data and never restores the
 live simulation. Race telemetry/export and a finish photograph are not retained
 in the omnium result save, so this view does not reconstruct those elements.
 

@@ -52,8 +52,6 @@ static func render(page: Node, tournament: Dictionary, index: int) -> void:
 		cell(page, table, str(points(result, index, i + 1, id)), fill)
 	if index == 0 and not result.has("lap_credits"):
 		page.body.add_child(page.menu.label("Bij deze eerder opgeslagen uitslag zijn rondeverschillen niet bewaard.", 17, Style.MUTED))
-	var continue_button: Button = page.button("Ga verder met omnium", page.go_back)
-	Style.primary(continue_button)
 
 static func points(result: Dictionary, index: int, place: int, id: String) -> int:
 	return int(result.get("points", {}).get(id, 0)) if index == 3 else Scores.place_points(place)
