@@ -43,3 +43,29 @@ reported as a passing regression test or silently changed in this integration.
 
 Manual checks still needed: real trainer start/neutralization, visual HUD layout,
 Strava upload, and process shutdown/crash recovery on the user's target build.
+
+## Issue #45: accelerated completion after the player's finish
+
+Verified with `test_omnium_results_completion.gd` under Godot 4.6.1. Fixtures use
+real main.gd physics/jury with the player already finished and remaining riders
+eight laps down, just beyond a line passage. No additional frame-by-frame
+realtime simulation was run by the test; ResultsCompletion drove the remaining race.
+
+| Field | Omnium | Remaining simulated seconds | Wall seconds | Speedup |
+|---|---|---:|---:|---:|
+| 8 | no | 34.367 | 1.092 | 31.5x |
+| 24 | no | 37.000 | 5.212 | 7.1x |
+| 24 | yes | 34.883 | 5.278 | 6.6x |
+
+Timing is indicative for this machine, not a performance guarantee. AI behavior
+and the finish jury are reused, the player result remains frozen, and repeat
+refreshes do not restart the computation. The omnium case also verifies one
+committed result containing all 24 riders and 23 AI energy snapshots.
+
+Current trigger: the results overlay must be visible. The normal finish
+presentation can therefore run for up to ten seconds before acceleration starts.
+Work is bounded to 10 ms CPU batches per frame to keep the UI responsive.
+
+The current mode allowlist is scratch, points, elimination and keirin (0/1/2/3).
+Tempo (8) is not included yet; cover this when integrating Omnium Tempo.
+No production behavior was changed as part of this verification.
