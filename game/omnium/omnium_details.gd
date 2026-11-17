@@ -130,7 +130,9 @@ func race_card(parent: Node, spec: Array, discipline_index: int) -> void:
 		copy.add_child(menu.label("%s · plaats %d · %d punten" % [date_text(int(result.get("finished_unix", 0))), place, earned], 17, Style.BLUE))
 		card.pressed.connect(show_result.bind(discipline_index))
 	elif warmup: card.pressed.connect(menu.start_omnium_warmup)
-	elif next: card.pressed.connect(show_start_notice)
+	elif next:
+		if discipline_index == 0: card.pressed.connect(menu.start_omnium_scratch)
+		else: card.pressed.connect(show_start_notice)
 	ignore_children(content)
 
 func ignore_children(node: Control) -> void:

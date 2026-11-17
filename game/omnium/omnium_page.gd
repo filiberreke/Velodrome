@@ -40,6 +40,7 @@ func player() -> Dictionary:
 	var game = menu.get_parent()
 	while game != null and not game.has_method("get_player_appearance_base"): game = game.get_parent()
 	var country := Countries.from_kit(game.player_appearance.resolve(game.get_player_appearance_base()))
+	if country.is_empty(): country = String(Countries.roster(game).player)
 	return {"id":"player", "name":game.player_display_name, "country":country, "profile":0, "is_player":true}
 
 func refresh() -> void:

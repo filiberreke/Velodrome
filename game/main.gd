@@ -1,4 +1,5 @@
 extends Node3D
+var omnium_race = preload("res://omnium/omnium_scratch_controller.gd").new()
 const MenuSkin := preload("res://menu_theme.gd")
 signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
@@ -217,12 +218,14 @@ func _configure_peloton() -> void:
 			outfit["country"] = RaceCountries.from_kit(outfit) if ours else pursuit_opponent_country
 			if String(outfit.country).is_empty(): outfit["country"] = "belgium"
 			configured = {"profile": 0 if ours else 1, "name": player_display_name if i == 0 else ("Ploegmaat %d" % i if ours else "%s %d" % [pursuit_opponent_country, i - team_size + 1]), "jersey": outfit}
+		if omnium_race.enabled(): configured = omnium_race.context.riders[i].duplicate(true)
 		if _restarting_event:
 			configured = replay_setup.riders[i].duplicate(true)
 		rider_identities.append(configured.duplicate(true))
 		rider_profiles.append(int(configured["profile"]))
 		rider_names.append(String(configured["name"]))
 		rider_forms.append(float(replay_setup.forms[i]) if _restarting_event else (1.0 if i == 0 or race_mode in [4, 5, 7] else form_rng.randf_range(0.975, 1.025)))
+		if omnium_race.enabled(): rider_forms[i] = 1.0
 		var kit: Dictionary = configured.get("jersey", {})
 		kit = kit.duplicate()
 		kit["number"] = clampi(int(kit.get("number", i + 1)), 1, 99)
@@ -317,7 +320,7 @@ func _spawn_peloton() -> void:
 		rider.set_meta("pursuit_mode", race_mode in [4, 5, 7])
 		rider.set_meta("jersey_config", rider_kits[i])
 		rider.set_meta("body_shapes", rider_identities[i].get("morphs", {}))
-		if rider_config_ready and race_mode not in [4, 5]:
+		if rider_config_ready and race_mode not in [4, 5] and not omnium_race.enabled():
 			var source_slot := int(rider_identities[i].get("slot",i)) if i > 0 else 0
 			var kit_section := "player" if i == 0 else "rider_%02d" % source_slot
 			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", rider_kits[i].get("country_kit",""))))
@@ -797,6 +800,7 @@ func _finish_neutral_start() -> void:
 	x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 	x_ai.configure_riders(rider_identities, rider_forms)
 	x_ai.apply_ai_strength(ai_difficulty)
+	if omnium_race.enabled(): omnium_race.apply_reserves(self)
 	start_state = "RACING"
 
 func _finish_flying_start() -> void:
@@ -1340,6 +1344,9 @@ func _expire_bridge_optional_fields(now: float) -> void:
 		last_bridge_telemetry = -1.0
 
 func _restart_same_race() -> void:
+	if omnium_race.enabled():
+		recording_message = "Keer terug naar het omnium om de volgende wedstrijd te kiezen."
+		return
 	if replay_setup.is_empty(): return
 	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "keirin_percent", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		set(key, replay_setup[key])
@@ -1357,6 +1364,13 @@ func _restart_same_race() -> void:
 	start_state = "WAIT_STOP"
 
 func _reset() -> void:
+	var returning_to_omnium: bool = omnium_race.enabled()
+	if returning_to_omnium:
+		if not omnium_race.may_leave(self):
+			exit_menu.detail.text = omnium_race.error
+			return
+		omnium_race.clear()
+		selected_startlist.clear(); startlist_mode = -1
 	results_completion.cancel()
 	if piste_training != null and piste_training.active:
 		piste_training.finish_session("Training verlaten",false)
@@ -1454,6 +1468,7 @@ func _reset() -> void:
 		race_overlay.developer_panel.hide()
 	team_race.hide_badges()
 	_set_menu_visible(true)
+	if returning_to_omnium: setup_panel.show_omnium_details()
 
 # An opponent in front and approximately on the same line shields a rider.
 # The game has no collisions yet: gaps < 1.2m are excluded to avoid rewarding overlap.
@@ -1844,6 +1859,7 @@ func _update_race(dt: float) -> void:
 	var current: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
 	var grade: float = TrainerControl.route_grade(previous, current)
 	trainer_road_grade = lerpf(trainer_road_grade, grade, 1.0 - exp(-8.0 * maxf(dt, 0.0)))
+	omnium_race.sample(self)
 
 func _elimination_metric_for(i: int, lane: float) -> float:
 	return _path_metric(distances[i], lane)
@@ -3179,6 +3195,7 @@ func _ai_diagnostics_text() -> String:
 	return text
 
 func _update_hud() -> void:
+	omnium_race.update_hud(self)
 	if race_overlay != null: race_overlay.set_keyboard_hints(keyboard_mapping, _keyboard_profile())
 	if setup_panel != null and setup_panel.visible:
 		setup_panel.footer_label.text = keyboard_mapping.menu_hint()
@@ -3380,6 +3397,8 @@ func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bo
 	panel.add_child(label)
 
 func _refresh_fullscreen_results() -> void:
+	omnium_race.sample(self)
+	if omnium_race.enabled() and not omnium_race.error.is_empty(): recording_message = omnium_race.error
 	if finish_overlay != null and finish_overlay.visible: results_completion.start(self)
 	if finish_table != null:
 		finish_table.columns = 1 if race_mode == 1 else (4 if race_mode in [0,2] else 5)
@@ -3408,6 +3427,8 @@ func _refresh_fullscreen_results() -> void:
 	var complete: bool = _all_riders_finished()
 	var status: String = "Alle renners gefinisht" if complete else "Nog renners onderweg - uitslag wordt automatisch aangevuld"
 	var summary: String = "JOUW TIJD   %.2f s    •    GEM. VERMOGEN   %.0f W    •    PIEK   %.0f W\n%s" % [finish_times[0], player_power_integral / maxf(0.1, finish_times[0]), player_peak_watts, status]
+	if omnium_race.enabled():
+		summary += "\nOMNIUM · %d punten%s" % [preload("res://omnium/omnium_scoring.gd").place_points(player_place), " · opgeslagen" if omnium_race.committed else " · voorlopig"]
 	if race_mode == 0 and not scratch_rules.events.is_empty():
 		var gains := 0
 		for event in scratch_rules.events:
@@ -3694,6 +3715,7 @@ func _on_strava_activity_created(activity_id: String) -> void:
 	done.popup_centered(Vector2i(650, 290))
 
 func _strava_activity_title() -> String:
+	if omnium_race.enabled(): return "Vélodrome - Omnium - Scratch"
 	for mode in preload("res://race_menu.gd").MODES:
 		if int(mode["race_id"]) == race_mode:
 			return "Velodrome - " + String(mode["title"])

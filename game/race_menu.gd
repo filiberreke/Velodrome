@@ -1137,3 +1137,19 @@ func start_omnium_warmup() -> void:
 	exercise_page.omnium_origin = String(tournament_page.manager.state.active.id)
 	exercise_page.begin()
 	exercise_page.back_button.text = "← Omnium"
+
+func start_omnium_scratch() -> void:
+	var game: Node = self
+	while game != null and not game.has_method("_configure_peloton"): game = game.get_parent()
+	if game == null: return
+	if not game.omnium_race.start(game, tournament_page.manager):
+		var dialog := AcceptDialog.new()
+		dialog.dialog_text = "Scratch kon niet worden gestart. " + game.omnium_race.error
+		dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free)
+		add_child(dialog); dialog.popup_centered()
+
+func show_omnium_details() -> void:
+	tournament_page.opened = true; tournament_page.editing = false
+	tournament_page.refresh()
+	_show_section(7, "Omnium", tournament_page)
+	tournament_back.grab_focus.call_deferred()
