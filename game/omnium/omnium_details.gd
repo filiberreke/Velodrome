@@ -64,7 +64,7 @@ func render(owner_page: Node) -> void:
 		if previous_score == null or totals[rider.id] != previous_score: rank = i + 1
 		previous_score = totals[rider.id]
 		rider_row(list, rider, "%d." % rank, "%d" % totals[rider.id])
-	var stop := page.button("Omnium stoppen", page.confirm_stop, sidebar)
+	var stop: Button = page.button("Omnium stoppen", page.confirm_stop, sidebar)
 	stop.add_theme_color_override("font_color", Color("a63838"))
 	var note: Label = menu.label("Je resultaten blijven bewaard. Na stoppen kun je dit omnium niet hervatten.", 17, Style.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
