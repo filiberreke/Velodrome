@@ -1144,6 +1144,9 @@ func start_omnium_scratch() -> void:
 func start_omnium_tempo() -> void:
 	_start_omnium_race(preload("res://omnium/omnium_tempo_controller.gd").new(), "Temporace")
 
+func start_omnium_elimination() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_elimination_controller.gd").new(), "Afvalling")
+
 func _start_omnium_race(controller: RefCounted, caption: String) -> void:
 	var game: Node = self
 	while game != null and not game.has_method("_configure_peloton"): game = game.get_parent()

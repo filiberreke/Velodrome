@@ -71,7 +71,8 @@ one active tournament, valid-result-only progression and stop/expiry archiving.
 
 The following remain planned work, not claimed complete:
 
-- Elimination and points-race omnium controllers.
+- Points-race omnium controller. Elimination has since been integrated; see
+  elimination-validation.md.
 - Additional omnium-aware AI decisions/rivalries across disciplines (phase 5).
   Existing Tempo AI is retained in this integration.
 - Final points-race tie-break and 10-second event column (points-race phase).

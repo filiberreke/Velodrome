@@ -291,7 +291,7 @@ func _configure_peloton() -> void:
 		var rear_positions: Array[float] = []
 		_elimination_clock_ready = false; _elimination_accumulator = 0.0; _elimination_ticks = 0
 		for distance in distances: rear_positions.append(distance - REAR_TRAILING_EDGE_M)
-		elimination_rules.reset(count, rear_positions)
+		elimination_rules.reset(count, rear_positions, omnium_race.elimination_interval_m() if omnium_race.enabled() else EliminationRules.ELIMINATION_INTERVAL_M)
 	pursuit_start.clear()
 	for node in bikes: node.queue_free()
 	bikes.clear()
@@ -793,7 +793,7 @@ func _finish_neutral_start() -> void:
 	if race_mode == 2:
 		var rear: Array[float] = []
 		for distance in distances: rear.append(distance - REAR_TRAILING_EDGE_M)
-		elimination_rules.reset(rider_count, rear)
+		elimination_rules.reset(rider_count, rear, omnium_race.elimination_interval_m() if omnium_race.enabled() else EliminationRules.ELIMINATION_INTERVAL_M)
 	points_notifications.reset()
 	peloton_state.reset()
 	peloton_info.clear()
@@ -1902,6 +1902,7 @@ func _advance_race(dt: float) -> void:
 	if race_mode in [0, 1, 2, 8]:
 		x_ai.human_power_w = player_actual_power if race_mode == 2 else watts
 		if race_mode == 2:
+			x_ai.elimination_interval_m = elimination_rules.interval_m
 			x_ai.elimination_line_m = elimination_rules.next_line_m
 			x_ai.final_line_m = _race_length()
 			x_ai.rear_reference_offset = REAR_TRAILING_EDGE_M
@@ -3342,6 +3343,12 @@ func _update_compact_hud(order: Array[int]) -> void:
 		notice = "Trainerverbinding onderbroken · vermogen tijdelijk vastgehouden" if _power_hold_active() else "Wedstrijd gepauzeerd · wacht op de trainerverbinding"
 	elif finished:
 		notice = "Finish · %.2f s" % finish_times[0]
+	if omnium_race.enabled() and race_mode == 2 and start_state == "RACING" and not finished:
+		var remaining_count: int = elimination_rules.remaining_count()
+		var head_rear := -INF
+		for i in range(rider_count):
+			if finish_times[i] < 0.0: head_rear = maxf(head_rear, distances[i] - REAR_TRAILING_EDGE_M)
+		notice = "%d renners · afvalling over %.0f m" % [remaining_count, maxf(0.0, elimination_rules.next_line_m - head_rear)] if remaining_count > 2 else "Finale · laatste twee renners"
 	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
 	if start_state == "NEUTRAL" and (not trainer_seen or connected or _power_hold_active()): notice = neutral_start.notice(self)
@@ -3374,7 +3381,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 				pursuit_live_gap = maxf(0.0, clock - first_time) * (1.0 if first == 0 else -1.0)
 			pursuit_delta = -float(pursuit_live_gap)
 
-	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "eliminated": elimination_rules.eliminated if race_mode == 2 else [], "omnium": omnium_race.enabled(), "points_race": race_mode in [1, 8], "race_positions": race_positions if race_mode in [0,1,8] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1,8] else "", "points_order": _points_order() if race_mode in [1, 8] else [], "point_scores": (tempo_rules.points if race_mode == 8 else points_rules.points) if race_mode in [1, 8] else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 3, 8] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "cadence_rpm": cadence if cadence >= 0.0 and connected else null, "lap_credit": _lap_credits()[0] if race_mode in [0, 1, 8] else 0, "lap": _hud_race_lap(), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1,8] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
+	race_overlay.update_race({"run_up": start_state == "RUN_UP", "solo_start_type": time_trial_start_type, "neutralised": start_state == "NEUTRAL", "solo_time_trial": race_mode == 7, "solo_crossings": pursuit_half_crossings[0], "solo_reference": time_trial_reference, "solo_reference_kind": time_trial_reference_kind, "solo_distance_m": _race_length(), "solo_remaining_m": maxf(0.0, _race_length() - distances[0]), "elimination": race_mode == 2, "eliminated": elimination_rules.eliminated if race_mode == 2 else [], "omnium": omnium_race.enabled(), "points_race": race_mode in [1, 8], "race_positions": race_positions if race_mode in [0,1,8] else [], "peloton": peloton_info, "peloton_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1,8] else "", "points_order": _points_order() if race_mode in [1, 8] else [], "point_scores": (tempo_rules.points if race_mode == 8 else points_rules.points) if race_mode in [1, 8] else [],"pursuit_live_gap": pursuit_live_gap, "pursuit_stats": pursuit_stats_pair, "pursuit": race_mode == 4, "team_half_crossings": pursuit_half_crossings[0], "opponent_half_crossings": pursuit_half_crossings[1], "pursuit_laps": pursuit_lap_pair, "pursuit_split_delta": pursuit_delta, "pursuit_opponent": "AI" if pursuit_replay.is_empty() else str(pursuit_replay.get("name", "")), "draft_enabled": race_mode not in [4, 5, 7], "speed_kmh": speeds[0] * 3.6, "draft_reduction": _draft_drag_reduction(0), "draft_max": SCRATCH_DRAFT_MAX_DRAG_REDUCTION if race_mode in [0, 1, 3, 8] else DRAFT_MAX_DRAG_REDUCTION, "watts": watts, "gear": trainer_gear if connected else "—", "pc_control": not trainer_seen, "pc_energy_fraction": _pc_energy_fraction(), "pc_delivered_watts": pc_delivered_watts, "pc_power_limit_watts": pc_power_limit_watts, "heart_rate_bpm": trainer_heart_rate_bpm, "cadence_rpm": cadence if cadence >= 0.0 and connected else null, "lap_credit": _lap_credits()[0] if race_mode in [0, 1, 8] else 0, "lap": _hud_race_lap(), "laps": race_laps, "seconds": shown_seconds, "position": order.find(0) + 1, "count": elimination_rules.remaining_count() if race_mode == 2 and not omnium_race.enabled() else rider_count, "leader_gap": PelotonState.gap_text(race_positions[0], peloton_info) if race_mode in [0,1,8] else (_hud_elimination_gap() if race_mode == 2 else _hud_leader_gap(order)), "order": order, "distances": physical_positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice})
 
 func _result_cell(value: String, tint: Color, bg: Color, width: float, right: bool = false, header: bool = false) -> void:
 	var panel := PanelContainer.new()
@@ -3445,7 +3452,10 @@ func _refresh_fullscreen_results() -> void:
 	var status: String = "Alle renners gefinisht" if complete else "Nog renners onderweg - uitslag wordt automatisch aangevuld"
 	var summary: String = "JOUW TIJD   %.2f s    •    GEM. VERMOGEN   %.0f W    •    PIEK   %.0f W\n%s" % [finish_times[0], player_power_integral / maxf(0.1, finish_times[0]), player_peak_watts, status]
 	if omnium_race.enabled():
-		summary += "\nOMNIUM · %d punten%s" % [preload("res://omnium/omnium_scoring.gd").place_points(player_place), " · opgeslagen" if omnium_race.committed else " · voorlopig"]
+		var omnium_scores := preload("res://omnium/omnium_scoring.gd")
+		var earned: int = omnium_scores.place_points(player_place)
+		var previous: Dictionary = omnium_scores.totals(omnium_race.context.riders, omnium_race.context.results)
+		summary += "\nOMNIUM · +%d punten · totaal %d · %s" % [earned, int(previous[rider_identities[0].id]) + earned, "opgeslagen" if omnium_race.committed else "voorlopig"]
 	if race_mode == 0 and not scratch_rules.events.is_empty():
 		var gains := 0
 		for event in scratch_rules.events:
@@ -3732,7 +3742,7 @@ func _on_strava_activity_created(activity_id: String) -> void:
 	done.popup_centered(Vector2i(650, 290))
 
 func _strava_activity_title() -> String:
-	if omnium_race.enabled(): return "Vélodrome - Omnium - " + ("Temporace" if omnium_race.discipline() == "tempo" else "Scratch")
+	if omnium_race.enabled(): return "Vélodrome - Omnium - " + String({"scratch":"Scratch", "tempo":"Temporace", "elimination":"Afvalling"}.get(omnium_race.discipline(), ""))
 	for mode in preload("res://race_menu.gd").MODES:
 		if int(mode["race_id"]) == race_mode:
 			return "Velodrome - " + String(mode["title"])

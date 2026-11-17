@@ -133,6 +133,7 @@ func race_card(parent: Node, spec: Array, discipline_index: int) -> void:
 	elif next:
 		if discipline_index == 0: card.pressed.connect(menu.start_omnium_scratch)
 		elif discipline_index == 1: card.pressed.connect(menu.start_omnium_tempo)
+		elif discipline_index == 2: card.pressed.connect(menu.start_omnium_elimination)
 		else: card.pressed.connect(show_start_notice)
 	ignore_children(content)
 

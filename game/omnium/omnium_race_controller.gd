@@ -15,6 +15,7 @@ var clock_source: Callable
 func discipline() -> String: return ""
 func stage() -> int: return -1
 func mode() -> int: return -1
+func elimination_interval_m() -> float: return 500.0
 
 func now_unix() -> int:
 	return int(clock_source.call()) if clock_source.is_valid() else int(Time.get_unix_time_from_system())

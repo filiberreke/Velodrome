@@ -8,7 +8,7 @@ const SIMPLE_DURATION := 2.5
 const OPPONENT_START := 8.0
 const OPPONENT_END := 10.0
 const WELCOME := "Welkom bij Velodrome!"
-const DISCIPLINES := {0: "scratch", 1: "puntenkoers", 3: "keirin", 4: "achtervolging", 5: "ploegenachtervolging", 6: "ploegkoers", 8: "temporace"}
+const DISCIPLINES := {0: "scratch", 2: "afvalling", 1: "puntenkoers", 3: "keirin", 4: "achtervolging", 5: "ploegenachtervolging", 6: "ploegkoers", 8: "temporace"}
 
 static func welcome_for_mode(mode: int) -> String:
 	if not DISCIPLINES.has(mode): return WELCOME

@@ -328,7 +328,7 @@ func _build_eliminated() -> void:
 	eliminated_panel.hide()
 
 func _update_eliminated(data: Dictionary) -> void:
-	eliminated_panel.visible = bool(data.get("elimination", false))
+	eliminated_panel.visible = bool(data.get("elimination", false)) and not bool(data.get("omnium", false))
 	if not eliminated_panel.visible: return
 	var out: Array = data.get("eliminated", [])
 	eliminated_scroll.custom_minimum_size.y = minf(360.0, out.size() * 30.0)
