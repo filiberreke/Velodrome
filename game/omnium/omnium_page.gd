@@ -11,6 +11,8 @@ var editing := false
 var opened := false
 var choosing_startlist := false
 var picker_layer: CanvasLayer
+# Keep signal receivers alive while the detail controls are in use.
+var details = preload("res://omnium/omnium_details.gd").new()
 
 func _ready() -> void:
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -52,7 +54,7 @@ func refresh() -> void:
 	if editing: render_editor(); return
 	if not manager.clock_warning.is_empty(): body.add_child(menu.label(manager.clock_warning, 20))
 	if not manager.state.active.is_empty():
-		preload("res://omnium/omnium_details.gd").new().render(self)
+		details.render(self)
 		return
 	if not choosing_startlist: render_setup(); return
 	body.add_child(menu.label("Startlijst aanmaken · kies je deelnemersbron", 26))

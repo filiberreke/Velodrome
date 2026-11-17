@@ -220,6 +220,7 @@ func render_settings() -> void:
 func change_format(index: int) -> void:
 	if int(active.started) != 0: return
 	if page.manager.update_setup(active.riders, ["short", "men", "women"][index], float(active.strength), int(Time.get_unix_time_from_system())):
+		active = page.manager.state.active
 		page.refresh.call_deferred()
 	else: settings_error()
 
