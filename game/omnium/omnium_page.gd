@@ -19,7 +19,7 @@ func _ready() -> void:
 	body = VBoxContainer.new(); body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(body)
 	back_button = Button.new(); back_button.text = "← Hoofdmenu"
-	back_button.pressed.connect(menu.show_hub); add_child(back_button)
+	back_button.pressed.connect(go_back); add_child(back_button)
 	manager.load_session(int(Time.get_unix_time_from_system()))
 	refresh()
 
@@ -40,9 +40,14 @@ func player() -> Dictionary:
 
 func refresh() -> void:
 	clear_body()
+	back_button.text = "← Deelnemersbron" if editing else ("← Toernooien" if opened else "← Hoofdmenu")
 	manager.check_deadline(int(Time.get_unix_time_from_system()))
+	button(back_button.text, go_back)
 	if not opened:
-		button("Omnium →", func(): opened = true; refresh())
+		var tile = preload("res://omnium/omnium_tile.gd").new()
+		tile.menu = menu; tile.manager = manager
+		tile.pressed.connect(func(): opened = true; refresh())
+		body.add_child(tile)
 		return
 	if editing: render_editor(); return
 	if not manager.clock_warning.is_empty(): body.add_child(menu.label(manager.clock_warning, 20))
@@ -139,3 +144,19 @@ func confirm_stop() -> void:
 	dialog.canceled.connect(dialog.queue_free)
 	dialog.confirmed.connect(dialog.queue_free)
 	add_child(dialog); dialog.popup_centered()
+
+func go_back() -> void:
+	if is_instance_valid(picker_layer): picker_layer.queue_free(); return
+	if editing: editing = false
+	elif opened: opened = false
+	else: menu.show_hub(); return
+	refresh()
+	back_button.grab_focus.call_deferred()
+
+func handle_navigation(key: String) -> bool:
+	if is_instance_valid(picker_layer):
+		for child in picker_layer.get_children():
+			if child.has_method("bridge_action"): child.bridge_action(key)
+		return true
+	if key == "B": go_back(); return true
+	return false

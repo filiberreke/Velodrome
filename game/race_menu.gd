@@ -341,14 +341,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	first_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(first_row)
 	hub_button = _hub_tile(first_row, "Wedstrijden", "Kies je discipline en ga voor de winst.", [0], show_choices)
-	var tournaments := _hub_tile(first_row, "Toernooien", "Meerdere wedstrijden, één klassement.", [2], show_tournaments)
-	var tournament_copy: VBoxContainer = tournaments.get_child(0).get_child(0)
-	var coming_soon := label("BINNENKORT", 14, MenuStyle.MUTED)
-	coming_soon.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	coming_soon.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.PALE, MenuStyle.LINE, 8, 6))
-	tournament_copy.add_child(coming_soon)
-	tournament_copy.move_child(coming_soon, 0)
-	tournament_copy.get_child(1).add_theme_color_override("font_color", MenuStyle.MUTED)
+	_hub_tile(first_row, "Toernooien", "Meerdere wedstrijden, één klassement.", [0], show_tournaments)
 	var second_row := HBoxContainer.new()
 	second_row.name = "ErgEnPistetraining"
 	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -690,6 +683,8 @@ func _piste_environment(active: bool) -> void:
 		menu_tint.show()
 
 func show_tournaments() -> void:
+	tournament_page.opened = false
+	tournament_page.editing = false
 	tournament_page.refresh()
 	_show_section(7, "Toernooien", tournament_page)
 	tournament_back.grab_focus.call_deferred()
@@ -1055,6 +1050,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func bridge_action(button: String) -> void:
 	if not visible:
 		return
+	if page == 7 and tournament_page.handle_navigation(button): return
 	if page == 5:
 		startlist_page.bridge_action(button)
 		return
