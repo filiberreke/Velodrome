@@ -103,18 +103,19 @@ func render_editor() -> void:
 	else:
 		var tools := HBoxContainer.new(); tools.add_theme_constant_override("separation", 12)
 		body.add_child(tools)
-		button("Herlaad random mannen", generate.bind("men"), tools)
-		button("Herlaad random vrouwen", generate.bind("women"), tools)
+		button("Herlaad random mannen", confirm_roster_change.bind(generate.bind("men"), false), tools)
+		button("Herlaad random vrouwen", confirm_roster_change.bind(generate.bind("women"), false), tools)
 		var previous := OptionButton.new()
 		previous.custom_minimum_size.y = 46
-		previous.add_item("Startlijst van vorig toernooi…")
+		previous.add_item("Vorig toernooi")
 		previous.set_item_disabled(0, true)
 		for tournament in manager.state.archive: previous.add_item(String(tournament.id))
 		previous.disabled = manager.state.archive.is_empty()
 		previous.item_selected.connect(func(index):
-			if index > 0: copy_previous(manager.state.archive[index - 1]))
+			previous.select(0)
+			if index > 0: confirm_roster_change(copy_previous.bind(manager.state.archive[index - 1]), false))
 		tools.add_child(previous)
-		button("Wis lijst", manual, tools)
+		button("Wis lijst", confirm_roster_change.bind(manual, true), tools)
 	var grid := GridContainer.new(); grid.columns = 5
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 12)
@@ -212,3 +213,17 @@ func render_setup() -> void:
 	strength.value_changed.connect(func(value): draft.strength = value); body.add_child(strength)
 
 	button("Verder · startlijst aanmaken →", func(): choosing_startlist = true; refresh())
+
+func confirm_roster_change(action: Callable, clear_list: bool) -> void:
+	if roster_locked(): return
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Startlijst wissen" if clear_list else "Startlijst vervangen"
+	dialog.dialog_text = "Ben je zeker dat je de huidige startlijst wil wissen?" if clear_list else "Ben je zeker dat je de huidige startlijst wil vervangen?"
+	dialog.ok_button_text = "Wissen" if clear_list else "Vervangen"
+	dialog.cancel_button_text = "Annuleren"
+	dialog.confirmed.connect(func():
+		if not roster_locked(): action.call()
+		dialog.queue_free())
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()
