@@ -42,7 +42,6 @@ func refresh() -> void:
 	clear_body()
 	back_button.text = "← Deelnemersbron" if editing else ("← Toernooien" if opened else "← Hoofdmenu")
 	manager.check_deadline(int(Time.get_unix_time_from_system()))
-	button(back_button.text, go_back)
 	if not opened:
 		var tile = preload("res://omnium/omnium_tile.gd").new()
 		tile.menu = menu; tile.manager = manager
