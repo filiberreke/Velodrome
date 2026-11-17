@@ -685,6 +685,7 @@ func _piste_environment(active: bool) -> void:
 func show_tournaments() -> void:
 	tournament_page.opened = false
 	tournament_page.editing = false
+	tournament_page.choosing_startlist = false
 	tournament_page.refresh()
 	_show_section(7, "Toernooien", tournament_page)
 	tournament_back.grab_focus.call_deferred()

@@ -9,6 +9,7 @@ var back_button: Button
 var message: Label
 var editing := false
 var opened := false
+var choosing_startlist := false
 var picker_layer: CanvasLayer
 
 func _ready() -> void:
@@ -40,7 +41,7 @@ func player() -> Dictionary:
 
 func refresh() -> void:
 	clear_body()
-	back_button.text = "← Deelnemersbron" if editing else ("← Toernooien" if opened else "← Hoofdmenu")
+	back_button.text = "← Omnium" if editing and not manager.state.active.is_empty() else ("← Deelnemersbron" if editing else ("← Speelinstellingen" if choosing_startlist and manager.state.active.is_empty() else ("← Toernooien" if opened else "← Hoofdmenu")))
 	manager.check_deadline(int(Time.get_unix_time_from_system()))
 	if not opened:
 		var tile = preload("res://omnium/omnium_tile.gd").new()
@@ -53,7 +54,8 @@ func refresh() -> void:
 	if not manager.state.active.is_empty():
 		preload("res://omnium/omnium_details.gd").new().render(self)
 		return
-	body.add_child(menu.label("Nieuw omnium · kies eerst je deelnemers", 26))
+	if not choosing_startlist: render_setup(); return
+	body.add_child(menu.label("Startlijst aanmaken · kies je deelnemersbron", 26))
 	if not draft.catalog.load_catalog(): body.add_child(menu.label(draft.catalog.error, 20)); return
 	for category in ["men", "women", "mixed"]:
 		button("Willekeurige lijst · " + {"men":"mannen", "women":"vrouwen", "mixed":"gemengd"}[category], generate.bind(category))
@@ -70,7 +72,11 @@ func manual() -> void:
 	draft.riders = [player()]; editing = true; refresh()
 
 func copy_previous(tournament: Dictionary) -> void:
-	draft.copy_from(tournament, player()); editing = true; refresh()
+	var chosen_format: String = draft.format_id
+	var chosen_strength: float = draft.strength
+	draft.copy_from(tournament, player())
+	draft.format_id = chosen_format; draft.strength = chosen_strength
+	editing = true; refresh()
 
 func edit_active() -> void:
 	if not draft.catalog.load_catalog(): return
@@ -78,14 +84,6 @@ func edit_active() -> void:
 
 func render_editor() -> void:
 	body.add_child(menu.label("Deelnemers bevestigen · %d/24" % draft.riders.size(), 26))
-	var formats := OptionButton.new()
-	for title in ["Verkort", "Mannenafstanden", "Vrouwenafstanden"]: formats.add_item(title)
-	formats.select(["short", "men", "women"].find(draft.format_id))
-	formats.item_selected.connect(func(index): draft.format_id = ["short", "men", "women"][index])
-	body.add_child(formats)
-	var strength := SpinBox.new(); strength.min_value = 40; strength.max_value = 120; strength.step = 5; strength.value = draft.strength
-	strength.prefix = "AI-sterkte "; strength.suffix = "%"
-	strength.value_changed.connect(func(value): draft.strength = value); body.add_child(strength)
 	for i in range(draft.riders.size()):
 		var entry: Dictionary = draft.riders[i]
 		var row := HBoxContainer.new(); body.add_child(row)
@@ -103,9 +101,9 @@ func render_editor() -> void:
 	var add_button := button("Renner toevoegen", open_picker.bind(-1))
 	add_button.disabled = draft.riders.size() >= 24
 	message = menu.label("", 18); body.add_child(message)
-	var confirm := button("Deelnemers en format bevestigen", confirm_draft)
+	var confirm := button("Startlijst bevestigen", confirm_draft)
 	confirm.disabled = draft.riders.size() < 12 or draft.riders.size() > 24
-	button("Annuleren", func(): editing = false; refresh())
+	button("Annuleren", go_back)
 
 func open_picker(slot: int) -> void:
 	if is_instance_valid(picker_layer): return
@@ -125,7 +123,7 @@ func confirm_draft() -> void:
 	var success: bool
 	if manager.state.active.is_empty(): success = manager.create(draft.riders, draft.format_id, draft.strength, now)
 	else: success = manager.update_setup(draft.riders, draft.format_id, draft.strength, now)
-	if success: editing = false; refresh()
+	if success: editing = false; choosing_startlist = false; refresh()
 	else: message.text = manager.error if not manager.error.is_empty() else "Controleer deelnemers, landen en format."
 
 func confirm_stop() -> void:
@@ -139,6 +137,7 @@ func confirm_stop() -> void:
 func go_back() -> void:
 	if is_instance_valid(picker_layer): picker_layer.queue_free(); return
 	if editing: editing = false
+	elif choosing_startlist and manager.state.active.is_empty(): choosing_startlist = false
 	elif opened: opened = false
 	else: menu.show_hub(); return
 	refresh()
@@ -151,3 +150,17 @@ func handle_navigation(key: String) -> bool:
 		return true
 	if key == "B": go_back(); return true
 	return false
+
+func render_setup() -> void:
+	body.add_child(menu.label("Nieuw omnium · speelinstellingen", 28))
+	body.add_child(menu.label("Kies je format en de sterkte van je tegenstanders.", 20))
+	var formats := OptionButton.new()
+	for title in ["Verkort", "Mannenafstanden", "Vrouwenafstanden"]: formats.add_item(title)
+	formats.select(["short", "men", "women"].find(draft.format_id))
+	formats.item_selected.connect(func(index): draft.format_id = ["short", "men", "women"][index])
+	body.add_child(formats)
+	var strength := SpinBox.new(); strength.min_value = 40; strength.max_value = 120; strength.step = 5; strength.value = draft.strength
+	strength.prefix = "AI-sterkte "; strength.suffix = "%"
+	strength.value_changed.connect(func(value): draft.strength = value); body.add_child(strength)
+
+	button("Verder · startlijst aanmaken →", func(): choosing_startlist = true; refresh())

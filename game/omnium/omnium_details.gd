@@ -42,7 +42,7 @@ func render(owner_page: Node) -> void:
 	participants.add_child(menu.label("Deelnemers", 24))
 	participants.add_child(menu.label("%d renners · vaste tegenstanders" % active.riders.size(), 18, Style.MUTED))
 	page.button("Deelnemerslijst bekijken →", show_participants, participants)
-	if int(active.started) == 0: page.button("Deelnemers en format bewerken", page.edit_active, participants)
+	if int(active.started) == 0: page.button("Startlijst bewerken", page.edit_active, participants)
 	else: participants.add_child(menu.label("Deelnemers en sterkte zijn vergrendeld.", 17, Style.MUTED))
 	var standings := panel(sidebar)
 	standings.add_child(menu.label("Algemeen klassement", 24))
