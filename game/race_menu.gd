@@ -519,40 +519,10 @@ func _build_hub(layout: VBoxContainer) -> void:
 	training_history_page.menu = self
 	layout.add_child(training_history_page)
 	place_back(training_history_page.back_button, training_history_page)
-	tournament_page = VBoxContainer.new()
-	tournament_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tournament_page = preload("res://omnium/omnium_page.gd").new()
+	tournament_page.menu = self
 	layout.add_child(tournament_page)
-	var tournament_center := CenterContainer.new()
-	tournament_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	tournament_page.add_child(tournament_center)
-	var tournament_card := PanelContainer.new()
-	tournament_card.custom_minimum_size = Vector2(1260, 340)
-	tournament_card.add_theme_stylebox_override("panel", MenuStyle.panel(MenuStyle.PAPER, MenuStyle.LINE, 28))
-	tournament_center.add_child(tournament_card)
-	var tournament_content := HBoxContainer.new()
-	tournament_content.add_theme_constant_override("separation", 40)
-	tournament_card.add_child(tournament_content)
-	var tournament_art := TextureRect.new()
-	tournament_art.texture = previews[2].get_texture()
-	tournament_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tournament_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tournament_art.custom_minimum_size = Vector2(520, 280)
-	tournament_content.add_child(tournament_art)
-	var tournament_description_box := VBoxContainer.new()
-	tournament_description_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	tournament_description_box.add_theme_constant_override("separation", 18)
-	tournament_content.add_child(tournament_description_box)
-	tournament_description_box.add_child(label("BINNENKORT", 16, MUTED))
-	var tournament_heading := label("Toernooien komen eraan", 32)
-	tournament_heading.add_theme_font_override("font", MenuStyle.heading())
-	tournament_description_box.add_child(tournament_heading)
-	tournament_description_box.add_child(label("Meerdere wedstrijden, één klassement.\nJe kunt nu al losse wedstrijden rijden.", 22, MUTED))
-	var choose_race := Button.new()
-	choose_race.text = "Kies een wedstrijd →"
-	MenuStyle.primary(choose_race)
-	choose_race.pressed.connect(show_choices)
-	tournament_description_box.add_child(choose_race)
-	tournament_back = _hub_button(tournament_page, "← Hoofdmenu", show_hub)
+	tournament_back = tournament_page.back_button
 	place_back(tournament_back, tournament_page)
 	workout_editor_page = preload("res://workout_editor.gd").new()
 	workout_editor_page.library = workout_library
@@ -720,6 +690,7 @@ func _piste_environment(active: bool) -> void:
 		menu_tint.show()
 
 func show_tournaments() -> void:
+	tournament_page.refresh()
 	_show_section(7, "Toernooien", tournament_page)
 	tournament_back.grab_focus.call_deferred()
 

@@ -91,3 +91,20 @@ func archive(reason: String, now: int) -> bool:
 	next.active.status = reason; next.active.ended = now; next.active.attempt = {}
 	next.archive.append(next.active.duplicate(true)); next.active = {}
 	return _commit(next)
+
+# Validate an editable setup using the same rules as initial creation.
+func update_setup(riders: Array, format_id: String, strength: float, now: int) -> bool:
+	if state.active.is_empty() or int(state.active.started) != 0: return false
+	# No disk write during validation.
+	if riders.size() < 12 or riders.size() > 24 or not Formats.FORMATS.has(format_id) or strength < 40 or strength > 120: return false
+	var ids := {}; var countries := {}; var players := 0
+	for rider in riders:
+		var id := String(rider.get("id", "")); var country := String(rider.get("country", ""))
+		if id.is_empty() or country.is_empty() or ids.has(id) or countries.has(country): return false
+		ids[id] = true; countries[country] = true
+		if rider.get("is_player", false): players += 1
+	if players != 1: return false
+	var next := state.duplicate(true)
+	next.active.riders = riders.duplicate(true); next.active.format = format_id
+	next.active.strength = strength; next.active.last_seen = now
+	return _commit(next)
