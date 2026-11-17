@@ -4,12 +4,11 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://d1ndmbbatuy6w"
-path="res://.godot/imported/commentary_booth_rig.blend-1ae293b2b20cb13d2ea0af1141cc90e3.scn"
+valid=false
 
 [deps]
 
 source_file="res://assets/commentary/commentary_booth_rig.blend"
-dest_files=["res://.godot/imported/commentary_booth_rig.blend-1ae293b2b20cb13d2ea0af1141cc90e3.scn"]
 
 [params]
 
