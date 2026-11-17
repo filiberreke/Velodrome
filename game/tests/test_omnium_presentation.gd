@@ -1,5 +1,6 @@
 extends SceneTree
 const Catalog := preload("res://omnium/omnium_catalog.gd")
+const SavedResults := preload("res://omnium/omnium_result_page.gd")
 const Results := preload("res://omnium/omnium_results.gd")
 class Game extends "res://main.gd":
 	func _bind_bridge(_port: int = UDP_PORT) -> Error: return super._bind_bridge(0)
@@ -7,13 +8,30 @@ class Game extends "res://main.gd":
 func _initialize() -> void: run.call_deferred()
 func cell_text(game: Node, index: int) -> String:
 	return game.finish_table.get_child(index).get_child(0).text
+func cards_in(node: Node) -> Array[Button]:
+	var cards: Array[Button] = []
+	if node is Button and node.has_meta("discipline_index"): cards.append(node)
+	for child in node.get_children(): cards.append_array(cards_in(child))
+	return cards
+func check_card_focus(page: Node, next_index: int) -> void:
+	var cards := cards_in(page.body)
+	assert(cards.size() == 5)
+	for card in cards:
+		assert(not card.disabled)
+		var next: bool = int(card.get_meta("discipline_index")) == next_index
+		assert(card.get_theme_stylebox("normal").border_width_left == (3 if next else 1))
+		assert(card.get_theme_stylebox("normal").bg_color != card.get_theme_stylebox("hover").bg_color)
+		card.mouse_entered.emit()
+		assert(card.has_focus())
+		card.mouse_exited.emit()
+		assert(not card.has_focus())
 func run() -> void:
 	assert(Results.clock(991.53) == "16:31.530")
 	assert(Results.clock(59.9996) == "1:00.000")
 	assert(Results.clock(0) == "0:00.000")
 	for action in ["ReplayRaceButton", "MainMenuButton"]:
 		await check_screen(action)
-	print("PASS omnium presentation: compact translucent ranked HUD, lap deltas, clock/gaps, 24 score rows, both return buttons and standalone labels")
+	print("PASS omnium presentation: compact translucent ranked HUD, lap deltas, clock/gaps, 24 score rows, both return buttons, hover/focus, saved full results after reload, legacy saves and standalone labels")
 	quit()
 func check_screen(action: String) -> void:
 	var game := Game.new(); root.add_child(game); game.set_physics_process(false)
@@ -25,6 +43,7 @@ func check_screen(action: String) -> void:
 	var riders := catalog.generate(page.player(),24,"mixed",rng)
 	assert(page.manager.create(riders,"men",95,int(Time.get_unix_time_from_system())))
 	menu.show_omnium_details(); await process_frame
+	check_card_focus(page, 0)
 	menu.start_omnium_scratch(); await process_frame
 	game._begin_riding(); game._finish_neutral_start()
 	game.scratch_rules.credits[0] = 3; game.scratch_rules.credits[1] = 3
@@ -60,6 +79,31 @@ func check_screen(action: String) -> void:
 	await process_frame
 	assert(menu.visible and menu.page == 7 and page.opened)
 	assert(not game.omnium_race.enabled() and not game.finish_overlay.visible)
+	assert(page.manager.state.active.results.size() == 1)
+	check_card_focus(page, 1)
+	# Reopen from disk, not from the simulation: preserve the full classification.
+	assert(page.manager.load_session(int(Time.get_unix_time_from_system())))
+	page.refresh(); await process_frame
+	var saved: Dictionary = page.manager.state.active.results[0]
+	assert(saved.lap_credits[saved.order[0]] == 3)
+	assert(saved.lap_credits[saved.order[-1]] == -2)
+	for card in cards_in(page.body):
+		if int(card.get_meta("discipline_index")) == 0: card.pressed.emit(); break
+	await process_frame
+	assert(page.result_index == 0 and page.back_button.text == "← Omnium")
+	var table := page.body.find_child("OmniumSavedResultTable", true, false) as GridContainer
+	assert(table != null and table.columns == 4 and table.get_child_count() == 100)
+	assert(table.get_child(6).get_child(0).text == "16:31.530")
+	assert(table.get_child(10).get_child(0).text == "+0:00.290")
+	assert(table.get_child(14).get_child(0).text == "+1 ronde")
+	assert(table.get_child(98).get_child(0).text == "+5 ronden")
+	assert(table.get_child(99).get_child(0).text == "1")
+	assert(not game.omnium_race.enabled() and not game.finish_overlay.visible)
+	assert(page.handle_navigation("B")); await process_frame
+	assert(page.result_index == -1 and cards_in(page.body).size() == 5)
+	# Old saves remain readable; missing lap credits must never be invented.
+	var legacy := saved.duplicate(true); legacy.erase("lap_credits")
+	assert(SavedResults.time_text(legacy, String(legacy.order[2])) == "+0:00.580")
 	assert(page.manager.state.active.results.size() == 1)
 	game._refresh_fullscreen_results()
 	assert(primary.text == "Wedstrijd opnieuw rijden" and back.text == "← Hoofdmenu")

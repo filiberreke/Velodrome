@@ -10,6 +10,7 @@ var back_button: Button
 var message: Label
 var editing := false
 var opened := false
+var result_index := -1
 var choosing_startlist := false
 var picker_layer: CanvasLayer
 # Keep signal receivers alive while the detail controls are in use.
@@ -47,6 +48,11 @@ func refresh() -> void:
 	clear_body()
 	back_button.text = "← Omnium" if editing and not manager.state.active.is_empty() else ("← Deelnemersbron" if editing else ("← Speelinstellingen" if choosing_startlist and manager.state.active.is_empty() else ("← Toernooien" if opened else "← Hoofdmenu")))
 	manager.check_deadline(int(Time.get_unix_time_from_system()))
+	if manager.state.active.is_empty(): result_index = -1
+	if opened and result_index >= 0 and result_index < manager.state.active.results.size():
+		back_button.text = "← Omnium"
+		preload("res://omnium/omnium_result_page.gd").render(self, manager.state.active, result_index)
+		return
 	if not opened:
 		var tile = preload("res://omnium/omnium_tile.gd").new()
 		tile.menu = menu; tile.manager = manager
@@ -186,7 +192,8 @@ func confirm_stop() -> void:
 
 func go_back() -> void:
 	if is_instance_valid(picker_layer): picker_layer.queue_free(); return
-	if editing: editing = false
+	if result_index >= 0: result_index = -1
+	elif editing: editing = false
 	elif choosing_startlist and manager.state.active.is_empty(): choosing_startlist = false
 	elif opened: opened = false
 	else: menu.show_hub(); return

@@ -118,8 +118,9 @@ func clear() -> void:
 	hud = null; context = {}; attempt = {}; finish_energy.clear(); committed = false
 
 func result_data(game: Node) -> Dictionary:
-	var ids: Array = []; var times := {}
+	var ids: Array = []; var times := {}; var credits := {}
+	var laps: Array[int] = game._lap_credits()
 	for i in order(game):
 		var id := String(game.rider_identities[i].id)
-		ids.append(id); times[id] = game.finish_times[i]
-	return {"discipline":discipline(), "order":ids, "finish_times":times}
+		ids.append(id); times[id] = game.finish_times[i]; credits[id] = laps[i]
+	return {"discipline":discipline(), "order":ids, "finish_times":times, "lap_credits":credits}

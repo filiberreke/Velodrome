@@ -693,6 +693,7 @@ func _piste_environment(active: bool) -> void:
 		menu_tint.show()
 
 func show_tournaments() -> void:
+	tournament_page.result_index = -1
 	tournament_page.opened = false
 	tournament_page.editing = false
 	tournament_page.choosing_startlist = false
@@ -1159,6 +1160,7 @@ func _start_omnium_race(controller: RefCounted, caption: String) -> void:
 		add_child(dialog); dialog.popup_centered()
 
 func show_omnium_details() -> void:
+	tournament_page.result_index = -1
 	tournament_page.opened = true; tournament_page.editing = false
 	tournament_page.refresh()
 	_show_section(7, "Omnium", tournament_page)

@@ -29,3 +29,32 @@ Validation used Godot 4.6.1 headless:
 
 No render screenshot or physical-trainer test is claimed for this presentation
 change. The user's screenshots provided the visual reference.
+
+
+## Omnium detail cards and reopening saved results
+
+The next discipline has a permanent three-pixel blue border, independent of
+interaction. All five cards have separate normal/hover/pressed styles and the
+shared focus ring. Mouse entry transfers focus, mouse exit releases it. Future
+cards still cannot start a race; they retain muted content and explain the order
+in a tooltip. Keyboard activation and focus remain available.
+
+Completed discipline cards open a full read-only results page, rather than an
+AcceptDialog. All participants, national flags, placing, finish time/time or lap
+gap, earned omnium points, and the player's cumulative score at that discipline
+are shown. Tempo additionally shows race points. Both the blue `← Omnium` button
+and `Ga verder met omnium` return to the detail page without replaying a race or
+changing the valid result. This page uses persisted data and never restores the
+live simulation. Race telemetry/export and a finish photograph are not retained
+in the omnium result save, so this view does not reconstruct those elements.
+
+New results persist jury lap credits by stable rider ID. Old saves still show
+all riders and their saved times, and explicitly state that lap differences were
+not saved; the view never guesses lap deficits from elapsed time.
+
+Additional headless checks in `test_omnium_presentation.gd` cover focus transfer
+and release on all cards, distinct hover styling, the persistent next-event
+border before and after Scratch, a full 24-rider result reopened after disk
+reload, winner/time/lap gaps and points, return navigation, and old-save fallback.
+`test_omnium_scratch.gd`, `test_omnium_tempo_flow.gd`,
+`test_omnium_elimination_flow.gd` and `test_result_navigation.gd` were rerun.

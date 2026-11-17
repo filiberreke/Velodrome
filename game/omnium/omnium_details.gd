@@ -92,9 +92,18 @@ func race_card(parent: Node, spec: Array, discipline_index: int) -> void:
 	var card := Button.new()
 	card.custom_minimum_size.y = 132
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.disabled = not available
-	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
-		card.add_theme_stylebox_override(state, Style.panel(Style.PALE if next else Style.PAPER, Style.BLUE if next else Style.LINE, 12, 10))
+	card.set_meta("discipline_index", discipline_index)
+	var normal := Style.panel(Style.PAPER if available else Style.IVORY, Style.BLUE if next else Style.LINE, 12, 10)
+	normal.set_border_width_all(3 if next else 1)
+	card.add_theme_stylebox_override("normal", normal)
+	card.add_theme_stylebox_override("hover", Style.panel(Style.PALE, Style.BLUE, 12, 10))
+	card.add_theme_stylebox_override("pressed", Style.panel(Style.PALE.darkened(0.06), Style.BLUE, 12, 10))
+	card.add_theme_stylebox_override("focus", Style.focus_ring(10))
+	card.mouse_entered.connect(card.grab_focus)
+	card.mouse_exited.connect(func():
+		if card.has_focus(): card.release_focus())
+	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if available else Control.CURSOR_ARROW
+	if not available: card.tooltip_text = "Speel eerst de voorgaande onderdelen."
 	parent.add_child(card)
 	var content := HBoxContainer.new()
 	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -172,15 +181,10 @@ func show_participants() -> void:
 		rider_row(list, rider, "", "Speler" if rider.get("is_player", false) else String(rider.get("category", "")))
 
 func show_result(index: int) -> void:
-	var list := popup(["Scratch", "Temporace", "Afvalling", "Puntenkoers"][index] + " · uitslag")
-	var result: Dictionary = active.results[index]
-	for i in range(result.order.size()):
-		for rider in active.riders:
-			if rider.id == result.order[i]:
-				var points: int = int(result.get("points", {}).get(rider.id, 0)) if index == 3 else Scores.place_points(i + 1)
-				var detail := "%d pt" % points
-				if index == 1: detail = "%d koerspunten · %d omniumpt" % [int(result.get("race_points", {}).get(rider.id, 0)), points]
-				rider_row(list, rider, "%d." % (i + 1), detail)
+	page.result_index = index
+	page.refresh()
+	page.body.get_parent().set_deferred("scroll_vertical", 0)
+	page.back_button.grab_focus.call_deferred()
 
 func show_start_notice() -> void:
 	var dialog := AcceptDialog.new()
