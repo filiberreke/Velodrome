@@ -58,3 +58,20 @@ border before and after Scratch, a full 24-rider result reopened after disk
 reload, winner/time/lap gaps and points, return navigation, and old-save fallback.
 `test_omnium_scratch.gd`, `test_omnium_tempo_flow.gd`,
 `test_omnium_elimination_flow.gd` and `test_result_navigation.gd` were rerun.
+
+
+## Live Temporace race points
+
+The omnium Tempo controller adds `race_points` to each live standings row using
+stable rider IDs. The HUD keeps signed lap credits and adds a separate `TEMPO`
+column before `OMNIUM`, with column headings. Tempo points include sprint awards
+and jury lap awards/penalties; they are never substituted for the provisional
+omnium points. Zero and negative totals are displayed. The HUD expands from 280
+to 324 logical pixels only during Tempo. Scratch and Elimination retain their
+existing columns and width.
+
+Godot 4.6.1 headless validation: `test_omnium_tempo_flow.gd` checks points by rider
+ID after virtual standings reorder, +1/-1 lap credits alongside 21/-20 race
+points, the independent player omnium total of 80, the 324-pixel layout and an
+update from 21 to 22 without any rank/lap/omnium-total change. The Scratch
+presentation and Elimination flow tests were also rerun.

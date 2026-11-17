@@ -64,14 +64,40 @@ func run() -> void:
 	game.tempo_rules.points[2] = 5
 	var live: Array = game.omnium_race.standings(game)
 	for row in live:
-		if row.player: assert(row.score == 76) # Scratch win 40 + provisional third 36.
+		if row.player: assert(row.score == 76 and row.race_points == 1) # Scratch win 40 + provisional third 36.
 	game.tempo_rules._award_lap(0, 1, 1.0)
 	live = game.omnium_race.standings(game)
 	for row in live:
-		if row.player: assert(row.score == 80) # Lap gain changes discipline rank to first.
+		if row.player: assert(row.score == 80 and row.race_points == 21) # Lap gain changes discipline rank to first.
+	game.tempo_rules._award_lap(3, -1, 2.0)
 	game._update_hud()
 	assert(not game.race_overlay.points_panel.visible)
 	assert(game.omnium_race.hud.visible)
+	await process_frame
+	var hud = game.omnium_race.hud
+	assert(hud.rows.get_child_count() == 10)
+	assert(hud.size.x <= 324.1 and hud.get_minimum_size().x <= 324.1)
+	assert(hud.rows.get_child(1).get_child(2).text == "TEMPO")
+	assert(hud.rows.get_child(1).get_child(3).text == "OMNIUM")
+	for i in range(2, hud.rows.get_child_count()):
+		var row: Node = hud.rows.get_child(i)
+		var slot: int = -1
+		for j in range(game.rider_count):
+			if String(game.rider_identities[j].id) == String(row.get_meta("rider_id")): slot = j
+		assert(slot >= 0)
+		assert(row.get_child(4).text == str(game.tempo_rules.points[slot]))
+		if slot == 0:
+			assert(row.get_child(3).text == "+1 ronde")
+			assert(row.get_child(4).text == "21" and row.get_child(5).text == "80")
+		if slot == 3:
+			assert(row.get_child(3).text == "-1 ronde" and row.get_child(4).text == "-20")
+	# A sprint point must refresh the HUD even when rank/laps/omnium total stay equal.
+	game.tempo_rules.points[0] = 22
+	game.omnium_race.update_hud(game)
+	for row in hud.rows.get_children():
+		if row.get_meta("rider_id", "") == "player":
+			assert(row.get_child(4).text == "22" and row.get_child(5).text == "80")
+	game.tempo_rules.points[0] = 21
 	var ids: Array = []; var times: Array = []; var awards: Array = []
 	for i in range(8):
 		game.finish_times[i] = 100 + i
@@ -92,5 +118,5 @@ func run() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(page.manager.store.folder))
 	await process_frame
 	game.queue_free(); await process_frame
-	print("PASS Scratch to Tempo menu flow: fixed settings/IDs, abort/retry, live ranks/lap gain, HUD, flags and result persistence")
+	print("PASS Scratch to Tempo menu flow: fixed settings/IDs, abort/retry, live ranks/lap gain, separate live Tempo/Omnium points, positive/negative laps, compact HUD, flags and result persistence")
 	quit()

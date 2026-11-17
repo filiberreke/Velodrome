@@ -15,9 +15,17 @@ func _ready() -> void:
 func update_standings(data: Array[Dictionary]) -> void:
 	var key := JSON.stringify(data)
 	if key == last_key or rows == null: return
+	var show_race_points := not data.is_empty() and data[0].has("race_points")
+	offset_left = -356 if show_race_points else -312
 	last_key = key
 	for child in rows.get_children(): rows.remove_child(child); child.queue_free()
 	var title := Label.new(); title.text = "VIRTUEEL OMNIUM"; title.add_theme_font_size_override("font_size", 17); rows.add_child(title)
+	if show_race_points:
+		var headings := HBoxContainer.new(); headings.add_theme_constant_override("separation", 5); rows.add_child(headings)
+		for column in [["", 102], ["RONDEN", 85], ["TEMPO", 44], ["OMNIUM", 52]]:
+			var heading := Label.new(); heading.text = String(column[0]); heading.custom_minimum_size.x = int(column[1])
+			heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			heading.add_theme_font_size_override("font_size", 11); headings.add_child(heading)
 	if abbreviations.is_empty():
 		var identities: Array = data.duplicate(true)
 		identities.sort_custom(func(a: Dictionary, b: Dictionary): return String(a.id) < String(b.id))
@@ -33,7 +41,7 @@ func update_standings(data: Array[Dictionary]) -> void:
 			abbreviations[rider.id] = short + (str(used[short]) if counts[short] > 1 else "")
 	for index in range(data.size()):
 		var rider: Dictionary = data[index]
-		var row := HBoxContainer.new(); row.mouse_filter = Control.MOUSE_FILTER_IGNORE; rows.add_child(row)
+		var row := HBoxContainer.new(); row.set_meta("rider_id", String(rider.id)); row.mouse_filter = Control.MOUSE_FILTER_IGNORE; rows.add_child(row)
 		row.add_theme_constant_override("separation", 5)
 		var rank := Label.new(); rank.text = str(index + 1) + "."
 		rank.custom_minimum_size.x = 26; rank.add_theme_font_size_override("font_size", 16); row.add_child(rank)
@@ -50,6 +58,11 @@ func update_standings(data: Array[Dictionary]) -> void:
 		laps.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		laps.custom_minimum_size.x = 85; laps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		laps.add_theme_font_size_override("font_size", 16); row.add_child(laps)
-		var score := Label.new(); score.custom_minimum_size.x = 30
+		if show_race_points:
+			var race_points := Label.new(); race_points.custom_minimum_size.x = 44
+			race_points.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			race_points.text = str(int(rider.get("race_points", 0)))
+			race_points.add_theme_font_size_override("font_size", 16); row.add_child(race_points)
+		var score := Label.new(); score.custom_minimum_size.x = 52 if show_race_points else 30
 		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		score.text = str(rider.score); score.add_theme_font_size_override("font_size", 16); row.add_child(score)
