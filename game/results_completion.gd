@@ -1,5 +1,6 @@
 extends RefCounted
 ## Continue the same race physics in short CPU batches while results are visible.
+const MODES := [0, 1, 2, 3, 8] # Scratch, points, elimination, keirin, tempo.
 const STEP := 1.0 / 60.0
 const FRAME_BUDGET_US := 10000
 var active := false
@@ -12,7 +13,7 @@ func cancel() -> void:
 	started = false
 
 func start(game: Node) -> void:
-	if started or not game.finished or game.start_state != "RACING" or game.race_mode not in [0,1,2,3] or game._all_riders_finished(): return
+	if started or not game.finished or game.start_state != "RACING" or game.race_mode not in MODES or game._all_riders_finished(): return
 	started = true
 	active = true
 	_run.call_deferred(game, generation)

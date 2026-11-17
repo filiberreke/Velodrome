@@ -66,6 +66,12 @@ Current trigger: the results overlay must be visible. The normal finish
 presentation can therefore run for up to ten seconds before acceleration starts.
 Work is bounded to 10 ms CPU batches per frame to keep the UI responsive.
 
-The current mode allowlist is scratch, points, elimination and keirin (0/1/2/3).
-Tempo (8) is not included yet; cover this when integrating Omnium Tempo.
-No production behavior was changed as part of this verification.
+The initial verification covered the existing scratch/points/elimination/keirin
+allowlist. Tempo (8) has now been added to the shared accelerator.
+
+`test_results_completion.gd` now passes eight real-motor scenarios: scratch,
+points, elimination and tempo with small fields, plus 24-rider points races of
+40/80/100 laps and 24-rider tempo over 40 laps. Checks cover automatic triggering,
+complete finishing order, unchanged player result and points, complete final
+sprint, unchanged sprint calendar, no duplicate restart and cancellation.
+The normal results-overlay trigger and frame CPU budget are unchanged.
