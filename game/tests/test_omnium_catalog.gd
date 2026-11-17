@@ -8,7 +8,7 @@ func _initialize() -> void:
 	rng.seed = 30
 	var player := {"id":"player", "country":"belgium", "name":"Speler"}
 	for category in ["men", "women", "mixed"]:
-		for count in range(12, 25):
+		for count in range(8, 25):
 			var lineup: Array = catalog.generate(player, count, category, rng)
 			assert(lineup.size() == count)
 			var countries := {}
@@ -20,5 +20,5 @@ func _initialize() -> void:
 			var original: String = catalog.entries[0].name
 			lineup[1].name = "Gewijzigd"
 			assert(catalog.entries[0].name == original)
-	print("PASS omnium catalog: three categories, 12–24 riders")
+	print("PASS omnium catalog: three categories, 8–24 riders")
 	quit()

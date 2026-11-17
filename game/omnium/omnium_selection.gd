@@ -14,7 +14,7 @@ func replace(slot: int, entry: Dictionary) -> bool:
 	return false
 
 func remove(slot: int) -> bool:
-	if slot <= 0 or slot >= riders.size() or riders.size() <= 12: return false
+	if slot <= 0 or slot >= riders.size() or riders.size() <= 1: return false
 	riders.remove_at(slot)
 	return true
 

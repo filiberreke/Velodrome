@@ -1,4 +1,5 @@
 extends VBoxContainer
+const Style := preload("res://menu_theme.gd")
 const Formats := preload("res://omnium/omnium_formats.gd")
 const Countries := preload("res://rennersboxen/race_countries.gd")
 var menu
@@ -66,48 +67,92 @@ func refresh() -> void:
 		button("Deelnemers kopiëren · " + String(tournament.id), copy_previous.bind(tournament))
 
 func generate(category: String) -> void:
+	if roster_locked(): return
 	var rng := RandomNumberGenerator.new(); rng.randomize()
 	draft.riders = draft.catalog.generate(player(), 24, category, rng)
 	editing = true; refresh()
 
 func manual() -> void:
+	if roster_locked(): return
 	draft.riders = [player()]; editing = true; refresh()
 
 func copy_previous(tournament: Dictionary) -> void:
+	if roster_locked(): return
 	var chosen_format: String = draft.format_id
 	var chosen_strength: float = draft.strength
 	draft.copy_from(tournament, player())
 	draft.format_id = chosen_format; draft.strength = chosen_strength
 	editing = true; refresh()
 
+func roster_locked() -> bool:
+	return not manager.state.active.is_empty() and int(manager.state.active.started) > 0
+
 func edit_active() -> void:
-	if not draft.catalog.load_catalog(): return
-	draft.copy_from(manager.state.active, player()); editing = true; refresh()
+	if roster_locked():
+		draft.riders.assign(manager.state.active.riders.duplicate(true))
+	else:
+		if not draft.catalog.load_catalog(): return
+		draft.copy_from(manager.state.active, player())
+	editing = true; refresh()
 
 func render_editor() -> void:
+	var locked := roster_locked()
 	body.add_child(menu.label("Startlijst · speler + %d/23 tegenstanders · %d/24 totaal" % [draft.opponent_count(), draft.riders.size()], 26))
+	if locked:
+		body.add_child(menu.label("De startlijst is vergrendeld sinds de start van de scratch.", 18))
+	else:
+		var tools := HBoxContainer.new(); tools.add_theme_constant_override("separation", 12)
+		body.add_child(tools)
+		button("Herlaad random mannen", generate.bind("men"), tools)
+		button("Herlaad random vrouwen", generate.bind("women"), tools)
+		var previous := OptionButton.new()
+		previous.custom_minimum_size.y = 46
+		previous.add_item("Startlijst van vorig toernooi…")
+		previous.set_item_disabled(0, true)
+		for tournament in manager.state.archive: previous.add_item(String(tournament.id))
+		previous.disabled = manager.state.archive.is_empty()
+		previous.item_selected.connect(func(index):
+			if index > 0: copy_previous(manager.state.archive[index - 1]))
+		tools.add_child(previous)
+		button("Wis lijst", manual, tools)
+	var grid := GridContainer.new(); grid.columns = 5
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	body.add_child(grid)
 	for i in range(draft.riders.size()):
 		var entry: Dictionary = draft.riders[i]
-		var row := HBoxContainer.new(); body.add_child(row)
-		if i == 0:
-			row.add_child(menu.label("Speler · " + String(entry.name) + " · " + String(entry.country), 20))
+		var tile := VBoxContainer.new(); grid.add_child(tile)
+		if entry.get("is_player", false):
+			var panel := PanelContainer.new()
+			panel.custom_minimum_size = Vector2(280, 216)
+			panel.add_theme_stylebox_override("panel", Style.panel(Style.PALE, Style.LINE, 12, 12))
+			tile.add_child(panel)
+			var copy := VBoxContainer.new(); panel.add_child(copy)
+			copy.add_child(menu.label("Speler", 18))
+			copy.add_child(menu.label(String(entry.name), 22))
+			var flag := TextureRect.new()
+			flag.texture = preload("res://national_flags.gd").texture(String(entry.country))
+			flag.custom_minimum_size = Vector2(60, 40)
+			flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			copy.add_child(flag)
 			continue
 		var card = preload("res://rider_passport.gd").new()
-		card.entry = entry; card.compact = true
-		if i > 0: card.selected.connect(func(_entry): open_picker(i))
-		row.add_child(card)
-		row.add_child(menu.label(String(entry.get("category", "speler")), 18))
-		if i > 0:
-			var remove_button := button("Verwijderen", func(): draft.remove(i); refresh(), row)
-			remove_button.disabled = draft.riders.size() <= 12
-	var add_button := button("Renner toevoegen", open_picker.bind(-1))
-	add_button.disabled = not draft.can_add()
-	message = menu.label("", 18); body.add_child(message)
-	var confirm := button("Startlijst bevestigen", confirm_draft)
-	confirm.disabled = draft.riders.size() < 12 or draft.riders.size() > 24
-	button("Annuleren", go_back)
+		card.entry = entry; card.compact = true; card.interactive = not locked
+		if not locked: card.selected.connect(func(_entry): open_picker(i))
+		tile.add_child(card)
+		if not locked: button("Verwijderen", func(): draft.remove(i); refresh(), tile)
+	if not locked:
+		var add_button := button("+ Renner toevoegen", open_picker.bind(-1))
+		add_button.disabled = not draft.can_add()
+		message = menu.label("Minimaal 8 deelnemers nodig: speler + 7 tegenstanders." if draft.riders.size() < 8 else "", 18)
+		body.add_child(message)
+		var confirm := button("Startlijst bevestigen", confirm_draft)
+		confirm.disabled = draft.riders.size() < 8 or draft.riders.size() > 24
 
 func open_picker(slot: int) -> void:
+	if roster_locked(): return
 	if slot < 0 and not draft.can_add(): return
 	if is_instance_valid(picker_layer): return
 	var picker = preload("res://rider_picker.gd").new()

@@ -44,7 +44,7 @@ func candidates(lineup: Array, category: String = "mixed", replacing: int = -1) 
 
 func generate(player: Dictionary, count: int, category: String, rng: RandomNumberGenerator) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	if count < 12 or count > 24 or category not in ["men", "women", "mixed"]: return result
+	if count < 8 or count > 24 or category not in ["men", "women", "mixed"]: return result
 	var human := player.duplicate(true)
 	human["is_player"] = true
 	if String(human.get("id", "")).is_empty() or Countries.valid_country(String(human.get("country", ""))).is_empty(): return result

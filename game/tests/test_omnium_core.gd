@@ -23,6 +23,14 @@ func _initialize() -> void:
 	var now := 1000000
 	assert(manager.create(riders, "short", 80, now))
 	assert(not manager.create(riders, "men", 80, now))
+	assert(not manager.update_setup(riders.slice(0, 7), "short", 80, now))
+	assert(manager.update_setup(riders.slice(0, 8), "short", 80, now))
+	assert(manager.state.active.riders.size() == 8)
+	assert(manager.update_setup(riders, "short", 80, now))
+	var valid_riders: Array = manager.state.active.riders
+	manager.state.active.riders = riders.slice(0, 7)
+	assert(manager.begin_attempt(now).is_empty())
+	manager.state.active.riders = valid_riders
 	var attempt: Dictionary = manager.begin_attempt(now)
 	assert(attempt.discipline == "scratch")
 	assert(manager.deadline() == now + 28 * 86400)

@@ -20,7 +20,7 @@ func _commit(candidate: Dictionary) -> bool:
 
 func create(riders: Array, format_id: String, strength: float, now: int) -> bool:
 	if not state.active.is_empty() or not Formats.FORMATS.has(format_id): return false
-	if riders.size() < 12 or riders.size() > 24 or strength < 40 or strength > 120: return false
+	if riders.size() < 8 or riders.size() > 24 or strength < 40 or strength > 120: return false
 	var ids := {}; var countries := {}; var players := 0
 	for rider in riders:
 		var id := String(rider.get("id", "")); var country := String(rider.get("country", ""))
@@ -46,6 +46,7 @@ func check_deadline(now: int) -> bool:
 
 func begin_attempt(now: int) -> Dictionary:
 	if not check_deadline(now) or state.active.is_empty(): return {}
+	if state.active.riders.size() < 8 or state.active.riders.size() > 24: return {}
 	var next := state.duplicate(true)
 	if int(next.active.started) == 0: next.active.started = now
 	next.active.last_seen = now
@@ -98,7 +99,7 @@ func archive(reason: String, now: int) -> bool:
 func update_setup(riders: Array, format_id: String, strength: float, now: int) -> bool:
 	if state.active.is_empty() or int(state.active.started) != 0: return false
 	# No disk write during validation.
-	if riders.size() < 12 or riders.size() > 24 or not Formats.FORMATS.has(format_id) or strength < 40 or strength > 120: return false
+	if riders.size() < 8 or riders.size() > 24 or not Formats.FORMATS.has(format_id) or strength < 40 or strength > 120: return false
 	var ids := {}; var countries := {}; var players := 0
 	for rider in riders:
 		var id := String(rider.get("id", "")); var country := String(rider.get("country", ""))
