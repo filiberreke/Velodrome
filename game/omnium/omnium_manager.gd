@@ -70,7 +70,9 @@ func finish_attempt(attempt_id: String, result: Dictionary, energy: Dictionary, 
 		if not expected.has(id): return false
 		expected.erase(id)
 	var next := state.duplicate(true)
-	next.active.results.append(result.duplicate(true)); next.active.energy = energy.duplicate(true)
+	var stored_result := result.duplicate(true)
+	stored_result["finished_unix"] = now
+	next.active.results.append(stored_result); next.active.energy = energy.duplicate(true)
 	next.active.last_finish = now; next.active.last_seen = now; next.active.attempt = {}
 	if next.active.results.size() == 4:
 		next.active.status = "completed"; next.active.ended = now

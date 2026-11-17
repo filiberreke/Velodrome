@@ -51,15 +51,7 @@ func refresh() -> void:
 	if editing: render_editor(); return
 	if not manager.clock_warning.is_empty(): body.add_child(menu.label(manager.clock_warning, 20))
 	if not manager.state.active.is_empty():
-		var active: Dictionary = manager.state.active
-		body.add_child(menu.label("Omnium · %d deelnemers · AI %d%%" % [active.riders.size(), active.strength], 26))
-		if manager.deadline() > 0: body.add_child(menu.label("Deadline: " + Time.get_datetime_string_from_unix_time(manager.deadline()) + " UTC", 20))
-		for i in range(4):
-			var caption: String = ["Scratch", "Temporace", "Afvalling", "Puntenkoers"][i]
-			body.add_child(menu.label(caption + (" · voltooid" if i < active.results.size() else " · volgende" if i == active.results.size() else " · later"), 22))
-		body.add_child(menu.label("Wedstrijdkoppeling wordt nog toegevoegd.", 18))
-		if int(active.started) == 0: button("Deelnemers en format bewerken", edit_active)
-		button("Omnium stoppen", confirm_stop)
+		preload("res://omnium/omnium_details.gd").new().render(self)
 		return
 	body.add_child(menu.label("Nieuw omnium · kies eerst je deelnemers", 26))
 	if not draft.catalog.load_catalog(): body.add_child(menu.label(draft.catalog.error, 20)); return
