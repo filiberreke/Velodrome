@@ -60,6 +60,10 @@ func run() -> void:
 	for i in range(8): game.elimination_rules.last_rear_m[i] = game.distances[i]-game.REAR_TRAILING_EDGE_M
 	game.finish_overlay.show(); game._refresh_fullscreen_results()
 	assert(game.results_completion.active)
+	assert(game.finish_results.text.contains("versneld berekend"))
+	var worker_clock: float = game.clock
+	game._physics_process(1.0/60.0)
+	assert(game.clock == worker_clock) # Only the CPU worker owns the remaining race.
 	for frame in range(10000):
 		await process_frame
 		if not game.results_completion.active: break

@@ -59,3 +59,35 @@ completion and HUD; Tempo recovery (345 checks) and Tempo menu flow.
 No manual visual review, physical-trainer ride or real Strava upload is claimed.
 Points-race omnium integration, cross-event AI tactics and the full archive UI
 remain later phases; the female 3D model is still outside scope.
+
+
+## 24-rider result-completion performance regression
+
+The original result worker continued the actual race, but only received a 10 ms
+CPU slice per rendered frame. In a 24-rider Elimination race, repeated result
+layout and live HUD/3D updates consumed time outside that slice, so the race
+could appear to keep running near normal speed. The earlier eight-rider fixture
+did not measure this case.
+
+Elimination completion now uses a 40 ms CPU slice and refreshes intermediate
+result tables at most five times per second. Final results refresh immediately.
+While the worker owns the race, normal live HUD/rider-pose updates are skipped;
+bridge input and trainer release still run. Geometry evaluations are memoized
+by their exact distance and lane arguments within each physics step. No lookup
+quantization, larger simulation timestep, AI shortcut, scoring change or forced
+finish is used. The active lane's already computed path metric is also reused.
+The pending result shows the accelerated computation status and classified count.
+
+`test_omnium_elimination_completion.gd` reproduces a 24-rider men's-distance race
+with the player eliminated in 19th after six cuts. Prior Scratch/Tempo results
+and the state at elimination are fixture data; the remaining 16 cuts and final
+pair use the real race motor. It checks complete persistence, all 23 AI energy
+snapshots, frozen player distance/time, enabled result buttons, reload and return
+to the omnium. A second run disables geometry memoization and checks identical
+classification, finish times and remaining Wprime. Its time source is fixed so
+real test duration cannot change recovered starting energy.
+
+On this headless Godot 4.6.1 environment, the original reproduction took 138.4 s
+for about 795 s of remaining race time. The optimized run took 39.8 s (about
+20 times race speed). These timings depend on hardware and rendering load;
+there is no promise of an instantaneous result or a fixed wall-time limit.

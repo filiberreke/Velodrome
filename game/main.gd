@@ -31,6 +31,7 @@ var _elimination_accumulator := 0.0
 var _elimination_epoch := 0.0
 var _elimination_ticks := 0
 var _elimination_clock_ready := false
+var _completion_geometry: Dictionary = {}
 var _elimination_motion_metrics: Array[float] = []
 var _elimination_motion_drafts: Array[float] = []
 var _elimination_motion_heights: Array[float] = []
@@ -700,6 +701,10 @@ func _physics_process(delta: float) -> void:
 		exit_menu.set_exit_visible(start_state in ["SETUP", "INTRO"] or finished)
 	if race_paused:
 		trainer_control.tick(false, 0.0, 1.0, _now_s())
+		return
+	if results_completion.active and finished and finish_overlay != null and finish_overlay.visible:
+		# CPU completion owns the race; don't rebuild the live HUD/3D rider poses.
+		_update_trainer_control()
 		return
 	if start_state == "INTRO": broadcast_intro.advance(delta)
 	var keirin_player_already_finished: bool = finished
@@ -1862,6 +1867,7 @@ func _update_race(dt: float) -> void:
 	omnium_race.sample(self)
 
 func _elimination_metric_for(i: int, lane: float) -> float:
+	if lane == lane_offsets[i] and i < _elimination_motion_metrics.size(): return _elimination_motion_metrics[i]
 	return _path_metric(distances[i], lane)
 
 func _elimination_predict_speed(i: int, power: float, dt: float) -> float:
@@ -1876,6 +1882,7 @@ func elimination_simulation_time() -> float:
 	return _elimination_epoch + _elimination_ticks * ELIMINATION_PHYSICS_STEP
 
 func _advance_race(dt: float) -> void:
+	_completion_geometry.clear()
 	if race_mode == 3:
 		keirin.advance(self, dt)
 		return
@@ -2050,6 +2057,15 @@ func _track_s(distance: float) -> float:
 	return fposmod(FINISH_REFERENCE_S - distance, LAP)
 
 func _at(distance: float, offset: float) -> Vector3:
+	# Exact memoization within one CPU physics step; no geometry approximation.
+	if not results_completion.active or race_mode != 2: return _at_uncached(distance, offset)
+	if _completion_geometry.has(distance) and _completion_geometry[distance].has(offset): return _completion_geometry[distance][offset]
+	var point := _at_uncached(distance, offset)
+	if not _completion_geometry.has(distance): _completion_geometry[distance] = {}
+	_completion_geometry[distance][offset] = point
+	return point
+
+func _at_uncached(distance: float, offset: float) -> Vector3:
 	var s: float = _track_s(distance)
 	var base: Vector2 = track_geometry.position(s)
 	var angle: float = track_geometry.heading(s)
@@ -3445,6 +3461,7 @@ func _update_result_navigation() -> void:
 		back.tooltip_text = "" if ready else "De volledige uitslag wordt nog berekend."
 
 func _refresh_fullscreen_results() -> void:
+	if not results_completion.refresh_due(self): return
 	omnium_race.sample(self)
 	_update_result_navigation()
 	if omnium_race.enabled() and not omnium_race.error.is_empty(): recording_message = omnium_race.error
@@ -3477,6 +3494,11 @@ func _refresh_fullscreen_results() -> void:
 	finish_badge.text = "#%d / %d" % [player_place, rider_count]
 	var complete: bool = _all_riders_finished()
 	var status: String = "Alle renners gefinisht" if complete else "Nog renners onderweg - uitslag wordt automatisch aangevuld"
+	if results_completion.active and not complete:
+		var classified := 0
+		for end_time in finish_times:
+			if end_time >= 0.0: classified += 1
+		status = "Uitslag wordt versneld berekend · %d/%d renners afgewerkt" % [classified, rider_count]
 	var summary: String = "JOUW TIJD   %.2f s    •    GEM. VERMOGEN   %.0f W    •    PIEK   %.0f W\n%s" % [finish_times[0], player_power_integral / maxf(0.1, finish_times[0]), player_peak_watts, status]
 	if omnium_race.enabled():
 		var omnium_scores := preload("res://omnium/omnium_scoring.gd")
