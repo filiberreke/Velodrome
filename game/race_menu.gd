@@ -1139,12 +1139,19 @@ func start_omnium_warmup() -> void:
 	exercise_page.back_button.text = "← Omnium"
 
 func start_omnium_scratch() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_scratch_controller.gd").new(), "Scratch")
+
+func start_omnium_tempo() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_tempo_controller.gd").new(), "Temporace")
+
+func _start_omnium_race(controller: RefCounted, caption: String) -> void:
 	var game: Node = self
 	while game != null and not game.has_method("_configure_peloton"): game = game.get_parent()
-	if game == null: return
-	if not game.omnium_race.start(game, tournament_page.manager):
+	if game == null or game.omnium_race.enabled(): return
+	game.omnium_race = controller
+	if not controller.start(game, tournament_page.manager):
 		var dialog := AcceptDialog.new()
-		dialog.dialog_text = "Scratch kon niet worden gestart. " + game.omnium_race.error
+		dialog.dialog_text = caption + " kon niet worden gestart. " + controller.error
 		dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free)
 		add_child(dialog); dialog.popup_centered()
 

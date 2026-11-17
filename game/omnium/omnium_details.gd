@@ -132,6 +132,7 @@ func race_card(parent: Node, spec: Array, discipline_index: int) -> void:
 	elif warmup: card.pressed.connect(menu.start_omnium_warmup)
 	elif next:
 		if discipline_index == 0: card.pressed.connect(menu.start_omnium_scratch)
+		elif discipline_index == 1: card.pressed.connect(menu.start_omnium_tempo)
 		else: card.pressed.connect(show_start_notice)
 	ignore_children(content)
 
@@ -176,7 +177,9 @@ func show_result(index: int) -> void:
 		for rider in active.riders:
 			if rider.id == result.order[i]:
 				var points: int = int(result.get("points", {}).get(rider.id, 0)) if index == 3 else Scores.place_points(i + 1)
-				rider_row(list, rider, "%d." % (i + 1), "%d pt" % points)
+				var detail := "%d pt" % points
+				if index == 1: detail = "%d koerspunten · %d omniumpt" % [int(result.get("race_points", {}).get(rider.id, 0)), points]
+				rider_row(list, rider, "%d." % (i + 1), detail)
 
 func show_start_notice() -> void:
 	var dialog := AcceptDialog.new()

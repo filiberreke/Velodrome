@@ -28,6 +28,7 @@ func run_tests() -> void:
 		# Player reaches the raw race distance while the bunch still has laps left.
 		game.distances.assign([2499.9, 2499.9 - credit * 250.0, 2498.9 - credit * 250.0, 2497.9 - credit * 250.0])
 		game.speeds.fill(12.0)
+		game.baseline_speed = 12.0 # Match the rolling player speed used by the motor.
 		game.clock = 200.0
 		game.clock += 0.1; game._advance_race(0.1)
 		check(game.distances[0] > 2500.0, "Player crosses raw distance with a lap gain")
@@ -39,6 +40,7 @@ func run_tests() -> void:
 		# The same physical line one/two laps later is the real finish.
 		game.distances.assign([2499.9 + credit * 250.0, 2499.8, 2498.8, 2497.8])
 		game.speeds.fill(12.0)
+		game.baseline_speed = 12.0 # Match the rolling player speed used by the motor.
 		game.clock += 0.1; game._advance_race(0.1)
 		check(game.finish_times[0] >= 0.0 and game.finished, "Jury finishes player at credited final passage")
 		check(game.tempo_rules.finish_clock >= 0.0, "Arrival belongs to the common jury finish")

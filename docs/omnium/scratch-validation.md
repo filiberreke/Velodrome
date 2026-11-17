@@ -9,7 +9,7 @@ scaling. Individual finishing reserves are frozen by stable rider ID. A single
 result transaction is committed only after the complete scratch classification.
 A race abandoned before a valid result clears its attempt without advancing the
 omnium. The existing deadlines remain in force. Results return to omnium details;
-Temporace is the next discipline but its race adapter is not implemented yet.
+Temporace is now integrated through the same lifecycle base; see tempo-validation.md.
 
 The right-hand HUD shows flags, unique initials and provisional omnium totals.
 Scratch Strava exports use `Vélodrome - Omnium - Scratch`.
@@ -37,9 +37,11 @@ Passed:
   `test_omnium_selection.gd`.
 - Existing `test_scratch_large_field.gd` and `test_results_completion.gd`.
 
-Existing `test_scratch_finish.gd` reports three failing assertions. The identical
-three failures were reproduced with the pre-integration main.gd, so this is not
-reported as a passing regression test or silently changed in this integration.
+The initial validation found three failures in `test_scratch_finish.gd`, also
+reproduced before integration. During Tempo integration this was traced to a
+fixture setting rider speed to 12 m/s while leaving the separate player baseline
+speed at zero. The fixture now initializes both, and Scratch and Tempo finish
+regressions pass without changes to race physics or rules.
 
 Manual checks still needed: real trainer start/neutralization, visual HUD layout,
 Strava upload, and process shutdown/crash recovery on the user's target build.
