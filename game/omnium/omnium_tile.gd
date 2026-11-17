@@ -28,11 +28,11 @@ func _ready() -> void:
 	var title: Label = menu.label("Omnium →", 44)
 	title.add_theme_font_override("font", Style.heading())
 	copy.add_child(title)
-	var description: Label = menu.label("Scratch, temporace, afvalling en puntenkoers.\nBouw je voorsprong op, van de eerste tot de laatste sprint.", 22)
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	copy.add_child(description)
 	var active: Dictionary = manager.state.active
 	if active.is_empty():
+		var description: Label = menu.label("Scratch, temporace, afvalling en puntenkoers.\nBouw je voorsprong op, van de eerste tot de laatste sprint.", 22)
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		copy.add_child(description)
 		copy.add_child(menu.label("Nieuw omnium samenstellen", 22, Style.BLUE))
 	else:
 		var completed: int = active.results.size()
