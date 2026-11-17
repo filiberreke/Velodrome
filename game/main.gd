@@ -1345,7 +1345,7 @@ func _expire_bridge_optional_fields(now: float) -> void:
 
 func _restart_same_race() -> void:
 	if omnium_race.enabled():
-		recording_message = "Keer terug naar het omnium om de volgende wedstrijd te kiezen."
+		_continue_omnium()
 		return
 	if replay_setup.is_empty(): return
 	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "keirin_percent", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
@@ -2673,7 +2673,7 @@ func _build_hud() -> void:
 	quit.custom_minimum_size = Vector2(200, 48)
 	quit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	MenuSkin.primary(quit)
-	quit.pressed.connect(func(): exit_menu.show_results_leave())
+	quit.pressed.connect(_leave_result_page)
 	title_row.add_child(quit)
 	title_row.move_child(quit, 0)
 
@@ -3420,12 +3420,38 @@ func _result_rider_cell(rider: int, tint: Color, bg: Color, width: float) -> voi
 	name_label.custom_minimum_size.x = maxf(0.0, width - 48)
 	row.add_child(name_label)
 
+func _continue_omnium() -> void:
+	if not omnium_race.enabled(): return
+	if not omnium_race.committed and not omnium_race.manager.state.active.is_empty(): return
+	_reset()
+
+func _leave_result_page() -> void:
+	if omnium_race.enabled(): _continue_omnium()
+	else: exit_menu.show_results_leave()
+
+func _update_result_navigation() -> void:
+	if finish_overlay == null: return
+	var in_omnium: bool = omnium_race.enabled()
+	var ready: bool = not in_omnium or omnium_race.committed or omnium_race.manager.state.active.is_empty()
+	var again := finish_overlay.find_child("ReplayRaceButton", true, false) as Button
+	var back := finish_overlay.find_child("MainMenuButton", true, false) as Button
+	if again != null:
+		again.text = "Ga verder met omnium" if in_omnium else "Wedstrijd opnieuw rijden"
+		again.disabled = not ready
+		again.tooltip_text = "" if ready else "De volledige uitslag wordt nog berekend."
+	if back != null:
+		back.text = "← Omnium" if in_omnium else "← Hoofdmenu"
+		back.disabled = not ready
+		back.tooltip_text = "" if ready else "De volledige uitslag wordt nog berekend."
+
 func _refresh_fullscreen_results() -> void:
 	omnium_race.sample(self)
+	_update_result_navigation()
 	if omnium_race.enabled() and not omnium_race.error.is_empty(): recording_message = omnium_race.error
 	if finish_overlay != null and finish_overlay.visible: results_completion.start(self)
 	if finish_table != null:
-		finish_table.columns = 1 if race_mode == 1 else (4 if race_mode in [0,2] else 5)
+		finish_table.columns = 1 if race_mode == 1 else (4 if race_mode in [0, 2] else 5)
+		if omnium_race.enabled() and race_mode == 2: finish_table.columns += 1
 		if race_mode != 1 and finish_table.has_meta("points_result_key"): finish_table.remove_meta("points_result_key")
 	if finish_photo_rect != null: finish_photo_rect.get_parent().get_parent().visible = finish_photo_rect.texture != null
 	#if race_mode == 1:
@@ -3443,6 +3469,7 @@ func _refresh_fullscreen_results() -> void:
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
 	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Keirin · Uitslag" if race_mode == 3 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag"))
+	if omnium_race.enabled(): finish_heading.text = "Omnium · " + finish_heading.text
 	if finish_subtitle != null:
 		finish_subtitle.text = ("VLIEGENDE START · 125 M TUSSENTIJDEN" if time_trial_start_type == "flying" else "STAANDE START · 125 M TUSSENTIJDEN") if race_mode == 7 else "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
 	if pursuit_save_box != null:
@@ -3479,8 +3506,10 @@ func _refresh_fullscreen_results() -> void:
 	var header_bg := MenuSkin.PALE
 	_result_cell("PL.", gold, header_bg, 54, false, true)
 	_result_cell("RENNER", gold, header_bg, 205, false, true)
-	_result_cell("EINDTIJD", gold, header_bg, 120, true, true)
-	_result_cell("VERSCHIL", gold, header_bg, 110, true, true)
+	var omnium_scratch: bool = omnium_race.enabled() and race_mode == 0
+	_result_cell("TIJD / ACHTERSTAND" if omnium_scratch else "EINDTIJD", gold, header_bg, 180 if omnium_scratch else 120, true, true)
+	if not omnium_scratch: _result_cell("VERSCHIL", gold, header_bg, 110, true, true)
+	if omnium_race.enabled(): _result_cell("OMNIUMPUNTEN", gold, header_bg, 130, true, true)
 	if race_mode not in [0,2]: _result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
 	var leader_time: float = -1.0
 	for index in ordered:
@@ -3510,8 +3539,11 @@ func _refresh_fullscreen_results() -> void:
 			laps_display = "--"
 		_result_cell("%d" % (rank + 1), gold if rank == 0 else white, row_bg, 54)
 		_result_rider_cell(rider, rider_colors[_profile(rider)], row_bg, 205)
-		_result_cell(display_time, white, row_bg, 120, true)
-		_result_cell(gap, gold if rank == 0 else white, row_bg, 110, true)
+		if omnium_scratch:
+			display_time = preload("res://omnium/omnium_results.gd").scratch_time(rider, ordered, finish_times, scratch_rules.credits)
+		_result_cell(display_time, white, row_bg, 180 if omnium_scratch else 120, true)
+		if not omnium_scratch: _result_cell(gap, gold if rank == 0 else white, row_bg, 110, true)
+		if omnium_race.enabled(): _result_cell(str(preload("res://omnium/omnium_scoring.gd").place_points(rank + 1)), white, row_bg, 130, true)
 		if race_mode not in [0,2]: _result_cell(laps_display, white, row_bg, 300)
 
 func _rider_distance(rider: int, progress: float) -> float:

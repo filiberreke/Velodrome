@@ -9,6 +9,9 @@ class Race extends Node:
 	var finish_times: Array[float] = []
 	var start_state := "RACING"
 	var x_ai = AI.new()
+	func _lap_credits() -> Array[int]:
+		var values: Array[int] = []; values.resize(rider_count); values.fill(0)
+		return values
 	func _race_better(a: int, b: int) -> bool: return a < b
 	func _all_riders_finished() -> bool:
 		for time in finish_times:

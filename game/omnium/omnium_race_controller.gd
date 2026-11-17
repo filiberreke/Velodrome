@@ -92,10 +92,11 @@ func standings(game: Node) -> Array[Dictionary]:
 	if not enabled(): return rows
 	var totals := Scores.totals(context.riders, context.results)
 	var indices := order(game)
+	var credits: Array[int] = game._lap_credits()
 	for place in range(indices.size()):
 		var i: int = indices[place]
 		var rider: Dictionary = game.rider_identities[i]
-		rows.append({"id":rider.id, "name":rider.name, "country":rider.country, "score":int(totals[rider.id]) + Scores.place_points(place + 1), "player":i == 0})
+		rows.append({"id":rider.id, "name":rider.name, "country":rider.country, "score":int(totals[rider.id]) + Scores.place_points(place + 1), "player":i == 0, "laps":credits[i]})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary): return a.score > b.score)
 	return rows
 
