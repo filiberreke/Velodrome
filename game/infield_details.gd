@@ -21,6 +21,7 @@ const Layout := preload("res://infield_layout.gd")
 const GLASS_OFFSET := Layout.FENCE_OFFSET
 var supporter_count := 0
 var simple_infield := false
+var crowd_density := 0.60
 var rail_supporter_count := 0
 var supporter_positions: Array[Vector3] = []
 const NEAR_M := 20.0                      # detailed people closer than this, light figures further away
@@ -172,6 +173,7 @@ func _ready() -> void:
 	var cfg := ConfigFile.new()
 	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") == OK:
 		simple_infield = bool(cfg.get_value("arena", "simple_infield", false))
+		crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
 	if crowd == null:
 		crowd = CrowdKit.new()
 	rng.seed = 1613
@@ -211,14 +213,14 @@ func _build_simple_plazas() -> void:
 	while s < LAP:
 		var p := _at(s, GLASS_OFFSET - 0.55)
 		var blocked := (p.x < -10.0 and absf(p.z) < 31.0) or Layout.coach_gate(p, 0.4) or not _free_spot(p, 0.35)
-		if not blocked:
+		if not blocked and _keep_public_at(s, 1.15):
 			var outward := (_at(s, GLASS_OFFSET) - p).normalized()
 			_person(CrowdKit.RAIL[int(s) % 2], p, _yaw_to(outward))
 			rail_supporter_count += 1
 			blockers.append([Vector2(p.x, p.z), 0.25])
 		s += 1.15
 	var tries := 0
-	while supporter_count < 400 and tries < 8000:
+	while supporter_count < roundi(400.0 * crowd_density) and tries < 8000:
 		tries += 1
 		var p := Vector3(rng.randf_range(-11.0, 11.0), 0, rng.randf_range(-43.0, 43.0))
 		if Layout.inset(p) < 6.0 or not _free_spot(p, 0.45):
@@ -558,6 +560,15 @@ func _build_ends() -> void:
 			_prop("beach_flag", p, _yaw_to(-Vector3(p.x, 0, p.z - end_sign * 34.2)), {"beachflag": flags[k % 4]}, 0.4)
 			k += 1
 
+# Stable per-position sampling so the slider changes density without shifting the layout.
+func _keep_public_at(distance: float, spacing: float) -> bool:
+	if crowd_density <= 0.0:
+		return false
+	if crowd_density >= 1.0:
+		return true
+	var slot := int(floor(distance / spacing))
+	return float(posmod(slot * 73 + 19, 997)) / 997.0 < crowd_density
+
 func _build_rail_public() -> void:
 	# Four continuous rows; leave working boxes and their access corridor open.
 	var s := 0.0
@@ -567,7 +578,7 @@ func _build_rail_public() -> void:
 			var outward := (_at(s, GLASS_OFFSET) - front).normalized()
 			for row in range(4):
 				var p := _at(s + (0.22 if row % 2 else 0.0), GLASS_OFFSET - 0.55 - row * 0.70)
-				if not _free_spot(p, 0.3): continue
+				if not _free_spot(p, 0.3) or not _keep_public_at(s + float(row) * 0.17, 0.60): continue
 				var pose: String = CrowdKit.RAIL[rng.randi() % 2] if row == 0 else _random_standing()
 				_person(pose, p, _yaw_to(outward) + rng.randf_range(-0.1, 0.1))
 				rail_supporter_count += 1
@@ -576,7 +587,7 @@ func _build_rail_public() -> void:
 func _build_wanderers() -> void:
 	# Fill public plaza space while preserving props, stairs and coach access.
 	var tries := 0
-	while supporter_count < 2000 and tries < 16000:
+	while supporter_count < roundi(2000.0 * crowd_density) and tries < 16000:
 		tries += 1
 		var p := Vector3(rng.randf_range(-11.0, 11.0), 0, rng.randf_range(-43.0, 43.0))
 		if Layout.inset(p) < 6.0 or not _free_spot(p, 0.35):
