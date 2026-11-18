@@ -401,9 +401,9 @@ func _build_roof() -> void:
 		add_child(race_light)
 		race_light.look_at(_stadium_point(s, 3.6, 0.4), Vector3.UP)
 		race_light.light_color = Color("f4f5ff")
-		race_light.light_energy = 10.0
+		race_light.light_energy = 15.0
 		race_light.spot_range = 65.0
-		race_light.spot_angle = 70.0
+		race_light.spot_angle = 80.0
 		race_light.shadow_enabled = false
 
 func set_track_lighting_training(training: bool) -> void:
@@ -411,9 +411,9 @@ func set_track_lighting_training(training: bool) -> void:
 		var lamp := get_node_or_null("Piste schijnwerper %d" % (i + 1)) as SpotLight3D
 		if lamp == null:
 			continue
-		lamp.light_energy = 1.05 if training else 10.0
+		lamp.light_energy = 1.05 if training else 15.0
 		lamp.spot_range = 37.0 if training else 65.0
-		lamp.spot_angle = 56.0 if training else 70.0
+		lamp.spot_angle = 56.0 if training else 80.0
 
 func _roof_light_mount(s: float) -> Vector3:
 	# Suspend the fixtures under the sloping canopy, above and in front of the stands.
