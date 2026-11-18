@@ -137,8 +137,10 @@ func _label(parent: Node3D, text: String, pos: Vector3, size: int = 64, colour: 
 func _cell_key(p: Vector3) -> String:
 	return "%d_%d" % [int(floor(p.x / 20.0)), int(floor(p.z / 20.0))]
 
-func _person(variant: String, pos: Vector3, yaw: float, look: Array = []) -> void:
+func _person(variant: String, pos: Vector3, yaw: float, look: Array = [], force_public: bool = false) -> void:
 	if not variant.begins_with("staff_"):
+		if not force_public and not _keep_public_person(pos):
+			return
 		supporter_count += 1
 		supporter_positions.append(pos)
 	if look.is_empty():
@@ -161,11 +163,13 @@ func _random_standing() -> String:
 func _group_around(centre: Vector3, count: int, radius: float, variants: Array = []) -> void:
 	# A small group of people facing the middle (chatting around a table, a stall, ...)
 	var start := rng.randf() * TAU
+	var keep_count := roundi(float(count) * crowd_density)
 	for i in range(count):
 		var a := start + TAU * float(i) / float(count) + rng.randf_range(-0.25, 0.25)
 		var p := centre + Vector3(cos(a), 0.0, sin(a)) * (radius + rng.randf_range(-0.08, 0.12))
 		var v: String = variants[i % variants.size()] if not variants.is_empty() else _random_standing()
-		_person(v, p, _yaw_to(centre - p) + rng.randf_range(-0.3, 0.3))
+		if int(floor(float(i + 1) * keep_count / count)) > int(floor(float(i) * keep_count / count)):
+			_person(v, p, _yaw_to(centre - p) + rng.randf_range(-0.3, 0.3), [], true)
 
 # ------------------------------------------------------------------ build
 func _ready() -> void:
@@ -213,7 +217,7 @@ func _build_simple_plazas() -> void:
 	while s < LAP:
 		var p := _at(s, GLASS_OFFSET - 0.55)
 		var blocked := (p.x < -10.0 and absf(p.z) < 31.0) or Layout.coach_gate(p, 0.4) or not _free_spot(p, 0.35)
-		if not blocked and _keep_public_at(s, 1.15):
+		if not blocked:
 			var outward := (_at(s, GLASS_OFFSET) - p).normalized()
 			_person(CrowdKit.RAIL[int(s) % 2], p, _yaw_to(outward))
 			rail_supporter_count += 1
@@ -560,14 +564,16 @@ func _build_ends() -> void:
 			_prop("beach_flag", p, _yaw_to(-Vector3(p.x, 0, p.z - end_sign * 34.2)), {"beachflag": flags[k % 4]}, 0.4)
 			k += 1
 
-# Stable per-position sampling so the slider changes density without shifting the layout.
-func _keep_public_at(distance: float, spacing: float) -> bool:
+# Stable per-person thinning, independent of crowd cell or nearby groups.
+func _keep_public_person(pos: Vector3) -> bool:
 	if crowd_density <= 0.0:
 		return false
 	if crowd_density >= 1.0:
 		return true
-	var slot := int(floor(distance / spacing))
-	return float(posmod(slot * 73 + 19, 997)) / 997.0 < crowd_density
+	var x := int(round(pos.x * 100.0))
+	var z := int(round(pos.z * 100.0))
+	var hash_value := posmod(x * 73856093 + z * 19349663, 1000003)
+	return float(hash_value) / 1000003.0 < crowd_density
 
 func _build_rail_public() -> void:
 	# Four continuous rows; leave working boxes and their access corridor open.
@@ -578,7 +584,7 @@ func _build_rail_public() -> void:
 			var outward := (_at(s, GLASS_OFFSET) - front).normalized()
 			for row in range(4):
 				var p := _at(s + (0.22 if row % 2 else 0.0), GLASS_OFFSET - 0.55 - row * 0.70)
-				if not _free_spot(p, 0.3) or not _keep_public_at(s + float(row) * 0.17, 0.60): continue
+				if not _free_spot(p, 0.3): continue
 				var pose: String = CrowdKit.RAIL[rng.randi() % 2] if row == 0 else _random_standing()
 				_person(pose, p, _yaw_to(outward) + rng.randf_range(-0.1, 0.1))
 				rail_supporter_count += 1
