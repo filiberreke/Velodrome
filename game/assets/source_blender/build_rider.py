@@ -6,6 +6,8 @@ Run in Blender (Scripting tab -> Run) or headless:
 Outputs (next to this script, in ./out):
     velodrome_rider_rig.blend  – editable rig with IK (legs follow pedals, hands follow bars)
     velodrome_rider.glb        – game-ready export for Godot (baked animations, no constraints)
+Female variant: RIDER_VARIANT=female blender -b -P build_rider.py
+    -> velodrome_rider_female_rig.blend / velodrome_rider_female.glb
 
 Everything is procedural: tweak COLORS / proportions below and run again.
 Orientation: rider faces -Y in Blender  ->  +Z in glTF/Godot (Godot's MODEL_FRONT).
@@ -434,15 +436,26 @@ def surf_line(points, r, matname, lift=0.012):
     pts = [surf(u, v, lift)[0] for u, v in points]
     tube(rider, pts, r * HEAD_R, matname, "head", 8)
 
-for s in (1, -1):
-    decal(0.27 * s, 0.04, 0.07, 0.11, 0.035, "pupil")                     # eyes: simple dark ovals
-    decal(0.27 * s + 0.02 * s, 0.09, 0.03, 0.034, 0.02, "eye", lift=0.028, segs=(10, 6))  # catch light
-    surf_line([(0.17 * s, 0.25), (0.27 * s, 0.285), (0.38 * s, 0.26)], 0.022, "brow")  # thin, relaxed brows
-decal(0.0, -0.13, 0.085, 0.075, 0.07, "skin", segs=(16, 10))                 # small button nose
-surf_line([(-0.14, -0.33), (-0.07, -0.37), (0.0, -0.38), (0.07, -0.37), (0.14, -0.33)], 0.02, "mouth")  # small smile
-# short hair peeking out under the helmet at the nape (ears sit under the helmet shell)
-sphere(rider, fp(0, -0.05, -0.42), (0.92 * HEAD_R, 0.62 * HEAD_R, 0.62 * HEAD_R), "hair", "head", (24, 14), M=Mface)
-
+if not FEMALE:
+    for s in (1, -1):
+        decal(0.27 * s, 0.04, 0.07, 0.11, 0.035, "pupil")                     # eyes: simple dark ovals
+        decal(0.27 * s + 0.02 * s, 0.09, 0.03, 0.034, 0.02, "eye", lift=0.028, segs=(10, 6))  # catch light
+        surf_line([(0.17 * s, 0.25), (0.27 * s, 0.285), (0.38 * s, 0.26)], 0.022, "brow")  # thin, relaxed brows
+    decal(0.0, -0.13, 0.085, 0.075, 0.07, "skin", segs=(16, 10))                 # small button nose
+    surf_line([(-0.14, -0.33), (-0.07, -0.37), (0.0, -0.38), (0.07, -0.37), (0.14, -0.33)], 0.02, "mouth")  # small smile
+    # short hair peeking out under the helmet at the nape (ears sit under the helmet shell)
+    sphere(rider, fp(0, -0.05, -0.42), (0.92 * HEAD_R, 0.62 * HEAD_R, 0.62 * HEAD_R), "hair", "head", (24, 14), M=Mface)
+else:
+    for s in (1, -1):
+        decal(0.27 * s, 0.04, 0.075, 0.12, 0.035, "pupil")                    # slightly bigger eyes
+        decal(0.27 * s + 0.02 * s, 0.10, 0.032, 0.036, 0.02, "eye", lift=0.028, segs=(10, 6))
+        surf_line([(0.16 * s, 0.24), (0.24 * s, 0.30), (0.37 * s, 0.28)], 0.015, "brow")   # finer, arched brows
+        for k, (du, dv) in enumerate(((0.05, 0.035), (0.065, 0.015))):           # two cartoon lashes, outer corner
+            u0, v0 = 0.32 + 0.02 * k, 0.11 - 0.035 * k
+            surf_line([(u0 * s, v0), ((u0 + du) * s, v0 + dv)], 0.012, "brow", lift=0.02)
+    decal(0.0, -0.13, 0.075, 0.065, 0.06, "skin", segs=(16, 10))                 # smaller button nose
+    surf_line([(-0.13, -0.33), (-0.065, -0.365), (0.0, -0.372), (0.065, -0.365), (0.13, -0.33)], 0.022, "mouth")
+    decal(0.0, -0.40, 0.075, 0.032, 0.03, "mouth", lift=0.004, segs=(16, 8))      # fuller lower lip
 
 # ---- modern track helmet: compact rounded shell with short tail, wraparound visor, chin strap
 def helmet_shell(scale, planes):
