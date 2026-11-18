@@ -247,7 +247,7 @@ func _build_menu() -> void:
 	var crowd_header := HBoxContainer.new()
 	box.add_child(crowd_header)
 	var crowd_heading := Label.new()
-	crowd_heading.text = "PUBLIEK OP DE TRIBUNES (na herstart)"
+	crowd_heading.text = "PUBLIEK OP TRIBUNES EN MIDDENPLEIN (na herstart)"
 	crowd_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	crowd_header.add_child(crowd_heading)
 	crowd_label = Label.new()
