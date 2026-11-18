@@ -644,7 +644,7 @@ func _ready() -> void:
 	_build_world()
 	arena = load("res://arena.gd").new()
 	add_child(arena)
-	_set_stadium_training_lighting(false)
+	_set_stadium_training_lighting(true) # Menu background uses the brighter training profile.
 	_build_hud()
 	var preferences := preload("res://display_settings.gd").new()
 	preferences.name = "GameSettings"
@@ -679,8 +679,9 @@ func _begin_dropout(since: float) -> void:
 func _physics_process(delta: float) -> void:
 	# Change lighting only on mode transitions, not every frame.
 	var in_training: bool = (piste_training != null and piste_training.active) or (training_environment != null and training_environment.active)
-	if in_training != stadium_training_lighting:
-		_set_stadium_training_lighting(in_training)
+	var menu_background: bool = setup_panel != null and setup_panel.visible
+	if (in_training or menu_background) != stadium_training_lighting:
+		_set_stadium_training_lighting(in_training or menu_background)
 	_read_bridge()
 	if piste_training != null and piste_training.active:
 		exit_menu.set_exit_visible(false)
