@@ -2293,7 +2293,7 @@ func _build_world() -> void:
 	env.background_color = Color("192b40")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("ffffff")
-	env.ambient_light_energy = 0.7
+	env.ambient_light_energy = 0.2
 	sky.environment = env
 	add_child(sky)
 	var light := DirectionalLight3D.new()
@@ -2366,11 +2366,13 @@ func _track_textured_surface(inner: float, outer: float, texture: Texture2D, nam
 		var d: Vector3 = _at(s1, outer)
 		var n0: Vector3 = _track_normal(s0, (inner + outer) * 0.5)
 		var n1: Vector3 = _track_normal(s1, (inner + outer) * 0.5)
-		for v in [a, b, c, c, b, d]:
+		# Clockwise front faces in Godot: keep the upward normals on the lit side.
+		# Reorder normals and UVs together with the triangle vertices.
+		for v in [a, c, b, c, d, b]:
 			verts.append(v)
-		for n in [n0, n0, n1, n1, n0, n1]:
+		for n in [n0, n1, n0, n1, n1, n0]:
 			normals.append(n)
-		for uv in [Vector2(s0 / length_tile, 0.0), Vector2(s0 / length_tile, (outer-inner)/width_tile), Vector2(s1 / length_tile, 0.0), Vector2(s1 / length_tile, 0.0), Vector2(s0 / length_tile, (outer-inner)/width_tile), Vector2(s1 / length_tile, (outer-inner)/width_tile)]:
+		for uv in [Vector2(s0 / length_tile, 0.0), Vector2(s1 / length_tile, 0.0), Vector2(s0 / length_tile, (outer-inner)/width_tile), Vector2(s1 / length_tile, 0.0), Vector2(s1 / length_tile, (outer-inner)/width_tile), Vector2(s0 / length_tile, (outer-inner)/width_tile)]:
 			uvs.append(uv)
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
