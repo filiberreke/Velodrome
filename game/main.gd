@@ -2485,9 +2485,10 @@ func _track_band(inner: float, outer: float, color: Color, start_s: float = 0.0,
 		var b: Vector3 = _at(s0, outer) + n0 * lift
 		var c: Vector3 = _at(s1, inner) + n1 * lift
 		var d: Vector3 = _at(s1, outer) + n1 * lift
-		for vertex in [a, b, c, c, b, d]:
+		# Match the clockwise front-face winding of the corrected wood mesh.
+		for vertex in [a, c, b, c, d, b]:
 			verts.append(vertex)
-		for normal in [n0, n0, n1, n1, n0, n1]:
+		for normal in [n0, n1, n0, n1, n1, n0]:
 			normals.append(normal)
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
