@@ -649,6 +649,74 @@ from skinsuit_uv import apply_skinsuit_uv, apply_helmet_uv
 apply_skinsuit_uv(rider_ob, len(bf), bone_seg, DEFORM_BODY)
 apply_helmet_uv(rider_ob, HEAD_C, Mface, HEAD_R)
 
+# ----------------------------------------------------------------- female hair meshes
+def sweep(mb, pts, radii, matname, weights_at, segs=14):
+    rings, verts, faces, wts = len(pts), [], [], []
+    for i, (p, r) in enumerate(zip(pts, radii)):
+        a = pts[min(i + 1, rings - 1)] - pts[max(i - 1, 0)]
+        M = look_matrix(Vector(), a).to_3x3()
+        for k in range(segs):
+            ang = math.tau * k / segs
+            verts.append(p + M @ Vector((math.cos(ang) * r, math.sin(ang) * r * 0.8, 0)))
+            wts.append(weights_at(i / (rings - 1)))
+    for i in range(rings - 1):
+        for k in range(segs):
+            a, b = i * segs + k, i * segs + (k + 1) % segs
+            faces.append([a, b, b + segs, a + segs])
+    for end, step in ((0, 1), ((rings - 1) * segs, -1)):
+        c = len(verts)
+        verts.append(sum(verts[end:end + segs], Vector()) / segs)
+        wts.append(wts[end])
+        for k in range(segs):
+            a, b = end + k, end + (k + 1) % segs
+            faces.append([c, b, a] if step > 0 else [c, a, b])
+    mb.add(verts, faces, matname, wts)
+
+def nape_cap(mb, scale=1.0):
+    sphere(mb, fp(0, -0.07, -0.42), (0.90 * HEAD_R * scale, 0.60 * HEAD_R * scale, 0.60 * HEAD_R * scale),
+           "hair", "head", (24, 14), M=Mface)
+
+hair_obs = []
+if FEMALE:
+    mb = MB()
+    nape_cap(mb)
+    bun_c = head_pt((0, -0.80, -0.78), 0.22)
+    sphere(mb, bun_c, (0.37 * HEAD_R, 0.31 * HEAD_R, 0.31 * HEAD_R), "hair", "head", (20, 12), M=Mface)
+    torus(mb, head_pt((0, -0.74, -0.80), 0.06), Mface @ Vector((0, 0.35, -1)), 0.17 * HEAD_R, 0.035 * HEAD_R,
+          "visor_frame", "head", 24, 6)
+    hair_obs.append(mb.build("Hair_low_bun"))
+
+    mb = MB()
+    nape_cap(mb)
+    from mathutils.bvhtree import BVHTree
+    _back = BVHTree.FromPolygons(bv, bf)
+    def dorsal_z(f):
+        hit = _back.ray_cast(D(0, f, 2.0), Vector((0, 0, -1)))[0]
+        if hit is None: raise ValueError(f"no back surface near f={f}")
+        return hit.z
+    radii = [0.042, 0.047, 0.044, 0.038, 0.030, 0.016]
+    start = fp(0, -0.55, -0.86)
+    tail = [start]
+    for k, f in enumerate((0.27, 0.215, 0.16, 0.11, 0.065)):
+        z = dorsal_z(f) + radii[k + 1] + 0.010
+        if k == 0: z = max(z, start.z - 0.03)
+        tail.append(D(0, f, z))
+    def tail_w(t):
+        r = round(t * (len(tail) - 1))
+        return [{"head": 1.0}, {"head": 0.5, "neck": 0.5}, {"neck": 0.3, "chest": 0.7}][r] if r < 3 else {"chest": 1.0}
+    sweep(mb, tail, radii, "hair", tail_w)
+    torus(mb, start + D(0, -0.02, -0.004), tail[1] - tail[0], 0.045, 0.008, "visor_frame", "head", 20, 6)
+    hair_obs.append(mb.build("Hair_ponytail"))
+
+    mb = MB()
+    nape_cap(mb, 1.04)
+    for row, (v, lift, r) in enumerate(((-0.70, 0.05, 0.17), (-0.86, 0.03, 0.13))):
+        for u in ((-0.6, -0.3, 0.0, 0.3, 0.6) if row == 0 else (-0.42, -0.14, 0.14, 0.42)):
+            sphere(mb, head_pt((u, v, -0.78 + 0.25 * abs(u)), lift),
+                   (r * HEAD_R, r * 0.8 * HEAD_R, r * 0.8 * HEAD_R),
+                   "hair", "head", (12, 8), M=Mface)
+    hair_obs.append(mb.build("Hair_short"))
+
 # ----------------------------------------------------------------- body shape keys (morph targets)
 # Value 1.0 = clearly more mass/width, -1.0 = slimmer (sliders allow -1..1). Only the skin body is
 # affected; head, helmet, gloves and shoes stay as they are. Bones are not moved, so the rig still fits.
