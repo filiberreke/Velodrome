@@ -86,6 +86,18 @@ func _roof_microphones(parent: Node3D) -> void:
 func _mixed(parent: Node3D) -> void:
 	_canopy(parent, 1.55, 1.55, WP_BLUE)
 	_roof_microphones(parent)
+	# Dedicated, shadow-free interview key light under the canopy.
+	# Mounted inside the tent so the opaque roof cannot block the beam.
+	var interview_light := SpotLight3D.new()
+	interview_light.name = "Perstent interviewspot"
+	parent.add_child(interview_light)
+	interview_light.position = Vector3(-0.65, 2.32, 0.0)
+	interview_light.look_at(Vector3(0.05, 1.40, 0.0), Vector3.UP)
+	interview_light.light_color = Color("fff5e9")
+	interview_light.light_energy = 3.0
+	interview_light.spot_range = 5.0
+	interview_light.spot_angle = 48.0
+	interview_light.shadow_enabled = false
 	# Back wall lies on the track-facing east side; separate correctly oriented
 	# artwork on each face avoids mirrored text when seen from the piste.
 	_box(parent, Vector3(1.48, 1.18, 0), Vector3(0.06, 2.36, 3.05), WP_BLUE)
