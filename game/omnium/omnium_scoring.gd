@@ -18,8 +18,9 @@ static func totals(riders: Array, results: Array) -> Dictionary:
 static func compare(a: String, b: String, scores: Dictionary, results: Array) -> int:
 	if scores[a] != scores[b]: return -1 if scores[a] > scores[b] else 1
 	if results.size() < 4: return 0
-	var times: Dictionary = results[3].get("finish_times", {})
-	if times.has(a) and times.has(b) and float(times[a]) != float(times[b]):
+	var times: Dictionary = results[3].get("final_sprint_times", results[3].get("finish_times", {}))
+	if not times.has(a) or not times.has(b): return 0
+	if float(times[a]) != float(times[b]):
 		return -1 if float(times[a]) < float(times[b]) else 1
 	var first: Array[int] = []
 	var second: Array[int] = []

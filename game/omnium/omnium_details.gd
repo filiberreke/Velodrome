@@ -143,7 +143,7 @@ func race_card(parent: Node, spec: Array, discipline_index: int) -> void:
 		if discipline_index == 0: card.pressed.connect(menu.start_omnium_scratch)
 		elif discipline_index == 1: card.pressed.connect(menu.start_omnium_tempo)
 		elif discipline_index == 2: card.pressed.connect(menu.start_omnium_elimination)
-		else: card.pressed.connect(show_start_notice)
+		else: card.pressed.connect(menu.start_omnium_points)
 	ignore_children(content)
 
 func ignore_children(node: Control) -> void:
@@ -185,12 +185,6 @@ func show_result(index: int) -> void:
 	page.refresh()
 	page.body.get_parent().set_deferred("scroll_vertical", 0)
 	page.back_button.grab_focus.call_deferred()
-
-func show_start_notice() -> void:
-	var dialog := AcceptDialog.new()
-	dialog.dialog_text = "De omniumwedstrijd is nog niet beschikbaar in deze ontwikkelversie."
-	dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free)
-	page.add_child(dialog); dialog.popup_centered()
 
 func render_settings() -> void:
 	var box := panel(page.body)

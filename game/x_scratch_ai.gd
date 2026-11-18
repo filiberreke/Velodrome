@@ -48,6 +48,7 @@ var tactic_clock := 0.0
 var previous_player_speed := -1.0
 var player_attack_until := 0.0
 var rng := RandomNumberGenerator.new()
+var omnium_tactics: RefCounted
 var initialized := false
 var human_power_w := 0.0
 var rotation_events: Array[Dictionary] = []
@@ -122,6 +123,7 @@ func power_limit(i: int, dt: float) -> float:
 	return adjusted_cp + minf(wprime[i], (ceiling - adjusted_cp) * dt) / maxf(dt, 0.0001)
 
 func _phys_power(i: int, wanted: float, dt: float) -> float:
+	if omnium_tactics != null: wanted = omnium_tactics.demand(self, i, wanted)
 	var adjusted_cp: float = cp[i] * (1.0 - 0.10 * fatigue[i])
 	var ceiling: float = pmax[i] * (1.0 - 0.25 * fatigue[i])
 	var demand: float = clampf(wanted, 0.0, ceiling)

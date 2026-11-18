@@ -1,0 +1,285 @@
+{
+	"engine": "4.6.1-stable (official)",
+	"runs": [
+		{
+			"count": 8,
+			"format": "short",
+			"laps": 40,
+			"profiles": {
+				"1": {
+					"attacks": 1,
+					"gains": 1,
+					"points": -115,
+					"reserve_sum": 0.177362085751756,
+					"riders": 3
+				},
+				"2": {
+					"attacks": 0,
+					"gains": 0,
+					"points": -77,
+					"reserve_sum": 0.13549837135905,
+					"riders": 2
+				},
+				"3": {
+					"attacks": 2,
+					"gains": 1,
+					"points": 43,
+					"reserve_sum": 0.108227975927239,
+					"riders": 2
+				}
+			},
+			"race_seconds": 1025.93333333306,
+			"seed": 11,
+			"sprints": 4,
+			"tactics": false,
+			"wall_seconds": 17.406,
+			"winner": "omnium_por_100",
+			"winning_score": 141
+		},
+		{
+			"count": 8,
+			"format": "short",
+			"laps": 40,
+			"profiles": {
+				"1": {
+					"attacks": 0,
+					"gains": 2,
+					"points": -41,
+					"reserve_sum": 0.0777948677867484,
+					"riders": 3
+				},
+				"2": {
+					"attacks": 0,
+					"gains": 1,
+					"points": -64,
+					"reserve_sum": 0.143081292762487,
+					"riders": 2
+				},
+				"3": {
+					"attacks": 2,
+					"gains": 2,
+					"points": 35,
+					"reserve_sum": 0.122457895737169,
+					"riders": 2
+				}
+			},
+			"race_seconds": 1046.06666666637,
+			"seed": 11,
+			"sprints": 4,
+			"tactics": true,
+			"wall_seconds": 17.212,
+			"winner": "omnium_por_100",
+			"winning_score": 157
+		},
+		{
+			"count": 8,
+			"format": "short",
+			"laps": 40,
+			"profiles": {
+				"1": {
+					"attacks": 0,
+					"gains": 2,
+					"points": -8,
+					"reserve_sum": 0.0526221973596533,
+					"riders": 3
+				},
+				"2": {
+					"attacks": 1,
+					"gains": 0,
+					"points": -87,
+					"reserve_sum": 0.184236339009604,
+					"riders": 2
+				},
+				"3": {
+					"attacks": 2,
+					"gains": 0,
+					"points": -91,
+					"reserve_sum": 0.0715594048839353,
+					"riders": 2
+				}
+			},
+			"race_seconds": 1009.29999999974,
+			"seed": 12,
+			"sprints": 4,
+			"tactics": false,
+			"wall_seconds": 17.967,
+			"winner": "omnium_den_106",
+			"winning_score": 143
+		},
+		{
+			"count": 8,
+			"format": "short",
+			"laps": 40,
+			"profiles": {
+				"1": {
+					"attacks": 2,
+					"gains": 2,
+					"points": -15,
+					"reserve_sum": 0.819252097069342,
+					"riders": 3
+				},
+				"2": {
+					"attacks": 0,
+					"gains": 1,
+					"points": -29,
+					"reserve_sum": 0.125030635605806,
+					"riders": 2
+				},
+				"3": {
+					"attacks": 1,
+					"gains": 0,
+					"points": -74,
+					"reserve_sum": 0.00361221434746687,
+					"riders": 2
+				}
+			},
+			"race_seconds": 1035.33333333305,
+			"seed": 12,
+			"sprints": 4,
+			"tactics": true,
+			"wall_seconds": 18.827,
+			"winner": "player",
+			"winning_score": 147
+		},
+		{
+			"count": 8,
+			"format": "short",
+			"laps": 40,
+			"profiles": {
+				"1": {
+					"attacks": 1,
+					"gains": 0,
+					"points": -186,
+					"reserve_sum": 0.205566610348817,
+					"riders": 3
+				},
+				"2": {
+					"attacks": 1,
+					"gains": 0,
+					"points": -87,
+					"reserve_sum": 0.244415891724169,
+					"riders": 3
+				},
+				"3": {
+					"attacks": 1,
+					"gains": 0,
+					"points": -56,
+					"reserve_sum": 0.0327151778195291,
+					"riders": 1
+				}
+			},
+			"race_seconds": 1014.19999999973,
+			"seed": 13,
+			"sprints": 4,
+			"tactics": false,
+			"wall_seconds": 16.811,
+			"winner": "player",
+			"winning_score": 118
+		},
+		{
+			"count": 8,
+			"format": "short",
+			"laps": 40,
+			"profiles": {
+				"1": {
+					"attacks": 1,
+					"gains": 0,
+					"points": -178,
+					"reserve_sum": 0.210523285868627,
+					"riders": 3
+				},
+				"2": {
+					"attacks": 1,
+					"gains": 0,
+					"points": -69,
+					"reserve_sum": 0.181478389861847,
+					"riders": 3
+				},
+				"3": {
+					"attacks": 0,
+					"gains": 0,
+					"points": -59,
+					"reserve_sum": 0.0644238544377313,
+					"riders": 1
+				}
+			},
+			"race_seconds": 1018.33333333306,
+			"seed": 13,
+			"sprints": 4,
+			"tactics": true,
+			"wall_seconds": 16.645,
+			"winner": "omnium_pol_111",
+			"winning_score": 115
+		},
+		{
+			"count": 12,
+			"format": "women",
+			"laps": 80,
+			"profiles": {
+				"1": {
+					"attacks": 1,
+					"gains": 2,
+					"points": -770,
+					"reserve_sum": 0.299210286398208,
+					"riders": 6
+				},
+				"2": {
+					"attacks": 0,
+					"gains": 0,
+					"points": -260,
+					"reserve_sum": 0.0620607917992437,
+					"riders": 1
+				},
+				"3": {
+					"attacks": 4,
+					"gains": 1,
+					"points": -353,
+					"reserve_sum": 0.211888582456679,
+					"riders": 4
+				}
+			},
+			"race_seconds": 2009.99999999883,
+			"seed": 14,
+			"sprints": 8,
+			"tactics": true,
+			"wall_seconds": 56.904,
+			"winner": "omnium_jpn_110",
+			"winning_score": 158
+		},
+		{
+			"count": 24,
+			"format": "men",
+			"laps": 100,
+			"profiles": {
+				"1": {
+					"attacks": 6,
+					"gains": 11,
+					"points": -1018,
+					"reserve_sum": 0.280942757242254,
+					"riders": 10
+				},
+				"2": {
+					"attacks": 0,
+					"gains": 1,
+					"points": -1329,
+					"reserve_sum": 0.347839863022294,
+					"riders": 6
+				},
+				"3": {
+					"attacks": 7,
+					"gains": 8,
+					"points": -634,
+					"reserve_sum": 0.181821976655471,
+					"riders": 7
+				}
+			},
+			"race_seconds": 2432.96666666511,
+			"seed": 15,
+			"sprints": 10,
+			"tactics": true,
+			"wall_seconds": 182.451,
+			"winner": "omnium_fra_107",
+			"winning_score": 164
+		}
+	]
+}

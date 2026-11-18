@@ -11,6 +11,9 @@ var message: Label
 var editing := false
 var opened := false
 var result_index := -1
+var archived_tournament := {}
+var archive_list := false
+var archive_view = preload("res://omnium/omnium_archive.gd").new()
 var choosing_startlist := false
 var picker_layer: CanvasLayer
 # Keep signal receivers alive while the detail controls are in use.
@@ -48,16 +51,24 @@ func refresh() -> void:
 	clear_body()
 	back_button.text = "← Omnium" if editing and not manager.state.active.is_empty() else ("← Deelnemersbron" if editing else ("← Speelinstellingen" if choosing_startlist and manager.state.active.is_empty() else ("← Toernooien" if opened else "← Hoofdmenu")))
 	manager.check_deadline(int(Time.get_unix_time_from_system()))
-	if manager.state.active.is_empty(): result_index = -1
-	if opened and result_index >= 0 and result_index < manager.state.active.results.size():
+	var viewing: Dictionary = manager.state.active if archived_tournament.is_empty() else archived_tournament
+	if viewing.is_empty(): result_index = -1
+	if result_index >= 0 and result_index < viewing.results.size():
 		back_button.text = "← Omnium"
-		preload("res://omnium/omnium_result_page.gd").render(self, manager.state.active, result_index)
+		preload("res://omnium/omnium_result_page.gd").render(self,viewing,result_index)
 		return
+	if not archived_tournament.is_empty():
+		back_button.text = "← Gereden toernooien"; archive_view.render(self); return
+	if archive_list:
+		back_button.text = "← Toernooien"; archive_view.render_list(self); return
 	if not opened:
 		var tile = preload("res://omnium/omnium_tile.gd").new()
 		tile.menu = menu; tile.manager = manager
 		tile.pressed.connect(func(): opened = true; refresh())
 		body.add_child(tile)
+		var archive_tile := button("Gereden toernooien →\n%d bewaard" % manager.state.archive.size(), open_archive_list)
+		archive_tile.custom_minimum_size.y = 88
+		archive_tile.add_theme_font_size_override("font_size",24)
 		return
 	if editing: render_editor(); return
 	if not manager.clock_warning.is_empty(): body.add_child(menu.label(manager.clock_warning, 20))
@@ -193,6 +204,8 @@ func confirm_stop() -> void:
 func go_back() -> void:
 	if is_instance_valid(picker_layer): picker_layer.queue_free(); return
 	if result_index >= 0: result_index = -1
+	elif not archived_tournament.is_empty(): archived_tournament = {}; archive_list = true
+	elif archive_list: archive_list = false; opened = false
 	elif editing: editing = false
 	elif choosing_startlist and manager.state.active.is_empty(): choosing_startlist = false
 	elif opened: opened = false
@@ -235,3 +248,10 @@ func confirm_roster_change(action: Callable, clear_list: bool) -> void:
 	dialog.canceled.connect(dialog.queue_free)
 	add_child(dialog)
 	dialog.popup_centered()
+
+func open_archive_list() -> void:
+	archive_list = true; opened = false; archived_tournament = {}; result_index = -1; refresh()
+func open_archive(tournament: Dictionary) -> void:
+	archived_tournament = tournament.duplicate(true); result_index = -1; archive_view.sort_column = 5; archive_view.descending = true; refresh()
+func open_result(index: int) -> void:
+	result_index = index; refresh(); body.get_parent().set_deferred("scroll_vertical",0)

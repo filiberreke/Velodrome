@@ -288,6 +288,7 @@ func _configure_peloton() -> void:
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 		x_ai.configure_riders(rider_identities, rider_forms)
 		x_ai.apply_ai_strength(ai_difficulty)
+		if omnium_race.enabled(): omnium_race.prepare_ai(self)
 	if race_mode == 2:
 		var rear_positions: Array[float] = []
 		_elimination_clock_ready = false; _elimination_accumulator = 0.0; _elimination_ticks = 0
@@ -1368,7 +1369,7 @@ func _restart_same_race() -> void:
 	_set_menu_visible(false)
 	start_state = "WAIT_STOP"
 
-func _reset() -> void:
+func _reset(omnium_archive: Dictionary = {}) -> void:
 	var returning_to_omnium: bool = omnium_race.enabled()
 	if returning_to_omnium:
 		if not omnium_race.may_leave(self):
@@ -1473,7 +1474,9 @@ func _reset() -> void:
 		race_overlay.developer_panel.hide()
 	team_race.hide_badges()
 	_set_menu_visible(true)
-	if returning_to_omnium: setup_panel.show_omnium_details()
+	if returning_to_omnium:
+		if not omnium_archive.is_empty(): setup_panel.show_omnium_archive(omnium_archive)
+		else: setup_panel.show_omnium_details()
 
 # An opponent in front and approximately on the same line shields a rider.
 # The game has no collisions yet: gaps < 1.2m are excluded to avoid rewarding overlap.
@@ -1923,6 +1926,7 @@ func _advance_race(dt: float) -> void:
 			x_ai.speed_predictor = Callable(self, "_elimination_predict_speed")
 			x_ai.lane_targets[0] = LANES[player_lane]
 		var tactical_positions: Array[float] = _race_positions() if race_mode in [1, 8] else distances
+		if omnium_race.enabled(): omnium_race.tactics.update(self)
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, _lap_credits())
 	if race_mode != 2: player_actual_power = _pc_power(dt)
 	var new_finisher := false
@@ -3439,7 +3443,11 @@ func _result_rider_cell(rider: int, tint: Color, bg: Color, width: float) -> voi
 func _continue_omnium() -> void:
 	if not omnium_race.enabled(): return
 	if not omnium_race.committed and not omnium_race.manager.state.active.is_empty(): return
-	_reset()
+	var completed := {}
+	if omnium_race.committed and omnium_race.discipline() == "points":
+		for tournament in omnium_race.manager.state.archive:
+			if tournament.id == omnium_race.context.id: completed = tournament.duplicate(true)
+	_reset(completed)
 
 func _leave_result_page() -> void:
 	if omnium_race.enabled(): _continue_omnium()
@@ -3474,7 +3482,7 @@ func _refresh_fullscreen_results() -> void:
 	#if race_mode == 1:
 	#	preload("res://points_presentation.gd").results(self)
 	if race_mode in [1, 8]:
-		(preload("res://tempo_presentation.gd") if race_mode == 8 else preload("res://points_presentation.gd")).results(self)
+		(preload("res://tempo_presentation.gd") if race_mode == 8 else (preload("res://omnium/omnium_points_presentation.gd") if omnium_race.enabled() else preload("res://points_presentation.gd"))).results(self)
 		return
 	if race_mode == 5:
 		team_race.results(self)
@@ -3796,7 +3804,7 @@ func _on_strava_activity_created(activity_id: String) -> void:
 	done.popup_centered(Vector2i(650, 290))
 
 func _strava_activity_title() -> String:
-	if omnium_race.enabled(): return "Vélodrome - Omnium - " + String({"scratch":"Scratch", "tempo":"Temporace", "elimination":"Afvalling"}.get(omnium_race.discipline(), ""))
+	if omnium_race.enabled(): return "Vélodrome - Omnium - " + String({"scratch":"Scratch", "tempo":"Temporace", "elimination":"Afvalling", "points":"Puntenkoers"}.get(omnium_race.discipline(), ""))
 	for mode in preload("res://race_menu.gd").MODES:
 		if int(mode["race_id"]) == race_mode:
 			return "Velodrome - " + String(mode["title"])

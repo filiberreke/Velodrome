@@ -9,6 +9,7 @@ var committed := false
 var finish_energy := {}
 var error := ""
 var hud: Control
+var tactics = preload("res://omnium/omnium_tactics.gd").new()
 # Optional deterministic clock for recovery/integration tests; production uses UTC.
 var clock_source: Callable
 
@@ -124,3 +125,7 @@ func result_data(game: Node) -> Dictionary:
 		var id := String(game.rider_identities[i].id)
 		ids.append(id); times[id] = game.finish_times[i]; credits[id] = laps[i]
 	return {"discipline":discipline(), "order":ids, "finish_times":times, "lap_credits":credits}
+
+func prepare_ai(game: Node) -> void:
+	tactics.configure(context, discipline())
+	game.x_ai.omnium_tactics = tactics

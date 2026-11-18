@@ -15,8 +15,9 @@ func _ready() -> void:
 func update_standings(data: Array[Dictionary]) -> void:
 	var key := JSON.stringify(data)
 	if key == last_key or rows == null: return
+	var show_bonus := not data.is_empty() and data[0].has("bonus")
 	var show_race_points := not data.is_empty() and data[0].has("race_points")
-	offset_left = -356 if show_race_points else -312
+	offset_left = -356 if show_race_points else (-354 if show_bonus else -312)
 	last_key = key
 	for child in rows.get_children(): rows.remove_child(child); child.queue_free()
 	var title := Label.new(); title.text = "VIRTUEEL OMNIUM"; title.add_theme_font_size_override("font_size", 17); rows.add_child(title)
@@ -43,7 +44,7 @@ func update_standings(data: Array[Dictionary]) -> void:
 		var rider: Dictionary = data[index]
 		var row := HBoxContainer.new(); row.set_meta("rider_id", String(rider.id)); row.mouse_filter = Control.MOUSE_FILTER_IGNORE; rows.add_child(row)
 		row.add_theme_constant_override("separation", 5)
-		var rank := Label.new(); rank.text = str(index + 1) + "."
+		var rank := Label.new(); rank.text = str(int(rider.get("rank", index + 1))) + "."
 		rank.custom_minimum_size.x = 26; rank.add_theme_font_size_override("font_size", 16); row.add_child(rank)
 		var flag := TextureRect.new(); flag.texture = Flags.texture(String(rider.country)); flag.custom_minimum_size = Vector2(22, 17)
 		flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; row.add_child(flag)
@@ -66,3 +67,10 @@ func update_standings(data: Array[Dictionary]) -> void:
 		var score := Label.new(); score.custom_minimum_size.x = 52 if show_race_points else 30
 		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		score.text = str(rider.score); score.add_theme_font_size_override("font_size", 16); row.add_child(score)
+
+		if show_bonus:
+			var bonus := Label.new(); bonus.custom_minimum_size.x = 32
+			bonus.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			var value := int(rider.get("bonus", 0)); bonus.text = "%+d" % value if value != 0 else ""
+			bonus.add_theme_font_size_override("font_size", 16); bonus.add_theme_color_override("font_color", Style.BLUE)
+			row.add_child(bonus)

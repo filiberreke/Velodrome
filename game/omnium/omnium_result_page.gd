@@ -7,6 +7,11 @@ const Results := preload("res://omnium/omnium_results.gd")
 
 static func render(page: Node, tournament: Dictionary, index: int) -> void:
 	var result: Dictionary = tournament.results[index]
+	if index == 3:
+		page.body.add_child(page.menu.label("Omnium · Puntenkoers · Uitslag",32))
+		var table := GridContainer.new(); table.name = "OmniumSavedResultTable"; page.body.add_child(table)
+		preload("res://omnium/omnium_points_presentation.gd").populate(table,tournament.riders,tournament.results.slice(0,3),result)
+		return
 	var title: String = ["Scratch", "Temporace", "Afvalling", "Puntenkoers"][index]
 	page.body.add_child(page.menu.label("Omnium · %s · Uitslag" % title, 32))
 	page.body.add_child(page.menu.label("OFFICIËLE WEDSTRIJDRESULTATEN · %d deelnemers" % result.order.size(), 17, Style.MUTED))

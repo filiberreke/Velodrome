@@ -694,6 +694,7 @@ func _piste_environment(active: bool) -> void:
 
 func show_tournaments() -> void:
 	tournament_page.result_index = -1
+	tournament_page.archived_tournament = {}; tournament_page.archive_list = false
 	tournament_page.opened = false
 	tournament_page.editing = false
 	tournament_page.choosing_startlist = false
@@ -1145,6 +1146,9 @@ func start_omnium_scratch() -> void:
 func start_omnium_tempo() -> void:
 	_start_omnium_race(preload("res://omnium/omnium_tempo_controller.gd").new(), "Temporace")
 
+func start_omnium_points() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_points_controller.gd").new(), "Puntenkoers")
+
 func start_omnium_elimination() -> void:
 	_start_omnium_race(preload("res://omnium/omnium_elimination_controller.gd").new(), "Afvalling")
 
@@ -1161,7 +1165,13 @@ func _start_omnium_race(controller: RefCounted, caption: String) -> void:
 
 func show_omnium_details() -> void:
 	tournament_page.result_index = -1
+	tournament_page.archived_tournament = {}; tournament_page.archive_list = false
 	tournament_page.opened = true; tournament_page.editing = false
 	tournament_page.refresh()
 	_show_section(7, "Omnium", tournament_page)
+	tournament_back.grab_focus.call_deferred()
+
+func show_omnium_archive(tournament: Dictionary) -> void:
+	tournament_page.open_archive(tournament)
+	_show_section(7,"Omnium · Uitslag",tournament_page)
 	tournament_back.grab_focus.call_deferred()
