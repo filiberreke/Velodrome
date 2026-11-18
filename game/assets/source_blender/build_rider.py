@@ -39,6 +39,23 @@ FPS = 30
 LOOP = 30            # frames per crank revolution
 GEAR = 3             # wheel revolutions per crank revolution (48x16)
 
+VARIANT = os.environ.get("RIDER_VARIANT", "male").strip().lower()
+assert VARIANT in ("male", "female"), f"unknown RIDER_VARIANT {VARIANT!r}"
+FEMALE = VARIANT == "female"
+OUT_NAME = "velodrome_rider_female" if FEMALE else "velodrome_rider"
+HAIR_STYLES = ("low_bun", "ponytail", "short")
+if FEMALE:
+    COLORS.update(mouth=(0.70, 0.33, 0.33), brow=(0.30, 0.19, 0.12), hair=(0.47, 0.39, 0.25))
+BODY_R = dict(pel=(0.18, 0.17), belly=(0.16, 0.145), chest=(0.195, 0.16), uchest=(0.17, 0.13),
+              neck_mid=0.062, neck=0.056, hip=0.125, thigh_a=0.122, thigh_b=0.104, knee=0.068,
+              calf=0.084, shin=0.052, ank=0.04, sh=0.085, uarm=0.072, elb=0.053, farm=0.053, wr=0.037)
+if FEMALE:
+    BODY_R.update(pel=(0.19, 0.175), belly=(0.142, 0.13), chest=(0.172, 0.15), uchest=(0.136, 0.112),
+                  neck_mid=0.052, neck=0.047, hip=0.128, thigh_a=0.12, thigh_b=0.10, knee=0.063,
+                  calf=0.077, shin=0.047, ank=0.036, sh=0.060, uarm=0.046, elb=0.040, farm=0.042, wr=0.031)
+JAW = 0.17 if FEMALE else 0.13
+GLOVE_S = 0.93 if FEMALE else 1.0
+
 def D(x, f, z):
     """rider-space vector: x = rider's left, f = forward, z = up  ->  Blender coords"""
     return Vector((x, -f, z))
@@ -280,16 +297,16 @@ def build_body():
         for p, r in plist:
             i = P(p, r); edges.append((prev, i)); prev = i
         return prev
-    pel = P(PELV, (0.18, 0.17))
-    chain(pel, [(BELLY, (0.16, 0.145)), (CHEST, (0.195, 0.16))])
-    uc = chain(len(pts) - 1, [(UCHEST, (0.17, 0.13))])
-    chain(uc, [(UCHEST.lerp(NECK_T, 0.5), 0.062), (NECK_T, 0.056)])
+    pel = P(PELV, BODY_R["pel"])
+    chain(pel, [(BELLY, BODY_R["belly"]), (CHEST, BODY_R["chest"])])
+    uc = chain(len(pts) - 1, [(UCHEST, BODY_R["uchest"])])
+    chain(uc, [(UCHEST.lerp(NECK_T, 0.5), BODY_R["neck_mid"]), (NECK_T, BODY_R["neck"])])
     for s in ("L", "R"):
         hip, knee, ank = J[f"hip.{s}"], J[f"knee.{s}"], J[f"ank.{s}"]
-        chain(pel, [(hip, 0.125), (hip.lerp(knee, 0.3), 0.122), (hip.lerp(knee, 0.62), 0.104), (knee, 0.068),
-                    (knee.lerp(ank, 0.28), 0.084), (knee.lerp(ank, 0.72), 0.052), (ank, 0.04)])
+        chain(pel, [(hip, BODY_R["hip"]), (hip.lerp(knee, 0.3), BODY_R["thigh_a"]), (hip.lerp(knee, 0.62), BODY_R["thigh_b"]), (knee, BODY_R["knee"]),
+                    (knee.lerp(ank, 0.28), BODY_R["calf"]), (knee.lerp(ank, 0.72), BODY_R["shin"]), (ank, BODY_R["ank"])])
         sh, elb, wr = J[f"sh.{s}"], J[f"elb.{s}"], J[f"wr.{s}"]
-        chain(uc, [(sh, 0.085), (sh.lerp(elb, 0.45), 0.072), (elb, 0.053), (elb.lerp(wr, 0.4), 0.053), (wr, 0.037)])
+        chain(uc, [(sh, BODY_R["sh"]), (sh.lerp(elb, 0.45), BODY_R["uarm"]), (elb, BODY_R["elb"]), (elb.lerp(wr, 0.4), BODY_R["farm"]), (wr, BODY_R["wr"])])
     me = bpy.data.meshes.new("skin_src")
     me.from_pydata([tuple(p) for p in pts], edges, [])
     ob = bpy.data.objects.new("skin_src", me); scene.collection.objects.link(ob)
@@ -346,6 +363,32 @@ def body_material(c):
 
 rider = MB()
 bv, bf = build_body()
+if FEMALE:
+    ax0, ax1 = BELLY, UCHEST
+    axis = (ax1 - ax0).normalized()
+    ventral = axis.cross(D(1, 0, 0)).normalized()
+    if ventral.z > 0: ventral = -ventral
+    for i, v in enumerate(bv):
+        rel = v - ax0
+        t = rel.dot(axis) / (ax1 - ax0).length
+        off = rel - axis * rel.dot(axis)
+        if off.length < 1e-6: continue
+        facing = off.normalized().dot(ventral)
+        if facing <= 0.2: continue
+        lobes = sum(math.exp(-((v.x - sx) / 0.055) ** 2) for sx in (0.068, -0.068))
+        w = math.exp(-((t - 0.70) / 0.16) ** 2) * min(1.0, lobes) * ((facing - 0.2) / 0.8) ** 1.5
+        bv[i] = v + ventral * 0.022 * w
+    for i, v in enumerate(bv):
+        sign = 1 if v.x > 0 else -1
+        if abs(v.x) < 0.10: continue
+        side = "L" if sign > 0 else "R"
+        sh, elb = J[f"sh.{side}"], J[f"elb.{side}"]
+        d, t = seg_dist(v, sh, elb)
+        if d > 0.13: continue
+        near = 1.0 if d < 0.08 else (0.13 - d) / 0.05
+        lateral = min(1.0, (abs(v.x) - 0.10) / 0.08)
+        lateral = lateral * lateral * (3 - 2 * lateral)
+        bv[i] = Vector((v.x - sign * 0.02 * near * lateral * (1.0 - t) ** 1.5, v.y, v.z))
 rider.add(bv, bf, "suit", body_weights(bv))
 # per-face materials for the body
 for i in range(len(bf)):
@@ -366,7 +409,7 @@ def fp(x, y, z):  # point in face frame (head-radius units)
 HEAD_SHAPE = (1.0, 1.07, 0.97)            # head ellipsoid in face frame (x=width, y=height, z=depth), x HEAD_R
 def head_shape(co):
     co = Vector(co)
-    co.x *= 1.0 - 0.13 * max(0.0, -co.y) ** 2          # softer, narrower jaw
+    co.x *= 1.0 - JAW * max(0.0, -co.y) ** 2          # softer, narrower jaw
     co.z *= 1.0 - 0.06 * max(0.0, -co.y) ** 2
     return co
 sphere(rider, HEAD_C, tuple(k * HEAD_R for k in HEAD_SHAPE), "skin", "head", (40, 24), M=Mface, shape=head_shape)
@@ -479,7 +522,7 @@ for s, x in (("L", 1), ("R", -1)):
     hd = (grip - wr).normalized()
     Mh = look_matrix(Vector(), hd, D(0, 0, 1)).to_3x3()
     c = wr + hd * 0.065
-    sphere(rider, c, (0.055, 0.045, 0.075), "glove", f"hand.{s}", (20, 12), M=Mh, shape=superellipse(0.85))
+    sphere(rider, c, (0.055 * GLOVE_S, 0.045 * GLOVE_S, 0.075 * GLOVE_S), "glove", f"hand.{s}", (20, 12), M=Mh, shape=superellipse(0.85))
     sphere(rider, wr + hd * 0.035 + D(-x * 0.045, 0, 0.015), (0.022, 0.022, 0.035), "glove", f"hand.{s}", (12, 8), M=Mh)  # thumb
     cyl(rider, wr - hd * 0.02, wr + hd * 0.02, 0.040, "accent", f"hand.{s}", 16)  # cuff
     # shoe
@@ -745,7 +788,7 @@ for s, sfx in ((1, "L"), (-1, "R")):
     sphere(bike, sp + D(s * 0.01, 0, 0), (0.035, 0.055, 0.011), "glove", f"pedal.{sfx}", (16, 8), shape=superellipse(0.6))
 bike_ob = bike.build("Bike")
 
-for ob in (rider_ob, bike_ob):
+for ob in (rider_ob, bike_ob, *hair_obs):
     ob.parent = rig
     m = ob.modifiers.new("Armature", 'ARMATURE'); m.object = rig
 
@@ -854,7 +897,7 @@ for style in STYLES:
 rig.animation_data.action = ctrl_actions["cruise"]
 for ob in list(scene.objects):
     ob.select_set(False)
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "velodrome_rider_rig.blend"))
+bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, OUT_NAME + "_rig.blend"))
 print("saved rig blend")
 
 # ----------------------------------------------------------------- bake to plain FK for the game
@@ -922,7 +965,7 @@ for act in GAME_ACTIONS:
         pass
 
 bpy.ops.object.select_all(action='SELECT')
-bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "velodrome_rider.glb"), export_format='GLB',
+bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, OUT_NAME + ".glb"), export_format='GLB',
                           export_animations=True, export_animation_mode='ACTIONS', export_force_sampling=True,
                           export_yup=True, export_apply=False)
 print("exported glb")
