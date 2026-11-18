@@ -11,6 +11,9 @@ var piste_training
 var derny_training_environment
 var madison_training_environment
 var exercise_training_environment
+var stadium_environment: Environment
+var stadium_sun: DirectionalLight3D
+var stadium_training_lighting := false
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
@@ -641,6 +644,7 @@ func _ready() -> void:
 	_build_world()
 	arena = load("res://arena.gd").new()
 	add_child(arena)
+	_set_stadium_training_lighting(false)
 	_build_hud()
 	var preferences := preload("res://display_settings.gd").new()
 	preferences.name = "GameSettings"
@@ -673,6 +677,10 @@ func _begin_dropout(since: float) -> void:
 		dropout_since = since
 
 func _physics_process(delta: float) -> void:
+	# Change lighting only on mode transitions, not every frame.
+	var in_training: bool = (piste_training != null and piste_training.active) or (training_environment != null and training_environment.active)
+	if in_training != stadium_training_lighting:
+		_set_stadium_training_lighting(in_training)
 	_read_bridge()
 	if piste_training != null and piste_training.active:
 		exit_menu.set_exit_visible(false)
@@ -2286,6 +2294,15 @@ func _update_boost_dog(dt: float) -> void:
 	var handlebar_world: Vector3 = bikes[0].to_global(Vector3(0.0, 1.02, 0.53))
 	boost_dog.call("set_boost_visual", true, dt, dog_position, forward, handlebar_world, visual_rolls[0])
 
+func _set_stadium_training_lighting(training: bool) -> void:
+	stadium_training_lighting = training
+	if stadium_environment != null:
+		stadium_environment.ambient_light_energy = 0.7 if training else 0.1
+	if stadium_sun != null:
+		stadium_sun.light_energy = 1.5 if training else 0.05
+	if arena != null:
+		arena.set_track_lighting_training(training)
+
 func _build_world() -> void:
 	var sky := WorldEnvironment.new()
 	var env := Environment.new()
@@ -2293,12 +2310,14 @@ func _build_world() -> void:
 	env.background_color = Color("192b40")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("ffffff")
-	env.ambient_light_energy = 0.2
+	env.ambient_light_energy = 0.1
+	stadium_environment = env
 	sky.environment = env
 	add_child(sky)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-55, 28, 0)
-	light.light_energy = 1.5
+	light.light_energy = 0.05
+	stadium_sun = light
 	add_child(light)
 	var floor := MeshInstance3D.new()
 	floor.name = "ArenaOndergrond"
