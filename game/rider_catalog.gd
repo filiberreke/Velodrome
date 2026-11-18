@@ -19,11 +19,12 @@ static func entry(cfg: ConfigFile, index: int, default_profile: int) -> Dictiona
 		"sprinter": kind = 2
 		"aanvaller", "attacker": kind = 3
 	var outfit := {}
-	for key in ["country", "number", "jersey_color", "jersey_secondary", "shorts_color", "helmet_color", "jersey_design", "country_kit", "skinsuit_png", "helmet_png", "visor"]:
+	for key in ["country", "number", "jersey_color", "jersey_secondary", "shorts_color", "helmet_color", "jersey_design", "country_kit", "skinsuit_png", "helmet_png", "visor", "hair_style", "hair_color"]:
 		if cfg.has_section_key(section, key): outfit[key] = cfg.get_value(section, key)
 	var country := Countries.from_kit(outfit)
 	if country.is_empty(): country = Countries.Box.COUNTRIES[(index - 1) % Countries.Box.COUNTRIES.size()]
 	outfit["country"] = country
+	outfit["category"] = String(cfg.get_value(section, "category", "men")).strip_edges().to_lower()
 	var shapes := {}
 	for key in MORPHS:
 		if cfg.has_section_key(section, key):
