@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cbv4a8xvvy2y5"
 path.s3tc="res://.godot/imported/velodrome_rider_female_decal_back_1.png-5019d535e8960871c5a6cb748cb92815.s3tc.ctex"
+path.etc2="res://.godot/imported/velodrome_rider_female_decal_back_1.png-5019d535e8960871c5a6cb748cb92815.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/riders/velodrome_rider_female_decal_back_1.png"
-dest_files=["res://.godot/imported/velodrome_rider_female_decal_back_1.png-5019d535e8960871c5a6cb748cb92815.s3tc.ctex"]
+dest_files=["res://.godot/imported/velodrome_rider_female_decal_back_1.png-5019d535e8960871c5a6cb748cb92815.s3tc.ctex", "res://.godot/imported/velodrome_rider_female_decal_back_1.png-5019d535e8960871c5a6cb748cb92815.etc2.ctex"]
 
 [params]
 
