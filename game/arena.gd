@@ -393,8 +393,8 @@ func _build_roof() -> void:
 		add_child(lamp)
 	# A few focused neutral-white overhead lamps give the wood and riders contrast.
 	# Decorative strips remain emissive; avoid a costly shadow light per panel.
-	for i in range(8):
-		var s: float = LAP * (float(i) + 0.5) / 8.0
+	for i in range(12):
+		var s: float = LAP * (float(i) + 0.5) / 12.0
 		var race_light := SpotLight3D.new()
 		race_light.name = "Piste schijnwerper %d" % (i + 1)
 		race_light.position = _roof_light_mount(s) - Vector3.UP * 0.65
@@ -407,7 +407,7 @@ func _build_roof() -> void:
 		race_light.shadow_enabled = false
 
 func set_track_lighting_training(training: bool) -> void:
-	for i in range(8):
+	for i in range(12):
 		var lamp := get_node_or_null("Piste schijnwerper %d" % (i + 1)) as SpotLight3D
 		if lamp == null:
 			continue
