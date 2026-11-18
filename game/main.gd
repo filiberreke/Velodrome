@@ -2299,7 +2299,7 @@ func _set_stadium_training_lighting(training: bool) -> void:
 	if stadium_environment != null:
 		stadium_environment.ambient_light_energy = 0.7 if training else 0.1
 	if stadium_sun != null:
-		stadium_sun.light_energy = 1.5 if training else 0.05
+		stadium_sun.light_energy = 0.2 if training else 0.05
 	if arena != null:
 		arena.set_track_lighting_training(training)
 
