@@ -13,6 +13,12 @@ static func results(game) -> void:
 	game.pursuit_save_box.visible = false
 	var status: String = "Definitieve uitslag" if jury.complete() else "Voorlopig · de laatste doorkomst wordt aangevuld"
 	game.finish_results.text = "JOUW SCORE  %d PUNTEN    ·    RONDEN +%d / −%d\n%s" % [jury.points[0], jury.gains[0], jury.losses[0], status]
+	var omnium = game.get("omnium_race")
+	if omnium != null and omnium.enabled():
+		var scores := preload("res://omnium/omnium_scoring.gd")
+		var earned: int = scores.place_points(order.find(0) + 1)
+		var totals: Dictionary = scores.totals(omnium.context.riders, omnium.context.results)
+		game.finish_results.text += "\nOMNIUM · +%d punten · totaal %d · %s" % [earned, int(totals[game.rider_identities[0].id]) + earned, "opgeslagen" if omnium.committed else "voorlopig"]
 	for child in game.finish_table.get_children():
 		game.finish_table.remove_child(child)
 		child.queue_free()
@@ -30,7 +36,7 @@ static func results(game) -> void:
 			var award: String = str(sprint.awards[place]) if place >= 0 else "…"
 			sprint_text += ("  |  " if not sprint_text.is_empty() else "") + "%d: %s" % [sprint.lap, award]
 		game._result_cell(str(rank + 1), gold if rank == 0 else white, bg, 54)
-		game._result_cell(game._rider_name(id), gold if id == 0 else white, bg, 205)
+		game._result_rider_cell(id, gold if id == 0 else white, bg, 205)
 		game._result_cell(str(jury.points[id]), white, bg, 100, true)
 		game._result_cell("+%d / −%d" % [jury.gains[id], jury.losses[id]], white, bg, 140, true)
 		game._result_cell(sprint_text, white, bg, 300)

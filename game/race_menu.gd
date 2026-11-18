@@ -341,14 +341,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	first_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(first_row)
 	hub_button = _hub_tile(first_row, "Wedstrijden", "Kies je discipline en ga voor de winst.", [0], show_choices)
-	var tournaments := _hub_tile(first_row, "Toernooien", "Meerdere wedstrijden, één klassement.", [2], show_tournaments)
-	var tournament_copy: VBoxContainer = tournaments.get_child(0).get_child(0)
-	var coming_soon := label("BINNENKORT", 14, MenuStyle.MUTED)
-	coming_soon.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	coming_soon.add_theme_stylebox_override("normal", MenuStyle.panel(MenuStyle.PALE, MenuStyle.LINE, 8, 6))
-	tournament_copy.add_child(coming_soon)
-	tournament_copy.move_child(coming_soon, 0)
-	tournament_copy.get_child(1).add_theme_color_override("font_color", MenuStyle.MUTED)
+	_hub_tile(first_row, "Toernooien", "Meerdere wedstrijden, één klassement.", [0], show_tournaments)
 	var second_row := HBoxContainer.new()
 	second_row.name = "ErgEnPistetraining"
 	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -519,40 +512,10 @@ func _build_hub(layout: VBoxContainer) -> void:
 	training_history_page.menu = self
 	layout.add_child(training_history_page)
 	place_back(training_history_page.back_button, training_history_page)
-	tournament_page = VBoxContainer.new()
-	tournament_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tournament_page = preload("res://omnium/omnium_page.gd").new()
+	tournament_page.menu = self
 	layout.add_child(tournament_page)
-	var tournament_center := CenterContainer.new()
-	tournament_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	tournament_page.add_child(tournament_center)
-	var tournament_card := PanelContainer.new()
-	tournament_card.custom_minimum_size = Vector2(1260, 340)
-	tournament_card.add_theme_stylebox_override("panel", MenuStyle.panel(MenuStyle.PAPER, MenuStyle.LINE, 28))
-	tournament_center.add_child(tournament_card)
-	var tournament_content := HBoxContainer.new()
-	tournament_content.add_theme_constant_override("separation", 40)
-	tournament_card.add_child(tournament_content)
-	var tournament_art := TextureRect.new()
-	tournament_art.texture = previews[2].get_texture()
-	tournament_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tournament_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tournament_art.custom_minimum_size = Vector2(520, 280)
-	tournament_content.add_child(tournament_art)
-	var tournament_description_box := VBoxContainer.new()
-	tournament_description_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	tournament_description_box.add_theme_constant_override("separation", 18)
-	tournament_content.add_child(tournament_description_box)
-	tournament_description_box.add_child(label("BINNENKORT", 16, MUTED))
-	var tournament_heading := label("Toernooien komen eraan", 32)
-	tournament_heading.add_theme_font_override("font", MenuStyle.heading())
-	tournament_description_box.add_child(tournament_heading)
-	tournament_description_box.add_child(label("Meerdere wedstrijden, één klassement.\nJe kunt nu al losse wedstrijden rijden.", 22, MUTED))
-	var choose_race := Button.new()
-	choose_race.text = "Kies een wedstrijd →"
-	MenuStyle.primary(choose_race)
-	choose_race.pressed.connect(show_choices)
-	tournament_description_box.add_child(choose_race)
-	tournament_back = _hub_button(tournament_page, "← Hoofdmenu", show_hub)
+	tournament_back = tournament_page.back_button
 	place_back(tournament_back, tournament_page)
 	workout_editor_page = preload("res://workout_editor.gd").new()
 	workout_editor_page.library = workout_library
@@ -667,6 +630,14 @@ func show_training() -> void:
 	_show_section(6, "ERG-training", training_page)
 
 func _piste_back_requested(training) -> void:
+	if training == exercise_page and not exercise_page.omnium_origin.is_empty():
+		exercise_page.omnium_origin = ""
+		tournament_page.opened = true
+		tournament_page.editing = false
+		tournament_page.refresh()
+		_show_section(7, "Omnium", tournament_page)
+		tournament_back.grab_focus.call_deferred()
+		return
 	if training.return_to_history: show_training_history()
 	else: show_piste_training()
 
@@ -689,6 +660,8 @@ func show_derny(new_training: bool = true) -> void:
 	_show_section(12, "Dernytraining", derny_page)
 
 func show_piste_exercise(kind: String, new_training: bool = true) -> void:
+	# Opening the result of the same ride must preserve its return destination.
+	if new_training: exercise_page.omnium_origin = ""
 	if new_training: exercise_page.prepare_new_training()
 	exercise_page.configure(kind)
 	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
@@ -720,6 +693,12 @@ func _piste_environment(active: bool) -> void:
 		menu_tint.show()
 
 func show_tournaments() -> void:
+	tournament_page.result_index = -1
+	tournament_page.archived_tournament = {}; tournament_page.archive_list = false
+	tournament_page.opened = false
+	tournament_page.editing = false
+	tournament_page.choosing_startlist = false
+	tournament_page.refresh()
 	_show_section(7, "Toernooien", tournament_page)
 	tournament_back.grab_focus.call_deferred()
 
@@ -1084,6 +1063,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func bridge_action(button: String) -> void:
 	if not visible:
 		return
+	if page == 7 and tournament_page.handle_navigation(button): return
 	if page == 5:
 		startlist_page.bridge_action(button)
 		return
@@ -1152,3 +1132,46 @@ func _save_difficulty(key: String, value: float) -> void:
 	difficulty_preferences.set_value("race", key, value)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(difficulty_preferences_path.get_base_dir()))
 	difficulty_preferences.save(difficulty_preferences_path)
+
+func start_omnium_warmup() -> void:
+	if tournament_page.manager.state.active.is_empty(): return
+	show_piste_exercise("free_ride")
+	exercise_page.omnium_origin = String(tournament_page.manager.state.active.id)
+	exercise_page.begin()
+	exercise_page.back_button.text = "← Omnium"
+
+func start_omnium_scratch() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_scratch_controller.gd").new(), "Scratch")
+
+func start_omnium_tempo() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_tempo_controller.gd").new(), "Temporace")
+
+func start_omnium_points() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_points_controller.gd").new(), "Puntenkoers")
+
+func start_omnium_elimination() -> void:
+	_start_omnium_race(preload("res://omnium/omnium_elimination_controller.gd").new(), "Afvalling")
+
+func _start_omnium_race(controller: RefCounted, caption: String) -> void:
+	var game: Node = self
+	while game != null and not game.has_method("_configure_peloton"): game = game.get_parent()
+	if game == null or game.omnium_race.enabled(): return
+	game.omnium_race = controller
+	if not controller.start(game, tournament_page.manager):
+		var dialog := AcceptDialog.new()
+		dialog.dialog_text = caption + " kon niet worden gestart. " + controller.error
+		dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free)
+		add_child(dialog); dialog.popup_centered()
+
+func show_omnium_details() -> void:
+	tournament_page.result_index = -1
+	tournament_page.archived_tournament = {}; tournament_page.archive_list = false
+	tournament_page.opened = true; tournament_page.editing = false
+	tournament_page.refresh()
+	_show_section(7, "Omnium", tournament_page)
+	tournament_back.grab_focus.call_deferred()
+
+func show_omnium_archive(tournament: Dictionary) -> void:
+	tournament_page.open_archive(tournament)
+	_show_section(7,"Omnium · Uitslag",tournament_page)
+	tournament_back.grab_focus.call_deferred()
