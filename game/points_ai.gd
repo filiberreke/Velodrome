@@ -204,6 +204,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 				m = MODE_CHASE
 		if m == MODE_DRAFT and not in_escape and clock > cooldown[i] and reserve > 0.56 and not final_stage and credits[i] == 0:
 			var opportunity: float = 1.35 * dt * aggression[i] * 2.0
+			if omnium_tactics != null: opportunity *= omnium_tactics.attack_factor(i)
 			if jury.last_sprint_clock >= 0.0 and clock - jury.last_sprint_clock < 16.0: opportunity *= 2.5
 			var next_lap: int = jury.next_sprint_lap()
 			if next_lap > 0 and next_lap * LAP - maxf(head_d, distances[0]) < LAP: opportunity *= 0.18
@@ -215,6 +216,9 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 				_set_mode(i, MODE_ATTACK, rng.randf_range(10.0, 19.0), clock)
 				m = MODE_ATTACK
 				attacks[i] += 1
+		# Omnium only supplies a threat; the existing chase mode and physiology execute it.
+		if omnium_tactics != null and omnium_tactics.should_chase(i) and m == MODE_DRAFT and not in_escape:
+			_set_mode(i, MODE_CHASE, 8.0, clock); m = MODE_CHASE
 		# Discover wheels independent of lateral lane: the rider must first SEE a
 		# potential wheel before being able to steer behind it. The human rider
 		# (index 0) is a normal draftable target, including in a breakaway.

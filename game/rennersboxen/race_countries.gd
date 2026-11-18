@@ -19,6 +19,10 @@ static func from_kit(config: Dictionary) -> String:
 	return valid_country(String(config.get("country_kit","")))
 
 static func configured_country(game: Node, index: int) -> String:
+	var omnium = game.get("omnium_race")
+	if omnium != null and omnium.enabled():
+		var identities: Array = game.get("rider_identities")
+		if index < identities.size(): return valid_country(String(identities[index].get("country", "")))
 	var kits: Array = game.get("rider_kits")
 	if int(game.get("race_mode")) in [4,5] and index < kits.size():
 		var selected := from_kit(kits[index])

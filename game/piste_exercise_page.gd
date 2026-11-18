@@ -1,6 +1,7 @@
 extends "res://derny_training.gd"
 const Exercise := preload("res://piste_exercise_session.gd")
 var kind := "flying_start"
+var omnium_origin := ""
 var records_store
 var records_table: PanelContainer
 var results_row: HBoxContainer
@@ -77,3 +78,8 @@ func _refresh() -> void:
 func show_activity(activity: Dictionary, message: String = "Training opgeslagen in het spel.") -> void:
 	super.show_activity(activity,message)
 	if kind == "flying_start": records_table.refresh()
+
+func set_history_origin(from_history: bool) -> void:
+	if from_history: omnium_origin = ""
+	super.set_history_origin(from_history)
+	if not omnium_origin.is_empty(): back_button.text = "← Omnium"

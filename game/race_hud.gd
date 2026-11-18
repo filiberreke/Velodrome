@@ -328,7 +328,7 @@ func _build_eliminated() -> void:
 	eliminated_panel.hide()
 
 func _update_eliminated(data: Dictionary) -> void:
-	eliminated_panel.visible = bool(data.get("elimination", false))
+	eliminated_panel.visible = bool(data.get("elimination", false)) and not bool(data.get("omnium", false))
 	if not eliminated_panel.visible: return
 	var out: Array = data.get("eliminated", [])
 	eliminated_scroll.custom_minimum_size.y = minf(360.0, out.size() * 30.0)
@@ -818,7 +818,7 @@ func _build_points_standings() -> void:
 	points_panel.hide()
 
 func _update_points_standings(data: Dictionary) -> void:
-	points_panel.visible = bool(data.get("points_race", false))
+	points_panel.visible = bool(data.get("points_race", false)) and not bool(data.get("omnium", false))
 	if not points_panel.visible: return
 	var order: Array = data.get("points_order", [])
 	var scores: Array = data.get("point_scores", [])

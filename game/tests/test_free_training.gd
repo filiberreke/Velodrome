@@ -78,7 +78,12 @@ func run_test() -> void:
 		if i == 220: await shot("free_training_laps")
 	check(scene.active and scene.session.laps.size() >= 3 and scene.total_distance > 750,"Free ride keeps running after multiple laps and accumulates actual ridden distance")
 	check(scene.hud.lap_rows.get_child_count() == scene.session.laps.size() and scene.hud.totals_label.text.contains("km"),"HUD lists completed lap times and keeps time and distance visible")
+	page.omnium_origin = "test_omnium"
 	var id: String = scene.activity.id; page.finish("Handmatig gestopt")
+	check(page.omnium_origin == "test_omnium", "Opening free ride results preserves omnium return destination")
+	page.leave()
+	check(menu.page == 7 and menu.tournament_page.opened, "Leaving omnium warmup results returns to omnium details")
+	check(page.omnium_origin.is_empty(), "Omnium return destination is cleared after leaving results")
 	var saved: Dictionary = menu.training_store.load_activity(id)
 	check(saved.get("final",false) and saved.laps.size() >= 3 and saved.kind == "free_ride","Free training and lap times are saved on stop")
 	menu.show_training_history()

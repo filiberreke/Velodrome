@@ -126,7 +126,7 @@ func _leave_pressed() -> void:
 	heading.text = "Wedstrijd verlaten?"
 	detail.text = "Je kunt deze wedstrijd daarna niet hervatten."
 	resume_button.text = "Terug"
-	leave_button.text = "Verlaten naar hoofdmenu"
+	leave_button.text = "Terug naar omnium" if game.omnium_race.enabled() else "Verlaten naar hoofdmenu"
 	resume_button.grab_focus()
 
 func show_results_leave() -> void:
@@ -134,9 +134,9 @@ func show_results_leave() -> void:
 	returning_to_menu = true
 	confirming_leave = true
 	heading.text = "Resultaat sluiten?"
-	detail.text = "Wil je het resultaat verlaten en terugkeren naar de wedstrijdkeuze?"
+	detail.text = "Wil je terugkeren naar het omnium?" if game.omnium_race.enabled() else "Wil je het resultaat verlaten en terugkeren naar de wedstrijdkeuze?"
 	resume_button.text = "Resultaat bekijken"
-	leave_button.text = "Terug naar wedstrijdkeuze"
+	leave_button.text = "Terug naar omnium" if game.omnium_race.enabled() else "Terug naar wedstrijdkeuze"
 	settings_button.hide()
 	backdrop.show()
 	exit_button.hide()
