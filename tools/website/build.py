@@ -38,31 +38,50 @@ def render(lang, key, mode, root):
         slug = SLUG[lg][p]
         return root + lg + "/" + (slug + "/" if slug else "")
 
-    def IMG(k, alt, cls="", eager=False):
+    def IMG(k, alt, cls="", eager=False, full_width=False):
         path = IMG_DIR / f"{k}.jpg"
         w, h = img_dims(path)
         alt = html.escape(alt, quote=True)
         c = f' class="{cls}"' if cls else ""
         if mode == "bundle":
             src = data_uri(path.with_name(f"{path.stem}-800.jpg"), "image/jpeg")
-            return f'<img{c} src="{src}" alt="{alt}" width="{w}" height="{h}" loading="lazy">'
+            load = 'fetchpriority="high"' if eager else 'loading="lazy"'
+            return f'<img{c} src="{src}" alt="{alt}" width="{w}" height="{h}" {load}>'
         load = 'fetchpriority="high"' if eager else 'loading="lazy" decoding="async"'
-        sizes = "100vw" if eager else "(max-width: 860px) 100vw, 560px"
+        sizes = "100vw" if full_width else "(max-width: 860px) 100vw, 560px"
         return (f'<img{c} src="{root}assets/img/{k}.jpg" srcset="{root}assets/img/{k}-800.jpg 800w, {root}assets/img/{k}.jpg {w}w" '
                 f'sizes="{sizes}" alt="{alt}" width="{w}" height="{h}" {load}>')
 
     def PREVIEW(key, alt):
-        filename = f"mode-previews/{key}.png"
+        filename = "hero-omnium-800.jpg" if key == "omnium" else f"mode-previews/{key}.png"
         path = IMG_DIR / filename
         width, height = img_dims(path)
-        src = data_uri(path, "image/png") if mode == "bundle" else f"{root}assets/img/{filename}"
+        mime = "image/jpeg" if key == "omnium" else "image/png"
+        src = data_uri(path, mime) if mode == "bundle" else f"{root}assets/img/{filename}"
         return (f'<img class="mode-card-image" src="{src}" alt="{html.escape(alt, quote=True)}" '
                 f'width="{width}" height="{height}" loading="lazy" decoding="async">')
+
+    def VIDEO(name, label):
+        directory = SITE / "assets" / "video"
+        filename = f"{name}.mp4"
+        poster_name = f"{name}.jpg"
+        width, height = img_dims(directory / poster_name)
+        if mode == "bundle":
+            src = data_uri(directory / filename, "video/mp4")
+            poster = data_uri(directory / poster_name, "image/jpeg")
+        else:
+            src = f"{root}assets/video/{filename}"
+            poster = f"{root}assets/video/{poster_name}"
+        return (f'<video controls playsinline preload="none" poster="{poster}" width="{width}" height="{height}" '
+                f'aria-label="{html.escape(label, quote=True)}">\n'
+                f'  <source src="{src}" type="video/mp4">\n'
+                f'  <a href="{src}">{html.escape(label)}</a>\n'
+                '</video>')
 
     def CHIP(ok):
         return "" if ok else f'<span class="chip">{ui["soon"]}</span>'
 
-    title, desc, body = page(lang, key, L, IMG, CHIP, PREVIEW)
+    title, desc, body = page(lang, key, L, IMG, CHIP, PREVIEW, VIDEO)
     if mode == "bundle":
         body = re.sub(r'href="#(nl|en)-(\w+)#[^"]*"', r'href="#\1-\2"', body)
 
@@ -95,6 +114,7 @@ def site_page(lang, key):
     alt = "".join(f'<link rel="alternate" hreflang="{lg}" href="{url(lg)}">' for lg in LANGS)
     alt += f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}/">'
     og_locale = "nl_BE" if lang == "nl" else "en_GB"
+    carousel = f'\n<script src="{root}assets/carousel.js" defer></script>' if key == "home" else ""
     return f'''<!doctype html>
 <html lang="{lang}">
 <head>
@@ -109,7 +129,7 @@ def site_page(lang, key):
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#122C50">
 <link rel="icon" href="{root}assets/img/bell-64.png" type="image/png">
-<link rel="stylesheet" href="{root}assets/site.css">
+<link rel="stylesheet" href="{root}assets/site.css">{carousel}
 </head>
 <body>
 {content}
@@ -183,6 +203,7 @@ def build_site(site):
 
 def build_preview(output):
     css = (SITE / "assets" / "site.css").read_text(encoding="utf-8")
+    carousel = (SITE / "assets" / "carousel.js").read_text(encoding="utf-8")
     # Eén bestand met alle pagina’s als views (#nl-home, #en-races, ...)
     views = []
     for lang in LANGS:
@@ -214,6 +235,7 @@ def build_preview(output):
   window.addEventListener("hashchange",show); show();
 }})();
 </script>
+<script>{carousel}</script>
 </body></html>'''
     output.write_text(preview, encoding="utf-8", newline="\n")
 

@@ -54,16 +54,39 @@ pre code{background:none;padding:0}
   .nav{order:3;flex-basis:100%;margin:0 -20px;padding:4px 20px 8px}
 }
 
-/* Hero: echt spelbeeld */
-.hero{margin:0;position:relative;background:var(--ink);color:var(--paper);overflow:hidden}
-.hero-img{width:100%;height:clamp(440px,72vh,660px);object-fit:cover;object-position:center 40%}
-.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,44,80,.92) 0%,rgba(18,44,80,.72) 38%,rgba(18,44,80,0) 70%)}
-.hero-copy{position:absolute;inset:auto 0 0 0;z-index:1;padding-bottom:clamp(28px,6vh,60px)}
-.hero-copy h1,.hero-copy .lede{max-width:15em}
+/* Hero carousel */
+.hero{margin:0;display:grid;background:var(--ink);color:var(--paper)}
+.hero-slides{grid-row:1;min-width:0;touch-action:pan-y pinch-zoom}
+.hero-slide{position:relative;display:grid;align-items:end;min-height:clamp(460px,65vh,660px);isolation:isolate}
+.hero [hidden]{display:none}
+.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 48%;z-index:-2}
+.hero-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#122C50 0%,rgba(18,44,80,.92) 24%,rgba(18,44,80,.32) 65%,transparent 86%);z-index:-1}
+.hero-peloton .hero-img{inset:0 0 0 auto;width:82%;object-position:center 52%}
+.hero-erg .hero-img{inset:0 0 0 auto;width:68%;object-fit:contain;object-position:right center}
+.hero-copy{width:100%;padding-top:50px;padding-bottom:clamp(32px,6vh,65px)}
+.hero-title{max-width:16em;font-size:clamp(2rem,4.4vw,3.4rem)}
 .hero-copy .lede{max-width:32em;font-size:1.15rem;color:var(--pale)}
-@media (max-width:760px){
-  .hero::after{background:linear-gradient(0deg,rgba(18,44,80,.96) 0%,rgba(18,44,80,.85) 48%,rgba(18,44,80,0) 80%)}
-  .hero-img{height:560px;object-position:62% center}
+.hero-controls{grid-row:2;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:8px 12px;background:#0E2240}
+.hero-controls button{min-width:44px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--paper);font:inherit;font-size:1rem;cursor:pointer}
+.hero-controls button:hover{background:#203F65}
+.hero-controls [data-rotation]{margin-right:6px;border-color:#73879E;font-weight:700}
+.hero-dot::after{content:"";display:block;width:12px;height:12px;margin:auto;border:2px solid var(--paper);border-radius:50%}
+.hero-dot[aria-current="true"]::after{background:var(--paper)}
+.hero :focus-visible{outline-color:#fff}
+@media (max-width:900px){
+  .hero-controls{grid-row:1}
+  .hero-slides{grid-row:2}
+  .hero-slide{align-items:start;min-height:0}
+  .hero .hero-img{position:static;width:100%;height:auto;aspect-ratio:16/9;object-position:center;z-index:auto}
+  .hero-slide::after{content:none}
+  .hero-copy{padding-top:24px;padding-bottom:26px;min-height:295px}
+  .hero-copy .lede{font-size:1rem}
+}
+@media (max-width:380px){
+  .hero-copy{min-height:320px}
+  .hero-controls{gap:0;padding-inline:4px}
+  .hero-controls .hero-dot{min-width:30px}
+  .hero-controls [data-rotation]{margin-right:0;padding-inline:6px}
 }
 /* Plankenstrook van de houten piste */
 .boards{height:12px;background:repeating-linear-gradient(90deg,var(--wood) 0 118px,color-mix(in srgb,var(--wood) 78%,var(--ink)) 118px 120px);border-bottom:3px solid var(--blue)}
@@ -86,6 +109,8 @@ main{padding-bottom:64px}
 section{margin:56px 0}
 figure{margin:0}
 figure img{border-radius:12px;border:1px solid var(--rule);width:100%}
+figure video{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--rule);background:#0E2240}
+.training-video{max-width:860px;margin:24px auto 0}
 figcaption{color:var(--sub);font-size:.92rem;margin-top:8px}
 .wide img{aspect-ratio:21/8;object-fit:cover}
 

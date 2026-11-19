@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from html import escape
 
-# Teksten voor velodrome.wielerpraat.be. Bron van waarheid voor speelbaarheid: game/race_menu.gd (MODES + PLAYABLE).
+# Teksten voor velodrome.wielerpraat.be. Controleer speelbaarheid in het spelmenu van de genoemde branch.
 REPO = "https://github.com/filiberreke/Velodrome"
+PREVIEW_BRANCH = f"{REPO}/tree/v0.3"
 PAGES = ["home", "races", "training", "manual", "downloads", "dev"]
 SLUG = {
     "nl": {"home": "", "races": "wedstrijden", "training": "training", "manual": "handleiding", "downloads": "downloads", "dev": "ontwikkeling"},
@@ -41,7 +42,8 @@ RACES = {
   ("team_pursuit", "Ploegenachtervolging", True, "Samen op jacht naar de snelste tijd.", "Rijd met twee of drie virtuele ploegmaats. Stuur op kop naar rechts voor een kopwissel en volg daarna het wattagedoel. Weerstand handmatig of met ERG.", "1 of 4 km"),
   ("time_trial", "Tijdrit", True, "Jij tegen de klok.", "500 m of 1 km met staande of vliegende start, met een vergelijking om de 125 meter tegen je vorige rit of je persoonlijk record.", "500 m of 1 km"),
   ("madison", "Ploegkoers", False, "Wissel af. Blijf in de wedstrijd.", "Rijd als duo, los elkaar af en strijd samen om punten en ronden. De handaflossing oefen je nu al in de pistetraining.", "Aflossen kan al in de training"),
-  ("tempo", "Temporace", False, "Houd het tempo hoog.", "Deze discipline komt in een volgende versie.", ""),
+  ("tempo", "Temporace", True, "Houd het tempo hoog.", "Vanaf ronde vijf krijgt de eerste renner bij elke doorkomst één punt. Een ronde winnen levert 20 punten op. Een ronde verliezen kost 20 punten.", ""),
+  ("omnium", "Omnium", True, "Vier wedstrijden, één klassement.", "Rijd achtereenvolgens scratch, temporace, afvalling en puntenkoers. Je resultaten bepalen samen het eindklassement.", ""),
   ("tournament", "Toernooien", False, "Meerdere wedstrijden, één klassement.", "Rijd een reeks wedstrijden na elkaar en tel je resultaten op.", ""),
  ],
  "en": [
@@ -53,7 +55,8 @@ RACES = {
   ("team_pursuit", "Team pursuit", True, "Chasing the fastest time together.", "Ride with two or three virtual teammates. Steer right at the front to swap turns, then follow the power target. Manual resistance or ERG.", "1 or 4 km"),
   ("time_trial", "Time trial", True, "You against the clock.", "500 m or 1 km from a standing or flying start, compared every 125 metres with your last ride or your personal best.", "500 m or 1 km"),
   ("madison", "Madison", False, "Take turns. Stay in the race.", "Ride as a pair, hand each other in and fight together for points and laps. You can already practise the hand sling in track training.", "Hand slings available in training"),
-  ("tempo", "Tempo race", False, "Keep the pace high.", "This discipline arrives in a later version.", ""),
+  ("tempo", "Tempo race", True, "Keep the pace high.", "From lap five, the first rider across the line each lap earns one point. Gaining a lap earns 20 points. Losing a lap costs 20 points.", ""),
+  ("omnium", "Omnium", True, "Four races, one overall classification.", "Ride the scratch, tempo race, elimination and points race in order. Your results across the four events decide the overall standings.", ""),
   ("tournament", "Tournaments", False, "Several races, one classification.", "Ride a series of races back to back and add up your results.", ""),
  ],
 }
@@ -89,6 +92,7 @@ PREVIEW_ALT = {
     "time_trial": ('Eén renner op de piste', 'One rider on the track'),
     "madison": ("Twee duo's in ploegkleuren", 'Two pairs of riders in team colours'),
     "tempo": ('Eén renner voor het peloton', 'One rider ahead of the bunch'),
+    "omnium": ('Peloton in de puntenkoers van het omnium', 'The bunch in the omnium points race'),
     "free_training": ('Vier gangmakers in verschillende kleuren', 'Four pacers in different colours'),
     "derny_training": ('Een renner volgt de gemotoriseerde gangmaker', 'One rider following the motor pacer'),
     "flying_training": ('Een renner nadert de tijdmeetlijn', 'A rider approaching the timing line'),
@@ -107,18 +111,79 @@ def race_card(lang, item, PREVIEW, href=None):
     slug = _id(name)
     card_class = "mode-card" if playable else "mode-card is-upcoming"
     status = "" if playable else f'<span class="mode-card-status">{UI[lang]["soon"]}</span>'
+    preview = mode in {"tempo", "omnium"}
+    if preview:
+        status = '<span class="mode-card-status">v0.3</span>'
     inner = (f'{mode_art(lang, mode, PREVIEW)}'
              f'<span class="mode-card-title">{escape(name)}</span>{status}')
     if href is not None:
         return f'<a class="{card_class}" href="{href}#{slug}">{inner}</a>'
     meta_html = f'<p class="meta">{escape(meta)}</p>' if meta else ""
+    if preview:
+        label = "Speelbaar op" if lang == "nl" else "Playable on"
+        meta_html = f'<p class="meta">{label} <a href="{PREVIEW_BRANCH}">v0.3</a>.</p>'
     return (f'<article class="race-entry" id="{slug}">'
             f'<div class="{card_class}">{inner}</div>'
             f'<div class="race-entry-copy"><h2>{escape(name)}</h2><p class="hint">{escape(hint)}</p>'
             f'<p>{escape(detail)}</p>{meta_html}</div></article>')
 
 
-def page(lang, key, L, IMG, CHIP, PREVIEW):
+HERO_SLIDES = {
+    "nl": [
+        ("hero-peloton", "Baanwielrennen op een virtuele piste", "Een peloton in landentruien op de houten piste", "Rijd op een piste van 250 meter met je smarttrainer of het toetsenbord.", "races", "", "Bekijk de wedstrijden"),
+        ("hero-erg", "Vrije ERG Training", "ERG-training met vermogensdoel en trainingsgrafiek", "Maak je eigen workout of importeer een .zwo-bestand en train op het vermogen dat jij kiest.", "training", "#erg-training", "Bekijk ERG-training"),
+        ("hero-madison", "Train je pisteskills alvorens ze in wedstrijd te bewijzen", "Twee ploegmaats maken handcontact bij een Madison-aflossing", "Oefen de handaflossing, de vliegende start of het volgen van de derny.", "training", "#track-training", "Bekijk pistetraining"),
+        ("hero-omnium", "Bewijs dat je alles kan in het omnium", "Het peloton in de puntenkoers van het omnium", "Rijd op v0.3 vier disciplines voor één eindklassement.", "races", "#omnium", "Bekijk het omnium"),
+    ],
+    "en": [
+        ("hero-peloton", "Track cycling on a virtual velodrome", "A bunch in national jerseys on the wooden track", "Ride a 250-metre track with your smart trainer or keyboard.", "races", "", "Explore the races"),
+        ("hero-erg", "Free ERG Training", "ERG training with a power target and workout chart", "Build your own workout or import a .zwo file and train at the power you choose.", "training", "#erg-training", "Explore ERG training"),
+        ("hero-madison", "Train your track skills before putting them to the test in a race", "Two teammates make hand contact during a Madison exchange", "Practise the hand sling, the flying start or riding behind the derny.", "training", "#track-training", "Explore track training"),
+        ("hero-omnium", "Prove your all-round skills in the omnium", "The bunch racing in the omnium points race", "Ride four events for one overall classification on v0.3.", "races", "#omnium", "Explore the omnium"),
+    ],
+}
+
+
+def hero(lang, L, IMG):
+    nl = lang == "nl"
+    labels = {
+        "carousel": "Diavoorstelling" if nl else "Carousel",
+        "slide": "Dia" if nl else "Slide",
+        "previous": "Vorige dia" if nl else "Previous slide",
+        "next": "Volgende dia" if nl else "Next slide",
+        "pause": "Pauzeren" if nl else "Pause",
+        "play": "Afspelen" if nl else "Play",
+    }
+    slides = []
+    dots = []
+    count = len(HERO_SLIDES[lang])
+    for index, (asset, title, alt, detail, dest, fragment, cta) in enumerate(HERO_SLIDES[lang]):
+        heading = "h1" if index == 0 else "h2"
+        position = f'{index + 1} {"van" if nl else "of"} {count}'
+        selected = ' aria-current="true"' if index == 0 else ""
+        dot_label = escape(f"{labels['slide']} {position} — {title}", quote=True)
+        dots.append(f'<button type="button" class="hero-dot" data-slide="{index}" aria-label="{dot_label}"{selected}></button>')
+        download = f'<a class="btn" href="{L("downloads")}">{"Naar de downloads" if nl else "Go to downloads"}</a>' if index == 0 else ""
+        slides.append(f'''<div class="hero-slide {asset}" role="group" aria-roledescription="{labels["slide"]}" aria-label="{position}"{"" if index == 0 else " hidden"}>
+  {IMG(asset, alt, "hero-img", eager=index == 0, full_width=True)}
+  <div class="hero-copy wrap">
+    <{heading} class="hero-title">{escape(title)}</{heading}>
+    <p class="lede">{escape(detail)}</p>
+    <div class="actions"><a class="btn primary" href="{L(dest)}{fragment}">{escape(cta)}</a>{download}</div>
+  </div>
+</div>''')
+    return f'''<section class="hero" data-carousel aria-roledescription="{labels["carousel"]}" aria-label="Vélodrome">
+  <div class="hero-controls" hidden>
+    <button type="button" data-rotation data-play="{labels["play"]}" data-pause="{labels["pause"]}">{labels["pause"]}</button>
+    <button type="button" data-step="-1" aria-label="{labels["previous"]}">←</button>
+    {''.join(dots)}
+    <button type="button" data-step="1" aria-label="{labels["next"]}">→</button>
+  </div>
+  <div class="hero-slides" aria-live="off">{''.join(slides)}</div>
+</section>'''
+
+
+def page(lang, key, L, IMG, CHIP, PREVIEW, VIDEO):
     """Return (title, description, body_html). L(page) -> href, IMG(key, alt, cls) -> <img>."""
     nl = lang == "nl"
     if key == "home":
@@ -127,19 +192,10 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
         desc = ("Baanwielerspel voor de pc: scratch, puntenkoers, afvalling, keirin en achtervolging tegen een virtueel peloton, met je trainer of het toetsenbord."
                 if nl else "Track cycling game for PC: scratch, points race, elimination, keirin and pursuit against a virtual peloton, on your smart trainer or keyboard.")
         body = f'''
-<section class="hero">
-  {IMG("hero", "Renners met rugnummers op de houten piste van Vélodrome" if nl else "Numbered riders on the wooden track in Vélodrome", "hero-img", eager=True)}
-  <div class="hero-copy wrap">
-    <h1>{"Baanwielrennen op een piste van 250 meter." if nl else "Track racing on a 250-metre velodrome."}</h1>
-    <p class="lede">{"Rijd tegen een virtueel peloton in scratch, puntenkoers, afvalling, keirin en achtervolging. Met je eigen trainer en echte watts, of gewoon met het toetsenbord." if nl else "Race a virtual peloton in scratch, points, elimination, keirin and pursuit. On your own smart trainer with real watts, or simply with a keyboard."}</p>
-    <div class="actions">
-      <a class="btn primary" href="{L("downloads")}">{"Naar de downloads" if nl else "Go to downloads"}</a>
-      <a class="btn" href="{L("races")}">{"Bekijk de wedstrijden" if nl else "See the races"}</a>
-    </div>
-  </div>
-</section>
+<main id="main">
+{hero(lang, L, IMG)}
 <div class="boards" aria-hidden="true"></div>
-<main id="main" class="wrap">
+<div class="wrap">
   <p class="status">{"Bèta in actieve ontwikkeling voor Windows. De ondersteuning voor trainers en controllers wordt nog op echte hardware getest." if nl else "Beta in active development for Windows. Trainer and controller support is still being tested on real hardware."}</p>
 
   <section class="features">
@@ -156,7 +212,7 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
   <section>
     <div class="split">
       <div>
-        <h2>{"Zeven wedstrijdvormen om te rijden" if nl else "Seven race formats to ride"}</h2>
+        <h2>{"Wedstrijdvormen" if nl else "Race formats"}</h2>
         <p>{"Scratch, puntenkoers en afvalling beginnen met één geneutraliseerde ronde. Daarna is het koers. De keirin start achter de derny." if nl else "Scratch, points and elimination open with one neutralised lap. Then it’s racing. The keirin starts behind the derny."}</p>
       </div>
       <figure>{IMG("screen", "Groot scherm boven de piste tijdens een puntenkoers" if nl else "Big screen above the track during a points race")}
@@ -182,7 +238,7 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
     <figure>{IMG("piste", "Menu Pistetraining in Vélodrome" if nl else "Track training menu in Vélodrome")}</figure>
     <div>
       <h2>{"Trainen op de piste en op vermogen" if nl else "Train on the track and on power"}</h2>
-      <p>{"Bepaal je FTP met de ramp test, bouw workouts in de editor of importeer .zwo-bestanden. Op de piste oefen je achter de derny, de vliegende start of de handaflossing." if nl else "Find your FTP with the ramp test, build workouts in the editor or import .zwo files. On the track you practise behind the derny, the flying start or the hand sling."}</p>
+      <p>{"Bepaal je FTP met de ramp test of op v0.3 met de 20-minuten FTP-test. Bouw workouts in de editor of importeer .zwo-bestanden. Op de piste oefen je de vliegende start, de handaflossing of het rijden achter de derny." if nl else "Find your FTP with the ramp test or use the 20-minute FTP test on v0.3. Build workouts in the editor or import .zwo files. On the track, practise the flying start, the hand sling or riding behind the derny."}</p>
       <p><a class="more" href="{L("training")}">{"Naar training" if nl else "Go to training"}</a></p>
     </div>
   </section>
@@ -193,17 +249,17 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
     <div class="actions"><a class="btn primary" href="{L("downloads")}">{"Naar de downloads" if nl else "Go to downloads"}</a>
       <a class="btn" href="{L("manual")}">{"Lees de handleiding" if nl else "Read the manual"}</a></div>
   </section>
-</main>'''
+</div></main>'''
         return title, desc, body
 
     if key == "races":
         tiles = [race_card(lang, race, PREVIEW) for race in RACES[lang]]
         title = "Wedstrijden – Vélodrome" if nl else "Races – Vélodrome"
-        desc = ("Welke baanwedstrijden je in Vélodrome kunt rijden: scratch, puntenkoers, afvalling, keirin, achtervolging, ploegenachtervolging en tijdrit." if nl
-                else "The track races you can ride in Vélodrome: scratch, points race, elimination, keirin, individual and team pursuit and time trial.")
+        desc = ("Baanwedstrijden in Vélodrome, van scratch en keirin tot de temporace en het omnium op v0.3." if nl
+                else "Track races in Vélodrome, from scratch and keirin to the tempo race and omnium on v0.3.")
         body = f'''<main id="main" class="wrap page">
   <header class="page-head"><h1>{"Wedstrijden" if nl else "Races"}</h1>
-  <p class="lede">{"Zeven disciplines zijn speelbaar. Je rijdt tegen een virtueel peloton van renners met elk een eigen profiel en eigen wedstrijdgedrag." if nl else "Seven disciplines are playable. You race a virtual peloton of riders who each have their own profile and race behaviour."}</p></header>
+  <p class="lede">{"Je rijdt tegen een virtueel peloton van renners met elk een eigen profiel en wedstrijdgedrag. De temporace en het omnium zijn speelbaar op" if nl else "Race a virtual peloton of riders with their own profiles and race tactics. The tempo race and omnium are playable on"} <a href="{PREVIEW_BRANCH}">v0.3</a>.</p></header>
   <figure class="wide">{IMG("hero", "Renners op de piste tijdens de intro" if nl else "Riders on the track during the intro")}</figure>
   <div class="race-entries">{''.join(tiles)}</div>
   <section class="prose">
@@ -223,25 +279,24 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
       </article>''')
         piste = "\n".join(training_cards)
         title = "Training – Vélodrome" if nl else "Training – Vélodrome"
-        desc = ("ERG-workouts, FTP-test en pistetraining in Vélodrome: derny, vliegende start, ronde nemen en handaflossing." if nl
-                else "ERG workouts, FTP test and track training in Vélodrome: derny, flying start, taking a lap and the Madison hand sling.")
+        desc = ("ERG-workouts, FTP-ramp test, 20-minuten FTP-test op v0.3 en pistetraining in Vélodrome." if nl
+                else "ERG workouts, FTP ramp test, 20-minute FTP test on v0.3 and track training in Vélodrome.")
         body = f'''<main id="main" class="wrap page">
   <header class="page-head"><h1>{"Training" if nl else "Training"}</h1>
   <p class="lede">{"Twee soorten training: workouts op vermogen met je trainer in ERG, en oefeningen op de piste." if nl else "Two kinds of training: power-based workouts with your trainer in ERG mode, and drills on the track."}</p></header>
 
   <section class="split">
     <div class="prose">
-      <h2>{"ERG-training" if nl else "ERG training"}</h2>
+      <h2 id="erg-training">{"ERG-training" if nl else "ERG training"}</h2>
       <p>{"Bij ERG-training legt de trainer het vermogen op; jij trapt. Een echte trainer met verse vermogensmetingen is hiervoor nodig." if nl else "In ERG training the trainer sets the power and you pedal. This needs a real trainer sending fresh power readings."}</p>
       <h3>{"FTP-ramp test" if nl else "FTP ramp test"} {CHIP(True)}</h3>
       <p>{"Vijf minuten vrij opwarmen, daarna start de ramp op 100 W en stijgt elke minuut met 20 W. Je stopt als het niet meer gaat. Je FTP is 75% van je beste 60 seconden en wordt in je spelersprofiel bewaard." if nl else "Five minutes of free warm-up, then the ramp starts at 100 W and rises by 20 W every minute. You stop when you can’t go on. Your FTP is 75% of your best 60 seconds and is saved to your player profile."}</p>
-      <h3>{"20-minuten FTP-test" if nl else "20-minute FTP test"} {CHIP(False)}</h3>
-      <p>{"De klassieke test over 20 minuten komt in een volgende versie." if nl else "The classic 20-minute test arrives in a later version."}</p>
+      <h3 id="ftp-20">{"20-minuten FTP-test" if nl else "20-minute FTP test"}</h3>
+      <p>{"Beschikbaar op" if nl else "Available on"} <a href="{PREVIEW_BRANCH}">v0.3</a>. {"Warm vijf minuten op en rijd daarna twintig minuten op het hoogste vermogen dat je gelijkmatig kunt volhouden. ERG staat uit. Je FTP is 95% van je gemiddelde gemeten vermogen over die twintig minuten." if nl else "Warm up for five minutes, then ride for twenty minutes at the highest steady power you can sustain. ERG is off. Your FTP is 95% of your average measured power over those twenty minutes."}</p>
       <h3>{"Eigen workouts" if nl else "Your own workouts"} {CHIP(True)}</h3>
       <p>{"Bouw workouts in de editor of importeer een .zwo-bestand. Filter je bibliotheek op duur en op intensiteit, als percentage van je FTP." if nl else "Build workouts in the editor or import a .zwo file. Filter your library by duration and by intensity as a percentage of your FTP."}</p>
     </div>
-    <figure>{IMG("exchange", "Aflossingstraining met wattagebalk en voortgang" if nl else "Hand-sling training with power bar and progress")}
-      <figcaption>{"Aflossingstraining: de HUD toont je vermogen en de voortgang." if nl else "Hand-sling training: the HUD shows your power and progress."}</figcaption></figure>
+    <figure>{IMG("hero-erg", "Renner op de piste met vermogensdoel en trainingsgrafiek" if nl else "Rider on the track with a power target and workout chart")}</figure>
   </section>
 
   <section aria-labelledby="track-training">
@@ -255,6 +310,10 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
     <div class="mode-grid training-mode-grid">
 {piste}
     </div>
+    <figure id="madison-exchange" class="training-video">
+      {VIDEO("madison-exchange", "Video van een Madison-aflossing" if nl else "Video of a Madison exchange")}
+      <figcaption>{"Bij de Madison-aflossing rijden de ploegmaats naast elkaar. Ze grijpen elkaars hand en de aflossende renner slingert zijn ploegmaat vooruit." if nl else "In a Madison exchange, the teammates ride side by side. They clasp hands and the outgoing rider slings their teammate forward."}</figcaption>
+    </figure>
   </section>
 
   <section class="prose">
@@ -382,6 +441,7 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
     <div class="prose">
       <h2>{"Releasenotes" if nl else "Release notes"}</h2>
       <p>{"Bij elke versie staan de wijzigingen op de releasepagina. Wat in de volgende versie komt, volg je via de mijlpaal op GitHub." if nl else "Each release lists its changes on the release page. Follow what comes next through the milestone on GitHub."}</p>
+      <p>{"Temporace, omnium en de 20-minuten FTP-test zijn beschikbaar op de ontwikkelbranch" if nl else "The tempo race, omnium and 20-minute FTP test are available on the development branch"} <a href="{PREVIEW_BRANCH}">v0.3</a>.</p>
       <ul class="plain">
         <li><a href="{REPO}/releases">{"Alle releases" if nl else "All releases"}</a></li>
         <li><a href="{REPO}/milestones">{"Mijlpalen en planning" if nl else "Milestones and planning"}</a></li>
@@ -426,8 +486,7 @@ def page(lang, key, L, IMG, CHIP, PREVIEW):
     <h2>{"Wat er komt" if nl else "What’s coming"}</h2>
     <ul class="plain">
       <li><strong>{"Ploegkoers" if nl else "Madison"}</strong> {"als volledige wedstrijd, na de aflossingstraining die er al is." if nl else "as a full race, building on the hand-sling training that’s already in."}</li>
-      <li><strong>{"Temporace en toernooien" if nl else "Tempo race and tournaments"}</strong> {"met één klassement over meerdere wedstrijden." if nl else "with one classification across several races."}</li>
-      <li><strong>{"20-minuten FTP-test" if nl else "20-minute FTP test"}</strong> {"naast de ramp test." if nl else "alongside the ramp test."}</li>
+      <li><strong>{"Toernooien" if nl else "Tournaments"}</strong> {"met één klassement over meerdere wedstrijden." if nl else "with one classification across several races."}</li>
       <li><strong>{"Inloggen met Bluesky" if nl else "Sign in with Bluesky"}</strong> {"en een spelersprofiel, gepland voor versie 0.4." if nl else "and a player profile, planned for version 0.4."}</li>
     </ul>
   </section>

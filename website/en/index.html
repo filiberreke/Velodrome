@@ -13,6 +13,7 @@
 <meta name="theme-color" content="#122C50">
 <link rel="icon" href="../assets/img/bell-64.png" type="image/png">
 <link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/carousel.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -21,19 +22,46 @@
   <nav class="nav" aria-label="Menu"><a href="../en/" aria-current="page">Home</a><a href="../en/races/">Races</a><a href="../en/training/">Training</a><a href="../en/manual/">Manual</a><a href="../en/downloads/">Downloads</a><a href="../en/development/">Development</a></nav>
   <a class="lang" href="../nl/" hreflang="nl" lang="nl" data-lang="nl" aria-label="Lees deze pagina in het Nederlands">Nederlands</a>
 </div></header>
-<section class="hero">
-  <img class="hero-img" src="../assets/img/hero.jpg" srcset="../assets/img/hero-800.jpg 800w, ../assets/img/hero.jpg 1280w" sizes="100vw" alt="Numbered riders on the wooden track in Vélodrome" width="1280" height="630" fetchpriority="high">
-  <div class="hero-copy wrap">
-    <h1>Track racing on a 250-metre velodrome.</h1>
-    <p class="lede">Race a virtual peloton in scratch, points, elimination, keirin and pursuit. On your own smart trainer with real watts, or simply with a keyboard.</p>
-    <div class="actions">
-      <a class="btn primary" href="../en/downloads/">Go to downloads</a>
-      <a class="btn" href="../en/races/">See the races</a>
-    </div>
+<main id="main">
+<section class="hero" data-carousel aria-roledescription="Carousel" aria-label="Vélodrome">
+  <div class="hero-controls" hidden>
+    <button type="button" data-rotation data-play="Play" data-pause="Pause">Pause</button>
+    <button type="button" data-step="-1" aria-label="Previous slide">←</button>
+    <button type="button" class="hero-dot" data-slide="0" aria-label="Slide 1 of 4 — Track cycling on a virtual velodrome" aria-current="true"></button><button type="button" class="hero-dot" data-slide="1" aria-label="Slide 2 of 4 — Free ERG Training"></button><button type="button" class="hero-dot" data-slide="2" aria-label="Slide 3 of 4 — Train your track skills before putting them to the test in a race"></button><button type="button" class="hero-dot" data-slide="3" aria-label="Slide 4 of 4 — Prove your all-round skills in the omnium"></button>
+    <button type="button" data-step="1" aria-label="Next slide">→</button>
   </div>
+  <div class="hero-slides" aria-live="off"><div class="hero-slide hero-peloton" role="group" aria-roledescription="Slide" aria-label="1 of 4">
+  <img class="hero-img" src="../assets/img/hero-peloton.jpg" srcset="../assets/img/hero-peloton-800.jpg 800w, ../assets/img/hero-peloton.jpg 1600w" sizes="100vw" alt="A bunch in national jerseys on the wooden track" width="1600" height="900" fetchpriority="high">
+  <div class="hero-copy wrap">
+    <h1 class="hero-title">Track cycling on a virtual velodrome</h1>
+    <p class="lede">Ride a 250-metre track with your smart trainer or keyboard.</p>
+    <div class="actions"><a class="btn primary" href="../en/races/">Explore the races</a><a class="btn" href="../en/downloads/">Go to downloads</a></div>
+  </div>
+</div><div class="hero-slide hero-erg" role="group" aria-roledescription="Slide" aria-label="2 of 4" hidden>
+  <img class="hero-img" src="../assets/img/hero-erg.jpg" srcset="../assets/img/hero-erg-800.jpg 800w, ../assets/img/hero-erg.jpg 1600w" sizes="100vw" alt="ERG training with a power target and workout chart" width="1600" height="900" loading="lazy" decoding="async">
+  <div class="hero-copy wrap">
+    <h2 class="hero-title">Free ERG Training</h2>
+    <p class="lede">Build your own workout or import a .zwo file and train at the power you choose.</p>
+    <div class="actions"><a class="btn primary" href="../en/training/#erg-training">Explore ERG training</a></div>
+  </div>
+</div><div class="hero-slide hero-madison" role="group" aria-roledescription="Slide" aria-label="3 of 4" hidden>
+  <img class="hero-img" src="../assets/img/hero-madison.jpg" srcset="../assets/img/hero-madison-800.jpg 800w, ../assets/img/hero-madison.jpg 1600w" sizes="100vw" alt="Two teammates make hand contact during a Madison exchange" width="1600" height="900" loading="lazy" decoding="async">
+  <div class="hero-copy wrap">
+    <h2 class="hero-title">Train your track skills before putting them to the test in a race</h2>
+    <p class="lede">Practise the hand sling, the flying start or riding behind the derny.</p>
+    <div class="actions"><a class="btn primary" href="../en/training/#track-training">Explore track training</a></div>
+  </div>
+</div><div class="hero-slide hero-omnium" role="group" aria-roledescription="Slide" aria-label="4 of 4" hidden>
+  <img class="hero-img" src="../assets/img/hero-omnium.jpg" srcset="../assets/img/hero-omnium-800.jpg 800w, ../assets/img/hero-omnium.jpg 1600w" sizes="100vw" alt="The bunch racing in the omnium points race" width="1600" height="900" loading="lazy" decoding="async">
+  <div class="hero-copy wrap">
+    <h2 class="hero-title">Prove your all-round skills in the omnium</h2>
+    <p class="lede">Ride four events for one overall classification on v0.3.</p>
+    <div class="actions"><a class="btn primary" href="../en/races/#omnium">Explore the omnium</a></div>
+  </div>
+</div></div>
 </section>
 <div class="boards" aria-hidden="true"></div>
-<main id="main" class="wrap">
+<div class="wrap">
   <p class="status">Beta in active development for Windows. Trainer and controller support is still being tested on real hardware.</p>
 
   <section class="features">
@@ -50,13 +78,13 @@
   <section>
     <div class="split">
       <div>
-        <h2>Seven race formats to ride</h2>
+        <h2>Race formats</h2>
         <p>Scratch, points and elimination open with one neutralised lap. Then it’s racing. The keirin starts behind the derny.</p>
       </div>
       <figure><img src="../assets/img/screen.jpg" srcset="../assets/img/screen-800.jpg 800w, ../assets/img/screen.jpg 1000w" sizes="(max-width: 860px) 100vw, 560px" alt="Big screen above the track during a points race" width="1000" height="625" loading="lazy" decoding="async">
         <figcaption>The big screen hangs above the infield.</figcaption></figure>
     </div>
-    <div class="mode-grid home-mode-grid"><a class="mode-card" href="../en/races/#scratch"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/scratch.png" alt="Peloton on the banked track" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Scratch</span></a><a class="mode-card" href="../en/races/#points-race"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/points.png" alt="Five riders sprinting for the line" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Points race</span></a><a class="mode-card" href="../en/races/#elimination"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/elimination.png" alt="The last rider clearing the finish line" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Elimination</span></a><a class="mode-card" href="../en/races/#keirin"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/keirin.png" alt="Riders lined up behind the pacer" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Keirin</span></a><a class="mode-card" href="../en/races/#individual-pursuit"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/pursuit.png" alt="Two riders on opposite straights" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Individual pursuit</span></a><a class="mode-card" href="../en/races/#team-pursuit"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/team_pursuit.png" alt="Two teams on opposite straights" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Team pursuit</span></a><a class="mode-card" href="../en/races/#time-trial"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/time_trial.png" alt="One rider on the track" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Time trial</span></a></div>
+    <div class="mode-grid home-mode-grid"><a class="mode-card" href="../en/races/#scratch"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/scratch.png" alt="Peloton on the banked track" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Scratch</span></a><a class="mode-card" href="../en/races/#points-race"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/points.png" alt="Five riders sprinting for the line" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Points race</span></a><a class="mode-card" href="../en/races/#elimination"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/elimination.png" alt="The last rider clearing the finish line" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Elimination</span></a><a class="mode-card" href="../en/races/#keirin"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/keirin.png" alt="Riders lined up behind the pacer" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Keirin</span></a><a class="mode-card" href="../en/races/#individual-pursuit"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/pursuit.png" alt="Two riders on opposite straights" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Individual pursuit</span></a><a class="mode-card" href="../en/races/#team-pursuit"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/team_pursuit.png" alt="Two teams on opposite straights" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Team pursuit</span></a><a class="mode-card" href="../en/races/#time-trial"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/time_trial.png" alt="One rider on the track" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Time trial</span></a><a class="mode-card" href="../en/races/#tempo-race"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/tempo.png" alt="One rider ahead of the bunch" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Tempo race</span><span class="mode-card-status">v0.3</span></a><a class="mode-card" href="../en/races/#omnium"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/hero-omnium-800.jpg" alt="The bunch in the omnium points race" width="800" height="450" loading="lazy" decoding="async"></span><span class="mode-card-title">Omnium</span><span class="mode-card-status">v0.3</span></a></div>
     <p><a class="more" href="../en/races/">All race formats</a></p>
   </section>
 
@@ -76,7 +104,7 @@
     <figure><img src="../assets/img/piste.jpg" srcset="../assets/img/piste-800.jpg 800w, ../assets/img/piste.jpg 1600w" sizes="(max-width: 860px) 100vw, 560px" alt="Track training menu in Vélodrome" width="1600" height="900" loading="lazy" decoding="async"></figure>
     <div>
       <h2>Train on the track and on power</h2>
-      <p>Find your FTP with the ramp test, build workouts in the editor or import .zwo files. On the track you practise behind the derny, the flying start or the hand sling.</p>
+      <p>Find your FTP with the ramp test or use the 20-minute FTP test on v0.3. Build workouts in the editor or import .zwo files. On the track, practise the flying start, the hand sling or riding behind the derny.</p>
       <p><a class="more" href="../en/training/">Go to training</a></p>
     </div>
   </section>
@@ -87,7 +115,7 @@
     <div class="actions"><a class="btn primary" href="../en/downloads/">Go to downloads</a>
       <a class="btn" href="../en/manual/">Read the manual</a></div>
   </section>
-</main><footer class="foot"><div class="wrap">
+</div></main><footer class="foot"><div class="wrap">
   <img src="../assets/img/bell-64.png" alt="" width="32" height="32">
   <p>Vélodrome is open-source software under GPLv3, built with Godot.</p>
   <a href="https://github.com/filiberreke/Velodrome">Source code on GitHub</a>
