@@ -330,6 +330,22 @@ func _hub_tile(parent: Container, caption: String, description: String, preview_
 	button.pressed.connect(action)
 	return button
 
+func _personal_hub_tile(parent: Container, caption: String, description: String, art_kind: String, available: bool) -> void:
+	var tile := _hub_tile(parent, caption, description, [], show_training_history if available else _personal_coming_soon.bind(caption))
+	var images: HBoxContainer = tile.get_child(0).get_child(1)
+	for child in images.get_children():
+		images.remove_child(child)
+		child.queue_free()
+	var art := preload("res://personal_tile_art.gd").new()
+	art.kind = art_kind
+	art.custom_minimum_size = Vector2(180, 130)
+	images.add_child(art)
+	if not available:
+		tile.tooltip_text = caption + " · Binnenkort"
+
+func _personal_coming_soon(_caption: String) -> void:
+	pass
+
 func _build_hub(layout: VBoxContainer) -> void:
 	hub_page = VBoxContainer.new()
 	hub_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -349,7 +365,15 @@ func _build_hub(layout: VBoxContainer) -> void:
 	hub_page.add_child(second_row)
 	_hub_tile(second_row, "ERG-training", "Workouts op vermogen en FTP-tests.", [], show_training)
 	_hub_tile(second_row, "Pistetraining", "Vrij rijden, derny en specifieke pistesessies.", [7], show_piste_training)
-	for tile_row in [first_row, second_row]:
+	var personal_row := HBoxContainer.new()
+	personal_row.name = "Persoonlijk"
+	personal_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	personal_row.add_theme_constant_override("separation", 16)
+	hub_page.add_child(personal_row)
+	_personal_hub_tile(personal_row, "Mijn renner", "Pas je renner aan · Binnenkort", "rider", false)
+	_personal_hub_tile(personal_row, "Palmares", "Records en prestaties · Binnenkort", "palmares", false)
+	_personal_hub_tile(personal_row, "Mijn ritten", "Alle opgeslagen activiteiten", "rides", true)
+	for tile_row in [first_row, second_row, personal_row]:
 		for tile in tile_row.get_children():
 			var artwork: Control = tile.get_child(0).get_child(1)
 			artwork.custom_minimum_size = Vector2(280, 200)
