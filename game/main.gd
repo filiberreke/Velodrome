@@ -3498,7 +3498,7 @@ func _refresh_fullscreen_results() -> void:
 	if omnium_race.enabled() and not omnium_race.error.is_empty(): recording_message = omnium_race.error
 	if finish_overlay != null and finish_overlay.visible: results_completion.start(self)
 	if finish_table != null:
-		finish_table.columns = 1 if race_mode == 1 else (4 if race_mode in [0, 2] else 5)
+		finish_table.columns = 1 if race_mode == 1 else (3 if race_mode in [0, 2] else 4)
 		if omnium_race.enabled() and race_mode == 2: finish_table.columns += 1
 		if race_mode != 1 and finish_table.has_meta("points_result_key"): finish_table.remove_meta("points_result_key")
 	if finish_photo_rect != null: finish_photo_rect.get_parent().get_parent().visible = finish_photo_rect.texture != null
@@ -3530,7 +3530,7 @@ func _refresh_fullscreen_results() -> void:
 		for end_time in finish_times:
 			if end_time >= 0.0: classified += 1
 		status = "Uitslag wordt versneld berekend · %d/%d renners afgewerkt" % [classified, rider_count]
-	var summary: String = "JOUW TIJD   %.2f s    •    GEM. VERMOGEN   %.0f W    •    PIEK   %.0f W\n%s" % [finish_times[0], player_power_integral / maxf(0.1, finish_times[0]), player_peak_watts, status]
+	var summary: String = "JOUW TIJD   %s    •    GEM. VERMOGEN   %.0f W    •    PIEK   %.0f W\n%s" % [preload("res://omnium/omnium_results.gd").clock(finish_times[0]) if finish_times[0] >= 0.0 else "Onderweg", player_power_integral / maxf(0.1, finish_times[0]), player_peak_watts, status]
 	if omnium_race.enabled():
 		var omnium_scores := preload("res://omnium/omnium_scoring.gd")
 		var earned: int = omnium_scores.place_points(player_place)
@@ -3560,8 +3560,7 @@ func _refresh_fullscreen_results() -> void:
 	_result_cell("PL.", gold, header_bg, 54, false, true)
 	_result_cell("RENNER", gold, header_bg, 205, false, true)
 	var omnium_scratch: bool = omnium_race.enabled() and race_mode == 0
-	_result_cell("TIJD / ACHTERSTAND" if omnium_scratch else "EINDTIJD", gold, header_bg, 180 if omnium_scratch else 120, true, true)
-	if not omnium_scratch: _result_cell("VERSCHIL", gold, header_bg, 110, true, true)
+	_result_cell("TIJD / VERSCHIL", gold, header_bg, 180, true, true)
 	if omnium_race.enabled(): _result_cell("OMNIUMPUNTEN", gold, header_bg, 130, true, true)
 	if race_mode not in [0,2]: _result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
 	var leader_time: float = -1.0
@@ -3573,10 +3572,10 @@ func _refresh_fullscreen_results() -> void:
 	for rank in range(ordered.size()):
 		var rider: int = ordered[rank]
 		var row_bg: Color = MenuSkin.GOLD if rank == 0 else (MenuSkin.PAPER if rank % 2 == 0 else MenuSkin.IVORY)
-		var display_time: String = "%.2f s" % finish_times[rider] if finish_times[rider] >= 0.0 else "Onderweg"
+		var display_time: String = preload("res://omnium/omnium_results.gd").clock(finish_times[rider]) if finish_times[rider] >= 0.0 else "Onderweg"
 		if race_mode == 0 and scratch_rules.credits[rider] != 0:
 			display_time += "  (%+d ronde)" % scratch_rules.credits[rider]
-		var gap: String = "+%.2f s" % (finish_times[rider] - leader_time) if finish_times[rider] >= 0.0 and leader_time >= 0.0 else "--"
+		var gap: String = "+" + preload("res://omnium/omnium_results.gd").clock(maxf(0.0, finish_times[rider] - leader_time)) if finish_times[rider] >= 0.0 and leader_time >= 0.0 else "--"
 		if race_mode == 0 and not ordered.is_empty():
 			var leader_credit: int = scratch_rules.credits[ordered[0]]
 			if scratch_rules.credits[rider] != leader_credit:
@@ -3587,15 +3586,15 @@ func _refresh_fullscreen_results() -> void:
 		for lap in range(lap_times[rider].size()):
 			if lap > 0:
 				laps_display += "  |  "
-			laps_display += "%d: %.2f" % [lap + 1, float(lap_times[rider][lap])]
+			laps_display += "%d: %s" % [lap + 1, preload("res://omnium/omnium_results.gd").clock(float(lap_times[rider][lap]))]
 		if laps_display == "":
 			laps_display = "--"
 		_result_cell("%d" % (rank + 1), gold if rank == 0 else white, row_bg, 54)
 		_result_rider_cell(rider, rider_colors[_profile(rider)], row_bg, 205)
 		if omnium_scratch:
 			display_time = preload("res://omnium/omnium_results.gd").scratch_time(rider, ordered, finish_times, scratch_rules.credits)
-		_result_cell(display_time, white, row_bg, 180 if omnium_scratch else 120, true)
-		if not omnium_scratch: _result_cell(gap, gold if rank == 0 else white, row_bg, 110, true)
+		if not omnium_scratch and rank > 0: display_time = gap
+		_result_cell(display_time, white, row_bg, 180, true)
 		if omnium_race.enabled(): _result_cell(str(preload("res://omnium/omnium_scoring.gd").place_points(rank + 1)), white, row_bg, 130, true)
 		if race_mode not in [0,2]: _result_cell(laps_display, white, row_bg, 300)
 
