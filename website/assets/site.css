@@ -108,8 +108,9 @@ figcaption{color:var(--sub);font-size:.92rem;margin-top:8px}
 .cta p{max-width:40em;color:var(--sub)}
 
 /* Tegels zoals de wedstrijdkeuze in het spel */
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:28px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px;margin-top:28px}
 .tile{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:20px 22px}
+.tile-preview{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:8px;margin:0 0 14px}
 .tile:target{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}
 .tile-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .tile h2{font-size:1.45rem;margin-bottom:.3em}
