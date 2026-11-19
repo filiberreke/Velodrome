@@ -413,6 +413,11 @@ func set_track_lighting_training(training: bool) -> void:
 	for lamp in track_lights:
 		lamp.visible = not training
 
+func _roof_light_mount(s: float) -> Vector3:
+	# Suspend the fixtures under the sloping canopy, above and in front of the stands.
+	var edge := _stadium_point(s, 28.8, 12.0)
+	return Vector3(0.0, 23.0, 0.0).lerp(edge, 0.68) - Vector3.UP * 1.40
+
 func _build_central_canopy() -> void:
 	# A high, lightweight faceted ceiling spanning the former open centre.
 	# Its underside is above the entire intro camera path and cycling track.
