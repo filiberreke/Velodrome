@@ -18,7 +18,8 @@ static func build(game: Node3D) -> MeshInstance3D:
 	var uvs := PackedVector2Array()
 	for i in range(48):
 		for j in range(12):
-			for corner in [Vector2(0, 0), Vector2(0, 1), Vector2(1, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 1)]:
+			# Use the same clockwise winding as the lit side of the wood.
+			for corner in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]:
 				var along: float = (float(i) + corner.x) / 48.0
 				var across: float = (float(j) + corner.y) / 12.0
 				var distance: float = center + (along - 0.5) * extent
