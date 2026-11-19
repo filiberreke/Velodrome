@@ -579,10 +579,10 @@ func _build_track_banner() -> void:
 		var normal: Vector3 = (b - a).cross(c - a).normalized()
 		if normal.y < 0.0:
 			normal = -normal
-		for v in [a, b, c, c, b, d]:
+		for v in [a, c, b, c, d, b]:
 			verts.append(v)
 			normals.append(normal)
-		for uv in [Vector2(1.0 - u0, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 0.0)]:
+		for uv in [Vector2(1.0 - u0, 1.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u1, 0.0), Vector2(1.0 - u0, 0.0)]:
 			tex.append(uv)
 	var data: Array = []
 	data.resize(Mesh.ARRAY_MAX)
