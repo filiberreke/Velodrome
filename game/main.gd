@@ -4120,7 +4120,10 @@ func _update_elimination_jury(dt: float) -> void:
 	finish_times[loser] = clock
 	coast_distances[loser] = distances[loser]
 	coast_speeds[loser] = speeds[loser]
-	elimination_exit[loser] = {"stage": 0, "start_d": coast_distances[loser], "position": Vector3.ZERO, "target": _elimination_box_target(loser), "heading": Vector3.FORWARD}
+	var exit_target := _elimination_box_target(loser)
+	var exit_countries: Array = RaceCountries.roster(self).get("start_list", [])
+	var exit_country: String = String(exit_countries[loser]) if loser < exit_countries.size() else ""
+	elimination_exit[loser] = {"stage": 0, "start_d": coast_distances[loser], "position": Vector3.ZERO, "target": exit_target, "gate_z": _elimination_exit_gate(exit_target), "box_country": exit_country, "heading": Vector3.FORWARD}
 	elimination_notice.text = "AFGEVALLEN · %s" % _rider_name(loser).to_upper()
 	elimination_notice_until = clock + 4.0
 	_take_elimination_photo(loser, float(event.get("line_m", 0.0)))
@@ -4143,9 +4146,6 @@ func _take_elimination_photo(rider: int, line_m: float) -> void:
 		RenderingServer.frame_post_draw.connect(_grab_finish_photo, CONNECT_ONE_SHOT)
 
 func _elimination_box_target(rider: int) -> Vector3:
-	# The six cabins belong to countries, not individual riders.
-	# Without a matching cabin, ride PAST the complete box row and stop on
-	# the grey access zone. Never substitute an unrelated country's cabin.
 	var row: Node = arena.find_child("Rennersboxen", true, false) if arena != null else null
 	var roster: Dictionary = RaceCountries.roster(self)
 	var countries: Array = roster.get("start_list", [])
@@ -4153,21 +4153,25 @@ func _elimination_box_target(rider: int) -> Vector3:
 	var box_index := -1
 	if row != null:
 		var assigned: Array = row.get("assigned_countries")
-		if assigned.has(country):
-			box_index = assigned.find(country)
+		if assigned.has(country): box_index = assigned.find(country)
+	var center := Vector3(-14.1, 0.15, 30.0)
+	if box_index >= 0 and box_index < row.boxes.size():
+		center = row.boxes[box_index].to_global(Vector3(0.0, 0.15, 1.55))
 	var slot := 0
 	for key in elimination_exit:
-		var other_target: Vector3 = elimination_exit[key].get("target", Vector3.ZERO)
-		if box_index < 0:
-			# The box row spans z=-25..25. All unassigned riders stop BEYOND
-			# its northern end, with independent spaces on the grey zone.
-			if other_target.z >= 29.0:
-				slot += 1
-		elif absf(other_target.z - (-25.0 + 10.0 * float(box_index))) < 3.0:
+		var previous: Dictionary = elimination_exit[key]
+		if String(previous.get("box_country", "")) == country:
 			slot += 1
 	if box_index < 0:
-		return Vector3(-14.1, 0.15, 30.0 + 2.0 * float(slot))
-	return Vector3(-14.1 - 0.45 * float(slot % 2), 0.15, -25.0 + 10.0 * float(box_index) + 0.85 * float(slot / 2))
+		return center + Vector3(0.0, 0.0, 2.0 * float(slot))
+	return center + Vector3(-0.35 * float(slot % 2), 0.0, 0.75 * float(slot / 2))
+
+func _elimination_exit_gate(target: Vector3) -> float:
+	var gates: Array = preload("res://infield_layout.gd").GATE_Z
+	var best: float = float(gates[0])
+	for z in gates:
+		if absf(target.z - float(z)) < absf(target.z - best): best = float(z)
+	return best
 
 func _update_eliminated_exit(rider: int, dt: float) -> void:
 	if race_mode == 3:
@@ -4175,7 +4179,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		return
 	var route: Dictionary = elimination_exit[rider]
 	var stage: int = int(route["stage"])
-	if stage == 3:
+	if stage == 4:
 		coast_speeds[rider] = 0.0
 		return
 	if stage == 0:
@@ -4196,7 +4200,8 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		# The gate at z=0 is a real gap in the inner boarding. Once inside,
 		# travel along the infield access corridor to the appropriate country cabin.
 		var current: Vector3 = route["position"]
-		var destination: Vector3 = Vector3(-14.1, 0.15, 0.0) if stage == 1 else Vector3(route["target"])
+		var gate_z: float = float(route["gate_z"])
+		var destination: Vector3 = Vector3(-9.6, 0.15, gate_z) if stage == 1 else (Vector3(-14.1, 0.15, gate_z) if stage == 2 else Vector3(route["target"]))
 		var vector: Vector3 = destination - current
 		vector.y = 0.0
 		var speed: float = minf(3.1, maxf(0.0, vector.length() * 1.5))
@@ -4207,9 +4212,9 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 			current.y = 0.15
 			route["position"] = current
 		if current.distance_to(destination) < 0.12:
-			if stage == 1: route["stage"] = 2
+			if stage < 3: route["stage"] = stage + 1
 			else:
-				route["stage"] = 3
+				route["stage"] = 4
 				coast_speeds[rider] = 0.0
 	elimination_exit[rider] = route
 
