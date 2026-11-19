@@ -401,8 +401,8 @@ func _build_roof() -> void:
 		lamp.name = "Pisteverlichting %d" % (i + 1)
 		lamp.position = _point(s, 4.5) + Vector3.UP * 8.0
 		lamp.light_color = Color("f4f5ff")
-		lamp.light_energy = 4.0
-		lamp.omni_range = 27.0
+		lamp.light_energy = 6.5
+		lamp.omni_range = 36.0
 		lamp.shadow_enabled = false
 		add_child(lamp)
 		track_lights.append(lamp)
