@@ -225,16 +225,19 @@ func results(game: Node3D) -> void:
 	for child in game.finish_table.get_children():
 		game.finish_table.remove_child(child); child.queue_free()
 	var bg := MenuSkin.PAPER
-	for value in ["PL.", "PLOEG", "EINDTIJD", "VERSCHIL", "RONDETIJDEN"]:
+	game.finish_table.columns = 4
+	for value in ["PL.", "PLOEG", "TIJD / VERSCHIL", "RONDETIJDEN"]:
 		game._result_cell(value, MenuSkin.INK, bg, 150, false, true)
 	var teams: Array[int] = [0, 1]
 	if not better(0, 1): teams.reverse()
 	for rank in range(2):
 		var team: int = teams[rank]
 		var laps := ""
-		for j in range(game.lap_times[team].size()): laps += "%d: %s  " % [j + 1, preload("res://omnium/omnium_results.gd").clock(float(game.lap_times[team][j]))]
-		var gap := "--"
-		if times[0] >= 0.0 and times[1] >= 0.0: gap = "%.2f s" % absf(times[team] - minf(times[0], times[1]))
+		for j in range(game.lap_times[team].size()):
+			laps += "%d: %s  " % [j + 1, preload("res://omnium/omnium_results.gd").clock(float(game.lap_times[team][j]))]
+		var shown_time: String = preload("res://omnium/omnium_results.gd").clock(times[team]) if times[team] >= 0.0 else "Onderweg"
+		if rank > 0 and times[team] >= 0.0 and times[teams[0]] >= 0.0:
+			shown_time = "+" + preload("res://omnium/omnium_results.gd").clock(maxf(0.0, times[team] - times[teams[0]]))
 		for value in [str(rank + 1), "Jouw ploeg" if team == 0 else ("AI-ploeg" if replay.is_empty() else str(replay["name"]).left(20)), shown_time, laps]:
 			game._result_cell(value, MenuSkin.INK, bg, 150)
 			var label: Label = game.finish_table.get_child(-1).get_child(0)
