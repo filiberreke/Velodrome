@@ -2428,7 +2428,7 @@ func _add_track_surface_section(inner: float, outer: float, mat: Material, name_
 func _build_realistic_track() -> void:
 	# The apron and wooden surface share an edge, but now have independent bank angles.
 	_track_textured_surface(0.0, TRACK_EDGE, BLUE_APRON_TEXTURE, "Cote d'Azur - licht geschilderde aanloop", 8.0, 0.78, Color("ffffff"), 0.80)
-	_track_textured_surface(TRACK_EDGE, TRACK_OUTER_EDGE, WOOD_TEXTURE, "Piste - gelakte grenenhouten latten", 12.5, 2.24, Color("f6f1e7"), 0.65, 8)
+	_track_textured_surface(TRACK_EDGE, TRACK_OUTER_EDGE, WOOD_TEXTURE, "Piste - gelakte grenenhouten latten", 12.5, 2.24, Color("f6f1e7"), 0.75, 8)
 	preload("res://track_branding.gd").build(self)
 	# The inner and outer edges have a painted lip but NO collision mesh.
 	_track_band(0.00, 0.035, Color("e1f4f4"), 0.0, LAP, 0.010)
