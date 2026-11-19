@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ontwikkeling – Vélodrome</title>
+<meta name="description" content="Vélodrome is open source onder GPLv3. Broncode, planning, issues en zelf bouwen met Godot 4.7.">
+<link rel="canonical" href="https://velodrome.wielerpraat.be/nl/ontwikkeling/"><link rel="alternate" hreflang="nl" href="https://velodrome.wielerpraat.be/nl/ontwikkeling/"><link rel="alternate" hreflang="en" href="https://velodrome.wielerpraat.be/en/development/"><link rel="alternate" hreflang="x-default" href="https://velodrome.wielerpraat.be/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Vélodrome">
+<meta property="og:title" content="Ontwikkeling – Vélodrome"><meta property="og:description" content="Vélodrome is open source onder GPLv3. Broncode, planning, issues en zelf bouwen met Godot 4.7.">
+<meta property="og:url" content="https://velodrome.wielerpraat.be/nl/ontwikkeling/"><meta property="og:image" content="https://velodrome.wielerpraat.be/assets/img/og.jpg"><meta property="og:locale" content="nl_BE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#122C50">
+<link rel="icon" href="../../assets/img/bell-64.png" type="image/png">
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Naar de inhoud</a>
+<header class="top"><div class="wrap">
+  <a class="brand" href="../../nl/"><img src="../../assets/img/wordmark-sm.png" alt="Vélodrome" width="216" height="42"></a>
+  <nav class="nav" aria-label="Menu"><a href="../../nl/">Home</a><a href="../../nl/wedstrijden/">Wedstrijden</a><a href="../../nl/training/">Training</a><a href="../../nl/handleiding/">Handleiding</a><a href="../../nl/downloads/">Downloads</a><a href="../../nl/ontwikkeling/" aria-current="page">Ontwikkeling</a></nav>
+  <a class="lang" href="../../en/development/" hreflang="en" lang="en" data-lang="en" aria-label="Read this page in English">English</a>
+</div></header><main id="main" class="wrap page">
+  <header class="page-head"><h1>Ontwikkeling</h1>
+  <p class="lede">Vélodrome is open source. Het spel is gebouwd met Godot; de hardwarebridge is geschreven in Python.</p></header>
+
+  <section class="split">
+    <div class="prose">
+      <h2>Zelf bouwen</h2>
+      <ol class="steps">
+        <li>Clone de repository:<pre><code>git clone https://github.com/filiberreke/Velodrome.git</code></pre></li>
+        <li>Open <code>game/project.godot</code> in Godot 4.7.2 en laat de assets importeren.</li>
+        <li>Start met F5. Zonder trainer rijd je met het gesimuleerde vermogen; een bridge is niet nodig.</li>
+      </ol>
+      <p>De bridge kun je zonder hardware testen met de virtuele bridge: <code>python bridge/tools/virtual_bridge_ui.py</code>.</p>
+    </div>
+    <div class="prose">
+      <h2>Meedoen</h2>
+      <p>Een bug gevonden of een idee? Meld het als issue op GitHub. Vermeld je versie, je hardware en wat je deed.</p>
+      <ul class="plain">
+        <li><a href="https://github.com/filiberreke/Velodrome">Broncode</a></li>
+        <li><a href="https://github.com/filiberreke/Velodrome/issues">Issues</a></li>
+        <li><a href="https://github.com/filiberreke/Velodrome/issues/new">Een issue melden</a></li>
+        <li><a href="https://github.com/filiberreke/Velodrome/milestones">Planning per versie</a></li>
+      </ul>
+      <p>Testen op echte hardware helpt het meest: vooral het rijgevoel op een KICKR, Zwift Ride en de ANT+-hartslag.</p>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2>Wat er komt</h2>
+    <ul class="plain">
+      <li><strong>Ploegkoers</strong> als volledige wedstrijd, na de aflossingstraining die er al is.</li>
+      <li><strong>Temporace en toernooien</strong> met één klassement over meerdere wedstrijden.</li>
+      <li><strong>20-minuten FTP-test</strong> naast de ramp test.</li>
+      <li><strong>Inloggen met Bluesky</strong> en een spelersprofiel, gepland voor versie 0.4.</li>
+    </ul>
+  </section>
+
+  <section class="prose">
+    <h2>Licentie</h2>
+    <p>Vélodrome valt onder de GNU General Public License versie 3 (GPLv3). Je mag het spel gebruiken, aanpassen en verder verspreiden onder dezelfde licentie.</p>
+    <p><a href="https://github.com/filiberreke/Velodrome/blob/main/LICENSE">Lees de volledige licentie</a></p>
+  </section>
+</main><footer class="foot"><div class="wrap">
+  <img src="../../assets/img/bell-64.png" alt="" width="32" height="32">
+  <p>Vélodrome is een open-sourcespel onder GPLv3, gemaakt met Godot.</p>
+  <a href="https://github.com/filiberreke/Velodrome">Broncode op GitHub</a>
+</div></footer>
+<script>document.addEventListener("click",function(e){var a=e.target.closest("[data-lang]");if(a)try{localStorage.setItem("velodrome-lang",a.dataset.lang)}catch(_){}});</script>
+</body>
+</html>

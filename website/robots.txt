@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://velodrome.wielerpraat.be/sitemap.xml

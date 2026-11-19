@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Handleiding – Vélodrome</title>
+<meta name="description" content="Vélodrome installeren, bediening met toetsenbord, trainer en Zwift Ride koppelen via de bridge, en compatibiliteit.">
+<link rel="canonical" href="https://velodrome.wielerpraat.be/nl/handleiding/"><link rel="alternate" hreflang="nl" href="https://velodrome.wielerpraat.be/nl/handleiding/"><link rel="alternate" hreflang="en" href="https://velodrome.wielerpraat.be/en/manual/"><link rel="alternate" hreflang="x-default" href="https://velodrome.wielerpraat.be/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Vélodrome">
+<meta property="og:title" content="Handleiding – Vélodrome"><meta property="og:description" content="Vélodrome installeren, bediening met toetsenbord, trainer en Zwift Ride koppelen via de bridge, en compatibiliteit.">
+<meta property="og:url" content="https://velodrome.wielerpraat.be/nl/handleiding/"><meta property="og:image" content="https://velodrome.wielerpraat.be/assets/img/og.jpg"><meta property="og:locale" content="nl_BE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#122C50">
+<link rel="icon" href="../../assets/img/bell-64.png" type="image/png">
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Naar de inhoud</a>
+<header class="top"><div class="wrap">
+  <a class="brand" href="../../nl/"><img src="../../assets/img/wordmark-sm.png" alt="Vélodrome" width="216" height="42"></a>
+  <nav class="nav" aria-label="Menu"><a href="../../nl/">Home</a><a href="../../nl/wedstrijden/">Wedstrijden</a><a href="../../nl/training/">Training</a><a href="../../nl/handleiding/" aria-current="page">Handleiding</a><a href="../../nl/downloads/">Downloads</a><a href="../../nl/ontwikkeling/">Ontwikkeling</a></nav>
+  <a class="lang" href="../../en/manual/" hreflang="en" lang="en" data-lang="en" aria-label="Read this page in English">English</a>
+</div></header><main id="main" class="wrap page">
+  <header class="page-head"><h1>Handleiding</h1>
+  <p class="lede">Installeren, bedienen en je trainer koppelen.</p>
+  <nav class="toc" aria-label="Op deze pagina"><a href="#installatie">Installatie</a><a href="#bediening">Bediening</a><a href="#bridge">Trainer en bridge</a><a href="#compatibiliteit">Compatibiliteit</a><a href="#instellingen">Instellingen en gegevens</a></nav></header>
+
+  <section class="prose" id="installatie">
+    <h2>Installatie op Windows</h2>
+    <ol class="steps">
+      <li>Download een versie via de <a href="../../nl/downloads/">downloadpagina</a>.</li>
+      <li>Pak het zip-bestand volledig uit naar een map waarin je mag schrijven. Houd alle bestanden bij elkaar.</li>
+      <li>All-in-one: start <code>Velodrome.exe</code>. Die start de bridge en het spel samen, en stopt de bridge als je het spel sluit. Start <code>VelodromeGame.exe</code> niet rechtstreeks.</li>
+      <li>Alleen het spel: start <code>Start-Velodrome.cmd</code>. Bij de eerste start worden de instellingen aangemaakt, met 24 fictieve renners.</li>
+    </ol>
+  </section>
+
+  <section class="split" id="bediening">
+    <div class="prose">
+      <h2>Bediening met het toetsenbord</h2>
+      <p>Dit zijn de standaardtoetsen tijdens een wedstrijd. Je kunt ze aanpassen in de instellingen (F10).</p>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Toets</th><th scope="col">Actie</th></tr></thead><tbody><tr><td><kbd>A / D</kbd></td><td>Sturen</td></tr><tr><td><kbd>↑ / ↓</kbd></td><td>Zonder trainer: vermogen +/− 25 W. Met trainer: virtueel schakelen</td></tr><tr><td><kbd>+ / −</kbd></td><td>Vermogen omhoog of omlaag</td></tr><tr><td><kbd>C / Q</kbd></td><td>Volgende of vorige camera</td></tr><tr><td><kbd>B</kbd></td><td>Achteruitkijken</td></tr><tr><td><kbd>V</kbd></td><td>Rennersinfo</td></tr><tr><td><kbd>R</kbd></td><td>Opnieuw starten</td></tr><tr><td><kbd>Esc</kbd></td><td>Pauzemenu</td></tr><tr><td><kbd>F10</kbd></td><td>Instellingen</td></tr></tbody></table></div>
+      <p class="note">Zonder trainer gebruikt het spel een energiemodel om je vermogen te simuleren. Dat is geen echte vermogensmeting.</p>
+    </div>
+    <figure><img src="../../assets/img/hub.jpg" srcset="../../assets/img/hub-800.jpg 800w, ../../assets/img/hub.jpg 1600w" sizes="(max-width: 860px) 100vw, 560px" alt="Hoofdmenu van Vélodrome met Wedstrijden, Toernooien, ERG-training en Pistetraining" width="1600" height="900" loading="lazy" decoding="async">
+      <figcaption>Het hoofdmenu. Met de pijltjes en Enter navigeer je zonder muis.</figcaption></figure>
+  </section>
+
+  <section class="prose" id="bridge">
+    <h2>Trainer en controller koppelen</h2>
+    <p>Het spel praat met je hardware via een aparte bridge. In de all-in-one-versie start die vanzelf. Draai je alleen het spel of werk je vanuit de broncode, dan start je de bridge zelf.</p>
+    <ol class="steps">
+      <li>Sluit andere apps die je trainer, controller of ANT+-stick gebruiken, zoals Zwift of Garmin Express.</li>
+      <li>Zet bij Zwift Ride eerst de linker controller aan, daarna de rechter. Zet je trainer aan.</li>
+      <li>Voor hartslag: steek de ANT+-stick in en zet Broadcast Heart Rate aan op je Garmin.</li>
+      <li>Vanuit de broncode: start <code>bridge/start_windows.bat</code> (Python 3.12, internet nodig bij de eerste start). Zonder hartslagstick: <code>start_windows.bat --no-ant</code>.</li>
+      <li>Start het spel. De bridge blijft zoeken tot je apparaten beschikbaar zijn en verbindt opnieuw als de verbinding wegvalt.</li>
+    </ol>
+    <p class="warn">Voel je onverwachte weerstand, stop dan met trappen. Als het spel of de verbinding wegvalt, kan de software niet garanderen dat je trainer de weerstand loslaat.</p>
+  </section>
+
+  <section class="prose" id="compatibiliteit">
+    <h2>Compatibiliteit</h2>
+    <p>Ondersteund in de code. Dat is geen garantie voor elk toestel of elke firmwareversie.</p>
+    <div class="table-wrap"><table><tbody><tr><th scope="row">Wahoo KICKR / KICKR CORE</th><td>Bluetooth FTMS: vermogen, snelheid en cadans; SIM, ERG en hellingsimulatie. Andere FTMS-trainers zijn niet bevestigd.</td></tr><tr><th scope="row">Zwift Ride</th><td>Bluetooth via de linker controller: 12 virtuele versnellingen, knoppen en analoge stuurpaddles. Knoppen in te stellen via Instellingen → Controller.</td></tr><tr><th scope="row">Garmin-hartslag (ANT+)</th><td>Via een ANT+-USB-stick. Zet Broadcast Heart Rate aan op je horloge, bijvoorbeeld een vívoactive 5.</td></tr></tbody></table></div>
+    <p>De ERG-modus werkt tussen 0 en 1300 W, binnen wat je trainer zelf aangeeft. De virtuele versnellingen zijn een benadering en gebruiken geen eigen protocol van Wahoo of Zwift.</p>
+  </section>
+
+  <section class="prose" id="instellingen">
+    <h2>Instellingen en gegevens</h2>
+    <p>Renners en Strava stel je in met bestanden in de map <code>config/</code> naast het spel. Behoud de renner-ID’s als je namen wijzigt, zodat je records gekoppeld blijven. Voor Strava vul je je eigen gegevens in <code>strava_config.cfg</code> in.</p>
+    <p>Je records, opgeslagen ritten en instellingen staan op Windows in:</p>
+    <pre><code>%APPDATA%\Godot\app_userdata\Velodrome 250 - Sprint Beta\</code></pre>
+    <p>Bij trage pc’s kies je F10 → Beeld → Eenvoudige graphics. Die stand gebruikt minder publiek en een kortere intro, en wordt actief na een herstart.</p>
+  </section>
+</main><footer class="foot"><div class="wrap">
+  <img src="../../assets/img/bell-64.png" alt="" width="32" height="32">
+  <p>Vélodrome is een open-sourcespel onder GPLv3, gemaakt met Godot.</p>
+  <a href="https://github.com/filiberreke/Velodrome">Broncode op GitHub</a>
+</div></footer>
+<script>document.addEventListener("click",function(e){var a=e.target.closest("[data-lang]");if(a)try{localStorage.setItem("velodrome-lang",a.dataset.lang)}catch(_){}});</script>
+</body>
+</html>
