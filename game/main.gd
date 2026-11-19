@@ -13,7 +13,7 @@ var madison_training_environment
 var exercise_training_environment
 var stadium_environment: Environment
 var stadium_sun: DirectionalLight3D
-const RACE_AMBIENT_LIGHT_ENERGY := 0.35
+const RACE_AMBIENT_LIGHT_ENERGY := 0.25
 var stadium_training_lighting := false
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
