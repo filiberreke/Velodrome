@@ -13,6 +13,7 @@ var madison_training_environment
 var exercise_training_environment
 var stadium_environment: Environment
 var stadium_sun: DirectionalLight3D
+const RACE_AMBIENT_LIGHT_ENERGY := 0.35
 var stadium_training_lighting := false
 var trainer_road_grade := 0.0
 var trainer_telemetry_resume := false
@@ -2298,7 +2299,7 @@ func _update_boost_dog(dt: float) -> void:
 func _set_stadium_training_lighting(training: bool) -> void:
 	stadium_training_lighting = training
 	if stadium_environment != null:
-		stadium_environment.ambient_light_energy = 0.7 if training else 0.0
+		stadium_environment.ambient_light_energy = 0.7 if training else RACE_AMBIENT_LIGHT_ENERGY
 	if stadium_sun != null:
 		stadium_sun.light_energy = 0.2 if training else 0.0
 	if arena != null:
@@ -2311,7 +2312,7 @@ func _build_world() -> void:
 	env.background_color = Color("192b40")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("ffffff")
-	env.ambient_light_energy = 0.0
+	env.ambient_light_energy = RACE_AMBIENT_LIGHT_ENERGY
 	stadium_environment = env
 	sky.environment = env
 	add_child(sky)
