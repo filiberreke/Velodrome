@@ -2298,9 +2298,9 @@ func _update_boost_dog(dt: float) -> void:
 func _set_stadium_training_lighting(training: bool) -> void:
 	stadium_training_lighting = training
 	if stadium_environment != null:
-		stadium_environment.ambient_light_energy = 0.7 if training else 0.1
+		stadium_environment.ambient_light_energy = 0.7 if training else 0.0
 	if stadium_sun != null:
-		stadium_sun.light_energy = 0.2 if training else 0.05
+		stadium_sun.light_energy = 0.2 if training else 0.0
 	if arena != null:
 		arena.set_track_lighting_training(training)
 
@@ -2311,13 +2311,13 @@ func _build_world() -> void:
 	env.background_color = Color("192b40")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("ffffff")
-	env.ambient_light_energy = 0.1
+	env.ambient_light_energy = 0.0
 	stadium_environment = env
 	sky.environment = env
 	add_child(sky)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-55, 28, 0)
-	light.light_energy = 0.05
+	light.light_energy = 0.0
 	stadium_sun = light
 	add_child(light)
 	var floor := MeshInstance3D.new()

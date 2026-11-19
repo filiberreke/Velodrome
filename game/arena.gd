@@ -27,6 +27,8 @@ const TIERS := [
 
 var main: Node3D
 var board: Label3D
+var stand_lights: Array[OmniLight3D] = []
+var track_lights: Array[OmniLight3D] = []
 var sponsor_texture: Texture2D = preload("res://wielerpraat.jpg")
 var seat_count := 0
 var spectator_count := 0
@@ -391,34 +393,25 @@ func _build_roof() -> void:
 		lamp.omni_range = 32.0
 		lamp.shadow_enabled = false
 		add_child(lamp)
-	# A few focused neutral-white overhead lamps give the wood and riders contrast.
-	# Decorative strips remain emissive; avoid a costly shadow light per panel.
-	for i in range(12):
-		var s: float = LAP * (float(i) + 0.5) / 12.0
-		var race_light := SpotLight3D.new()
-		race_light.name = "Piste schijnwerper %d" % (i + 1)
-		race_light.position = _roof_light_mount(s) - Vector3.UP * 0.65
-		add_child(race_light)
-		race_light.look_at(_stadium_point(s, 3.6, 0.4), Vector3.UP)
-		race_light.light_color = Color("f4f5ff")
-		race_light.light_energy = 15.0
-		race_light.spot_range = 65.0
-		race_light.spot_angle = 80.0
-		race_light.shadow_enabled = false
+		stand_lights.append(lamp)
+	# Overlap the lights around the riding surface, including through the bends.
+	for i in range(8):
+		var s: float = LAP * (float(i) + 0.5) / 8.0
+		var lamp := OmniLight3D.new()
+		lamp.name = "Pisteverlichting %d" % (i + 1)
+		lamp.position = _point(s, 4.5) + Vector3.UP * 8.0
+		lamp.light_color = Color("f4f5ff")
+		lamp.light_energy = 4.0
+		lamp.omni_range = 27.0
+		lamp.shadow_enabled = false
+		add_child(lamp)
+		track_lights.append(lamp)
 
 func set_track_lighting_training(training: bool) -> void:
-	for i in range(12):
-		var lamp := get_node_or_null("Piste schijnwerper %d" % (i + 1)) as SpotLight3D
-		if lamp == null:
-			continue
-		lamp.light_energy = 1.05 if training else 15.0
-		lamp.spot_range = 37.0 if training else 65.0
-		lamp.spot_angle = 56.0 if training else 80.0
-
-func _roof_light_mount(s: float) -> Vector3:
-	# Suspend the fixtures under the sloping canopy, above and in front of the stands.
-	var edge := _stadium_point(s, 28.8, 12.0)
-	return Vector3(0.0, 23.0, 0.0).lerp(edge, 0.68) - Vector3.UP * 1.40
+	for lamp in stand_lights:
+		lamp.visible = training
+	for lamp in track_lights:
+		lamp.visible = not training
 
 func _build_central_canopy() -> void:
 	# A high, lightweight faceted ceiling spanning the former open centre.
