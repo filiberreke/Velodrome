@@ -2373,12 +2373,28 @@ func _track_normal(distance: float, offset: float) -> Vector3:
 	var outward: Vector3 = _at(distance, offset + 0.06) - _at(distance, offset - 0.06)
 	return outward.cross(along).normalized()
 
-func _track_textured_surface(inner: float, outer: float, texture: Texture2D, name_text: String, length_tile: float, width_tile: float, tint: Color, roughness: float) -> void:
+func _track_textured_surface(inner: float, outer: float, texture: Texture2D, name_text: String, length_tile: float, width_tile: float, tint: Color, roughness: float, sections: int = 1) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = texture
+	mat.albedo_color = tint
+	mat.texture_repeat = true
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	mat.roughness = roughness
+	mat.metallic = 0.0
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# Keep UVs and normals continuous while giving local lights smaller mesh bounds.
+	for section in range(sections):
+		var section_name := name_text
+		if sections > 1:
+			section_name += " %d" % (section + 1)
+		_add_track_surface_section(inner, outer, mat, section_name, length_tile, width_tile, section * 1000 / sections, (section + 1) * 1000 / sections)
+
+func _add_track_surface_section(inner: float, outer: float, mat: Material, name_text: String, length_tile: float, width_tile: float, first_segment: int, end_segment: int) -> void:
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	# 1,000 segments for smooth banking, especially in the 42-degree curves.
-	for i in range(1000):
+	for i in range(first_segment, end_segment):
 		var s0: float = LAP * float(i) / 1000.0
 		var s1: float = LAP * float(i + 1) / 1000.0
 		var a: Vector3 = _at(s0, inner)
@@ -2405,14 +2421,6 @@ func _track_textured_surface(inner: float, outer: float, texture: Texture2D, nam
 	var surface := MeshInstance3D.new()
 	surface.name = name_text
 	surface.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = texture
-	mat.albedo_color = tint
-	mat.texture_repeat = true
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	mat.roughness = roughness
-	mat.metallic = 0.0
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	surface.material_override = mat
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(surface)
@@ -2420,7 +2428,7 @@ func _track_textured_surface(inner: float, outer: float, texture: Texture2D, nam
 func _build_realistic_track() -> void:
 	# The apron and wooden surface share an edge, but now have independent bank angles.
 	_track_textured_surface(0.0, TRACK_EDGE, BLUE_APRON_TEXTURE, "Cote d'Azur - licht geschilderde aanloop", 8.0, 0.78, Color("ffffff"), 0.80)
-	_track_textured_surface(TRACK_EDGE, TRACK_OUTER_EDGE, WOOD_TEXTURE, "Piste - gelakte grenenhouten latten", 12.5, 2.24, Color("f6f1e7"), 0.65)
+	_track_textured_surface(TRACK_EDGE, TRACK_OUTER_EDGE, WOOD_TEXTURE, "Piste - gelakte grenenhouten latten", 12.5, 2.24, Color("f6f1e7"), 0.65, 8)
 	preload("res://track_branding.gd").build(self)
 	# The inner and outer edges have a painted lip but NO collision mesh.
 	_track_band(0.00, 0.035, Color("e1f4f4"), 0.0, LAP, 0.010)
