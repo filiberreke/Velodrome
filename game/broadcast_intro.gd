@@ -98,6 +98,8 @@ func start() -> void:
 	game.bikes[0].show()
 	game._set_race_hud_visible(false)
 	if not show_intro:
+		# Restore the standard race lighting even when the intro light show never runs.
+		game._set_stadium_training_lighting(false)
 		finish()
 		return
 	if not game.arena.simple_infield:
