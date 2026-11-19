@@ -1,0 +1,149 @@
+:root{
+  --ink:#122C50;--muted:#536980;--blue:#164E98;--ivory:#F5F1E7;--paper:#FFFDF8;--pale:#E0EDF5;--line:#D2D9DF;--wood:#BC8A43;--gold:#F8E9C7;
+  --bg:var(--ivory);--surface:var(--paper);--text:var(--ink);--sub:var(--muted);--rule:var(--line);--hover:var(--pale);--accent:var(--blue);--on-accent:#fff;
+  --chip-bg:var(--pale);--warn-bg:var(--gold);
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --font:Arial,"Liberation Sans","DejaVu Sans",Helvetica,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--bg:#0E2240;--surface:var(--ink);--text:var(--paper);--sub:var(--line);
+  --rule:color-mix(in srgb,var(--line) 22%,var(--ink));--hover:color-mix(in srgb,var(--blue) 45%,var(--ink));
+  --accent:color-mix(in srgb,var(--blue) 70%,var(--pale));--chip-bg:color-mix(in srgb,var(--blue) 30%,var(--ink));--warn-bg:color-mix(in srgb,var(--wood) 30%,var(--ink));}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--bg:#0E2240;--surface:var(--ink);--text:var(--paper);--sub:var(--line);
+  --rule:color-mix(in srgb,var(--line) 22%,var(--ink));--hover:color-mix(in srgb,var(--blue) 45%,var(--ink));
+  --accent:color-mix(in srgb,var(--blue) 70%,var(--pale));--chip-bg:color-mix(in srgb,var(--blue) 30%,var(--ink));--warn-bg:color-mix(in srgb,var(--wood) 30%,var(--ink));}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 84px)}
+body{margin:0;background:var(--bg);color:var(--text);font:400 18px/1.55 var(--font);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+img{max-width:100%;height:auto;display:block}
+a{color:var(--accent);text-underline-offset:.18em}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:6px}
+h1,h2,h3{font-weight:700;font-style:italic;line-height:1.15;margin:0 0 .5em;letter-spacing:-.005em}
+h1{font-size:clamp(2.1rem,5vw,3.4rem)}
+h2{font-size:clamp(1.45rem,2.6vw,1.9rem)}
+h3{font-size:1.2rem;margin-top:1.4em;display:flex;gap:.6em;align-items:center;flex-wrap:wrap}
+p{margin:0 0 1em}
+code,kbd,pre{font-family:Consolas,"Liberation Mono","DejaVu Sans Mono",monospace;font-size:.88em}
+code{background:var(--hover);padding:.1em .35em;border-radius:5px}
+pre{background:var(--surface);border:1px solid var(--rule);border-radius:9px;padding:12px 14px;overflow-x:auto;margin:.5em 0 1em}
+pre code{background:none;padding:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--surface);padding:8px 12px;z-index:30;border-radius:9px}
+.skip:focus{left:12px}
+
+/* Kopbalk zoals de spelmenu’s: woordmerk links, knoppen rechts */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--rule)}
+.top .wrap{display:flex;align-items:center;gap:20px;min-height:68px;flex-wrap:wrap}
+.brand{display:block;flex:none;padding:8px 0}
+.brand img{height:42px;width:auto}
+.nav{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none;padding:6px 0}
+.nav::-webkit-scrollbar{display:none}
+.nav a{white-space:nowrap;color:var(--text);text-decoration:none;padding:8px 13px;border-radius:8px;font-size:.95rem;border:1px solid transparent}
+.nav a:hover{background:var(--hover);border-color:var(--accent)}
+.nav a[aria-current="page"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.lang{flex:none;font-size:.9rem;text-decoration:none;color:var(--text);border:1px solid var(--rule);background:var(--surface);padding:7px 12px;border-radius:9px}
+.lang:hover{background:var(--hover);border-color:var(--accent)}
+@media (max-width:760px){
+  .top .wrap{gap:0 12px;min-height:0;padding-top:6px}
+  .brand img{height:34px}
+  .lang{margin-left:auto}
+  .nav{order:3;flex-basis:100%;margin:0 -20px;padding:4px 20px 8px}
+}
+
+/* Hero: echt spelbeeld */
+.hero{margin:0;position:relative;background:var(--ink);color:var(--paper);overflow:hidden}
+.hero-img{width:100%;height:clamp(440px,72vh,660px);object-fit:cover;object-position:center 40%}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,44,80,.92) 0%,rgba(18,44,80,.72) 38%,rgba(18,44,80,0) 70%)}
+.hero-copy{position:absolute;inset:auto 0 0 0;z-index:1;padding-bottom:clamp(28px,6vh,60px)}
+.hero-copy h1,.hero-copy .lede{max-width:15em}
+.hero-copy .lede{max-width:32em;font-size:1.15rem;color:var(--pale)}
+@media (max-width:760px){
+  .hero::after{background:linear-gradient(0deg,rgba(18,44,80,.96) 0%,rgba(18,44,80,.85) 48%,rgba(18,44,80,0) 80%)}
+  .hero-img{height:560px;object-position:62% center}
+}
+/* Plankenstrook van de houten piste */
+.boards{height:12px;background:repeating-linear-gradient(90deg,var(--wood) 0 118px,color-mix(in srgb,var(--wood) 78%,var(--ink)) 118px 120px);border-bottom:3px solid var(--blue)}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.btn{display:inline-block;text-decoration:none;font-weight:700;padding:13px 20px;border-radius:9px;border:1px solid var(--rule);background:var(--surface);color:var(--text)}
+.btn:hover{background:var(--hover);border-color:var(--accent)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:10px}
+.btn.primary:hover{background:#2D60A2}
+.hero .btn:not(.primary){background:transparent;color:var(--paper);border-color:rgba(255,253,248,.55)}
+.hero .btn:not(.primary):hover{background:rgba(255,253,248,.12)}
+
+main{padding-bottom:64px}
+.page{padding-top:40px}
+.page-head{max-width:46em;margin-bottom:28px}
+.lede{font-size:1.15rem;color:var(--sub)}
+.status{margin:32px 0;padding:14px 18px;border-radius:12px;background:var(--chip-bg);border:1px solid var(--rule);color:var(--text);max-width:52em}
+.note{color:var(--sub);font-size:.95rem}
+.warn{background:var(--warn-bg);border-left:4px solid var(--wood);padding:12px 16px;border-radius:0 9px 9px 0}
+section{margin:56px 0}
+figure{margin:0}
+figure img{border-radius:12px;border:1px solid var(--rule);width:100%}
+figcaption{color:var(--sub);font-size:.92rem;margin-top:8px}
+.wide img{aspect-ratio:21/8;object-fit:cover}
+
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:28px 36px}
+.feature h2{font-size:1.3rem}
+.feature p{color:var(--sub);margin:0}
+.split{display:grid;grid-template-columns:1fr 1.15fr;gap:40px;align-items:center}
+.split.reverse{grid-template-columns:1.15fr 1fr}
+.split>.prose,.split>div{max-width:36em}
+@media (max-width:860px){.split,.split.reverse{grid-template-columns:1fr}.split.reverse>figure{order:2}}
+.race-list{list-style:none;padding:0;margin:0 0 18px;display:flex;flex-wrap:wrap;gap:8px}
+.race-list a{display:block;text-decoration:none;color:var(--text);font-weight:700;font-style:italic;padding:9px 14px;background:var(--surface);border:1px solid var(--rule);border-radius:9px}
+.race-list a:hover{background:var(--hover);border-color:var(--accent)}
+.more{font-weight:700}
+.more::after{content:" →"}
+.gallery .shots img{aspect-ratio:16/10;object-fit:cover}
+.gallery .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media (max-width:860px){.gallery .shots{grid-template-columns:1fr}}
+.cta{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:clamp(22px,4vw,40px)}
+.cta p{max-width:40em;color:var(--sub)}
+
+/* Tegels zoals de wedstrijdkeuze in het spel */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:28px}
+.tile{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:20px 22px}
+.tile:target{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}
+.tile-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.tile h2{font-size:1.45rem;margin-bottom:.3em}
+.tile .hint{font-weight:700;margin-bottom:.4em}
+.tile p{margin-bottom:.6em}
+.tile.later h2,.tile.later .hint{color:var(--sub)}
+.meta{color:var(--sub);font-size:.92rem;margin:0}
+.chip{flex:none;font-size:13px;line-height:1;letter-spacing:.04em;text-transform:uppercase;font-style:normal;font-weight:400;color:var(--sub);background:var(--chip-bg);border:1px solid var(--rule);border-radius:6px;padding:6px 8px}
+
+.prose{max-width:46em}
+.plain{padding-left:1.1em}
+.plain li{margin-bottom:.55em}
+.plain strong{display:block}
+.steps{padding-left:1.4em}
+.steps li{margin-bottom:.7em;padding-left:.2em}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.toc a{font-size:.95rem;text-decoration:none;color:var(--text);background:var(--surface);border:1px solid var(--rule);border-radius:9px;padding:7px 12px}
+.toc a:hover{background:var(--hover);border-color:var(--accent)}
+.table-wrap{overflow-x:auto;margin:0 0 1em}
+table{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--rule)}
+tr:last-child th,tr:last-child td{border-bottom:0}
+thead th{font-style:italic;background:var(--hover)}
+tbody th{font-weight:700;width:34%}
+kbd{display:inline-block;min-width:2em;text-align:center;padding:3px 7px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:6px;background:var(--bg);white-space:nowrap}
+
+.variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.variant{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:24px}
+.main-variant{border-color:var(--blue);box-shadow:inset 0 4px 0 var(--blue)}
+.variant .hint{font-weight:700;color:var(--sub)}
+.variant .meta{margin-bottom:18px}
+
+.foot{border-top:1px solid var(--rule);background:var(--surface);padding:28px 0 36px;font-size:.92rem;color:var(--sub)}
+.foot .wrap{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:space-between}
+.foot img{width:32px;height:32px}
+.foot p{margin:0;max-width:40em}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
