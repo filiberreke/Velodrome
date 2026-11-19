@@ -13,6 +13,8 @@ const OFFSET := 9.10
 const INSET := 0.035
 const BASE := 0.02
 const HEIGHT := 1.20
+# Clockwise triangles expose the inward-facing side to the piste lights.
+const PANEL_CORNERS := [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
 
 static func covered(_game: Node3D, _distance: float) -> bool:
 	# All four track sections now have continuous full-size sponsor boarding.
@@ -45,7 +47,7 @@ static func _section(arena: Node3D, start: float, end: float, posters: Array, ti
 			var a: float = lerpf(start, end, float(panel) / float(count))
 			var b: float = lerpf(start, end, float(panel + 1) / float(count))
 			for segment in range(16):
-				for corner in [Vector2(0, 0), Vector2(0, 1), Vector2(1, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 1)]:
+				for corner in PANEL_CORNERS:
 					var along: float = (float(segment) + corner.x) / 16.0
 					var distance: float = lerpf(a, b, along)
 					var outward: Vector3 = arena._outward(distance)
@@ -111,7 +113,7 @@ static func _north_section(arena: Node3D) -> void:
 		for panel in layout:
 			if panel["texture"] != texture.resource_path: continue
 			for segment in range(16):
-				for corner in [Vector2(0,0),Vector2(0,1),Vector2(1,0),Vector2(1,0),Vector2(0,1),Vector2(1,1)]:
+				for corner in PANEL_CORNERS:
 					var along: float = (float(segment)+corner.x)/16.0
 					var distance: float = lerpf(panel["start"],panel["end"],along)
 					var outward: Vector3 = arena._outward(distance)
