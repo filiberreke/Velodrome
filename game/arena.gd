@@ -565,6 +565,7 @@ func _build_glass_boarding() -> void:
 func _build_track_banner() -> void:
 	# Preserve EXACT UV coordinates from beta.16.11.8; no more banner regressions.
 	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
 	var tex := PackedVector2Array()
 	var steps := 28
 	for k in range(steps):
@@ -576,13 +577,19 @@ func _build_track_banner() -> void:
 		var d: Vector3 = _point(s1, 8.1) + Vector3.UP * 0.075
 		var u0: float = float(k) / float(steps)
 		var u1: float = float(k + 1) / float(steps)
+		# Preserve UV order while orienting both triangles toward the lit track surface.
+		var normal: Vector3 = (b - a).cross(c - a).normalized()
+		if normal.y < 0.0:
+			normal = -normal
 		for v in [a, b, c, c, b, d]:
 			verts.append(v)
+			normals.append(normal)
 		for uv in [Vector2(1.0 - u0, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 0.0)]:
 			tex.append(uv)
 	var data: Array = []
 	data.resize(Mesh.ARRAY_MAX)
 	data[Mesh.ARRAY_VERTEX] = verts
+	data[Mesh.ARRAY_NORMAL] = normals
 	data[Mesh.ARRAY_TEX_UV] = tex
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, data)
@@ -590,7 +597,7 @@ func _build_track_banner() -> void:
 	banner.mesh = mesh
 	var mat := StandardMaterial3D.new()
 	mat.albedo_texture = sponsor_texture
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.roughness = 0.85
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	banner.material_override = mat
 	add_child(banner)
