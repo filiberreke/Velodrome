@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode cull_disabled, diffuse_lambert;
 uniform sampler2D poster : source_color, filter_linear_mipmap, repeat_disable;
 uniform bool match_blue = false;
 uniform vec4 shared_blue : source_color = vec4(0.1098, 0.2941, 0.5686, 1.0);
