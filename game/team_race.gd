@@ -220,7 +220,7 @@ func results(game: Node3D) -> void:
 	game.finish_heading.text = "PLOEGENACHTERVOLGING · %d km" % int(game._race_length() / 1000.0)
 	game.finish_subtitle.text = "%d RENNERS PER PLOEG" % game.team_size
 	game.finish_badge.text = "%d / 2" % (1 if better(0, 1) else 2)
-	game.finish_results.text = "JOUW PLOEG   %.2f s\n%s" % [times[0], "Beide ploegen gefinisht" if times[1] >= 0.0 else "Tegenploeg nog onderweg"]
+	game.finish_results.text = "JOUW PLOEG   %s\n%s" % [preload("res://omnium/omnium_results.gd").clock(times[0]) if times[0] >= 0.0 else "Onderweg", "Beide ploegen gefinisht" if times[1] >= 0.0 else "Tegenploeg nog onderweg"]
 	game.pursuit_save_box.visible = times[0] >= 0.0
 	for child in game.finish_table.get_children():
 		game.finish_table.remove_child(child); child.queue_free()
@@ -232,10 +232,10 @@ func results(game: Node3D) -> void:
 	for rank in range(2):
 		var team: int = teams[rank]
 		var laps := ""
-		for j in range(game.lap_times[team].size()): laps += "%d: %.2f  " % [j + 1, float(game.lap_times[team][j])]
+		for j in range(game.lap_times[team].size()): laps += "%d: %s  " % [j + 1, preload("res://omnium/omnium_results.gd").clock(float(game.lap_times[team][j]))]
 		var gap := "--"
 		if times[0] >= 0.0 and times[1] >= 0.0: gap = "%.2f s" % absf(times[team] - minf(times[0], times[1]))
-		for value in [str(rank + 1), "Jouw ploeg" if team == 0 else ("AI-ploeg" if replay.is_empty() else str(replay["name"]).left(20)), "%.2f s" % times[team] if times[team] >= 0.0 else "Onderweg", gap, laps]:
+		for value in [str(rank + 1), "Jouw ploeg" if team == 0 else ("AI-ploeg" if replay.is_empty() else str(replay["name"]).left(20)), shown_time, laps]:
 			game._result_cell(value, MenuSkin.INK, bg, 150)
 			var label: Label = game.finish_table.get_child(-1).get_child(0)
 			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
