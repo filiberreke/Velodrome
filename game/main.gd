@@ -681,8 +681,9 @@ func _physics_process(delta: float) -> void:
 	# Change lighting only on mode transitions, not every frame.
 	var in_training: bool = (piste_training != null and piste_training.active) or (training_environment != null and training_environment.active)
 	var menu_background: bool = setup_panel != null and setup_panel.visible
-	if (in_training or menu_background) != stadium_training_lighting:
-		_set_stadium_training_lighting(in_training or menu_background)
+	var use_training_lighting := in_training or menu_background or not _race_lighting_enabled()
+	if use_training_lighting != stadium_training_lighting and not broadcast_intro.light_show.running:
+		_set_stadium_training_lighting(use_training_lighting)
 	_read_bridge()
 	if piste_training != null and piste_training.active:
 		exit_menu.set_exit_visible(false)
@@ -2295,6 +2296,10 @@ func _update_boost_dog(dt: float) -> void:
 	# the handlebar even when the bicycle steers or leans on the banking.
 	var handlebar_world: Vector3 = bikes[0].to_global(Vector3(0.0, 1.02, 0.53))
 	boost_dog.call("set_boost_visual", true, dt, dog_position, forward, handlebar_world, visual_rolls[0])
+
+func _race_lighting_enabled() -> bool:
+	var settings := get_node_or_null("GameSettings")
+	return settings == null or settings.race_lighting
 
 func _set_stadium_training_lighting(training: bool) -> void:
 	stadium_training_lighting = training

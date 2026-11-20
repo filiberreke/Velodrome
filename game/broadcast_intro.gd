@@ -80,8 +80,8 @@ func setup(owner_game: Node3D) -> void:
 	overlay.hide()
 
 func start() -> void:
-	# Apply the race profile before the light show saves the current values.
-	game._set_stadium_training_lighting(false)
+	# Apply the selected profile before the light show saves the current values.
+	game._set_stadium_training_lighting(not game._race_lighting_enabled())
 	# Only an accepted first start consumes the intro, including a manual skip.
 	# Keep the normal finish path for subsequent events and mode switches.
 	var settings := game.get_node_or_null("GameSettings")

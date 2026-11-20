@@ -11,6 +11,8 @@ var simple_infield := false
 var simple_infield_check: CheckButton
 var always_show_intro := false
 var intro_check: CheckButton
+var race_lighting := true
+var race_lighting_check: CheckButton
 var crowd_slider: HSlider
 var crowd_label: Label
 var panel_root: Control
@@ -60,6 +62,7 @@ func _load_settings() -> void:
 	crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
 	simple_infield = bool(cfg.get_value("arena", "simple_infield", false))
 	always_show_intro = bool(cfg.get_value("presentation", "always_show_intro", false))
+	race_lighting = bool(cfg.get_value("arena", "race_lighting", true))
 
 func _apply_display() -> void:
 	# Keep 2D UI at the reference viewport resolution while scaling 3D separately.
@@ -84,6 +87,7 @@ func _save_settings() -> void:
 	cfg.set_value("display", "fullscreen", fullscreen)
 	cfg.set_value("arena", "crowd_density", crowd_density)
 	cfg.set_value("arena", "simple_infield", simple_infield)
+	cfg.set_value("arena", "race_lighting", race_lighting)
 	cfg.set_value("presentation", "always_show_intro", always_show_intro)
 	var err := cfg.save(preload("res://config_paths.gd").user_path("display_settings.cfg"))
 	if err != OK:
@@ -270,6 +274,11 @@ func _build_menu() -> void:
 	fullscreen_check.text = "Volledig scherm"
 	fullscreen_check.button_pressed = fullscreen
 	box.add_child(fullscreen_check)
+	race_lighting_check = CheckButton.new()
+	race_lighting_check.text = "Wedstrijdverlichting"
+	race_lighting_check.button_pressed = race_lighting
+	race_lighting_check.tooltip_text = "Uit: gebruik tijdens wedstrijden dezelfde verlichting als bij trainingen."
+	box.add_child(race_lighting_check)
 	intro_check = CheckButton.new()
 	intro_check.text = "Intro bij elke wedstrijd tonen"
 	intro_check.button_pressed = always_show_intro
@@ -466,6 +475,7 @@ func _on_apply() -> void:
 	render_scale = float(scale_slider.value)
 	fullscreen = fullscreen_check.button_pressed
 	always_show_intro = intro_check.button_pressed
+	race_lighting = race_lighting_check.button_pressed
 	crowd_density = float(crowd_slider.value)
 	simple_infield = simple_infield_check.button_pressed
 	_apply_display()
@@ -484,6 +494,7 @@ func toggle_menu() -> void:
 			get_parent().call("_pause_race")
 		_sync_appearance_controls()
 		intro_check.button_pressed = always_show_intro
+		race_lighting_check.button_pressed = race_lighting
 		panel_root.show()
 		_on_settings_tab_changed(appearance_tabs.current_tab)
 		ride_tabs.grab_focus()
