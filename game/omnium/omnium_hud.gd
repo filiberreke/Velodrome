@@ -12,21 +12,23 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", Style.panel(Color(0.9608, 0.9451, 0.9059, 0.75), Color(0.8235, 0.8510, 0.8745, 0.65), 10, 10))
 	rows = VBoxContainer.new(); rows.add_theme_constant_override("separation", 2); add_child(rows)
 
-func update_standings(data: Array[Dictionary]) -> void:
-	var key := JSON.stringify(data)
+func update_standings(data: Array[Dictionary], race_title: String = "") -> void:
+	var standalone := not race_title.is_empty()
+	var key := JSON.stringify([race_title, data])
 	if key == last_key or rows == null: return
 	var show_bonus := not data.is_empty() and data[0].has("bonus")
 	var show_race_points := not data.is_empty() and data[0].has("race_points")
-	offset_left = -356 if show_race_points else (-354 if show_bonus else -312)
+	offset_left = -228 if standalone else (-356 if show_race_points else (-354 if show_bonus else -312))
 	last_key = key
 	for child in rows.get_children(): rows.remove_child(child); child.queue_free()
-	var title := Label.new(); title.text = "VIRTUEEL OMNIUM"; title.add_theme_font_size_override("font_size", 17); rows.add_child(title)
+	var title := Label.new(); title.text = race_title if standalone else "VIRTUEEL OMNIUM"; title.add_theme_font_size_override("font_size", 17); rows.add_child(title)
 	if show_race_points:
 		var headings := HBoxContainer.new(); headings.add_theme_constant_override("separation", 5); rows.add_child(headings)
 		for column in [["", 102], ["RONDEN", 85], ["TEMPO", 44], ["OMNIUM", 52]]:
 			var heading := Label.new(); heading.text = String(column[0]); heading.custom_minimum_size.x = int(column[1])
 			heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			heading.add_theme_font_size_override("font_size", 11); headings.add_child(heading)
+	if standalone: abbreviations.clear()
 	if abbreviations.is_empty():
 		var identities: Array = data.duplicate(true)
 		identities.sort_custom(func(a: Dictionary, b: Dictionary): return String(a.id) < String(b.id))
@@ -54,23 +56,30 @@ func update_standings(data: Array[Dictionary]) -> void:
 		name_label.add_theme_font_size_override("font_size", 16)
 		if rider.player: name_label.add_theme_color_override("font_color", Style.BLUE)
 		row.add_child(name_label)
-		var laps := Label.new(); var lap_count: int = int(rider.get("laps", 0))
-		laps.text = "%+d ronde%s" % [lap_count, "" if absi(lap_count) == 1 else "n"] if lap_count != 0 else ""
-		laps.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		laps.custom_minimum_size.x = 85; laps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		laps.add_theme_font_size_override("font_size", 16); row.add_child(laps)
+		if not standalone or not show_bonus:
+			var laps := Label.new(); var lap_count: int = int(rider.get("laps", 0))
+			laps.text = "%+d ronde%s" % [lap_count, "" if absi(lap_count) == 1 else "n"] if lap_count != 0 else ""
+			laps.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			laps.custom_minimum_size.x = 85; laps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			laps.add_theme_font_size_override("font_size", 16); row.add_child(laps)
 		if show_race_points:
 			var race_points := Label.new(); race_points.custom_minimum_size.x = 44
 			race_points.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			race_points.text = str(int(rider.get("race_points", 0)))
 			race_points.add_theme_font_size_override("font_size", 16); row.add_child(race_points)
-		var score := Label.new(); score.custom_minimum_size.x = 52 if show_race_points else 30
-		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		score.text = str(rider.score); score.add_theme_font_size_override("font_size", 16); row.add_child(score)
-
 		if show_bonus:
 			var bonus := Label.new(); bonus.custom_minimum_size.x = 32
 			bonus.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			var value := int(rider.get("bonus", 0)); bonus.text = "%+d" % value if value != 0 else ""
 			bonus.add_theme_font_size_override("font_size", 16); bonus.add_theme_color_override("font_color", Style.BLUE)
 			row.add_child(bonus)
+
+		if not standalone or show_bonus:
+			var score := Label.new()
+			score.custom_minimum_size.x = 44 if standalone else (52 if show_race_points else 30)
+			if standalone: score.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			score.text = str(rider.score)
+			score.add_theme_font_size_override("font_size", 16)
+			row.add_child(score)
+			if not standalone and show_bonus: row.move_child(score, score.get_index() - 1)
