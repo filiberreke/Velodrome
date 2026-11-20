@@ -1,7 +1,7 @@
 extends RefCounted
 ## Resolve national kit IDs and explicit race country metadata, never jersey colours/names.
 const Box = preload("res://rennersboxen/rider_box.gd")
-const CODES := {"BEL":"belgium","NED":"netherlands","FRA":"france","ITA":"italy","GER":"germany","GBR":"great_britain","DEN":"denmark","AUS":"australia","NZL":"new_zealand","POR":"portugal","USA":"united_states","JAP":"Japan","ESP":"spain","SUI":"switzerland","POL":"poland","CHN":"china","CZE":"czechia","AUT":"austria","KAZ":"kazakhstan","MEX":"mexico","ARG":"argentina","TUR":"turkey","VEN":"venezuela","IRL":"ireland","COL":"colombia"}
+const CODES := {"BEL":"belgium","NED":"netherlands","FRA":"france","ITA":"italy","GER":"germany","GBR":"great_britain","DEN":"denmark","AUS":"australia","NZL":"new_zealand","POR":"portugal","USA":"united_states","JAP":"japan","ESP":"spain","SUI":"switzerland","POL":"poland","CHN":"china","CZE":"czechia","AUT":"austria","KAZ":"kazakhstan","MEX":"mexico","ARG":"argentina","TUR":"turkey","VEN":"venezuela","IRL":"ireland","COL":"colombia"}
 
 static func valid_country(value: String) -> String:
 	var id := value.strip_edges().to_lower()

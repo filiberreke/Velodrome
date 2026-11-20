@@ -1,33 +1,18 @@
 extends RefCounted
 const Catalog := preload("res://rider_catalog.gd")
-const Paths := preload("res://config_paths.gd")
 const Countries := preload("res://rennersboxen/race_countries.gd")
-const FILES := ["omnium_mannen_24_riders_config.cfg", "omnium_vrouwen_24_riders_config.cfg"]
 var entries: Array[Dictionary] = []
 var error := ""
 
 func load_catalog() -> bool:
-	var loaded: Array[Dictionary] = []
-	var seen := {}
-	for filename in FILES:
-		var config := ConfigFile.new()
-		if Paths.load_project(config, filename) != OK:
-			error = "Rennersconfiguratie ontbreekt: " + filename; return false
-		var count := 0
-		var countries := {}
-		for section in config.get_sections():
-			if not section.begins_with("rider_"): continue
-			var suffix := section.trim_prefix("rider_")
-			if not suffix.is_valid_int(): error = "Ongeldige rennersectie: " + section; return false
-			var entry := Catalog.entry(config, int(suffix), 1)
-			var country := Countries.valid_country(String(config.get_value(section, "country", "")))
-			if country.is_empty() or seen.has(entry.id) or countries.has(country):
-				error = "Ongeldige of dubbele renner/land: " + section; return false
-			seen[entry.id] = true; countries[country] = true
-			loaded.append(entry); count += 1
-		if count != 24: error = "Verwacht 24 renners in " + filename; return false
-	entries = loaded
-	error = ""
+	entries.clear()
+	var config := ConfigFile.new()
+	error = Catalog.load_config(config)
+	if not error.is_empty(): return false
+	for section in config.get_sections():
+		var slot := Catalog.rider_slot(section)
+		if slot > 0:
+			entries.append(Catalog.entry(config, slot, 1 + ((slot - 1) % 3)))
 	return true
 
 func candidates(lineup: Array, category: String = "mixed", replacing: int = -1) -> Array[Dictionary]:
@@ -41,6 +26,12 @@ func candidates(lineup: Array, category: String = "mixed", replacing: int = -1) 
 		if category != "mixed" and entry.category != category: continue
 		if not countries.has(entry.country) and not ids.has(entry.id): result.append(entry.duplicate(true))
 	return result
+
+func available_count(player: Dictionary, category: String) -> int:
+	var countries := {}
+	for entry in candidates([player], category):
+		countries[entry.country] = true
+	return mini(24, 1 + countries.size())
 
 func generate(player: Dictionary, count: int, category: String, rng: RandomNumberGenerator) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []

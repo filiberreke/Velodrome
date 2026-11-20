@@ -3,7 +3,7 @@ const Catalog := preload("res://omnium/omnium_catalog.gd")
 func _initialize() -> void:
 	var catalog = Catalog.new()
 	assert(catalog.load_catalog(), catalog.error)
-	assert(catalog.entries.size() == 48)
+	assert(catalog.entries.size() > 48)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 30
 	var player := {"id":"player", "country":"belgium", "name":"Speler"}
@@ -20,5 +20,15 @@ func _initialize() -> void:
 			var original: String = catalog.entries[0].name
 			lineup[1].name = "Gewijzigd"
 			assert(catalog.entries[0].name == original)
-	print("PASS omnium catalog: three categories, 8–24 riders")
+	assert(catalog.generate(player, 7, "mixed", rng).is_empty())
+	assert(catalog.generate(player, 25, "mixed", rng).is_empty())
+	var small: Array[Dictionary] = catalog.generate(player, 8, "women", rng)
+	catalog.entries.assign(small.slice(1))
+	catalog.entries.append(small[1].duplicate(true))
+	catalog.entries[-1].id = "same_country_reserve"
+	assert(catalog.available_count(player, "mixed") == 8)
+	assert(catalog.available_count(player, "men") == 1)
+	assert(catalog.generate(player, 8, "mixed", rng).size() == 8)
+	assert(catalog.generate(player, 9, "mixed", rng).is_empty())
+	print("PASS omnium catalog: three categories, 8–24 riders and catalogue size independent of lineup size")
 	quit()

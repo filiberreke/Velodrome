@@ -5,7 +5,7 @@ Houd Velodrome.exe, Velodrome.pck en de overige meegeleverde bestanden samen.
 De Zwift Ride bridge wordt niet meegeleverd.
 
 Bij de eerste start worden ontbrekende configuraties aangemaakt in config/:
-- riders_config.cfg: 24 fictieve demorenners (8 per specialiteit).
+- riders_config.cfg: 24 fictieve demorenners (8 per specialiteit) en 48 omniumrenners.
 - strava_config.cfg: lege client_id, client_secret en refresh_token.
   redirect_uri blijft http://localhost, zoals in het bestaande voorbeeld.
 Je kunt deze bestanden daarna aanpassen. Behoud de rider-ID's voor records.

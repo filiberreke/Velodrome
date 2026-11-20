@@ -3,10 +3,14 @@ CONFIGURATIE EN VASTE RENNERPROFIELEN
 Persoonlijke bestanden
 ---------------------
 Kopieer riders_config.example.cfg naar riders_config.cfg in deze map.
-De sample is gebaseerd op de aangeleverde 13 renners, met behoud van namen,
-profieltypes, outfits, helmen, vizieren en rugnummers. Alle drie de factoren
-staan voor iedere renner op 1.0. Zonder persoonlijk bestand gebruikt het
-spel de sample; aanvullende AI-slots krijgen vaste standaardidentiteiten.
+Deze gedeelde catalogus dient voor losse wedstrijden en omnium. Het
+voorbeeld bevat de 13 oorspronkelijke renners en de 48 voormalige
+omniumrenners. Zonder persoonlijk bestand gebruikt het spel dit
+voorbeeld. Losse wedstrijden krijgen nog standaardrenners voor lege
+slots. Omnium biedt alleen de renners uit de catalogus aan; meerdere
+renners mogen hetzelfde land hebben, met maximaal één per land per
+startlijst. Willekeurige startlijsten gebruiken 8 tot 24 deelnemers,
+inclusief speler, afhankelijk van de beschikbare landen in de categorie.
 
 Strava: kopieer strava_config.example.cfg naar strava_config.cfg in deze map.
 Vul je eigen gegevens in; persoonlijke configs worden niet gecommit.
@@ -18,14 +22,46 @@ de schrijfbare Godot-gebruikersmap, nu onder user://config/.
 
 Migratie
 --------
-De bestaande riders_config.cfg en strava_config.cfg uit de oude hoofdmap
-verhuizen bij het laden automatisch naar config/. Gebruikersinstellingen
-(display_settings.cfg, rider_profile.cfg, player_appearance.cfg) en
-strava_tokens.cfg verhuizen naar user://config/.
-Een bestaand doelbestand wordt nooit overschreven. Bij een alleen-lezen
-installatie blijft het oude bestand als leesfallback beschikbaar. Bij een
-conflict blijven beide bestanden behouden en krijgt het nieuwe pad voorrang.
-De .gitignore sluit persoonlijke bestanden uit en laat *.example.cfg toe.
+De gedeelde loader zoekt riders_config.cfg in deze volgorde: config/
+naast het spel (game/config/ in een broncheckout), user://config/, en
+de oude hoofdmap. Daarna volgt riders_config.example.cfg. Het eerste
+gevonden bestand wint, ook als het configuratiefouten bevat. De loader
+verplaatst geen rennersbestanden. Voor Strava en gebruikersinstellingen
+blijft de bestaande verhuizing naar config/ of user://config/ gelden.
+
+Bestaande catalogi samenvoegen
+-----------------------------
+Gebruik de persoonlijke bestanden die je vroeger gebruikte. Controleer
+ook omnium_mannen_24_riders_config.cfg en omnium_vrouwen_24_riders_config.cfg
+in bovenstaande mappen. Gebruik de meegeleverde oude bestanden uit
+game/config/ alleen als je geen aangepaste omniumroosters had. Gebruik
+voor losse wedstrijden zonder persoonlijk bestand het oude
+riders_config.example.cfg uit je vorige versie (met 13 renners).
+
+Voorbeeld vanuit de hoofdmap van de repo (Bash, Godot 4.7):
+
+  (set -o noclobber; godot --headless --no-header --path game \
+    --script res://tools/migrate_rider_catalog.gd -- \
+    /absoluut/pad/riders_config.cfg \
+    /absoluut/pad/omnium_mannen_24_riders_config.cfg \
+    /absoluut/pad/omnium_vrouwen_24_riders_config.cfg \
+    > riders_config.migrated.cfg)
+
+De converter behoudt secties en CFG-waarden, inclusief [player], IDs,
+landen, categorieën, prestaties, records en uiterlijk. Godot herschrijft
+de opmaak en laat opmerkingen weg. Ontbrekende IDs gebruiken de sectienaam;
+een ontbrekende categorie krijgt men. Een ontbrekend of leeg profiel in
+een oud omniumrooster wordt expliciet tt, zoals de oude loader gebruikte.
+De converter stopt bij dubbele
+secties, sleutels of IDs en meldt conflicterende velden bij dubbele IDs
+tussen bestanden. Controleer de gemelde bronnen en corrigeer kopieën.
+Als je een sectie hernummert, leg eerst haar effectieve ID expliciet vast.
+Controleer ook de afgeleide defaults bij een ander slot (profiel, land,
+naam als die ontbreken). Bewaar pas bij afsluitcode 0 een reservekopie van
+je actieve persoonlijke CFG en plaats dan bewust het gecontroleerde
+resultaat op die locatie. Bash kan bij een fout een leeg uitvoerbestand
+achterlaten. Omnium- en racestanden worden nooit door de converter gelezen
+of geschreven. Oude omnium-CFG's dienen alleen nog als conversiebron.
 
 Identiteit en fysiologie
 -----------------------

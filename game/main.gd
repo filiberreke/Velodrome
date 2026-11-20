@@ -158,8 +158,8 @@ var rider_count_input: SpinBox
 var form_rng := RandomNumberGenerator.new()
 var rider_config := ConfigFile.new()
 var rider_config_ready := false
+var configured_rider_ids := {}
 const Catalog := preload("res://rider_catalog.gd")
-const ConfigPaths := preload("res://config_paths.gd")
 var rider_identities: Array[Dictionary] = []
 var selected_startlist: Array[Dictionary] = []
 var startlist_mode := -1
@@ -173,15 +173,24 @@ var pursuit_opponent_percent := 80.0
 const RaceCountries := preload("res://rennersboxen/race_countries.gd")
 
 func _load_rider_config() -> void:
-	# Personal config is intentionally excluded from distributed ZIP updates.
-	# Prefer per-project file so players can edit names in a text editor.
-	var err: Error = ConfigPaths.load_project(rider_config, "riders_config.cfg", true)
-	rider_config_ready = err == OK
-	if err != OK and err != ERR_FILE_NOT_FOUND:
-		push_warning("Velodrome: riders_config.cfg kon niet worden ingelezen (%d); standaardnamen worden gebruikt." % err)
+	var error := Catalog.load_config(rider_config)
+	if not error.is_empty():
+		push_warning(error)
+		for section in rider_config.get_sections():
+			if section.begins_with("rider_"): rider_config.erase_section(section)
+	rider_config_ready = not rider_config.get_sections().is_empty()
+	configured_rider_ids.clear()
+	for section in rider_config.get_sections():
+		if Catalog.rider_slot(section) > 0:
+			configured_rider_ids[Catalog.stable_id(rider_config, section)] = true
 
 func _configured_rider(i: int, default_profile: int) -> Dictionary:
-	return Catalog.entry(rider_config, i, default_profile)
+	var rider := Catalog.entry(rider_config, i, default_profile)
+	if not rider_config.has_section("rider_%02d" % i):
+		# A real rider can keep a legacy ID after moving to a different slot.
+		while configured_rider_ids.has(rider.id):
+			rider.id += "_"
+	return rider
 
 func _profile(i: int) -> int:
 	return rider_profiles[i] if i < rider_profiles.size() else 1
@@ -326,13 +335,6 @@ func _spawn_peloton() -> void:
 		rider.set_meta("pursuit_mode", race_mode in [4, 5, 7])
 		rider.set_meta("jersey_config", rider_kits[i])
 		rider.set_meta("body_shapes", rider_identities[i].get("morphs", {}))
-		if rider_config_ready and race_mode not in [4, 5] and not omnium_race.enabled():
-			var source_slot := int(rider_identities[i].get("slot",i)) if i > 0 else 0
-			var kit_section := "player" if i == 0 else "rider_%02d" % source_slot
-			rider.set_meta("country_kit", String(rider_config.get_value(kit_section, "country_kit", rider_kits[i].get("country_kit",""))))
-			rider.set_meta("skinsuit_png", String(rider_config.get_value(kit_section, "skinsuit_png", rider_kits[i].get("skinsuit_png",""))))
-			rider.set_meta("helmet_png", String(rider_config.get_value(kit_section, "helmet_png", rider_kits[i].get("helmet_png",""))))
-			rider.set_meta("visor", String(rider_config.get_value(kit_section, "visor", rider_kits[i].get("visor",""))))
 		if race_mode == 5:
 			PlayerAppearance.prepare_rider(rider, rider_kits[i])
 		if i == 0:
@@ -4093,9 +4095,8 @@ func available_pursuit_riders() -> Array[Dictionary]:
 	for i in range(1, 16): ids.append(i)
 	if rider_config_ready:
 		for section in rider_config.get_sections():
-			if section.begins_with("rider_") and section.substr(6).is_valid_int():
-				var id := int(section.substr(6))
-				if id > 0 and id not in ids: ids.append(id)
+			var slot := Catalog.rider_slot(section)
+			if slot > 0 and slot not in ids: ids.append(slot)
 	ids.sort()
 	var result: Array[Dictionary] = []
 	for id in ids:
@@ -4256,7 +4257,8 @@ func available_startlist_riders() -> Array[Dictionary]:
 		if String(entry.id) not in seen:
 			result.append(entry);seen.append(String(entry.id))
 	for entry in result:
-		if not entry.jersey.has("country_kit"): entry.jersey["country_kit"] = entry.country
+		if not entry.jersey.has("country_kit") and String(entry.jersey.get("skinsuit_png", "")).strip_edges().is_empty():
+			entry.jersey["country_kit"] = entry.country
 	return result
 
 func _upload_training(activity: Dictionary) -> void:

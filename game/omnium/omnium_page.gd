@@ -77,7 +77,7 @@ func refresh() -> void:
 		return
 	if not choosing_startlist: render_setup(); return
 	body.add_child(menu.label("Startlijst aanmaken · kies je deelnemersbron", 26))
-	if not draft.catalog.load_catalog(): body.add_child(menu.label(draft.catalog.error, 20)); return
+	if not draft.catalog.load_catalog(): body.add_child(menu.label(draft.catalog.error, 20))
 	for category in ["men", "women", "mixed"]:
 		button("Willekeurige lijst · " + {"men":"mannen", "women":"vrouwen", "mixed":"gemengd"}[category], generate.bind(category))
 	button("Zelf samenstellen", manual)
@@ -86,8 +86,14 @@ func refresh() -> void:
 
 func generate(category: String) -> void:
 	if roster_locked(): return
+	var human := player()
+	var count: int = draft.catalog.available_count(human, category)
+	if count < 8:
+		refresh()
+		body.add_child(menu.label("Niet genoeg verschillende landen voor deze selectie (minimaal 8 deelnemers).", 18))
+		return
 	var rng := RandomNumberGenerator.new(); rng.randomize()
-	draft.riders = draft.catalog.generate(player(), 24, category, rng)
+	draft.riders = draft.catalog.generate(human, count, category, rng)
 	editing = true; refresh()
 
 func manual() -> void:
@@ -109,7 +115,7 @@ func edit_active() -> void:
 	if roster_locked():
 		draft.riders.assign(manager.state.active.riders.duplicate(true))
 	else:
-		if not draft.catalog.load_catalog(): return
+		draft.catalog.load_catalog()
 		draft.copy_from(manager.state.active, player())
 	editing = true; refresh()
 

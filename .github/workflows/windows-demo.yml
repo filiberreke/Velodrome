@@ -158,7 +158,12 @@ jobs:
           mkdir -p build/defaults
           # Copy only reviewed demo assets; never copy personal game/config/*.cfg.
           cp packaging/windows-demo/README.txt packaging/windows-demo/Start-Velodrome.cmd packaging/windows-demo/Initialize-Config.ps1 build/
-          cp packaging/windows-demo/defaults/riders_config.cfg packaging/windows-demo/defaults/strava_config.cfg build/defaults/
+          cp packaging/windows-demo/defaults/strava_config.cfg build/defaults/
+          Godot_v4.7.2-stable_linux.x86_64 --headless --no-header --path game --script res://tools/migrate_rider_catalog.gd -- \
+            "$GITHUB_WORKSPACE/packaging/windows-demo/defaults/riders_config.cfg" \
+            res://config/omnium_mannen_24_riders_config.cfg \
+            res://config/omnium_vrouwen_24_riders_config.cfg > build/defaults/riders_config.cfg
+          test -s build/defaults/riders_config.cfg
 
       - name: Upload internal candidate for Windows smoke test
         uses: actions/upload-artifact@v4
