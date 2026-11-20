@@ -3512,8 +3512,7 @@ func _refresh_fullscreen_results() -> void:
 	if omnium_race.enabled() and not omnium_race.error.is_empty(): recording_message = omnium_race.error
 	if finish_overlay != null and finish_overlay.visible: results_completion.start(self)
 	if finish_table != null:
-		finish_table.columns = 1 if race_mode == 1 else (3 if race_mode in [0, 2] else 4)
-		if omnium_race.enabled() and race_mode == 2: finish_table.columns += 1
+		if race_mode == 8: finish_table.columns = 5
 		if race_mode != 1 and finish_table.has_meta("points_result_key"): finish_table.remove_meta("points_result_key")
 	if finish_photo_rect != null: finish_photo_rect.get_parent().get_parent().visible = finish_photo_rect.texture != null
 	#if race_mode == 1:
@@ -3577,6 +3576,7 @@ func _refresh_fullscreen_results() -> void:
 	_result_cell("TIJD / VERSCHIL", gold, header_bg, 180, true, true)
 	if omnium_race.enabled(): _result_cell("OMNIUMPUNTEN", gold, header_bg, 130, true, true)
 	if race_mode not in [0,2]: _result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
+	finish_table.columns = finish_table.get_child_count()
 	var leader_time: float = -1.0
 	for index in ordered:
 		if finish_times[index] >= 0.0:
