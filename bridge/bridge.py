@@ -112,7 +112,7 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
                     if resistance_queue is not None or shifter is not None or (combined is not None and not combined.disabled):
                         if getattr(combined, 'native_shifting', False):
                             from native_shifting import NativeController
-                            controller = NativeController(client)
+                            controller = NativeController(client, combined.native_protocol)
                         else:
                             controller = ResistanceController(client)
                         print("FTMS: controle aanvragen...")
@@ -120,7 +120,13 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
                             await asyncio.wait_for(controller.initialize(), timeout=15.0)
                         except Exception as exc:
                             print("FTMS initialisatie mislukt:", type(exc).__name__, str(exc))
-                            raise
+                            if type(exc).__name__ != 'NativeUnsupported' or combined is None:
+                                raise
+                            # Reconnecting cannot add the service: keep telemetry, stop control.
+                            combined.request_stop('native_unsupported')
+                            controller = None
+                            print('Native besturing uitgeschakeld; alleen telemetry. Gebruik de bridge zonder --native-shifting.')
+                    if controller is not None:
                         print("FTMS CONTROL ACTIEF. Test voorzichtig en houd het toetsenbord bij de hand.")
                         if trainer_ready_event is not None:
                             trainer_ready_event.set()
@@ -423,8 +429,9 @@ async def main(args):
 
         if getattr(args, 'native_shifting', False):
             from native_shifting import native_mode
-            combined = native_mode(args.erg_ramp_w_per_s)
-            print('EXPERIMENTEEL: native Zwift trainerprotocol; 12 versnellingen, start 4.')
+            protocol = getattr(args, 'native_protocol', 'auto')
+            combined = native_mode(args.erg_ramp_w_per_s, protocol=protocol)
+            print(f'EXPERIMENTEEL: native trainershifting ({protocol}); 12 versnellingen, start 4.')
         else:
             combined = CombinedMode(args.erg_ramp_w_per_s)
         sender.combined_mode = combined
@@ -482,7 +489,9 @@ if __name__ == '__main__':
     p.add_argument('--check-config', action='store_true', help='Controleer alle configuratiebestanden en sluit af zonder apparaten te starten')
     p.add_argument('--check-runtime', action='store_true', help='Controleer macOS bindings en libusb zonder apparaten te starten')
     p.add_argument('--software-test', action='store_true', help=argparse.SUPPRESS)
-    p.add_argument('--native-shifting', action='store_true', help='Experimenteel native Zwift trainerprotocol, aparte branch')
+    p.add_argument('--native-shifting', action='store_true', help='Experimenteel native trainershifting, aparte branch')
+    p.add_argument('--native-protocol', choices=('auto', 'zwift-hub', 'wahoo-fc82'), default='auto',
+                   help='Met --native-shifting: auto kiest Zwift hub (00000001) en anders Wahoo FC82')
     p.add_argument('--no-ant', action='store_true', help='Start alleen KICKR en Zwift Ride, zonder ANT+ dongle')
     p.add_argument('--trainer', default='KICKR', help='Deel van trainernaam')
     p.add_argument('--ride', default='', help='Optioneel BLE-adres of macOS UUID van de LINKER Ride; standaard auto-detectie')
@@ -499,7 +508,7 @@ if __name__ == '__main__':
         # Use the same loaders and module-relative paths as normal startup.
         if args.native_shifting:
             from native_shifting import native_mode
-            native_mode(args.erg_ramp_w_per_s)
+            native_mode(args.erg_ramp_w_per_s, protocol=args.native_protocol)
         else:
             CombinedMode(args.erg_ramp_w_per_s)
         ButtonMapper.load()
