@@ -25,6 +25,9 @@ var allow_released_session := false
 var requested_erg := 0
 var last_target := -1
 var last_response := -100.0
+var debug_commands := false
+var grade_rate := 10.0
+var grade_deadline := INF # Optional wall-clock deadline for transient feedback.
 var erg_only := false # Explicit training opt-in; race probing stays SIM-only.
 
 func arm(explicit_start: bool = true) -> void:
@@ -50,7 +53,10 @@ func _request(command: String, params: Dictionary, now: float, mutation: bool = 
 	sequence += 1
 	var packet := {"type": "command", "v": 1, "id": "%s-%d" % [session, sequence], "command": command}
 	packet.merge(params)
+	if debug_commands and command in ["set_grade","set_target_power"]:
+		print("MADISON_TRAINER_COMMAND ", JSON.stringify({"at_s":now,"packet":packet}))
 	var request := {"packet": packet, "raw": JSON.stringify(packet).to_utf8_buffer(), "at": now, "retry_at": now + 0.3, "tries": 0, "seq": sequence}
+	if command == "set_grade": request["expires_at"] = grade_deadline
 	requests[packet.id] = request
 	if mutation: pending = request
 	socket.put_packet(request.raw)
@@ -222,6 +228,10 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		armed = false
 	enabled_before = enabled
 	_receive(now)
+	if not pending.is_empty() and now >= float(pending.get("expires_at", INF)):
+		# Do not retry a short force pulse after its intended lifetime.
+		_block("Aflossingscommando verlopen", true, now)
+		return
 	if not pending.is_empty() and now >= float(pending.retry_at):
 		if int(pending.tries) >= 3:
 			var was_release: bool = pending.packet.command == "set_target_power"
@@ -255,7 +265,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 	grade = snappedf(clampf(grade, -20.0, 20.0), 0.01)
 	aero = snappedf(clampf(aero, 0.0, 1.0), 0.01)
 	if absf(grade - last_grade) < 0.05 and (not aero_supported or absf(aero - last_aero) < 0.02): return
-	var params := {"grade_pct": grade, "ramp_pct_per_s": 10.0}
+	var params := {"grade_pct": grade, "ramp_pct_per_s": clampf(grade_rate, 0.1, 100.0)}
 	if aero_supported: params["aero_scale"] = aero
 	_request("set_grade", params, now, true)
 	last_grade = grade
