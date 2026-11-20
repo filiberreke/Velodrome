@@ -85,7 +85,7 @@ De bridge implementeert de volgende koppelingen. Dit beschrijft de aanwezige ond
 | Zwift Ride | BLE-verbinding via de linker mastercontroller; virtuele versnellingen, digitale knoppen en analoge stuurpaddles. Knoptoewijzing is configureerbaar via Instellingen → Controller. |
 | Garmin ANT+-hartslag | ANT+-USB-stick met bestaande Dynastream/libusb0-koppeling op Windows; de startprocedure noemt Garmin vivoactive 5 met Broadcast Heart Rate. Hartslag wordt doorgegeven aan HUD en ritopname. |
 
-De bridge heeft 12 virtuele versnellingen. Het spel kan routehelling en slipstream aan de trainer doorgeven; ploegenachtervolging kan ERG in het wiel gebruiken. Het virtuele versnellings-/weerstandsmodel is een benadering en gebruikt geen native Wahoo/Zwift-versnellingsprotocol. ERG-aanvragen zijn begrensd op 0–1300 W en worden getoetst aan de gemelde trainermogelijkheden; 0 W vraagt vrijgave via FTMS Reset.
+De bridge heeft 12 virtuele versnellingen. Het spel kan routehelling en slipstream aan de trainer doorgeven; ploegenachtervolging kan ERG in het wiel gebruiken. Het virtuele versnellings-/weerstandsmodel is standaard een benadering via FTMS. Met `--native-shifting` stuurt de bridge experimenteel native gear ratios naar trainers met het Zwift-hub- of Wahoo-FC82-protocol; zie [bridge/NATIVE_SHIFTING.md](bridge/NATIVE_SHIFTING.md). ERG-aanvragen zijn begrensd op 0–1300 W en worden getoetst aan de gemelde trainermogelijkheden; 0 W vraagt vrijgave via FTMS Reset.
 
 Communicatie verloopt lokaal via UDP:
 
