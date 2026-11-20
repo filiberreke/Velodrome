@@ -111,7 +111,8 @@ def site_page(lang, key):
     alt = "".join(f'<link rel="alternate" hreflang="{lg}" href="{url(lg)}">' for lg in LANGS)
     alt += f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}/">'
     og_locale = "nl_BE" if lang == "nl" else "en_GB"
-    carousel = f'\n<script src="{root}assets/carousel.js" defer></script>' if key == "home" else ""
+    script_name = {"home": "carousel.js", "downloads": "downloads.js"}.get(key)
+    script = f'\n<script src="{root}assets/{script_name}" defer></script>' if script_name else ""
     return f'''<!doctype html>
 <html lang="{lang}">
 <head>
@@ -126,7 +127,7 @@ def site_page(lang, key):
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#122C50">
 <link rel="icon" href="{root}assets/img/bell-64.png" type="image/png">
-<link rel="stylesheet" href="{root}assets/site.css">{carousel}
+<link rel="stylesheet" href="{root}assets/site.css">{script}
 </head>
 <body>
 {content}
@@ -200,7 +201,7 @@ def build_site(site):
 
 def build_preview(output):
     css = (SITE / "assets" / "site.css").read_text(encoding="utf-8")
-    carousel = (SITE / "assets" / "carousel.js").read_text(encoding="utf-8")
+    scripts = "\n".join((SITE / "assets" / name).read_text(encoding="utf-8") for name in ("carousel.js", "downloads.js"))
     # Eén bestand met alle pagina’s als views (#nl-home, #en-races, ...)
     views = []
     for lang in LANGS:
@@ -232,7 +233,7 @@ def build_preview(output):
   window.addEventListener("hashchange",show); show();
 }})();
 </script>
-<script>{carousel}</script>
+<script>{scripts}</script>
 </body></html>'''
     output.write_text(preview, encoding="utf-8", newline="\n")
 

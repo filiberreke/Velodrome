@@ -3,6 +3,7 @@ from html import escape
 
 # Teksten voor velodrome.wielerpraat.be. Controleer speelbaarheid in het spelmenu van de huidige versie.
 REPO = "https://github.com/filiberreke/Velodrome"
+RELEASE_API = "https://api.github.com/repos/filiberreke/Velodrome/releases/latest"
 PAGES = ["home", "races", "training", "manual", "downloads", "dev"]
 SLUG = {
     "nl": {"home": "", "races": "wedstrijden", "training": "training", "manual": "handleiding", "downloads": "downloads", "dev": "ontwikkeling"},
@@ -408,39 +409,34 @@ def page(lang, key, L, IMG, PREVIEW, VIDEO):
         return title, desc, body
 
     if key == "downloads":
-        title = "Downloads – Vélodrome" if nl else "Downloads – Vélodrome"
-        desc = ("Download Vélodrome voor Windows en macOS. Kies de Windows-versie of de Mac-bundel voor Apple Silicon of Intel." if nl
-                else "Download Vélodrome for Windows and macOS. Choose a Windows build or the Mac bundle for Apple Silicon or Intel.")
+        title = "Downloads – Vélodrome"
+        desc = ("Download Vélodrome voor Windows of macOS, zonder GitHub-account." if nl
+                else "Download Vélodrome for Windows or macOS without a GitHub account.")
+        targets = [
+            ("Windows", "64-bit (x64)", "Velodrome-Windows-x64.zip", "installatie" if nl else "install"),
+            ("macOS Apple Silicon", "macOS Monterey 12.3+ · arm64", "Velodrome-macOS-arm64.zip", "install-macos"),
+            ("macOS Intel", "macOS Monterey 12.3+ · x86_64", "Velodrome-macOS-x86_64.zip", "install-macos"),
+        ]
+        cards = []
+        for platform, requirements, filename, install in targets:
+            identifier = ' id="macos"' if platform == "macOS Apple Silicon" else ""
+            install_text = f"Installatie op {platform}" if nl else f"Install on {platform}"
+            download_text = f"Download voor {platform}" if nl else f"Download for {platform}"
+            cards.append(f'''<article class="variant"{identifier}>
+      <h2>{platform}</h2>
+      <p class="meta">{requirements}</p>
+      <div class="actions">
+        <a class="btn primary" href="{REPO}/releases/latest/download/{filename}" data-release-asset="{filename}" hidden>{download_text}</a>
+        <a class="more" href="{L("manual")}#{install}">{install_text}</a>
+      </div>
+    </article>''')
         body = f'''<main id="main" class="wrap page">
   <header class="page-head"><h1>{"Downloads" if nl else "Downloads"}</h1>
-  <p class="lede">{"Kies de versie voor Windows of macOS." if nl else "Choose your build for Windows or macOS."}</p></header>
+  <p class="lede">{"Kies de bundel voor je systeem. Het spel en de bridge zitten samen in de ZIP. Je hebt geen GitHub-account nodig." if nl else "Choose the bundle for your system. The ZIP includes the game and the bridge. No GitHub account is required."}</p></header>
 
-  <div class="variants">
-    <article class="variant main-variant">
-      <h2>Windows All-in-one</h2>
-      <p class="hint">{"Spel en bridge samen" if nl else "Game and bridge together"}</p>
-      <p>{"Voor wie met een trainer, Zwift Ride of hartslagmeter rijdt. Eén programma start alles en stopt de bridge als je het spel sluit." if nl else "For riding with a trainer, Zwift Ride or heart-rate monitor. One program starts everything and stops the bridge when you close the game."}</p>
-      <p class="meta">Windows x64 · <code>Velodrome.exe</code></p>
-      <a class="btn primary" href="{REPO}/actions/workflows/windows-bundled.yml">{"Bekijk Windows-bundels op GitHub" if nl else "View Windows bundles on GitHub"}</a>
-    </article>
-    <article class="variant">
-      <h2>{"Windows zonder bridge" if nl else "Windows game only"}</h2>
-      <p class="hint">{"Standalone, zonder bridge" if nl else "Standalone, without the bridge"}</p>
-      <p>{"Spelen met het toetsenbord. Wil je later toch een trainer koppelen, dan kun je de bridge apart starten." if nl else "Play with a keyboard. If you want to connect a trainer later, you can run the bridge separately."}</p>
-      <p class="meta">Windows x64 · <code>Start-Velodrome.cmd</code></p>
-      <a class="btn" href="{REPO}/actions/workflows/windows-demo.yml">{"Bekijk losse Windows-builds op GitHub" if nl else "View standalone Windows builds on GitHub"}</a>
-    </article>
-    <article class="variant" id="macos">
-      <h2>macOS</h2>
-      <p class="hint">{"Spel en bridge samen" if nl else "Game and bridge together"}</p>
-      <p>{"Kies arm64 voor Apple Silicon of x86_64 voor Intel. De bundel start het spel en de bridge samen." if nl else "Choose arm64 for Apple Silicon or x86_64 for Intel. The bundle starts the game and bridge together."}</p>
-      <p class="meta">macOS Monterey 12.3+ · <code>Start-Velodrome.command</code></p>
-      <a class="btn" href="{REPO}/actions/workflows/macos-bundled.yml">{"Bekijk Mac-builds op GitHub" if nl else "View Mac builds on GitHub"}</a>
-      <p><a class="more" href="{L("manual")}#install-macos">{"Installeren op macOS" if nl else "Install on macOS"}</a></p>
-    </article>
+  <div class="variants" data-release-api="{RELEASE_API}">
+    {''.join(cards)}
   </div>
-
-  <p class="status">{"Open op GitHub een geslaagde build en kies je bestand onder Artifacts. Je hebt een GitHub-account nodig om het te downloaden." if nl else "Open a successful build on GitHub and choose your file under Artifacts. You need a GitHub account to download it."}</p>
 
   <section class="split">
     <div class="prose">

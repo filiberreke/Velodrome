@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Downloads – Vélodrome</title>
-<meta name="description" content="Download Vélodrome voor Windows en macOS. Kies de Windows-versie of de Mac-bundel voor Apple Silicon of Intel.">
+<meta name="description" content="Download Vélodrome voor Windows of macOS, zonder GitHub-account.">
 <link rel="canonical" href="https://velodrome.wielerpraat.be/nl/downloads/"><link rel="alternate" hreflang="nl" href="https://velodrome.wielerpraat.be/nl/downloads/"><link rel="alternate" hreflang="en" href="https://velodrome.wielerpraat.be/en/downloads/"><link rel="alternate" hreflang="x-default" href="https://velodrome.wielerpraat.be/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Vélodrome">
-<meta property="og:title" content="Downloads – Vélodrome"><meta property="og:description" content="Download Vélodrome voor Windows en macOS. Kies de Windows-versie of de Mac-bundel voor Apple Silicon of Intel.">
+<meta property="og:title" content="Downloads – Vélodrome"><meta property="og:description" content="Download Vélodrome voor Windows of macOS, zonder GitHub-account.">
 <meta property="og:url" content="https://velodrome.wielerpraat.be/nl/downloads/"><meta property="og:image" content="https://velodrome.wielerpraat.be/assets/img/og.jpg"><meta property="og:locale" content="nl_BE">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#122C50">
 <link rel="icon" href="../../assets/img/bell-64.png" type="image/png">
 <link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/downloads.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Naar de inhoud</a>
@@ -22,34 +23,32 @@
   <a class="lang" href="../../en/downloads/" hreflang="en" lang="en" data-lang="en" aria-label="Read this page in English">English</a>
 </div></header><main id="main" class="wrap page">
   <header class="page-head"><h1>Downloads</h1>
-  <p class="lede">Kies de versie voor Windows of macOS.</p></header>
+  <p class="lede">Kies de bundel voor je systeem. Het spel en de bridge zitten samen in de ZIP. Je hebt geen GitHub-account nodig.</p></header>
 
-  <div class="variants">
-    <article class="variant main-variant">
-      <h2>Windows All-in-one</h2>
-      <p class="hint">Spel en bridge samen</p>
-      <p>Voor wie met een trainer, Zwift Ride of hartslagmeter rijdt. Eén programma start alles en stopt de bridge als je het spel sluit.</p>
-      <p class="meta">Windows x64 · <code>Velodrome.exe</code></p>
-      <a class="btn primary" href="https://github.com/filiberreke/Velodrome/actions/workflows/windows-bundled.yml">Bekijk Windows-bundels op GitHub</a>
-    </article>
+  <div class="variants" data-release-api="https://api.github.com/repos/filiberreke/Velodrome/releases/latest">
     <article class="variant">
-      <h2>Windows zonder bridge</h2>
-      <p class="hint">Standalone, zonder bridge</p>
-      <p>Spelen met het toetsenbord. Wil je later toch een trainer koppelen, dan kun je de bridge apart starten.</p>
-      <p class="meta">Windows x64 · <code>Start-Velodrome.cmd</code></p>
-      <a class="btn" href="https://github.com/filiberreke/Velodrome/actions/workflows/windows-demo.yml">Bekijk losse Windows-builds op GitHub</a>
-    </article>
-    <article class="variant" id="macos">
-      <h2>macOS</h2>
-      <p class="hint">Spel en bridge samen</p>
-      <p>Kies arm64 voor Apple Silicon of x86_64 voor Intel. De bundel start het spel en de bridge samen.</p>
-      <p class="meta">macOS Monterey 12.3+ · <code>Start-Velodrome.command</code></p>
-      <a class="btn" href="https://github.com/filiberreke/Velodrome/actions/workflows/macos-bundled.yml">Bekijk Mac-builds op GitHub</a>
-      <p><a class="more" href="../../nl/handleiding/#install-macos">Installeren op macOS</a></p>
+      <h2>Windows</h2>
+      <p class="meta">64-bit (x64)</p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/filiberreke/Velodrome/releases/latest/download/Velodrome-Windows-x64.zip" data-release-asset="Velodrome-Windows-x64.zip" hidden>Download voor Windows</a>
+        <a class="more" href="../../nl/handleiding/#installatie">Installatie op Windows</a>
+      </div>
+    </article><article class="variant" id="macos">
+      <h2>macOS Apple Silicon</h2>
+      <p class="meta">macOS Monterey 12.3+ · arm64</p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/filiberreke/Velodrome/releases/latest/download/Velodrome-macOS-arm64.zip" data-release-asset="Velodrome-macOS-arm64.zip" hidden>Download voor macOS Apple Silicon</a>
+        <a class="more" href="../../nl/handleiding/#install-macos">Installatie op macOS Apple Silicon</a>
+      </div>
+    </article><article class="variant">
+      <h2>macOS Intel</h2>
+      <p class="meta">macOS Monterey 12.3+ · x86_64</p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/filiberreke/Velodrome/releases/latest/download/Velodrome-macOS-x86_64.zip" data-release-asset="Velodrome-macOS-x86_64.zip" hidden>Download voor macOS Intel</a>
+        <a class="more" href="../../nl/handleiding/#install-macos">Installatie op macOS Intel</a>
+      </div>
     </article>
   </div>
-
-  <p class="status">Open op GitHub een geslaagde build en kies je bestand onder Artifacts. Je hebt een GitHub-account nodig om het te downloaden.</p>
 
   <section class="split">
     <div class="prose">
