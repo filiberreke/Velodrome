@@ -33,6 +33,8 @@ var appearance_tabs: TabContainer
 var ride_tabs: Button
 var return_to_devices := false
 var return_focus: Control
+var resume_race_on_close := false
+var restore_pause_menu := false
 var suit_choice: OptionButton
 var helmet_choice: OptionButton
 var visor_choice: OptionButton
@@ -455,6 +457,13 @@ func open_device_mapping() -> void:
 func _close_settings() -> void:
 	keyboard_settings.cancel_capture()
 	panel_root.hide()
+	var game := get_parent()
+	if resume_race_on_close:
+		game.call("_resume_race")
+	elif restore_pause_menu:
+		game.exit_menu.backdrop.show()
+	resume_race_on_close = false
+	restore_pause_menu = false
 	close_button.text = "← Terug"
 	appearance_preview.set_active(false)
 	if controller_test != null:
@@ -490,8 +499,11 @@ func toggle_menu() -> void:
 	else:
 		return_focus = get_viewport().gui_get_focus_owner()
 		get_parent().call("_clear_look_back")
-		if get_parent().get("start_state") not in ["SETUP", "INTRO"] and not get_parent().get("finished"):
-			get_parent().call("_pause_race")
+		var game := get_parent()
+		restore_pause_menu = game.exit_menu.backdrop.visible
+		game.exit_menu.backdrop.hide()
+		resume_race_on_close = not game.race_paused and game.start_state not in ["SETUP", "INTRO"] and not game.finished
+		if resume_race_on_close: game.call("_pause_race", false)
 		_sync_appearance_controls()
 		intro_check.button_pressed = always_show_intro
 		race_lighting_check.button_pressed = race_lighting

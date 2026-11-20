@@ -711,7 +711,7 @@ func _physics_process(delta: float) -> void:
 			watts = 0.0
 			trainer_speed_kmh = -1.0
 	if exit_menu != null:
-		exit_menu.set_exit_visible(start_state in ["SETUP", "INTRO"] or finished)
+		exit_menu.set_exit_visible(true)
 	if race_paused:
 		trainer_control.tick(false, 0.0, 1.0, _now_s())
 		return
@@ -998,14 +998,14 @@ func _keyboard_race_action(action: String) -> void:
 				recovery_left = 0.0
 				boost_used = true
 
-func _pause_race() -> void:
+func _pause_race(show_menu: bool = true) -> void:
 	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
 	race_paused = true
 	_clear_look_back()
 	trainer_telemetry_resume = false
 	trainer_pause_resume = false
 	trainer_control.tick(false, 0.0, 1.0, _now_s())
-	exit_menu.show_pause()
+	if show_menu: exit_menu.show_pause()
 
 func _resume_race() -> void:
 	if not race_paused: return
@@ -1013,6 +1013,7 @@ func _resume_race() -> void:
 	# Finish servicing any pending release before re-probing our own session.
 	trainer_pause_resume = trainer_control.error.is_empty()
 	exit_menu.hide_pause()
+	exit_menu.set_exit_visible(true)
 
 func _quit_application() -> void:
 	if setup_panel != null and setup_panel.workout_play_page != null: setup_panel.workout_play_page.shutdown()
