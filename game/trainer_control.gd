@@ -37,6 +37,33 @@ func arm(explicit_start: bool = true) -> void:
 	error = ""
 	allow_released_session = explicit_start
 
+## Grade for the trainer from the rider's route grade. A rider of about 80 kg
+## carries momentum through the short climb into each bend and the descent out of
+## it (1.3 m on the stayers line); a trainer flywheel stores far less energy and
+## would turn that oscillation into a pedal wall. The game speed model keeps the
+## full physics. The trainer gets a direct share for feel plus a slow part with
+## the rider's inertia time scale; sustained climbs still reach the full grade.
+class RouteGradeFilter extends RefCounted:
+	const FAST_RATE := 8.0 # Former frame-noise smoothing, per second.
+	const INERTIA_TAU_S := 4.0
+	const DIRECT_SHARE := 0.2
+	var fast := 0.0
+	var slow := 0.0
+	var value := 0.0
+
+	func reset() -> void:
+		fast = 0.0
+		slow = 0.0
+		value = 0.0
+
+	func step(raw: float, dt: float) -> float:
+		if dt <= 0.0:
+			return value
+		fast = lerpf(fast, raw, 1.0 - exp(-FAST_RATE * dt))
+		slow = lerpf(slow, raw, 1.0 - exp(-dt / INERTIA_TAU_S))
+		value = DIRECT_SHARE * fast + (1.0 - DIRECT_SHARE) * slow
+		return value
+
 static func route_grade(previous: Vector3, current: Vector3) -> float:
 	# Bank angle itself is not road grade. Use rise / horizontal travelled path.
 	var horizontal := Vector2(current.x - previous.x, current.z - previous.z).length()

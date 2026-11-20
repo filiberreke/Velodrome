@@ -67,7 +67,7 @@ func enter() -> void:
 	next_spawn_player_distance = start_distance+game.LAP*0.5
 	page.progress.reset_session(page.count.get_selected_id())
 	session.start("madison",start_distance,0.0,0.0)
-	total_elapsed = 0; total_distance = 0; player_speed = speeds[0]; road_grade = 0; reduction = 0
+	total_elapsed = 0; total_distance = 0; player_speed = speeds[0]; road_grade = 0; grade_filter.reset(); reduction = 0
 	samples = []; last_sample = -1; last_save = 0; saved_final = false; assisted_seconds = 0; too_close = false
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
 	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":"madison","title":"Aflossingstraining","started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"advanced":madison.advanced}
@@ -198,7 +198,7 @@ func _step(dt: float, power: float) -> void:
 		distances[i] += speeds[i]*dt/game._path_metric(before,lane_offsets[i])
 		if i == 0: total_distance += speeds[i]*dt
 	baseline_speed = speeds[0]; player_speed = speeds[0]; player_lane_offset = lane_offsets[0]; distance = distances[0]
-	road_grade = lerpf(road_grade,game.TrainerControl.route_grade(previous,game._at(distance,player_lane_offset)),1-exp(-8*dt))
+	road_grade = grade_filter.step(game.TrainerControl.route_grade(previous,game._at(distance,player_lane_offset)),dt)
 	session.elapsed += dt; session.peak_w = maxf(session.peak_w,power); session.energy_j += power*dt
 	total_elapsed = session.elapsed
 func _despawn_partner() -> void:

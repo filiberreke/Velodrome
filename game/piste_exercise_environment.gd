@@ -27,7 +27,7 @@ func enter() -> void:
 	demo = not game.trainer_seen; demo_power = 180; control_started = game._now_s()
 	player_lane_offset = LOWEST_LANE if page.kind != "take_lap" else pack_lane
 	player_lane_target = game.LANES.find(player_lane_offset)
-	reduction = 0; road_grade = 0; total_elapsed = 0; total_distance = 0; assisted_seconds = 0
+	reduction = 0; road_grade = 0; grade_filter.reset(); total_elapsed = 0; total_distance = 0; assisted_seconds = 0
 	samples = []; last_sample = -1; last_save = 0; saved_final = false; too_close = false
 	var line := Exercise.pursuit_line(game)
 	pack_distance = line
@@ -111,7 +111,7 @@ func _step(dt: float, power: float) -> void:
 	distance = lerpf(before,distance,fraction); player_lane_offset = lerpf(old_lane,player_lane_offset,fraction)
 	pack_distance = lerpf(pack_before,pack_distance,fraction); player_speed = lerpf(old_speed,player_speed,fraction)
 	var current: Vector3 = game._at(distance,player_lane_offset)
-	road_grade = lerpf(road_grade,game.TrainerControl.route_grade(previous,current),1-exp(-8*dt*fraction))
+	road_grade = grade_filter.step(game.TrainerControl.route_grade(previous,current),dt*fraction)
 	_update_pack_state()
 	reduction = _draft_at(distance)
 	total_elapsed = session.elapsed

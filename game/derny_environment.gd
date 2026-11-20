@@ -17,6 +17,7 @@ var player_lane_offset := LOWEST_LANE
 var player_lane_target := 0
 var reduction := 0.0
 var road_grade := 0.0
+var grade_filter = preload("res://trainer_control.gd").RouteGradeFilter.new()
 var demo := false
 var demo_power := 130.0
 var control_started := -1.0
@@ -68,6 +69,7 @@ func enter() -> void:
 	player_lane_target = 0
 	reduction = 0.0
 	road_grade = 0.0
+	grade_filter.reset()
 	control_started = game._now_s()
 	samples = []
 	total_elapsed = 0
@@ -218,7 +220,7 @@ func _step(dt: float, power: float) -> void:
 		elif gap() < FOLLOW_GAP + .15 and gap() > 0 and player_speed > motor.speed_mps + .02 and absf(player_lane_offset-derny_lane_offset) < PASS_LATERAL:
 			too_close = true
 	var current: Vector3 = game._at(distance,player_lane_offset)
-	road_grade = lerpf(road_grade,game.TrainerControl.route_grade(previous,current),1-exp(-8*dt))
+	road_grade = grade_filter.step(game.TrainerControl.route_grade(previous,current),dt)
 	reduction = Session.draft_reduction(gap(),player_lane_offset-derny_lane_offset)
 	total_elapsed += dt
 	total_distance += maxf(0,(distance-before)*game._path_metric(distance,player_lane_offset))

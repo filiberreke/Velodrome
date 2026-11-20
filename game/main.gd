@@ -16,6 +16,7 @@ var stadium_sun: DirectionalLight3D
 const RACE_AMBIENT_LIGHT_ENERGY := 0.25
 var stadium_training_lighting := false
 var trainer_road_grade := 0.0
+var trainer_grade_filter := TrainerControl.RouteGradeFilter.new()
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
 const LAP := 250.0
@@ -742,7 +743,7 @@ func _physics_process(delta: float) -> void:
 				else: neutral_start.step(self, delta)
 				var current: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
 				var grade: float = TrainerControl.route_grade(previous, current)
-				trainer_road_grade = lerpf(trainer_road_grade, grade, 1.0 - exp(-8.0 * delta))
+				trainer_road_grade = trainer_grade_filter.step(grade, delta)
 		elif start_state == "RACING":
 			# Once a real trainer was used, a lost signal must not become demo mode.
 			if not trainer_seen or (connected and trainer_ready) or _power_hold_active():
@@ -1409,6 +1410,7 @@ func _reset(omnium_archive: Dictionary = {}) -> void:
 	trainer_control.release(_now_s())
 	trainer_telemetry_resume = false
 	trainer_road_grade = 0.0
+	trainer_grade_filter.reset()
 	_save_recording("restart")
 	ride_records = []
 	demo_fit_records = []
@@ -1877,7 +1879,7 @@ func _update_race(dt: float) -> void:
 		_advance_race(dt)
 	var current: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
 	var grade: float = TrainerControl.route_grade(previous, current)
-	trainer_road_grade = lerpf(trainer_road_grade, grade, 1.0 - exp(-8.0 * maxf(dt, 0.0)))
+	trainer_road_grade = trainer_grade_filter.step(grade, maxf(dt, 0.0))
 	omnium_race.sample(self)
 
 func _elimination_metric_for(i: int, lane: float) -> float:
