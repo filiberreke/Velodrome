@@ -28,7 +28,7 @@ func run_test() -> void:
 	check(ui.exit_button.is_visible_in_tree() and ui.layer > 30, "Exit above settings and rider picker layers")
 	game.get_node("GameSettings").panel_root.hide()
 	ui.exit_button.pressed.emit()
-	check(ui.quitting_application and not game.quit_requested, "Exit opens confirmation before application cleanup")
+	check(ui.quitting_application and not ui.stop_race_button.visible and not game.quit_requested, "Gallery exit shows the application confirmation only")
 	escape(game)
 	check(not ui.quitting_application and not game.quit_requested, "Escape cancels application exit")
 	ui.exit_button.pressed.emit()
@@ -63,6 +63,7 @@ func run_test() -> void:
 		check(not game.race_paused and not ui.backdrop.visible, "Direct settings returns to riding")
 		ui.exit_button.pressed.emit()
 		check(ui.quitting_application and game.race_paused, "HUD exit pauses before confirmation")
+		check(ui.stop_race_button.is_visible_in_tree() and ui.leave_button.text == "Spel afsluiten", "HUD exit offers both ways to leave")
 		ui.cancel_or_resume()
 		check(not game.race_paused and not ui.backdrop.visible, "Cancelling HUD exit returns to riding")
 		escape(game)
@@ -109,6 +110,17 @@ func run_test() -> void:
 	ui.leave_button.pressed.emit()
 	check(game.start_state == "SETUP" and not game.race_paused and game.setup_panel.page == 1, "Confirmed leave returns to gallery")
 	check(ui.exit_button.visible and not ui.backdrop.visible, "Exit restored after leave")
+	game.start_state = "RACING"
+	game.running = true
+	ui.exit_button.pressed.emit()
+	ui.leave_button.pressed.emit()
+	check(game.quit_requested, "HUD exit can still close the application")
+	ui.cancel_or_resume()
+	game.quit_requested = false
+	ui.exit_button.pressed.emit()
+	ui.stop_race_button.pressed.emit()
+	check(not game.quit_requested and not game.race_paused and game.start_state == "SETUP" and game.setup_panel.page == 1, "Stop from HUD exit returns to race selection")
+
 	game.finished = true
 	game.start_state = "RACING"
 	game._physics_process(0.01)

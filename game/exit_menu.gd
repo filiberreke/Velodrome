@@ -9,6 +9,7 @@ var detail: Label
 var resume_button: Button
 var leave_button: Button
 var settings_button: Button
+var stop_race_button: Button
 var confirming_leave := false
 var quitting_application := false
 var returning_to_menu := false
@@ -65,6 +66,11 @@ func setup(owner_game: Node) -> void:
 	settings_button.custom_minimum_size.y = 60
 	settings_button.pressed.connect(func(): game.get_node("GameSettings").toggle_menu())
 	box.add_child(settings_button)
+	stop_race_button = Button.new()
+	stop_race_button.text = "Stop deze wedstrijd"
+	stop_race_button.custom_minimum_size.y = 60
+	stop_race_button.pressed.connect(func(): game._reset())
+	box.add_child(stop_race_button)
 	leave_button = Button.new()
 	leave_button.custom_minimum_size.y = 60
 	MenuStyle.destructive(leave_button)
@@ -83,6 +89,7 @@ func show_pause() -> void:
 	resume_button.text = "Wedstrijd hervatten"
 	leave_button.text = "Wedstrijd verlaten"
 	settings_button.show()
+	stop_race_button.hide()
 	backdrop.show()
 	exit_button.hide()
 	resume_button.grab_focus()
@@ -106,15 +113,17 @@ func cancel_or_resume() -> void:
 	else: game._resume_race()
 
 func show_quit() -> void:
-	resume_race_after_quit = not game.race_paused and not game.finished and game.start_state not in ["SETUP", "INTRO"]
+	var race_in_progress: bool = not game.finished and game.start_state not in ["SETUP", "INTRO"]
+	resume_race_after_quit = race_in_progress and not game.race_paused
 	if resume_race_after_quit: game._pause_race(false)
 	returning_to_menu = false
 	quitting_application = true
 	confirming_leave = false
-	heading.text = "Spel afsluiten?"
-	detail.text = "Wil je Velodrome afsluiten?"
+	heading.text = "Wedstrijd gepauzeerd" if race_in_progress else "Spel afsluiten?"
+	detail.text = "Na het stoppen kun je deze wedstrijd niet hervatten." if race_in_progress else "Wil je Velodrome afsluiten?"
 	resume_button.text = "Terug"
 	leave_button.text = "Spel afsluiten"
+	stop_race_button.visible = race_in_progress
 	settings_button.hide()
 	backdrop.show()
 	exit_button.hide()
@@ -136,6 +145,7 @@ func _leave_pressed() -> void:
 	resume_button.grab_focus()
 
 func show_results_leave() -> void:
+	stop_race_button.hide()
 	quitting_application = false
 	returning_to_menu = true
 	confirming_leave = true

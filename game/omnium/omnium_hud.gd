@@ -7,6 +7,7 @@ var abbreviations := {}
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	offset_left = -312; offset_right = -32; offset_top = 330; offset_bottom = 360
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_theme_stylebox_override("panel", Style.panel(Color(0.9608, 0.9451, 0.9059, 0.75), Color(0.8235, 0.8510, 0.8745, 0.65), 10, 10))
@@ -18,7 +19,7 @@ func update_standings(data: Array[Dictionary], race_title: String = "") -> void:
 	if key == last_key or rows == null: return
 	var show_bonus := not data.is_empty() and data[0].has("bonus")
 	var show_race_points := not data.is_empty() and data[0].has("race_points")
-	offset_left = -228 if standalone else (-356 if show_race_points else (-354 if show_bonus else -312))
+	offset_left = -272 if standalone else (-356 if show_race_points else (-354 if show_bonus else -312))
 	last_key = key
 	for child in rows.get_children(): rows.remove_child(child); child.queue_free()
 	var title := Label.new(); title.text = race_title if standalone else "VIRTUEEL OMNIUM"; title.add_theme_font_size_override("font_size", 17); rows.add_child(title)

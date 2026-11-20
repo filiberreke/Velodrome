@@ -86,6 +86,14 @@ func run_tests() -> void:
 	check(points_row.get_meta("rider_id") == "2","Right panel ranks by points")
 	check(points_row.get_child(1).texture != null and points_row.get_child(2).tooltip_text == game._rider_name(2),"Right panel shows a flag and an abbreviated name")
 	check(points_row.get_child(4).text == "50","Race points occupy the final column")
+	await process_frame
+	var expected_right: float = game.race_overlay.size.x - 32.0
+	check(is_equal_approx(standings.position.x + standings.size.x, expected_right),"Standings keeps its right margin")
+	standings.rows.get_child(0).text = "TUSSENSTAND · EEN EXTRA BREDE TESTTITEL"
+	await process_frame
+	await process_frame
+	check(is_equal_approx(standings.position.x + standings.size.x, expected_right),"An expanding standings panel grows towards the left")
+
 	check(game.race_overlay.rider_rows[0].shell.get_meta("rider_id") == 7 and game.race_overlay.rider_rows[0].rank.text == "2","Nearby panel keeps actual rank while showing closest riders")
 	check(game.race_overlay.rider_rows[0].gap.text.ends_with("m"),"Nearby gaps stay in metres")
 	check(not game.race_overlay.peloton_label.text.is_empty() and not game.race_overlay.map.peloton.is_empty(),"Bunch gap and minimap indication are always supplied")
