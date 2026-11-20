@@ -55,7 +55,7 @@ pre code{background:none;padding:0}
 }
 
 /* Hero carousel */
-.hero{margin:0;display:grid;background:var(--ink);color:var(--paper)}
+.hero{--hero-dots-height:44px;margin:0;position:relative;display:grid;background:var(--ink);color:var(--paper)}
 .hero-slides{grid-row:1;min-width:0;touch-action:pan-y pinch-zoom}
 .hero-slide{position:relative;display:grid;align-items:end;min-height:clamp(460px,65vh,660px);isolation:isolate}
 .hero [hidden]{display:none}
@@ -63,30 +63,31 @@ pre code{background:none;padding:0}
 .hero-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#122C50 0%,rgba(18,44,80,.92) 24%,rgba(18,44,80,.32) 65%,transparent 86%);z-index:-1}
 .hero-peloton .hero-img{inset:0 0 0 auto;width:82%;object-position:center 52%}
 .hero-erg .hero-img{inset:0 0 0 auto;width:68%;object-fit:contain;object-position:right center}
-.hero-copy{width:100%;padding-top:50px;padding-bottom:clamp(32px,6vh,65px)}
+.hero-copy{width:100%;padding:50px 68px clamp(32px,6vh,65px)}
 .hero-title{max-width:16em;font-size:clamp(2rem,4.4vw,3.4rem)}
 .hero-copy .lede{max-width:32em;font-size:1.15rem;color:var(--pale)}
-.hero-controls{grid-row:2;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:8px 12px;background:#0E2240}
-.hero-controls button{min-width:44px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--paper);font:inherit;font-size:1rem;cursor:pointer}
-.hero-controls button:hover{background:#203F65}
-.hero-controls [data-rotation]{margin-right:6px;border-color:#73879E;font-weight:700}
-.hero-dot::after{content:"";display:block;width:12px;height:12px;margin:auto;border:2px solid var(--paper);border-radius:50%}
+.hero-controls{display:contents}
+.hero-controls button{padding:0;border:0;background:transparent;color:var(--paper);font:inherit;cursor:pointer}
+.hero-controls .hero-arrow{position:absolute;top:calc((100% - var(--hero-dots-height)) / 2);z-index:2;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(255,253,248,.45);border-radius:50%;background:rgba(14,34,64,.76);font-size:1.8rem;line-height:1}
+.hero-arrow[data-step="-1"]{left:12px}
+.hero-arrow[data-step="1"]{right:12px}
+.hero-controls .hero-arrow:hover{background:#0E2240}
+.hero-dots{grid-row:2;display:flex;justify-content:center;align-items:center;height:var(--hero-dots-height)}
+.hero-dot{width:36px;height:var(--hero-dots-height);border-radius:8px}
+.hero-dot::after{content:"";display:block;width:10px;height:10px;margin:auto;border:1px solid var(--paper);border-radius:50%}
+.hero-dot:hover::after{background:var(--pale)}
 .hero-dot[aria-current="true"]::after{background:var(--paper)}
 .hero :focus-visible{outline-color:#fff}
 @media (max-width:900px){
-  .hero-controls{grid-row:1}
-  .hero-slides{grid-row:2}
+  .hero-controls .hero-arrow{top:28.125vw}
   .hero-slide{align-items:start;min-height:0}
   .hero .hero-img{position:static;width:100%;height:auto;aspect-ratio:16/9;object-position:center;z-index:auto}
   .hero-slide::after{content:none}
-  .hero-copy{padding-top:24px;padding-bottom:26px;min-height:295px}
+  .hero-copy{padding:24px 20px 26px;min-height:295px}
   .hero-copy .lede{font-size:1rem}
 }
 @media (max-width:380px){
   .hero-copy{min-height:320px}
-  .hero-controls{gap:0;padding-inline:4px}
-  .hero-controls .hero-dot{min-width:30px}
-  .hero-controls [data-rotation]{margin-right:0;padding-inline:6px}
 }
 /* Plankenstrook van de houten piste */
 .boards{height:12px;background:repeating-linear-gradient(90deg,var(--wood) 0 118px,color-mix(in srgb,var(--wood) 78%,var(--ink)) 118px 120px);border-bottom:3px solid var(--blue)}
@@ -142,7 +143,6 @@ figcaption{color:var(--sub);font-size:.92rem;margin-top:8px}
 .tile p{margin-bottom:.6em}
 .tile.later h2,.tile.later .hint{color:var(--sub)}
 .meta{color:var(--sub);font-size:.92rem;margin:0}
-.chip{flex:none;font-size:13px;line-height:1;letter-spacing:.04em;text-transform:uppercase;font-style:normal;font-weight:400;color:var(--sub);background:var(--chip-bg);border:1px solid var(--rule);border-radius:6px;padding:6px 8px}
 
 .prose{max-width:46em}
 .plain{padding-left:1.1em}
@@ -182,8 +182,6 @@ a.mode-card:hover,a.mode-card:focus-visible{background:#E0EDF5;border-color:#164
 .mode-card-title{display:flex;align-items:center;min-height:62px;font-size:clamp(1.04rem,1.55vw,1.625rem);font-weight:700;font-style:italic;line-height:1.12;overflow-wrap:anywhere}
 .training-mode-grid .mode-card-title{margin:0}
 .training-mode-grid .mode-card p{font-size:.94rem;margin:0}
-.mode-card-status{text-transform:uppercase;position:absolute;top:18px;left:18px;padding:5px 7px;background:#F5F1E7;border:1px solid #D2D9DF;border-radius:6px;color:#536980;font-size:12px;line-height:1;font-weight:700;letter-spacing:.02em}
-.mode-card.is-upcoming .mode-card-image{filter:saturate(.65)}
 .race-entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:28px 0}
 .race-entry{display:grid;grid-template-columns:minmax(145px,43%) 1fr;gap:18px;align-items:start;background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:16px;scroll-margin-top:105px}
 .race-entry:target{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}

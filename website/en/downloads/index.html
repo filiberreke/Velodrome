@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Downloads – Vélodrome</title>
-<meta name="description" content="Download Vélodrome for Windows: all-in-one with the bridge, or the game only. Requirements and release notes.">
+<meta name="description" content="Download Vélodrome for Windows and macOS. Choose a Windows build or the Mac bundle for Apple Silicon or Intel.">
 <link rel="canonical" href="https://velodrome.wielerpraat.be/en/downloads/"><link rel="alternate" hreflang="nl" href="https://velodrome.wielerpraat.be/nl/downloads/"><link rel="alternate" hreflang="en" href="https://velodrome.wielerpraat.be/en/downloads/"><link rel="alternate" hreflang="x-default" href="https://velodrome.wielerpraat.be/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Vélodrome">
-<meta property="og:title" content="Downloads – Vélodrome"><meta property="og:description" content="Download Vélodrome for Windows: all-in-one with the bridge, or the game only. Requirements and release notes.">
+<meta property="og:title" content="Downloads – Vélodrome"><meta property="og:description" content="Download Vélodrome for Windows and macOS. Choose a Windows build or the Mac bundle for Apple Silicon or Intel.">
 <meta property="og:url" content="https://velodrome.wielerpraat.be/en/downloads/"><meta property="og:image" content="https://velodrome.wielerpraat.be/assets/img/og.jpg"><meta property="og:locale" content="en_GB">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#122C50">
@@ -22,42 +22,48 @@
   <a class="lang" href="../../nl/downloads/" hreflang="nl" lang="nl" data-lang="nl" aria-label="Lees deze pagina in het Nederlands">Nederlands</a>
 </div></header><main id="main" class="wrap page">
   <header class="page-head"><h1>Downloads</h1>
-  <p class="lede">All builds are published on GitHub Releases. Pick the variant that fits your setup.</p></header>
+  <p class="lede">Choose your build for Windows or macOS.</p></header>
 
   <div class="variants">
     <article class="variant main-variant">
-      <h2>All-in-one</h2>
+      <h2>Windows All-in-one</h2>
       <p class="hint">Game and bridge together</p>
       <p>For riding with a trainer, Zwift Ride or heart-rate monitor. One program starts everything and stops the bridge when you close the game.</p>
       <p class="meta">Windows x64 · <code>Velodrome.exe</code></p>
-      <a class="btn primary" href="https://github.com/filiberreke/Velodrome/releases/latest">Download from GitHub Releases</a>
+      <a class="btn primary" href="https://github.com/filiberreke/Velodrome/actions/workflows/windows-bundled.yml">View Windows bundles on GitHub</a>
     </article>
     <article class="variant">
-      <h2>Game only</h2>
+      <h2>Windows game only</h2>
       <p class="hint">Standalone, without the bridge</p>
       <p>Play with a keyboard. If you want to connect a trainer later, you can run the bridge separately.</p>
       <p class="meta">Windows x64 · <code>Start-Velodrome.cmd</code></p>
-      <a class="btn" href="https://github.com/filiberreke/Velodrome/releases/latest">Download from GitHub Releases</a>
+      <a class="btn" href="https://github.com/filiberreke/Velodrome/actions/workflows/windows-demo.yml">View standalone Windows builds on GitHub</a>
+    </article>
+    <article class="variant" id="macos">
+      <h2>macOS</h2>
+      <p class="hint">Game and bridge together</p>
+      <p>Choose arm64 for Apple Silicon or x86_64 for Intel. The bundle starts the game and bridge together.</p>
+      <p class="meta">macOS Monterey 12.3+ · <code>Start-Velodrome.command</code></p>
+      <a class="btn" href="https://github.com/filiberreke/Velodrome/actions/workflows/macos-bundled.yml">View Mac builds on GitHub</a>
+      <p><a class="more" href="../../en/manual/#install-macos">Install on macOS</a></p>
     </article>
   </div>
 
-  <p class="status">No build on Releases yet? Test builds first appear as artifacts under <a href="https://github.com/filiberreke/Velodrome/actions">GitHub Actions</a>; you need a GitHub account to download those.</p>
+  <p class="status">Open a successful build on GitHub and choose your file under Artifacts. You need a GitHub account to download it.</p>
 
   <section class="split">
     <div class="prose">
       <h2>Requirements</h2>
       <ul class="plain">
-        <li><strong>System</strong> 64-bit Windows. The game uses Godot’s compatibility renderer (OpenGL).</li>
+        <li><strong>System</strong> 64-bit Windows or macOS Monterey 12.3 and later. The game uses Godot’s compatibility renderer (OpenGL).</li>
         <li><strong>Without a trainer</strong> A keyboard is enough.</li>
-        <li><strong>With a trainer</strong> Bluetooth on your PC for Wahoo KICKR and Zwift Ride; an ANT+ USB stick for Garmin heart rate.</li>
-        <li><strong>macOS</strong> A bundle for Apple Silicon and Intel (macOS 12 or later) is in development and not yet available as a release.</li>
+        <li><strong>With a trainer</strong> Bluetooth for Wahoo KICKR and Zwift Ride, and an ANT+ USB stick for Garmin heart rate.</li>
       </ul>
       <p>After downloading, see <a href="../../en/manual/#install">installation in the manual</a>.</p>
     </div>
     <div class="prose">
       <h2>Release notes</h2>
-      <p>Each release lists its changes on the release page. Follow what comes next through the milestone on GitHub.</p>
-      <p>The tempo race, omnium and 20-minute FTP test are available on the development branch <a href="https://github.com/filiberreke/Velodrome/tree/v0.3">v0.3</a>.</p>
+      <p>Each release lists its changes on GitHub Releases.</p>
       <ul class="plain">
         <li><a href="https://github.com/filiberreke/Velodrome/releases">All releases</a></li>
         <li><a href="https://github.com/filiberreke/Velodrome/milestones">Milestones and planning</a></li>

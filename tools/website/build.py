@@ -78,10 +78,7 @@ def render(lang, key, mode, root):
                 f'  <a href="{src}">{html.escape(label)}</a>\n'
                 '</video>')
 
-    def CHIP(ok):
-        return "" if ok else f'<span class="chip">{ui["soon"]}</span>'
-
-    title, desc, body = page(lang, key, L, IMG, CHIP, PREVIEW, VIDEO)
+    title, desc, body = page(lang, key, L, IMG, PREVIEW, VIDEO)
     if mode == "bundle":
         body = re.sub(r'href="#(nl|en)-(\w+)#[^"]*"', r'href="#\1-\2"', body)
 

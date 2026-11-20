@@ -3,7 +3,7 @@ for (const carousel of document.querySelectorAll("[data-carousel]")) {
   const track = carousel.querySelector(".hero-slides");
   const slides = [...track.children];
   const dots = [...controls.querySelectorAll("[data-slide]")];
-  const rotation = controls.querySelector("[data-rotation]");
+  const dotLabels = dots.map((dot) => dot.getAttribute("aria-label"));
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   let current = 0;
   let playing = !motion.matches;
@@ -11,13 +11,33 @@ for (const carousel of document.querySelectorAll("[data-carousel]")) {
   let hovered = false;
   let timer;
   let touchStart;
+  let pointerToggle;
+
+  function updateDots() {
+    dots.forEach((dot, index) => {
+      if (index !== current) {
+        dot.removeAttribute("aria-current");
+        dot.removeAttribute("title");
+        dot.setAttribute("aria-label", dotLabels[index]);
+        return;
+      }
+      dot.setAttribute("aria-current", "true");
+      if (motion.matches) {
+        dot.removeAttribute("title");
+        dot.setAttribute("aria-label", dotLabels[index]);
+        return;
+      }
+      const action = playing ? controls.dataset.pause : controls.dataset.resume;
+      dot.title = action;
+      dot.setAttribute("aria-label", `${dotLabels[index]}. ${action}`);
+    });
+  }
 
   function show(index) {
     slides[current].hidden = true;
-    dots[current].removeAttribute("aria-current");
     current = (index + slides.length) % slides.length;
     slides[current].hidden = false;
-    dots[current].setAttribute("aria-current", "true");
+    updateDots();
   }
 
   function schedule() {
@@ -28,9 +48,9 @@ for (const carousel of document.querySelectorAll("[data-carousel]")) {
   }
 
   function setPlaying(enabled) {
-    playing = enabled;
-    rotation.textContent = playing ? rotation.dataset.pause : rotation.dataset.play;
+    playing = enabled && !motion.matches;
     track.setAttribute("aria-live", playing ? "off" : "polite");
+    updateDots();
     schedule();
   }
 
@@ -39,18 +59,25 @@ for (const carousel of document.querySelectorAll("[data-carousel]")) {
     if (index !== current) show(index);
   }
 
-  let pointerRotation;
   // Focus can pause rotation between the pointer press and click.
-  rotation.addEventListener("pointerdown", () => { pointerRotation = !playing; });
-  rotation.addEventListener("pointercancel", () => { pointerRotation = undefined; });
-  rotation.addEventListener("click", (event) => {
-    setPlaying(event.detail && pointerRotation !== undefined ? pointerRotation : !playing);
-    pointerRotation = undefined;
+  controls.addEventListener("pointerdown", (event) => {
+    pointerToggle = event.target.closest("[aria-current]") ? !playing : undefined;
   });
+  controls.addEventListener("pointercancel", () => { pointerToggle = undefined; });
   controls.addEventListener("click", (event) => {
     const button = event.target.closest("[data-step], [data-slide]");
     if (!button) return;
-    navigate(button.hasAttribute("data-step") ? current + Number(button.dataset.step) : Number(button.dataset.slide));
+    if (button.hasAttribute("data-step")) {
+      navigate(current + Number(button.dataset.step));
+    } else {
+      const index = Number(button.dataset.slide);
+      if (index === current && !motion.matches) {
+        setPlaying(event.detail && pointerToggle !== undefined ? pointerToggle : !playing);
+      } else {
+        navigate(index);
+      }
+    }
+    pointerToggle = undefined;
   });
   controls.addEventListener("keydown", (event) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -95,6 +122,7 @@ for (const carousel of document.querySelectorAll("[data-carousel]")) {
   document.addEventListener("visibilitychange", schedule);
   motion.addEventListener("change", (event) => {
     if (event.matches) setPlaying(false);
+    else updateDots();
   });
   setPlaying(playing);
   controls.hidden = false;

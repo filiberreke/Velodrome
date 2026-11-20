@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Handleiding – Vélodrome</title>
-<meta name="description" content="Vélodrome installeren, bediening met toetsenbord, trainer en Zwift Ride koppelen via de bridge, en compatibiliteit.">
+<meta name="description" content="Vélodrome installeren op Windows en macOS, je trainer koppelen en ritten exporteren naar Strava.">
 <link rel="canonical" href="https://velodrome.wielerpraat.be/nl/handleiding/"><link rel="alternate" hreflang="nl" href="https://velodrome.wielerpraat.be/nl/handleiding/"><link rel="alternate" hreflang="en" href="https://velodrome.wielerpraat.be/en/manual/"><link rel="alternate" hreflang="x-default" href="https://velodrome.wielerpraat.be/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Vélodrome">
-<meta property="og:title" content="Handleiding – Vélodrome"><meta property="og:description" content="Vélodrome installeren, bediening met toetsenbord, trainer en Zwift Ride koppelen via de bridge, en compatibiliteit.">
+<meta property="og:title" content="Handleiding – Vélodrome"><meta property="og:description" content="Vélodrome installeren op Windows en macOS, je trainer koppelen en ritten exporteren naar Strava.">
 <meta property="og:url" content="https://velodrome.wielerpraat.be/nl/handleiding/"><meta property="og:image" content="https://velodrome.wielerpraat.be/assets/img/og.jpg"><meta property="og:locale" content="nl_BE">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#122C50">
@@ -23,7 +23,7 @@
 </div></header><main id="main" class="wrap page">
   <header class="page-head"><h1>Handleiding</h1>
   <p class="lede">Installeren, bedienen en je trainer koppelen.</p>
-  <nav class="toc" aria-label="Op deze pagina"><a href="#installatie">Installatie</a><a href="#bediening">Bediening</a><a href="#bridge">Trainer en bridge</a><a href="#compatibiliteit">Compatibiliteit</a><a href="#instellingen">Instellingen en gegevens</a></nav></header>
+  <nav class="toc" aria-label="Op deze pagina"><a href="#installatie">Windows</a><a href="#install-macos">macOS</a><a href="#bediening">Bediening</a><a href="#bridge">Trainer en bridge</a><a href="#compatibiliteit">Compatibiliteit</a><a href="#instellingen">Instellingen en gegevens</a><a href="#strava-setup">Strava</a></nav></header>
 
   <section class="prose" id="installatie">
     <h2>Installatie op Windows</h2>
@@ -32,6 +32,15 @@
       <li>Pak het zip-bestand volledig uit naar een map waarin je mag schrijven. Houd alle bestanden bij elkaar.</li>
       <li>All-in-one: start <code>Velodrome.exe</code>. Die start de bridge en het spel samen, en stopt de bridge als je het spel sluit. Start <code>VelodromeGame.exe</code> niet rechtstreeks.</li>
       <li>Alleen het spel: start <code>Start-Velodrome.cmd</code>. Bij de eerste start worden de instellingen aangemaakt, met 24 fictieve renners.</li>
+    </ol>
+  </section>
+
+  <section class="prose" id="install-macos">
+    <h2>Installatie op macOS</h2>
+    <ol class="steps">
+      <li>Kies op de <a href="../../nl/downloads/#macos">downloadpagina</a> de versie voor Apple Silicon (arm64) of Intel (x86_64). Gebruik macOS Monterey 12.3 of nieuwer.</li>
+      <li>Pak de volledige bundel uit en lees <code>START-HIER.txt</code> voor de eerste start. Houd alle bestanden in dezelfde map.</li>
+      <li>Open <code>Start-Velodrome.command</code>. Laat het Terminalvenster open terwijl je speelt en geef Bluetooth-toegang wanneer macOS daarom vraagt.</li>
     </ol>
   </section>
 
@@ -68,10 +77,22 @@
 
   <section class="prose" id="instellingen">
     <h2>Instellingen en gegevens</h2>
-    <p>Renners en Strava stel je in met bestanden in de map <code>config/</code> naast het spel. Behoud de renner-ID’s als je namen wijzigt, zodat je records gekoppeld blijven. Voor Strava vul je je eigen gegevens in <code>strava_config.cfg</code> in.</p>
-    <p>Je records, opgeslagen ritten en instellingen staan op Windows in:</p>
+    <p>Behoud de renner-ID’s als je namen wijzigt, zodat je records gekoppeld blijven. Je records en opgeslagen ritten staan in je gebruikersmap.</p>
+    <h3>Windows</h3>
     <pre><code>%APPDATA%\Godot\app_userdata\Velodrome 250 - Sprint Beta\</code></pre>
-    <p>Bij trage pc’s kies je F10 → Beeld → Eenvoudige graphics. Die stand gebruikt minder publiek en een kortere intro, en wordt actief na een herstart.</p>
+    <h3>macOS</h3>
+    <pre><code>~/Library/Application Support/Godot/app_userdata/Velodrome 250 - Sprint Beta/</code></pre>
+    <p>Kies op tragere computers F10 → Beeld → Eenvoudige graphics. Die stand gebruikt minder publiek en een kortere intro, en wordt actief na een herstart.</p>
+  </section>
+
+  <section class="prose" id="strava-setup">
+    <h2>Strava instellen</h2>
+    <p>Voor rechtstreeks uploaden heb je een eigen Strava-app nodig. Strava vereist een abonnement om die app aan te maken. <a href="https://www.strava.com/settings/api">Open de Strava API-instellingen</a>.</p>
+    <ol class="steps">
+      <li>Vul de Client ID en Client Secret van je eigen Strava-app in <code>strava_config.cfg</code> in. Op Windows staat dat bestand in <code>config/</code> naast het spel. Op macOS staat het in <code>config/</code> in de gebruikersmap hierboven.</li>
+      <li>Gebruik <code>localhost</code> als callbackdomein en <code>http://localhost</code> als redirect-URL. Geef Vélodrome bij je eerste upload in de browser toestemming om activiteiten te uploaden.</li>
+      <li>Kopieer de volledige localhost-URL uit de adresbalk en plak die in het koppelvenster van Vélodrome. Kies <strong>Koppel en upload</strong>.</li>
+    </ol>
   </section>
 </main><footer class="foot"><div class="wrap">
   <img src="../../assets/img/bell-64.png" alt="" width="32" height="32">

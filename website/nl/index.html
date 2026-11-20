@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vélodrome – baanwielrennen op 250 meter</title>
-<meta name="description" content="Baanwielerspel voor de pc: scratch, puntenkoers, afvalling, keirin en achtervolging tegen een virtueel peloton, met je trainer of het toetsenbord.">
+<meta name="description" content="Baanwielerspel voor Windows en macOS. Rijd wedstrijden tegen een virtueel peloton met je smarttrainer of het toetsenbord.">
 <link rel="canonical" href="https://velodrome.wielerpraat.be/nl/"><link rel="alternate" hreflang="nl" href="https://velodrome.wielerpraat.be/nl/"><link rel="alternate" hreflang="en" href="https://velodrome.wielerpraat.be/en/"><link rel="alternate" hreflang="x-default" href="https://velodrome.wielerpraat.be/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Vélodrome">
-<meta property="og:title" content="Vélodrome – baanwielrennen op 250 meter"><meta property="og:description" content="Baanwielerspel voor de pc: scratch, puntenkoers, afvalling, keirin en achtervolging tegen een virtueel peloton, met je trainer of het toetsenbord.">
+<meta property="og:title" content="Vélodrome – baanwielrennen op 250 meter"><meta property="og:description" content="Baanwielerspel voor Windows en macOS. Rijd wedstrijden tegen een virtueel peloton met je smarttrainer of het toetsenbord.">
 <meta property="og:url" content="https://velodrome.wielerpraat.be/nl/"><meta property="og:image" content="https://velodrome.wielerpraat.be/assets/img/og.jpg"><meta property="og:locale" content="nl_BE">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#122C50">
@@ -24,11 +24,10 @@
 </div></header>
 <main id="main">
 <section class="hero" data-carousel aria-roledescription="Diavoorstelling" aria-label="Vélodrome">
-  <div class="hero-controls" hidden>
-    <button type="button" data-rotation data-play="Afspelen" data-pause="Pauzeren">Pauzeren</button>
-    <button type="button" data-step="-1" aria-label="Vorige dia">←</button>
-    <button type="button" class="hero-dot" data-slide="0" aria-label="Dia 1 van 4 — Baanwielrennen op een virtuele piste" aria-current="true"></button><button type="button" class="hero-dot" data-slide="1" aria-label="Dia 2 van 4 — Vrije ERG Training"></button><button type="button" class="hero-dot" data-slide="2" aria-label="Dia 3 van 4 — Train je pisteskills alvorens ze in wedstrijd te bewijzen"></button><button type="button" class="hero-dot" data-slide="3" aria-label="Dia 4 van 4 — Bewijs dat je alles kan in het omnium"></button>
-    <button type="button" data-step="1" aria-label="Volgende dia">→</button>
+  <div class="hero-controls" data-resume="Hervat automatische wissel" data-pause="Pauzeer automatische wissel" hidden>
+    <button type="button" class="hero-arrow" data-step="-1" aria-label="Vorige dia">‹</button>
+    <div class="hero-dots"><button type="button" class="hero-dot" data-slide="0" aria-label="Dia 1 van 4 — Baanwielrennen op een virtuele piste" aria-current="true"></button><button type="button" class="hero-dot" data-slide="1" aria-label="Dia 2 van 4 — Vrije ERG Training"></button><button type="button" class="hero-dot" data-slide="2" aria-label="Dia 3 van 4 — Train je pisteskills alvorens ze in wedstrijd te bewijzen"></button><button type="button" class="hero-dot" data-slide="3" aria-label="Dia 4 van 4 — Bewijs dat je alles kan in het omnium"></button></div>
+    <button type="button" class="hero-arrow" data-step="1" aria-label="Volgende dia">›</button>
   </div>
   <div class="hero-slides" aria-live="off"><div class="hero-slide hero-peloton" role="group" aria-roledescription="Dia" aria-label="1 van 4">
   <img class="hero-img" src="../assets/img/hero-peloton.jpg" srcset="../assets/img/hero-peloton-800.jpg 800w, ../assets/img/hero-peloton.jpg 1600w" sizes="100vw" alt="Een peloton in landentruien op de houten piste" width="1600" height="900" fetchpriority="high">
@@ -55,14 +54,14 @@
   <img class="hero-img" src="../assets/img/hero-omnium.jpg" srcset="../assets/img/hero-omnium-800.jpg 800w, ../assets/img/hero-omnium.jpg 1600w" sizes="100vw" alt="Het peloton in de puntenkoers van het omnium" width="1600" height="900" loading="lazy" decoding="async">
   <div class="hero-copy wrap">
     <h2 class="hero-title">Bewijs dat je alles kan in het omnium</h2>
-    <p class="lede">Rijd op v0.3 vier disciplines voor één eindklassement.</p>
+    <p class="lede">Rijd vier disciplines voor één eindklassement.</p>
     <div class="actions"><a class="btn primary" href="../nl/wedstrijden/#omnium">Bekijk het omnium</a></div>
   </div>
 </div></div>
 </section>
 <div class="boards" aria-hidden="true"></div>
 <div class="wrap">
-  <p class="status">Bèta in actieve ontwikkeling voor Windows. De ondersteuning voor trainers en controllers wordt nog op echte hardware getest.</p>
+  <p class="status">Vélodrome is beschikbaar voor Windows en macOS. <a href="../nl/downloads/">Bekijk de downloads</a>.</p>
 
   <section class="features">
     <div class="feature"><h2>Rijden in het wiel</h2>
@@ -70,7 +69,7 @@
     <div class="feature"><h2>Tegenstanders met een eigen profiel</h2>
       <p>Sprinters, tijdrijders en aanvallers koersen elk op hun manier: wegspringen, het tempo hoog houden of wachten op de bel. Elke renner heeft een paspoort met zijn sterktes.</p></div>
     <div class="feature"><h2>Echte watts</h2>
-      <p>Koppel een Wahoo KICKR of KICKR CORE, stuur en schakel met Zwift Ride en zie je Garmin-hartslag in beeld. De piste stuurt helling en slipstream naar je trainer.</p></div>
+      <p>Koppel een Wahoo KICKR of KICKR CORE, stuur en schakel met Zwift Ride en zie je Garmin-hartslag in beeld. De piste stuurt helling en slipstream naar je trainer. <a href="../nl/training/#strava">Exporteer je rit naar Strava</a>.</p></div>
     <div class="feature"><h2>Ook zonder trainer</h2>
       <p>Stuur met A en D en regel je vermogen met de pijltjestoetsen, in stappen van 25 W.</p></div>
   </section>
@@ -84,7 +83,7 @@
       <figure><img src="../assets/img/screen.jpg" srcset="../assets/img/screen-800.jpg 800w, ../assets/img/screen.jpg 1000w" sizes="(max-width: 860px) 100vw, 560px" alt="Groot scherm boven de piste tijdens een puntenkoers" width="1000" height="625" loading="lazy" decoding="async">
         <figcaption>Het grote scherm hangt boven het middenplein.</figcaption></figure>
     </div>
-    <div class="mode-grid home-mode-grid"><a class="mode-card" href="../nl/wedstrijden/#scratch"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/scratch.png" alt="Peloton op de hellende piste" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Scratch</span></a><a class="mode-card" href="../nl/wedstrijden/#puntenkoers"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/points.png" alt="Vijf renners sprinten naar de meet" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Puntenkoers</span></a><a class="mode-card" href="../nl/wedstrijden/#afvalling"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/elimination.png" alt="De laatste renner net voorbij de finishlijn" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Afvalling</span></a><a class="mode-card" href="../nl/wedstrijden/#keirin"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/keirin.png" alt="Renners op een rij achter de gangmaker" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Keirin</span></a><a class="mode-card" href="../nl/wedstrijden/#achtervolging"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/pursuit.png" alt="Twee renners op tegenoverliggende rechte stukken" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Achtervolging</span></a><a class="mode-card" href="../nl/wedstrijden/#ploegenachtervolging"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/team_pursuit.png" alt="Twee ploegen op tegenoverliggende rechte stukken" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Ploegenachtervolging</span></a><a class="mode-card" href="../nl/wedstrijden/#tijdrit"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/time_trial.png" alt="Eén renner op de piste" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Tijdrit</span></a><a class="mode-card" href="../nl/wedstrijden/#temporace"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/tempo.png" alt="Eén renner voor het peloton" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Temporace</span><span class="mode-card-status">v0.3</span></a><a class="mode-card" href="../nl/wedstrijden/#omnium"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/hero-omnium-800.jpg" alt="Peloton in de puntenkoers van het omnium" width="800" height="450" loading="lazy" decoding="async"></span><span class="mode-card-title">Omnium</span><span class="mode-card-status">v0.3</span></a></div>
+    <div class="mode-grid home-mode-grid"><a class="mode-card" href="../nl/wedstrijden/#scratch"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/scratch.png" alt="Peloton op de hellende piste" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Scratch</span></a><a class="mode-card" href="../nl/wedstrijden/#puntenkoers"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/points.png" alt="Vijf renners sprinten naar de meet" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Puntenkoers</span></a><a class="mode-card" href="../nl/wedstrijden/#afvalling"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/elimination.png" alt="De laatste renner net voorbij de finishlijn" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Afvalling</span></a><a class="mode-card" href="../nl/wedstrijden/#keirin"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/keirin.png" alt="Renners op een rij achter de gangmaker" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Keirin</span></a><a class="mode-card" href="../nl/wedstrijden/#achtervolging"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/pursuit.png" alt="Twee renners op tegenoverliggende rechte stukken" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Achtervolging</span></a><a class="mode-card" href="../nl/wedstrijden/#ploegenachtervolging"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/team_pursuit.png" alt="Twee ploegen op tegenoverliggende rechte stukken" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Ploegenachtervolging</span></a><a class="mode-card" href="../nl/wedstrijden/#tijdrit"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/time_trial.png" alt="Eén renner op de piste" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Tijdrit</span></a><a class="mode-card" href="../nl/wedstrijden/#temporace"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/mode-previews/tempo.png" alt="Eén renner voor het peloton" width="640" height="420" loading="lazy" decoding="async"></span><span class="mode-card-title">Temporace</span></a><a class="mode-card" href="../nl/wedstrijden/#omnium"><span class="mode-card-art"><img class="mode-card-image" src="../assets/img/hero-omnium-800.jpg" alt="Peloton in de puntenkoers van het omnium" width="800" height="450" loading="lazy" decoding="async"></span><span class="mode-card-title">Omnium</span></a></div>
     <p><a class="more" href="../nl/wedstrijden/">Alle wedstrijdvormen</a></p>
   </section>
 
@@ -104,14 +103,14 @@
     <figure><img src="../assets/img/piste.jpg" srcset="../assets/img/piste-800.jpg 800w, ../assets/img/piste.jpg 1600w" sizes="(max-width: 860px) 100vw, 560px" alt="Menu Pistetraining in Vélodrome" width="1600" height="900" loading="lazy" decoding="async"></figure>
     <div>
       <h2>Trainen op de piste en op vermogen</h2>
-      <p>Bepaal je FTP met de ramp test of op v0.3 met de 20-minuten FTP-test. Bouw workouts in de editor of importeer .zwo-bestanden. Op de piste oefen je de vliegende start, de handaflossing of het rijden achter de derny.</p>
+      <p>Bepaal je FTP met de ramp test of de 20-minuten FTP-test. Bouw workouts in de editor of importeer .zwo-bestanden. Op de piste oefen je de vliegende start, de handaflossing of het rijden achter de derny.</p>
       <p><a class="more" href="../nl/training/">Naar training</a></p>
     </div>
   </section>
 
   <section class="cta">
     <h2>Klaar om te rijden?</h2>
-    <p>Vélodrome is gratis en open source. Download de Windows-versie of bouw het spel zelf vanuit de broncode.</p>
+    <p>Vélodrome is gratis en open source. Download het spel voor Windows of macOS.</p>
     <div class="actions"><a class="btn primary" href="../nl/downloads/">Naar de downloads</a>
       <a class="btn" href="../nl/handleiding/">Lees de handleiding</a></div>
   </section>
