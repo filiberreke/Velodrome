@@ -12,6 +12,7 @@ var settings_button: Button
 var confirming_leave := false
 var quitting_application := false
 var returning_to_menu := false
+var resume_race_after_quit := false
 
 func setup(owner_game: Node) -> void:
 	game = owner_game
@@ -87,6 +88,7 @@ func show_pause() -> void:
 	resume_button.grab_focus()
 
 func hide_pause() -> void:
+	resume_race_after_quit = false
 	returning_to_menu = false
 	quitting_application = false
 	backdrop.hide()
@@ -95,13 +97,17 @@ func hide_pause() -> void:
 	leave_button.release_focus()
 
 func cancel_or_resume() -> void:
-	if quitting_application or returning_to_menu:
+	if quitting_application and resume_race_after_quit:
+		game._resume_race()
+	elif quitting_application or returning_to_menu:
 		hide_pause()
 		set_exit_visible(true)
 	elif confirming_leave: show_pause()
 	else: game._resume_race()
 
 func show_quit() -> void:
+	resume_race_after_quit = not game.race_paused and not game.finished and game.start_state not in ["SETUP", "INTRO"]
+	if resume_race_after_quit: game._pause_race(false)
 	returning_to_menu = false
 	quitting_application = true
 	confirming_leave = false
