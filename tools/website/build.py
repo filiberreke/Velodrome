@@ -83,7 +83,7 @@ def render(lang, key, mode, root):
         body = re.sub(r'href="#(nl|en)-(\w+)#[^"]*"', r'href="#\1-\2"', body)
 
     logo = (data_uri(IMG_DIR / "wordmark-sm.png", "image/png") if mode == "bundle" else root + "assets/img/wordmark-sm.png")
-    bell = (data_uri(IMG_DIR / "bell-64.png", "image/png") if mode == "bundle" else root + "assets/img/bell-64.png")
+    bell = (data_uri(IMG_DIR / "piste-o.svg", "image/svg+xml") if mode == "bundle" else root + "assets/img/piste-o.svg")
     nav_links = []
     for p in PAGES:
         current = ' aria-current="page"' if p == key else ""
@@ -126,7 +126,7 @@ def site_page(lang, key):
 <meta property="og:url" content="{url(lang)}"><meta property="og:image" content="{DOMAIN}/assets/img/og.jpg"><meta property="og:locale" content="{og_locale}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#122C50">
-<link rel="icon" href="{root}assets/img/bell-64.png" type="image/png">
+<link rel="icon" href="{root}assets/img/piste-o.svg" type="image/png">
 <link rel="stylesheet" href="{root}assets/site.css">{script}
 </head>
 <body>
@@ -145,7 +145,7 @@ ROOT_INDEX = '''<!doctype html>
 <meta name="description" content="Vélodrome – baanwielerspel op een piste van 250 meter. Track cycling game on a 250-metre velodrome.">
 <link rel="canonical" href="https://velodrome.wielerpraat.be/nl/">
 <link rel="alternate" hreflang="nl" href="https://velodrome.wielerpraat.be/nl/"><link rel="alternate" hreflang="en" href="https://velodrome.wielerpraat.be/en/"><link rel="alternate" hreflang="x-default" href="https://velodrome.wielerpraat.be/">
-<link rel="icon" href="assets/img/bell-64.png" type="image/png">
+<link rel="icon" href="assets/img/piste-o.svg" type="image/png">
 <link rel="stylesheet" href="assets/site.css">
 <script>
 (function(){var l;try{l=localStorage.getItem("velodrome-lang")}catch(e){}
