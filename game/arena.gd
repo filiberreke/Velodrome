@@ -68,7 +68,8 @@ func _ready() -> void:
 	infield_scene.set("crowd", crowd)
 	add_child(infield_scene)
 	_build_scoreboard()
-	print("Velodrome 250 arena: %d procedurele stoeltjes, %d toeschouwers, MultiMesh" % [seat_count, spectator_count])
+	var culled: int = preload("res://prop_culling.gd").apply(self)
+	print("Velodrome 250 arena: %d procedurele stoeltjes, %d toeschouwers, MultiMesh, %d kleine props met zichtafstand" % [seat_count, spectator_count, culled])
 
 func _point(s: float, offset: float) -> Vector3:
 	return main.call("_at", s, offset)

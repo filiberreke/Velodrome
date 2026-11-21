@@ -5,6 +5,7 @@ signal infield_riders_changed
 # Velodrome 250: banked track simulation and local bridge SIM control.
 const TrainerSignal := preload("res://trainer_signal.gd")
 const TrainerControl := preload("res://trainer_control.gd")
+const InterpolationGuard := preload("res://interpolation_guard.gd")
 var trainer_control = TrainerControl.new()
 var training_environment
 var piste_training
@@ -16,6 +17,9 @@ var stadium_sun: DirectionalLight3D
 const RACE_AMBIENT_LIGHT_ENERGY := 0.25
 var stadium_training_lighting := false
 var trainer_road_grade := 0.0
+const HUD_INTERVAL_S := 0.1
+var _hud_wait := 0.0
+var _hud_state := ""
 var trainer_grade_filter := TrainerControl.RouteGradeFilter.new()
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
@@ -308,11 +312,11 @@ func _configure_peloton() -> void:
 	if race_mode in [0, 1, 2, 8]:
 		for i in range(bikes.size()):
 			var badge = preload("res://rider_energy_badge.gd").new()
-			add_child(badge)
+			add_child(InterpolationGuard.interpolate(badge))
 			rider_energy_badges.append(badge)
 	if peloton_markers == null:
 		peloton_markers = preload("res://peloton_markers.gd").new()
-		add_child(peloton_markers)
+		add_child(InterpolationGuard.interpolate(peloton_markers))
 	if race_mode == 3:
 		keirin.percent = keirin_percent
 		keirin.configure(self)
@@ -352,6 +356,7 @@ func _spawn_peloton() -> void:
 			tag.layers = 2          # render layer 2: hidden from the finish-photo camera
 			node.add_child(tag)
 		add_child(node)
+		InterpolationGuard.interpolate(node)
 		bikes.append(node)
 
 func get_player_appearance_base() -> Dictionary:
@@ -638,6 +643,15 @@ func _ready() -> void:
 	keyboard_mapping.apply_ui()
 	player_appearance.load_preferences()
 	Engine.max_fps = 90
+	# Riders, cameras and badges move in _physics_process at 60 Hz. Interpolate
+	# only those, so they move evenly at any frame rate; the arena and the UI
+	# animate themselves in _process and stay as they are.
+	get_tree().physics_interpolation = true
+	Engine.physics_jitter_fix = 0.0
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	var interpolation_guard := InterpolationGuard.new()
+	interpolation_guard.setup(self)
+	add_child(interpolation_guard)
 	if _bind_bridge() != OK:
 		push_warning("UDP poort 51723 niet beschikbaar. Sluit andere spelinstanties en herstart Godot.")
 	strava_client = preload("res://strava_client.gd").new()
@@ -771,9 +785,21 @@ func _physics_process(delta: float) -> void:
 	_update_visuals(delta)
 	_update_boost_dog(delta)
 	_update_countdown_display()
-	_update_hud()
+	if _hud_due(delta): _update_hud()
 	if elimination_notice != null:
 		elimination_notice.visible = race_mode == 2 and clock < elimination_notice_until and start_state == "RACING"
+
+## HUD text changes visibly at most ten times per second. Rebuilding every
+## string at 60 Hz cost about a third of the race script time per tick.
+## Menu, countdown, finish and mode changes refresh immediately.
+func _hud_due(delta: float) -> bool:
+	var state := "%s|%s|%s|%s" % [start_state, finished, setup_panel != null and setup_panel.visible, race_mode]
+	_hud_wait -= delta
+	if state == _hud_state and _hud_wait > 0.0:
+		return false
+	_hud_state = state
+	_hud_wait = HUD_INTERVAL_S
+	return true
 
 func _riding() -> bool:
 	return start_state in ["NEUTRAL", "RUN_UP", "RACING"]
@@ -2358,11 +2384,11 @@ func _build_world() -> void:
 	# Track finish, blue apron and race marks are separate thin paint surfaces.
 	_build_realistic_track()
 	boost_dog = preload("res://boost_dog.gd").new()
-	add_child(boost_dog)
+	add_child(InterpolationGuard.interpolate(boost_dog))
 	camera = Camera3D.new()
 	camera.current = true
 	camera.fov = 72
-	add_child(camera)
+	add_child(InterpolationGuard.interpolate(camera))
 	countdown_label = Label3D.new()
 	countdown_label.name = "Aftelklok"
 	countdown_label.font_size = 256
@@ -2844,6 +2870,7 @@ func _training_environment_requested(active: bool) -> void:
 	if active:
 		if training_environment == null:
 			training_environment = preload("res://training_environment.gd").new()
+			InterpolationGuard.interpolate(training_environment)
 			add_child(training_environment)
 		broadcast_intro.cancel()
 		training_environment.enter()
@@ -2855,6 +2882,7 @@ func _workout_environment_requested(active: bool) -> void:
 	if active:
 		if training_environment == null:
 			training_environment = preload("res://training_environment.gd").new()
+			InterpolationGuard.interpolate(training_environment)
 			add_child(training_environment)
 		broadcast_intro.cancel()
 		training_environment.training_page = setup_panel.workout_play_page
@@ -2885,7 +2913,7 @@ func _piste_environment_requested(active: bool) -> void:
 			return
 		if derny_training_environment == null:
 			derny_training_environment = preload("res://derny_environment.gd").new()
-			add_child(derny_training_environment)
+			add_child(InterpolationGuard.interpolate(derny_training_environment))
 		piste_training = derny_training_environment
 		broadcast_intro.cancel()
 		piste_training.enter()
@@ -2902,7 +2930,7 @@ func _exercise_environment_requested(active: bool) -> void:
 			return
 		if exercise_training_environment == null:
 			exercise_training_environment = preload("res://piste_exercise_environment.gd").new()
-			add_child(exercise_training_environment)
+			add_child(InterpolationGuard.interpolate(exercise_training_environment))
 		piste_training = exercise_training_environment
 		broadcast_intro.cancel()
 		piste_training.enter()
@@ -2919,7 +2947,7 @@ func _madison_environment_requested(active: bool) -> void:
 			return
 		if madison_training_environment == null:
 			madison_training_environment = preload("res://madison_training_environment.gd").new()
-			add_child(madison_training_environment)
+			add_child(InterpolationGuard.interpolate(madison_training_environment))
 		piste_training = madison_training_environment
 		broadcast_intro.cancel()
 		piste_training.enter()

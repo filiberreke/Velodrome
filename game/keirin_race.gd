@@ -37,7 +37,7 @@ func configure(g) -> void:
 		var previous: int = order[i]; order[i] = order[j]; order[j] = previous
 	_place_grid(g)
 	if is_instance_valid(pilot): pilot.queue_free()
-	pilot = Visual.new(); pilot.name = "KeirinDerny"; g.add_child(pilot)
+	pilot = Visual.new(); pilot.name = "KeirinDerny"; g.add_child(preload("res://interpolation_guard.gd").interpolate(pilot))
 	_present_pilot(g)
 
 func _place_grid(g) -> void:
