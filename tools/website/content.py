@@ -233,9 +233,14 @@ def page(lang, key, L, IMG, PREVIEW, VIDEO):
 
   <section class="cta">
     <h2>{"Klaar voor de start?" if nl else "Ready for the start?"}</h2>
-    <p>{"Vélodrome is gratis en open source. Download het spel voor Windows of macOS." if nl else "Vélodrome is free and open source. Download it for Windows or macOS."}</p>
-    <div class="actions"><a class="btn primary" href="{L("downloads")}">{"Naar de downloads" if nl else "Go to downloads"}</a>
-      <a class="btn" href="{L("manual")}">{"Lees de handleiding" if nl else "Read the manual"}</a></div>
+    <div class="cta-start-layout">
+      <img class="cta-starter" src="{root}assets/img/starter.png" alt="{"Starter met startpistool op de piste" if nl else "Track race starter firing the starting pistol"}" loading="lazy" decoding="async">
+      <div class="cta-start-copy">
+        <p>{"Vélodrome is gratis en open source. Download het spel voor Windows of macOS." if nl else "Vélodrome is free and open source. Download it for Windows or macOS."}</p>
+        <div class="actions"><a class="btn primary" href="{L("downloads")}">{"Naar de downloads" if nl else "Go to downloads"}</a>
+          <a class="btn" href="{L("manual")}">{"Lees de handleiding" if nl else "Read the manual"}</a></div>
+      </div>
+    </div>
   </section>
 </div></main>'''
         return title, desc, body
