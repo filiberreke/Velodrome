@@ -93,6 +93,10 @@ PREVIEW_ALT = {
 
 
 def mode_art(lang, mode, PREVIEW):
+    if mode == "omnium":
+        keys = ("scratch", "tempo", "elimination", "points")
+        images = "".join(PREVIEW(key, PREVIEW_ALT[key][0 if lang == "nl" else 1]) for key in keys)
+        return f'<span class="mode-card-art mode-card-art-omnium">{images}</span>'
     asset = MODE_PREVIEW_ALIASES.get(mode, mode)
     alt_nl, alt_en = PREVIEW_ALT[asset]
     image = PREVIEW(asset, alt_nl if lang == "nl" else alt_en)
