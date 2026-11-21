@@ -251,7 +251,7 @@ func _build_badges(game: Node3D) -> void:
 	if game.bikes.is_empty(): return
 	for team in range(2):
 		var badge := Badge.new()
-		game.add_child(badge)
+		game.add_child(preload("res://interpolation_guard.gd").interpolate(badge))
 		badges.append(badge)
 
 func hide_badges() -> void:
