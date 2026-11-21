@@ -52,7 +52,7 @@ De windsnelheid in de FTMS-bytes blijft 0; de coëfficiënt modelleert beschutti
 
 Het spel gebruikt `1 - _draft_drag_reduction(0)` en controleert de capability
 voordat het nieuwe veld wordt verzonden. De eerdere v0.15 blijft daardoor met
-helling alleen bruikbaar. Zie [spelkoppeling](../game/README_trainer_control.md)
+helling alleen bruikbaar. Zie [spelkoppeling](../docs/archive/game/README_trainer_control.md)
 voor routehelling, lifecycle en tests. Hardwarewerking blijft te bevestigen.
 
 
@@ -120,7 +120,7 @@ Extra velden in elke state (oudere clients mogen onbekende responsevelden negere
 gevraagde eindpunt bereiken. Een Ride-versnellingswijziging in simulatie verhoogt ook revision.
 Een parameterbevestiging bewijst geen fysieke prestatie; vergelijk met power_w in
 telemetrie. Helling/versnelling beïnvloeden samen de trainerparameters: zie
-[SIMULATION.md](SIMULATION.md). Geen afleiding van een KICKR-maximum uit 0x2AD5:
+[SIMULATION.md](../docs/archive/bridge/SIMULATION.md). Geen afleiding van een KICKR-maximum uit 0x2AD5:
 die characteristic is geen betrouwbaar bereik voor deze specifieke 0x11-wegmodus.
 Fysieke trainergrenzen kunnen lager zijn; een weigering stopt via de bestaande FTMS-foutafhandeling.
 
@@ -241,7 +241,7 @@ BLE-verlies en ontbrekende data/power zijn nu tijdelijke onderbrekingen: doelen
 en lease worden gewist, de bridge blijft zoeken en vraagt na herstel alleen
 vrijgave aan. waiting_for_feedback blijft true totdat verse data én power binnen
 zijn. reconnect_ready laat een expliciete nieuwe wedstrijd/opdracht toe zonder
-procesherstart. Zie [RECOVERY.md](RECOVERY.md). Een geldige 0-W-vrijgave mag ook
+procesherstart. Zie [RECOVERY.md](../docs/archive/bridge/RECOVERY.md). Een geldige 0-W-vrijgave mag ook
 tijdens deze offline wachtfase worden klaargezet; andere sturing krijgt not_active.
 console_stop en udp_stop blijven terminaal voor sturing. udp_timeout wist
   de belasting en lease en is na bevestigde Reset herstelbaar. ftms_error leidt tot
@@ -277,4 +277,19 @@ in actieve SIM, anders null; Ride-knopberichten blijven behouden.
 
 ## Apparaatselectie
 
-De aanvullende commando's `devices` en `select_device` staan beschreven in [DEVICE_SELECTION.md](DEVICE_SELECTION.md). Ze gebruiken dezelfde envelope en deduplicatie, zonder trainerlease.
+De bestaande envelope, validatie, rate limit en deduplicatie blijven gelden:
+
+```json
+{"type":"command","v":1,"id":"devices-1","command":"devices"}
+{"type":"command","v":1,"id":"devices-2","command":"select_device","role":"trainer","address":"BLE-adres"}
+```
+
+Rollen: `trainer`, `controller`, `heart_rate`; leeg adres schakelt uit.
+`state` in de ACK bevat `device_selection_v:1`, `devices`, `selected`, `connected`
+en `scan_error`. Apparaten bevatten `address`, `name`, `roles`, `transport` en
+`available`. `selected` null betekent de oorspronkelijke automatische keuze;
+leeg betekent uit. Selecteren vereist een actueel beschikbaar apparaat met de
+gevraagde rol. Verzoeken creëren geen trainerlease en verlengen die ook niet.
+Godot gebruikt een aparte socket, pollt iedere seconde en meldt uitval na 3 s.
+Onbevestigde keuzes krijgen na 4 s een melding; de volgende poll haalt de echte
+bridgestatus op. Een oude bridge geeft een expliciete bijwerkmelding.

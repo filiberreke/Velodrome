@@ -130,6 +130,7 @@ jobs:
           mkdir -p build
           "$GODOT_BIN" --headless --path game --export-release "macOS" "../build/Velodrome.zip" 2>&1 | tee /tmp/velodrome-export.log
           test -s build/Velodrome.zip
+          zip -j build/Velodrome.zip packaging/macos-demo/README.txt
           if grep -Ei 'Bad header|Compressed texture file is corrupt|SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|ERROR:' /tmp/velodrome-export.log; then
             echo "Godot export reported errors"
             exit 1

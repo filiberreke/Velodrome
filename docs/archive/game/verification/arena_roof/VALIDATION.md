@@ -32,9 +32,9 @@ track, spectator stands, underneath, roof overview and nearby display detail.
 The checked-in JPEG previews are smaller direct renderer captures; full-size
 PNGs can be regenerated with `tests/capture_arena_roof.gd`.
 
-![Compact ring in the existing intro](intro_roof.jpg)
+![Compact ring in the existing intro](../../../../../game/verification/arena_roof/intro_roof.jpg)
 
-![Track-level view of screen and roof](track.jpg)
+![Track-level view of screen and roof](../../../../../game/verification/arena_roof/track.jpg)
 
 `benchmark.json` contains two alternating pairs with the new components hidden
 and visible at 1600 × 1000, MSAA 4×. Mean wall frame time: 39.68 → 40.74 ms

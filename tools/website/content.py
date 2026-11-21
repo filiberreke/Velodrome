@@ -359,7 +359,7 @@ def page(lang, key, L, IMG, PREVIEW, VIDEO):
     <h2>{"Installatie op macOS" if nl else "Installing on macOS"}</h2>
     <ol class="steps">
       <li>{"Kies op de" if nl else "On the"} <a href="{L("downloads")}#macos">{"downloadpagina" if nl else "downloads page"}</a> {"de versie voor Apple Silicon (arm64) of Intel (x86_64). Gebruik macOS Monterey 12.3 of nieuwer." if nl else "choose Apple Silicon (arm64) or Intel (x86_64). Use macOS Monterey 12.3 or later."}</li>
-      <li>{"Pak de volledige bundel uit en lees <code>START-HIER.txt</code> voor de eerste start. Houd alle bestanden in dezelfde map." if nl else "Extract the whole bundle and follow <code>START-HIER.txt</code> for the first launch. Keep all the files in the same folder."}</li>
+      <li>{"Pak de volledige bundel uit en lees <code>README.txt</code> (in oudere bundels <code>START-HIER.txt</code>) voor de eerste start. Houd alle bestanden in dezelfde map." if nl else "Extract the whole bundle and follow <code>README.txt</code> (<code>START-HIER.txt</code> in older bundles) for the first launch. Keep all the files in the same folder."}</li>
       <li>{"Open <code>Start-Velodrome.command</code>. Laat het Terminalvenster open terwijl je speelt en geef Bluetooth-toegang wanneer macOS daarom vraagt." if nl else "Open <code>Start-Velodrome.command</code>. Keep the Terminal window open while playing and allow Bluetooth access if macOS asks."}</li>
     </ol>
   </section>

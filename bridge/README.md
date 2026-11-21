@@ -1,190 +1,37 @@
-# Velodrome 250 Python Bridge v0.15
+# Vélodrome-bridge
 
-Uitbreiding van v0.14, oorspronkelijk gebaseerd op `velodrome_bridge_v0131_udp_gear.zip`. Eén proces voor KICKR CORE
-FTMS, Zwift Ride left-master, Garmin ANT+ via bestaande Dynastream/libusb0 en
-Godot-communicatie. **Softwarematig getest; hardwarewerking van v0.15 wacht op de usertest.**
-
-## Analoge stuurpaddles
-
-De Ride-decoder verwerkt zowel de oudere geneste analoge groep (veld 2) als
-de actuele herhaalde paddleberichten (veld 3) binnen dezelfde `0x23`-melding.
-Paddle 0 is links en paddle 1 rechts. Naar buiten duwen levert een stuurwaarde
-van -100 tot +100; naar binnen duwen is de remrichting en wordt niet als
-stuurinput doorgegeven. De remrichting verandert de remkracht in het spel niet.
-Een aparte Bluetooth-verbinding of nieuw abonnement is hiervoor niet nodig.
-
-Godot gebruikt vanaf drukniveau 25 één baan per beweging.
-De verplaatsing blijft vloeiend. Vasthouden of verder indrukken herhaalt de beweging
-niet en voegt geen extra banen toe. Terugkeren tot maximaal 15 maakt de
-volgende beweging mogelijk. Bij ploegenachtervolging vraagt een nieuwe
-rechter stuurbeweging de automatische kopwissel aan; de formatie blijft leidend.
-De digitale richtingstoetsen bedienen de menu's, A kiest en B gaat terug.
-Schakelpaddles sturen niet en bedienen ook de menu's niet.
-
-De virtuele bridge heeft twee afzonderlijke paddle-schuifregelaars, individuele
-loslaatknoppen en een knop om beide los te laten. Werk bridge en Godot samen bij.
-
-Protocolbronnen: [Ride-protocol en oudere captures](https://www.makinolo.com/blog/2024/07/26/zwift-ride-protocol/)
-en [actuele BikeControl Ride-implementatie](https://github.com/OpenBikeControl/bikecontrol/blob/main/lib/bluetooth/devices/zwift/zwift_ride.dart).
-De digitale knoptabel is gecorrigeerd op basis van de actuele BikeControl-
-implementatie: de oudere tabel in het artikel wijkt vanaf Z af. Zie de
-[knoptabel en regressietests](docs/README_ride_button_bits.md).
-De decoder is getest met vaste berichtbytes en een nagebootst BLE-abonnement.
-Controle op de fysieke Ride blijft nodig; werk de bridge bij en herstart deze.
-
-## Blijft wachten en opnieuw verbinden
-
-De bridge mag starten voordat KICKR of linker Zwift Ride aanstaan. Hij blijft
-scannen en wacht na een ontbrekend apparaat of verbindingsfout 5 seconden voor
-de volgende poging. Elke scan duurt maximaal de ingestelde 8 seconden; een
-verbindingspoging heeft daarnaast zijn eigen timeout. KICKR en Ride worden
-onafhankelijk gezocht. Een tijdelijk onbeschikbare Bluetooth-adapter beëindigt
-de bridge niet. Na de eerste keuze wordt hetzelfde BLE-adres opnieuw gezocht.
-
-Ook een open KICKR-link zonder verse data/power gedurende meer dan 3 seconden
-wordt gesloten en opnieuw gezocht. Metingen hervatten automatisch. Bij uitval
-worden oude belasting, helling en UDP-eigendom gewist; na herstel wacht de trainer
-vrijgegeven op een nieuwe opdracht. Start in het bijgewerkte spel een nieuwe
-wedstrijd, of gebruik `sim` in de console zodra verse data beschikbaar is.
-De bridge hoeft daarvoor niet opnieuw te starten. STOP, verlopen UDP-lease en
-echte FTMS-protocolfouten blijven een bewuste blokkering van sturing; de
-verbindings-/meetlus blijft ook dan werken. Zie [herstelprotocol](RECOVERY.md).
-
-## Nieuw: echte FTMS-hellingsimulatie
-
-Godot kan `set_grade` sturen met `grade_pct` van -20.00 t/m 20.00 (maximaal twee decimalen).
-Dit activeert in SIM het echte FTMS-simulatiecommando 0x11. De trainer moet deze functie
-adverteren; anders volgt een fout. Helling en virtuele versnelling worden samen in
-één wegmodel verwerkt. De defaultversnelling 4 is neutraal; lichter/zwaarder schakelen
-verandert de gemodelleerde belasting. Er worden geen 0x04-weerstandsniveaus tussendoor gestuurd.
-
-`set_grade 0` betekent vlakke weg, met rol-/luchtweerstand en actieve versnelling.
-Dit is geen vrijgave. `set_target_power 0` blijft wél vrijgave. Expliciet `sim` of
-UDP `set_mode SIM` verlaat de hellingregeling en herstelt de oorspronkelijke vaste
-weerstandstabel. Startgedrag blijft die oorspronkelijke SIM-regeling.
-
-Helling wordt in ERG geweigerd (wrong_mode); schakel eerst bewust naar SIM. Dezelfde
-5s-lease/heartbeat en 3s-feedbackbeveiliging gelden ook voor hellingregeling, inclusief
-0%. Lees [SIMULATION.md](SIMULATION.md) voor het versnellingsmodel, de aannames,
-de effectieve trainerhelling en de grenzen van de fysieke simulatie.
+De Python-bridge verbindt het spel met een smarttrainer via Bluetooth FTMS, de linker Zwift Ride-controller en hartslag via BLE of een ANT+-USB-stick. Voor SIM en ERG hangt de beschikbare trainerbesturing af van de functies die de trainer via FTMS meldt.
 
 ## Starten
 
-1. Bewaar v0.14 als back-up. Pak deze ZIP in een nieuwe map uit.
-2. Sluit oude bridges, ANT+-tests, Garmin Express en andere trainerapps.
-3. Zet eerst de LINKER Zwift Ride aan, daarna de rechter. Activeer Garmin Broadcast Heart Rate.
-4. Gebruik Python 3.12 en dubbelklik het enige startbestand `start_windows.bat`.
-   Dit maakt `.venv` en installeert `requirements.txt`; internet is nodig bij installatie.
-5. Start Godot apart. Alle bridgebediening blijft in één venster.
+De gebundelde Windows- en macOS-versies starten de bridge via hun eigen launcher. Bij een broncheckout start je de bridge en het spel apart. Gebruik één bridge per spelinstantie.
 
-Geen driverwijziging, Zadig, WinUSB, meegeleverde DLL, EXE of apart ANT+-startvenster.
-Opties: `--no-ant`, `--list`, `--trainer KICKR`, `--ride <linker-BLE-adres>` en
-`--erg-ramp-w-per-s 1500`. Geef opties vanuit een opdrachtvenster aan `start_windows.bat` mee.
+**Windows**. Installeer Python 3.12 en start vanuit de repositoryroot:
 
-## Console
-
-Start in SIM: 12 versnellingen, aanvankelijk versnelling 4, weerstandsniveaus
-1.5..5.0 volgens `gear_config.json`. Bestaande Ride-knoppen blijven werken.
-
-| Opdracht | Gedrag |
-| --- | --- |
-| `sim` | Reset vorige regeling, vraag controle opnieuw en herstel virtuele versnellingen. |
-| `grade 5.25` | Activeer echte hellingsimulatie van 5.25% binnen SIM. |
-| `grade -3 4` | Afdaling -3%, hellingsovergang maximaal 4 procentpunt/s vóór versnellingsfactor. |
-| `target 500` | Stel geheel ERG-doel 0..1300 W in. Positief doel in SIM wordt alleen klaargezet. |
-| `target 1300 1500` | Doel 1300 W, overgang 1500 W/s. Geen vaste 10W-limiet per stap. |
-| `erg` | Schakel expliciet naar ERG met ingesteld doel; standaarddoel 100 W. |
-| `target 0` | Vrijgave via FTMS Reset, ook vanuit SIM; toestand RELEASED. |
-| `status` | Gewenst/bevestigd doel, bereik, lease en eventuele fout. |
-| `stop` / `x` | Blokkeer sturing en probeer Reset; herstart nodig voor nieuwe sturing. |
-
-Console en UDP wijzigen alleen de gewenste toestand. Uitsluitend de trainer-loop
-verstuurt FTMS-opdrachten; een lock beschermt elke write/indication-transactie.
-Een expliciete consolewijziging neemt bediening over van Godot; `status` neemt niets over.
-
-## Trainergrenzen, vrijgave en ramping
-
-Bij verbinden leest de bridge Target Power-ondersteuning (0x2ACC) en, indien
-aanwezig, Supported Power Range (0x2AD8: minimum, maximum, increment).
-Een positief doel moet zowel binnen 1..1300 W als het gemelde bereik vallen en
-op het rooster `minimum + n * increment` liggen. Geen stille begrenzing/afronding.
-Ontbreekt 0x2AD8, dan blijven aanvragen van 1..1300 W mogelijk met expliciet
-onbekend trainerbereik; de trainer kan ze weigeren. Een aanwezige maar onleesbare
-of ongeldige characteristic blokkeert positieve ERG, terwijl SIM beschikbaar blijft.
-Zonder Target Power-feature is positieve ERG niet beschikbaar.
-
-0 W is een apart vrijgaveverzoek. De bridge verstuurt **geen Set Target Power 0**,
-maar gebruikt FTMS Reset (0x01), de al bestaande vrijgavefunctie. Daarna volgen
-geen belastingcommando's tot een nieuwe positieve ERG-opdracht of `sim`.
-Reset brengt de trainer naar zijn standaardtoestand en garandeert geen mechanische
-nulweerstand of noodstop. Een niet bevestigde Reset wordt als fout gemeld.
-
-Ramping is instelbaar van 1..10000 W/s, standaard 300. De eerste positieve
-ERG-opdracht is het kleinste positieve geldige trainerdoel (1 W bij onbekend bereik).
-Een hoge trainerminimumwaarde kan dus een eerste sprong vereisen. Daarna tellen
-fractionele stappen op tot een geldig trainerincrement. Na een BLE-stagnatie wordt
-maximaal 0.35 seconde rampbudget gebruikt, zonder grote inhaalsprong. De ingestelde
-snelheid is een bovengrens bij normale ticks; incrementen en BLE-latentie kunnen
-de overgang vertragen. Het aangevraagde einddoel wordt niet gewijzigd. Fysieke
-haalbaarheid hangt ook van trainer, snelheid en cadans af.
-
-## UDP en veiligheid
-
-- Bestaande telemetrie: `127.0.0.1:51723`, iedere 100 ms.
-- Interne ANT+-hartslag: `127.0.0.1:51724`.
-- Nieuwe commandoserver: uitsluitend IPv4 `127.0.0.1:51725`; antwoord naar bronpoort.
-- Volledig protocol: [UDP_PROTOCOL.md](UDP_PROTOCOL.md). Overdracht: [GODOT_HANDOFF.md](GODOT_HANDOFF.md).
-
-ACK betekent gewenste toestand geaccepteerd, geen voltooide hardwareactie.
-Vraag verse `status` op voor bevestigingen/fouten. Een nieuwere gewenste toestand
-kan een nog niet uitgevoerde opdracht vervangen.
-
-Bij positieve UDP-ERG of actieve UDP-hellingregeling moet Godot elke seconde een nieuwe `heartbeat` sturen.
-Na vijf seconden zonder heartbeat/geldige nieuwe besturingsopdracht: sturing uit,
-Reset geprobeerd, bewuste herstart nodig. Retries en status verlengen de lease niet.
-Meer dan drie seconden zonder trainerdata/powerfeedback en BLE-verlies wissen
-de doelen en starten de tijdelijke wacht-/herverbindingsroute. De verbinding en
-metingen herstellen automatisch; oude belasting wordt niet teruggezet. Een
-nieuwe wedstrijd/opdracht kan daarna sturen zonder bridgeherstart. Een echte
-FTMS-protocolfout blijft wel een terminale blokkering van sturing.
-Een FTMS-transactie heeft maximaal vijf seconden voor write plus indication;
-een lopende transactie kan vrijgave vertragen. Cleanup-Reset kan daarna zelf nog
-maximaal vijf seconden duren. Een bezette commandopoort voorkomt FTMS-start.
-
-Stop met trappen bij onverwachte weerstand. Verbroken BLE of abrupt procesverlies
-kan een laatste trainerinstelling achterlaten; software kan dan geen vrijgave
-garanderen. Loopback beperkt toegang tot deze pc, zonder authenticatie tegen andere lokale processen.
-
-## Behouden telemetrie
-
-```json
-{"type":"telemetry","valid":true,"power_w":170,"speed_kmh":39.0,"cadence_rpm":87,"sample_id":42,"heart_rate_bpm":143,"gear":4}
+```powershell
+.\bridge\start_windows.bat
 ```
 
-`valid` betreft KICKR-data. `gear` is de gekozen versnelling 1..12 in actieve SIM,
-anders null; geen fysieke weerstandsbevestiging. Hartslag is integer of null en
-vervalt na vijf seconden. `sample_id` en UDP-knopberichten blijven behouden.
+De eerste start installeert de dependencies in een lokale virtuele omgeving. Voeg `--no-ant` toe als je geen ANT+-stick gebruikt. BLE-hartslag blijft beschikbaar. Voor een macOS-broncheckout zonder ANT+:
 
-## Diagnose en tests
+```sh
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r bridge/requirements.txt
+python bridge/bridge.py --no-ant
+```
 
-`bridge.log` naast het script: maximaal drie bestanden van circa 1 MB, met
-UDP-IDs/opdrachten, FTMS-write/indication, bereik en stopredenen. Bestaande BLE/ANT+
-diagnose blijft in de console. Bij geen HR: controleer Broadcast Heart Rate,
-USB-stick en conflicterende apps; probeer `--no-ant`. Bij geen Ride: zet eerst links aan.
+## Apparaten en diagnose
 
-Tests: `py -3.12 -m unittest discover -s tests -v`. Alleen standaardbibliotheek;
-geen BLE/USB-pakketten of hardware nodig. Zie [VALIDATION.md](VALIDATION.md).
+Sluit andere apps die dezelfde hardware gebruiken. Zet je trainer aan en activeer bij Zwift Ride eerst de linker controller. Gebruik **Apparaten** in Vélodrome om de trainer, controller en hartslagbron te kiezen. Zonder opgeslagen keuze zoekt de bridge standaard op de trainernaam `KICKR`. De bridge blijft zoeken en probeert opnieuw te verbinden als een apparaat wegvalt.
 
-Bronnen: [Bluetooth SIG FTMS 1.0.1](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0-1/)
-en [GATT Specification Supplement](https://btprodspecificationrefs.blob.core.windows.net/gatt-specification-supplement/GATT_Specification_Supplement.pdf).
+Kijk bij verbindingsproblemen in het bridgevenster en `bridge.log`. In de macOS-bundel staat het log onder `~/Library/Logs/Velodrome/`. Gebruik `--help` voor de startopties. Stop met trappen bij onverwachte weerstand. Bij verbindings- of procesverlies kan de trainer een vrijgavecommando missen.
 
+## Ontwikkelen en testen
 
-## macOS
+```sh
+python -m unittest discover -s bridge/tests -v
+python bridge/tools/virtual_bridge_ui.py
+```
 
-Voor spel en bridge samen: [macOS-bundel en startinstructies](../packaging/macos-bundled/README.md).
-Dezelfde trainer-, Ride- en UDP-code draait op beide platforms; macOS gebruikt
-CoreBluetooth en libusb 1.0. Windows blijft zijn bestaande libusb0-driver gebruiken.
-
-## Apparaten kiezen in Godot
-
-Zie [apparaatselectie, protocol en beperkingen](DEVICE_SELECTION.md). Werk spel en bridge samen bij.
+De virtuele bridge is bedoeld voor testen zonder hardware. Zie het [UDP-protocol](UDP_PROTOCOL.md) voor berichten en poorten en de [archiefdocumentatie](../docs/archive/ARCHIEF.md) voor ontwerp- en validatieverslagen.

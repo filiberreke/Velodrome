@@ -43,6 +43,7 @@ jobs:
           }
           Rename-Item bundled/Velodrome.exe VelodromeGame.exe
           Rename-Item bundled/Velodrome.pck VelodromeGame.pck
+          Copy-Item packaging/windows-bundled/README.txt bundled/README.txt -Force
           # The bundled launcher is the only supported entry point.
           if (Test-Path bundled/Start-Velodrome.cmd) { Remove-Item bundled/Start-Velodrome.cmd -Force }
 
@@ -83,7 +84,7 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path bundled/Start-Velodrome.cmd) { throw 'Standalone start script must not be included in bundled release' }
-          foreach ($file in @('Velodrome.exe','VelodromeGame.exe','VelodromeGame.pck','bridge/VelodromeBridge.exe','Initialize-Config.ps1')) {
+          foreach ($file in @('Velodrome.exe','VelodromeGame.exe','VelodromeGame.pck','bridge/VelodromeBridge.exe','Initialize-Config.ps1','README.txt')) {
             if (!(Test-Path (Join-Path bundled $file))) { throw "Missing bundled file: $file" }
           }
           foreach ($required in @('gear_config.json','simulation_config.json','button_mapping.json')) {

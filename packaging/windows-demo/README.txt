@@ -28,3 +28,6 @@ Rechtstreeks Velodrome.exe starten slaat het aanmaken van voorbeelden over.
 OAuth-tokens en opgeslagen instellingen blijven in de Godot-gebruikersmap:
 %APPDATA%/Godot/app_userdata/Velodrome 250 - Sprint Beta/config/
 De demo levert geen tokens, persoonlijke gegevens of bestaande records mee.
+
+Handleiding: https://velodrome.wielerpraat.be/nl/handleiding/
+Problemen melden: https://github.com/filiberreke/Velodrome/issues

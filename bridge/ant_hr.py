@@ -126,7 +126,7 @@ def main():
         print('ANT+ hartslagtest gestopt.')
     except Exception as exc:
         print('ANT+ FOUT:', type(exc).__name__, str(exc), file=sys.stderr)
-        print('Zie README.md en packaging/macos-bundled/README.md voor platformdiagnose.', file=sys.stderr)
+        print('Zie bridge/README.md in de broncode en de README.txt in de macOS-bundel.', file=sys.stderr)
         raise SystemExit(1)
 
 

@@ -30,11 +30,11 @@ straight centres and two oval ends, aligned on both faces. Intervening panels
 carry the original logo. The integration test verifies those four positions
 against actual mesh vertices and independently reversed inner UVs.
 
-![Points race in the real stadium](02_points.jpg)
+![Points race in the real stadium](../../../../../game/verification/dynamic_screen/02_points.jpg)
 
-![Actual lap-gain broadcast graphic](03_lap_gain_content.png)
+![Actual lap-gain broadcast graphic](../../../../../game/verification/dynamic_screen/03_lap_gain_content.png)
 
-![Pursuit timing at a common checkpoint](08_pursuit_content.png)
+![Pursuit timing at a common checkpoint](../../../../../game/verification/dynamic_screen/08_pursuit_content.png)
 
 Two alternating static/dynamic pairs were measured in the same complete stadium
 view at 1600 × 1000 and MSAA 4×, using the final four-zone shader.
