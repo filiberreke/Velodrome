@@ -61,15 +61,8 @@ func step_keirin(dt: float, clock: float, finish_m: float, positions: Array[floa
 			if wheel >= 0 and gap < 6.0:
 				var other := 2.38 if lanes[i] < 1.78 else 1.18
 				if corridor_clear(i, other, positions, speeds, lanes, finished): lane_targets[i] = other
-		# A blocked rider follows at the required power, saving the unused reserve.
-		for j in range(positions.size()):
-			if j == i or finished[j] >= 0.0: continue
-			var separation := positions[j] - positions[i]
-			if separation > 0.0 and separation < 4.5 and absf(lanes[j] - lanes[i]) < 0.85:
-				var safe_speed := maxf(0.0, speeds[j] + (separation - 2.0) * 0.7)
-				var safe_accel := clampf((safe_speed - speeds[i]) / maxf(dt, 0.001), -2.2, 1.4)
-				var safe_power := maxf(0.0, (road_power(speeds[i], aero) + MASS * maxf(speeds[i],5.0) * safe_accel) / DRIVETRAIN)
-				wanted = minf(wanted, safe_power)
+		# Share scratch's power-based anticipation, without hard speed/position clamps.
+		wanted = _traffic_power(i, wanted, positions, speeds, lanes, finished, aero)
 		output[i] = _phys_power(i, wanted, dt)
 		power_w[i] = output[i]
 	return output

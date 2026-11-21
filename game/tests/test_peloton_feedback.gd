@@ -81,13 +81,46 @@ func run_tests() -> void:
 	root.add_child(game.race_overlay)
 	game.minimap=game.race_overlay.map
 	game._update_compact_hud([2,1,7,6,5,0,4,3])
-	check(game.race_overlay.points_rows[0].name.text == game._rider_name(2),"Right panel ranks by points")
+	var standings = game.race_overlay.points_panel
+	var points_row: HBoxContainer = standings.rows.get_child(1)
+	check(points_row.get_meta("rider_id") == "2","Right panel ranks by points")
+	check(points_row.get_child(1).texture != null and points_row.get_child(2).tooltip_text == game._rider_name(2),"Right panel shows a flag and an abbreviated name")
+	check(points_row.get_child(4).text == "50","Race points occupy the final column")
+	await process_frame
+	var expected_right: float = game.race_overlay.size.x - 32.0
+	check(is_equal_approx(standings.position.x + standings.size.x, expected_right),"Standings keeps its right margin")
+	standings.rows.get_child(0).text = "TUSSENSTAND · EEN EXTRA BREDE TESTTITEL"
+	await process_frame
+	await process_frame
+	check(is_equal_approx(standings.position.x + standings.size.x, expected_right),"An expanding standings panel grows towards the left")
+
 	check(game.race_overlay.rider_rows[0].shell.get_meta("rider_id") == 7 and game.race_overlay.rider_rows[0].rank.text == "2","Nearby panel keeps actual rank while showing closest riders")
 	check(game.race_overlay.rider_rows[0].gap.text.ends_with("m"),"Nearby gaps stay in metres")
 	check(not game.race_overlay.peloton_label.text.is_empty() and not game.race_overlay.map.peloton.is_empty(),"Bunch gap and minimap indication are always supplied")
 	game.peloton_markers.update_bunch(game,game.peloton_info,true)
 	check(game.peloton_markers.visible and game.peloton_markers.strips.size() == 2,"Both virtual bunch boundaries exist")
 	check(game._at(1002.,1.18).distance_to(game._at(1252.,1.18)) < 0.001,"Subtracting race lap keeps physical world position")
+	game.points_rules.sprints.append({"lap": 10, "order": [2], "times": [game.clock], "awards": [5]})
+	game._update_race_standings([])
+	check(standings.rows.get_child(1).get_child(3).text == "+5","Points sprint award is shown beside the total")
+	game.clock += 5.0
+	game._update_race_standings([])
+	check(standings.rows.get_child(1).get_child(3).text.is_empty(),"Sprint award clears after five seconds")
+	game.race_mode = 8
+	game.tempo_rules.reset(8)
+	game.tempo_rules.points[2] = 1
+	game.tempo_rules.sprints.append({"lap": 5, "order": [2], "times": [game.clock], "awards": [1]})
+	game._update_race_standings([])
+	check(standings.rows.get_child(1).get_child(3).text == "+1" and standings.rows.get_child(1).get_child(4).text == "1","Tempo uses its own points and awards")
+	game.race_mode = 0
+	game.scratch_rules.credits.fill(0)
+	game._update_race_standings([2, 0, 1])
+	check(not standings.visible,"Scratch hides the panel with no lap changes")
+	game.scratch_rules.credits[2] = 1
+	game.scratch_rules.credits[1] = -1
+	game._update_race_standings([2, 0, 1])
+	check(standings.visible and standings.rows.get_child_count() == 3,"Scratch only shows riders with nonzero lap credits")
+	check(standings.rows.get_child(1).get_child(3).text == "+1 ronde" and standings.rows.get_child(2).get_child(3).text == "-1 ronde","Scratch shows signed lap credits")
 	var badge = preload("res://rider_energy_badge.gd").new()
 	root.add_child(badge)
 	badge.show_rider(312.,0.75,Vector3.ZERO,true,12,true)

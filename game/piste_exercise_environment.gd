@@ -27,7 +27,7 @@ func enter() -> void:
 	demo = not game.trainer_seen; demo_power = 180; control_started = game._now_s()
 	player_lane_offset = LOWEST_LANE if page.kind != "take_lap" else pack_lane
 	player_lane_target = game.LANES.find(player_lane_offset)
-	reduction = 0; road_grade = 0; total_elapsed = 0; total_distance = 0; assisted_seconds = 0
+	reduction = 0; road_grade = 0; grade_filter.reset(); total_elapsed = 0; total_distance = 0; assisted_seconds = 0
 	samples = []; last_sample = -1; last_save = 0; saved_final = false; too_close = false
 	var line := Exercise.pursuit_line(game)
 	pack_distance = line
@@ -42,6 +42,9 @@ func enter() -> void:
 	session.peak_w = demo_power if demo else game.setup_panel.ftp_page.measured
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
 	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":page.kind,"title":Exercise.title(page.kind),"started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"initial_speed_kmh":player_speed*3.6,"line_distance":start_distance if page.kind == "free_ride" else line}
+	if not page.omnium_origin.is_empty():
+		activity["omnium_id"] = page.omnium_origin
+		activity["title"] = "Omnium - Losrijden"
 	line_marker.position = game._at(line,8.8)+Vector3.UP*1.5; line_marker.visible = page.kind == "flying_start"
 	if page.kind == "take_lap" and pack_bikes.is_empty(): _build_pack()
 	for bike in pack_bikes: bike.visible = page.kind == "take_lap"
@@ -108,7 +111,7 @@ func _step(dt: float, power: float) -> void:
 	distance = lerpf(before,distance,fraction); player_lane_offset = lerpf(old_lane,player_lane_offset,fraction)
 	pack_distance = lerpf(pack_before,pack_distance,fraction); player_speed = lerpf(old_speed,player_speed,fraction)
 	var current: Vector3 = game._at(distance,player_lane_offset)
-	road_grade = lerpf(road_grade,game.TrainerControl.route_grade(previous,current),1-exp(-8*dt*fraction))
+	road_grade = grade_filter.step(game.TrainerControl.route_grade(previous,current),dt*fraction)
 	_update_pack_state()
 	reduction = _draft_at(distance)
 	total_elapsed = session.elapsed

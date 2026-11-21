@@ -51,6 +51,14 @@ func begin() -> void:
 		if block.kind != "FreeRide" and maxf(float(block.power_low),float(block.power_high))*test.ftp_w > 1300:
 			result.text = "Deze FTP levert een doel boven 1300 W op. Pas de workout of je FTP aan."; return
 	reset_session(now,trainer)
+	ramp_chart_start = session_now(now)
+	activity_started_unix = int(Time.get_unix_time_from_system())
+	activity_started_local = Time.get_datetime_string_from_system().replace("T"," ")
+	upload_status = ""
+	_reset_ramp_dashboard()
+	activity_samples.clear()
+	activity_distance = 0.0
+	selected_activity = {}
 	last_session_clock = session_now(now)
 	test.start(last_session_clock)
 	desired_target = -1
@@ -96,6 +104,26 @@ func _process(dt: float) -> void:
 	_refresh()
 func finish(message: String) -> void:
 	test.stop(message)
+	if selected_activity.is_empty() and activity_samples.size() >= 2:
+		var energy := 0.0
+		var covered := 0.0
+		for i in range(1,activity_samples.size()):
+			var dt: float = float(activity_samples[i].time_s) - float(activity_samples[i-1].time_s)
+			if dt <= 0.0 or dt > 10.0: continue
+			energy += dt * float(activity_samples[i-1].power_w)
+			covered += dt
+		var average: float = energy / covered if covered > 0.0 else 0.0
+		var activity := {
+			"version":1, "id":"erg_%d" % activity_started_unix, "kind":"erg_workout",
+			"title":str(item.get("name","ERG-workout")), "reason":test.reason,
+			"started_unix":activity_started_unix, "started_local":activity_started_local,
+			"duration_s":float(activity_samples[-1].time_s), "distance_m":activity_distance,
+			"samples":activity_samples.duplicate(true), "mean_power_w":average,
+			"ftp_reference_w":float(ftp_input.value)
+		}
+		var archive := preload("res://training_store.gd").new()
+		selected_activity = activity
+		upload_status = "Training lokaal opgeslagen." if archive.save(activity) else archive.error
 	_release(now_s())
 	if active_environment:
 		active_environment = false
@@ -119,4 +147,9 @@ func _refresh() -> void:
 		result.text += "\nCadans · " + cadence_text()
 		var status := signal_state.status(now_s())
 		if not status.is_empty(): result.text += "\n"+status
-	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.")
+	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.") + ("\n" + upload_status if not upload_status.is_empty() else "")
+
+func _record_ramp_sample(_at: float, power: float) -> void:
+	if not test.running(): return
+	if ramp_samples.is_empty() or test.elapsed > float(ramp_samples[-1].t):
+		ramp_samples.append({"t":test.elapsed,"w":power,"hr":heart_rate_bpm,"rpm":cadence_rpm})

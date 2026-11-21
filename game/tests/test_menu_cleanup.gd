@@ -20,6 +20,7 @@ func run_test() -> void:
 	game.set_physics_process(false)
 	await settle()
 	var menu = game.setup_panel
+	await check_ftp_back_visibility(menu)
 	await check_keyboard_navigation(game)
 	await check_training_navigation(menu, game)
 	menu.show_choices()
@@ -67,6 +68,27 @@ func visible_back_buttons(menu: Control) -> int:
 	for child in menu.page_header.get_children():
 		if child is Button and child.is_visible_in_tree(): count += 1
 	return count
+
+func check_ftp_back_visibility(menu: Control) -> void:
+	for ftp_method in ["show_ftp", "show_ftp_twenty"]:
+		menu.call(ftp_method)
+		await settle()
+		check(menu.ftp_page.back_button.is_visible_in_tree(), "FTP preparation exposes its back action: " + ftp_method)
+		menu.ftp_page.test.start(menu.ftp_page.session_now(menu.ftp_page.now_s()))
+		menu.ftp_page.finish("Test verlaten")
+		await settle()
+		check(menu.ftp_page.back_button.is_visible_in_tree(), "FTP result preserves its back action: " + ftp_method)
+		for method in ["show_hub", "show_choices", "show_training", "show_piste_training", "show_derny", "show_madison_training", "show_tournaments", "show_training_history", "show_records", "show_workout_editor"]:
+			menu.call(method)
+			await settle()
+			check(not menu.ftp_page.back_button.is_visible_in_tree(), "FTP back stays hidden after " + ftp_method + " -> " + method)
+			check(visible_back_buttons(menu) == (0 if method == "show_hub" else 1), "Only the active page has a back action: " + method)
+		menu.select_mode(0)
+		await settle()
+		check(not menu.ftp_page.back_button.is_visible_in_tree(), "Race settings hide FTP back after " + ftp_method)
+		menu.show_startlist()
+		await settle()
+		check(not menu.ftp_page.back_button.is_visible_in_tree(), "Start list hides FTP back after " + ftp_method)
 
 func check_training_navigation(menu: Control, game: Node) -> void:
 	menu.show_derny()

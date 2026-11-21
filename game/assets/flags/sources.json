@@ -1,0 +1,127 @@
+{
+  "belgium": {
+    "page": "https://www.countryflags.com/belgium-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/belgie/flag-png-medium.png?v=6aa1a980-1254&cf_download=flag-belgium-original-medium.png",
+    "sha256": "54a0b419fb8ce9547a009779936b130cf76d54c254993beb0ee1bbd0e76c9c7f"
+  },
+  "netherlands": {
+    "page": "https://www.countryflags.com/netherlands-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/nederland/flag-png-medium.png?v=6aa1aaf7-f11&cf_download=flag-netherlands-original-medium.png",
+    "sha256": "ba41e2dda12291ce0d83866b66f1eb9e73746ce651e5b212ca82403cdb054dcd"
+  },
+  "france": {
+    "page": "https://www.countryflags.com/france-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/frankrijk/flag-png-medium.png?v=6aa41bc6-d4f&cf_download=flag-france-original-medium.png",
+    "sha256": "7d3613b1cccaea9bb34931603a5cf0b41ca1be5f684aee3e97d785efebffacef"
+  },
+  "italy": {
+    "page": "https://www.countryflags.com/italy-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/italie/flag-png-medium.png?v=6aa1aac4-eed&cf_download=flag-italy-original-medium.png",
+    "sha256": "669c52cd74f1ba351e7c5b83e2cb12e2f74794bbf9b8d6194cf6390608f23408"
+  },
+  "germany": {
+    "page": "https://www.countryflags.com/germany-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/duitsland/flag-png-medium.png?v=6aa1aaa2-de0&cf_download=flag-germany-original-medium.png",
+    "sha256": "95de46b03b60df607afc2417f7d70b0b19f4393f28b69ef5aae9f942c8d885bf"
+  },
+  "great_britain": {
+    "page": "https://www.countryflags.com/united-kingdom-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/verenigd-koninkrijk/flag-png-medium.png?v=6aa1af8b-2a3a&cf_download=flag-united-kingdom-original-medium.png",
+    "sha256": "30418ab5b5155658d148d31aecc2d71d0548258dee45d7ecd929e3b48b92e90e"
+  },
+  "denmark": {
+    "page": "https://www.countryflags.com/denmark-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/denemarken/flag-png-medium.png?v=6aa1aa7e-1123&cf_download=flag-denmark-original-medium.png",
+    "sha256": "b23c8f705e907e6c569c5e0b24730d61c65b96200b6c62f2f941a760f3fa3172"
+  },
+  "australia": {
+    "page": "https://www.countryflags.com/australia-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/australie/flag-png-medium.png?v=6aa1a976-5c8f&cf_download=flag-australia-original-medium.png",
+    "sha256": "2b15cac20bb33a110912aa7a03be60685832ec7661565e01d2d72a94a9cc9da7"
+  },
+  "new_zealand": {
+    "page": "https://www.countryflags.com/new-zealand-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/nieuw-zeeland/flag-png-medium.png?v=6aa41eab-9ddb&cf_download=flag-new-zealand-original-medium.png",
+    "sha256": "606be91f96deef452654e6b9429319ba62d04f7b9cfe87757550557c13f48667"
+  },
+  "portugal": {
+    "page": "https://www.countryflags.com/portugal-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/portugal/flag-png-medium.png?v=6aa1ab23-127df&cf_download=flag-portugal-original-medium.png",
+    "sha256": "113195d7a0c3c8a5e614e248607e15287a18c3389c5759864a8423b3944a1753"
+  },
+  "united_states": {
+    "page": "https://www.countryflags.com/united-states-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/verenigde-staten/flag-png-medium.png?v=6aa1ab70-ba07&cf_download=flag-united-states-original-medium.png",
+    "sha256": "7dad4e3e0db7dded8e046e37d3170b2877c857af1a3decc4625ce472f265a3a6"
+  },
+  "spain": {
+    "page": "https://www.countryflags.com/spain-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/spanje/flag-png-medium.png?v=6aa1ab47-10af4&cf_download=flag-spain-original-medium.png",
+    "sha256": "018614169afc2d4f69e26d18b529919049c9c4971fef9835177f232950503eac"
+  },
+  "switzerland": {
+    "page": "https://www.countryflags.com/switzerland-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/zwitserland/flag-png-medium.png?v=6aa1ab54-1552&cf_download=flag-switzerland-original-medium.png",
+    "sha256": "f537761b6ff5c4063dad1e6ce3b5ccae994e501b9528d9e085ebe8f9ff5b1036"
+  },
+  "poland": {
+    "page": "https://www.countryflags.com/poland-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/polen/flag-png-medium.png?v=6aa1ab22-e4b&cf_download=flag-poland-original-medium.png",
+    "sha256": "17bbaef4d2c93ccd728522ed60d2c78d911dde3454fb228a21fb593050b33b07"
+  },
+  "japan": {
+    "page": "https://www.countryflags.com/japan-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/japan/flag-png-medium.png?v=6aa1aac5-39af&cf_download=flag-japan-original-medium.png",
+    "sha256": "77c9a004700c7ecadd54169f5e491f021ce36988324fa11dc53a9094411a0bf5"
+  },
+  "china": {
+    "page": "https://www.countryflags.com/china-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/china/flag-png-medium.png?v=6aa41b34-4223&cf_download=flag-china-original-medium.png",
+    "sha256": "741aa6d4190e563602e18ccc3e996d73cbab24a3cc9e2e08561d799885ec46f0"
+  },
+  "czechia": {
+    "page": "https://www.countryflags.com/czechia-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/tsjechie/flag-png-medium.png?v=6aa1aa7d-20cc&cf_download=flag-czechia-original-medium.png",
+    "sha256": "ad2b53ab5b5c12187602bd599b88ba7cb721c71a261da22d19e2a35eef079407"
+  },
+  "austria": {
+    "page": "https://www.countryflags.com/austria-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/oostenrijk/flag-png-medium.png?v=6aa400bb-d58&cf_download=flag-austria-original-medium.png",
+    "sha256": "b6c8877468f6e75a44fcd2162a8e41fcb9884064207e0a54648f795c06ebdef7"
+  },
+  "kazakhstan": {
+    "page": "https://www.countryflags.com/kazakhstan-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/kazachstan/flag-png-medium.png?v=6aa1aac7-16461&cf_download=flag-kazakhstan-original-medium.png",
+    "sha256": "e6253d1a38c681caa6b745bd81b86715db20860b3d2b27853975494ee398d60f"
+  },
+  "mexico": {
+    "page": "https://www.countryflags.com/mexico-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/mexico/flag-png-medium.png?v=6aa1aae6-1474d&cf_download=flag-mexico-original-medium.png",
+    "sha256": "61ac367fd6d9e918faefc837884eec70e330ae218fedef611b27adacefa816b8"
+  },
+  "argentina": {
+    "page": "https://www.countryflags.com/argentina-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/argentinie/flag-png-medium.png?v=6aa1a1de-b00d&cf_download=flag-argentina-original-medium.png",
+    "sha256": "07319963081afd50248759bb2dbfe53f08b2a4802d39d9fa71a848940ad5a579"
+  },
+  "turkey": {
+    "page": "https://www.countryflags.com/turkey-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/turkije/flag-png-medium.png?v=6aa1ab5c-56d7&cf_download=flag-turkiye-original-medium.png",
+    "sha256": "a6bd259ed9c35ef894f3305c0c22dc5d3cab09cacb594149b619e716a2cdac69"
+  },
+  "venezuela": {
+    "page": "https://www.countryflags.com/venezuela-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/venezuela/flag-png-medium.png?v=6aa1ab74-4aa9&cf_download=flag-venezuela-bolivarian-republic-of-original-medium.png",
+    "sha256": "3991cfc8a8552cf55a9d197432739f0625f9301ae872d66e9fcb4978a369c15d"
+  },
+  "ireland": {
+    "page": "https://www.countryflags.com/ireland-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/ierland/flag-png-medium.png?v=6aa1aac2-c2d&cf_download=flag-ireland-original-medium.png",
+    "sha256": "5370236f79c47645f5086b83f5d549bab790c83e7217958168ab4d4ffff0875f"
+  },
+  "colombia": {
+    "page": "https://www.countryflags.com/colombia-flag-image/original/",
+    "download": "https://www.countryflags.com/countryflags-file/countryflags/colombia/flag-png-medium.png?v=6aa1aa5b-f15&cf_download=flag-colombia-original-medium.png",
+    "sha256": "55a8643ac44fe5f9c541959721f759ef3ea0aa2eb50f9fd4c67a3a96e6f6d0af"
+  }
+}

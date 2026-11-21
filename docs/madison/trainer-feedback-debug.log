@@ -1,0 +1,20 @@
+# Simulated test diagnostic output; no physical trainer.
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[12.0,10.0],"clipped":false,"delta_mps":1.0,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":10.2470581044554,"player_energy_delta_j":-920.0,"receiver":1}
+MADISON_FEEDBACK_END {"elapsed_s":1.6}
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[12.0,10.0],"clipped":false,"delta_mps":1.0,"direction":-1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":-10.2470581044554,"player_energy_delta_j":840.0,"receiver":1}
+MADISON_FEEDBACK_END {"elapsed_s":1.0}
+MADISON_FEEDBACK_START {"after_mps":[11.8,10.2],"before_mps":[12.0,10.0],"clipped":false,"delta_mps":0.2,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":16.0,"intensity":0.1,"pair_energy_delta_j":-28.8,"peak_grade_pct":2.03915981045488,"player_energy_delta_j":-190.4,"receiver":1}
+MADISON_FEEDBACK_END {"elapsed_s":2.0}
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[12.0,10.0],"clipped":false,"delta_mps":1.0,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":10.2470581044554,"player_energy_delta_j":-920.0,"receiver":1}
+MADISON_FEEDBACK_END {"elapsed_s":0.300000000000001}
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[12.0,10.0],"clipped":true,"delta_mps":1.0,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":20.0,"player_energy_delta_j":-920.0,"receiver":1}
+MADISON_FEEDBACK_END {"elapsed_s":0.299999999999997}
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[12.0,10.0],"clipped":false,"delta_mps":1.0,"direction":1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":10.2470581044554,"player_energy_delta_j":-920.0,"receiver":1}
+MADISON_TRAINER_COMMAND {"at_s":200.2,"packet":{"aero_scale":1.0,"command":"set_grade","grade_pct":10.25,"id":"g372727-355584216-1","ramp_pct_per_s":100.0,"type":"command","v":1}}
+MADISON_TRAINER_COMMAND {"at_s":202.0,"packet":{"command":"set_grade","grade_pct":0.0,"id":"g372727-355584216-4","ramp_pct_per_s":100.0,"type":"command","v":1}}
+MADISON_FEEDBACK_END {"elapsed_s":3.0}
+MADISON_FEEDBACK_START {"after_mps":[11.0,11.0],"before_mps":[12.0,10.0],"clipped":false,"delta_mps":1.0,"direction":-1,"duration_s":1.6,"giver":0,"impulse_ns":80.0,"intensity":0.5,"pair_energy_delta_j":-80.0,"peak_grade_pct":-10.2470581044554,"player_energy_delta_j":840.0,"receiver":1}
+MADISON_TRAINER_COMMAND {"at_s":203.2,"packet":{"command":"set_grade","grade_pct":-10.25,"id":"g372727-355584216-7","ramp_pct_per_s":100.0,"type":"command","v":1}}
+MADISON_TRAINER_COMMAND {"at_s":203.3,"packet":{"command":"set_target_power","id":"g372727-355584216-8","type":"command","v":1,"watts":0}}
+WARNING: Trainerkoppeling: Aflossingscommando verlopen
+MADISON_TRAINER_FEEDBACK_OK

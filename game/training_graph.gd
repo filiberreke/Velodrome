@@ -1,4 +1,5 @@
 extends Control
+const Meter := preload("res://power_meter.gd")
 const Style := preload("res://menu_theme.gd")
 ## Full-session trends; separate labelled scales, gaps for missing sensors.
 const SERIES := [["game_speed_kmh", "Snelheid", "km/u", 40.0, Style.BLUE], ["power_w", "Vermogen", "W", 200.0, Color("986b29")], ["heart_rate_bpm", "Hartslag", "bpm", 160.0, Color("b03f52")], ["cadence_rpm", "Cadans", "rpm", 100.0, Color("2b8063")]]
@@ -23,7 +24,7 @@ func _draw() -> void:
 		var y: float = area.end.y - float(fraction) * area.size.y
 		draw_line(Vector2(area.position.x,y), Vector2(area.end.x,y), Style.LINE)
 	var duration := maxf(1.0, float(samples[-1].time_s)) if not samples.is_empty() else 1.0
-	for index in range(SERIES.size()):
+	for index in [1,0,2,3]:
 		var series: Array = SERIES[index]
 		var maximum: float = series[3]
 		var latest: Variant = null
@@ -33,6 +34,17 @@ func _draw() -> void:
 			latest = value
 		var label := "%s %s %s · schaal 0–%.0f" % [series[1], "%.0f" % float(latest) if valid(latest) else "—", series[2], maximum]
 		draw_string(font, Vector2(16 + (index%columns) * (size.x-32)/columns, 24+(index/columns)*20), label, HORIZONTAL_ALIGNMENT_LEFT, (size.x-32)/columns-8, 15, series[4])
+		if series[0] == "power_w":
+			for i in range(samples.size()-1):
+				var value: Variant = samples[i].get("power_w")
+				var start := float(samples[i].time_s)
+				var end := float(samples[i+1].time_s)
+				if not valid(value) or end <= start or end-start > 10.0: continue
+				var x := area.position.x + start/duration*area.size.x
+				var width := (end-start)/duration*area.size.x
+				var height := float(value)/maximum*area.size.y
+				draw_rect(Rect2(x,area.end.y-height,width,height),Meter.zone_color(float(value)))
+			continue
 		var points := PackedVector2Array()
 		var stride := maxi(1, int(ceil(float(samples.size()) / maxf(200, area.size.x))))
 		for i in range(samples.size()):

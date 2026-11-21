@@ -123,6 +123,7 @@ func _enter_training_venue() -> void:
 		if node != null: _hide(node)
 	for bike in game.bikes: _hide(bike)
 	show()
+	game.camera_mode = 1 # Wide chase view: keep the rider visible during FTP training.
 	game.bikes[0].show()
 	advance(0.0)
 
@@ -137,7 +138,7 @@ func leave() -> void:
 func advance(dt: float) -> void:
 	if not active: return
 	var page = training_page if training_page != null else game.setup_panel.ftp_page
-	var live: bool = page.test.running() and page.fresh(page.now_s())
+	var live: bool = (page.test.running() or bool(page.get("twenty_warmup"))) and page.fresh(page.now_s())
 	var speed: float = clampf(page.last_speed_kmh / 3.6, 0.0, 35.0) if live else 0.0
 	distance += speed * dt / game._path_metric(distance, 1.18)
 	var bike: Node3D = game.bikes[0]
@@ -148,6 +149,6 @@ func advance(dt: float) -> void:
 	var visual := bike.get_child(0)
 	visual.call("set_victory", false)
 	visual.call("pedal", dt, maxf(0.0, game.cadence) if live else 0.0, page.measured if live else 0.0)
-	game.camera.position = point - forward * 7.0 + Vector3(9, 5, 0)
-	game.camera.look_at(point + forward * 5.0 + Vector3.UP)
-	game.camera.fov = 70.0
+	# Use the track-aware chase camera shared with races. A fixed world-X offset
+	# can put the training camera inside the stands as the rider turns.
+	game._follow_rider_camera(distance, 1.18, dt, false, bike.position)

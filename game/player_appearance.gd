@@ -6,7 +6,20 @@ const COUNTRY_NAMES := {
 	"denmark": "Denemarken", "portugal": "Portugal", "italy": "Italië",
 	"great_britain": "Groot-Brittannië", "australia": "Australië",
 	"new_zealand": "Nieuw-Zeeland", "germany": "Duitsland", "france": "Frankrijk",
-	"netherlands": "Nederland", "united_states": "Verenigde Staten",
+	"netherlands": "Nederland", "united_states": "Verenigde Staten","spain": "Spanje",
+"switzerland": "Zwitserland",
+"poland": "Polen",
+"japan": "Japan",
+"china": "China",
+"czechia": "Tsjechië",
+"austria": "Oostenrijk",
+"kazakhstan": "Kazachstan",
+"mexico": "Mexico",
+"argentina": "Argentinië",
+"turkey": "Turkije",
+"venezuela": "Venezuela",
+"ireland": "Ierland",
+"colombia": "Colombia",
 }
 var settings_path: String
 var suit_id := "configured"
@@ -33,9 +46,8 @@ func _init(path: String = SAVE_PATH) -> void:
 		if ResourceLoader.exists(folder + "skinsuit.png"):
 			suit_options.append({"id": id, "label": COUNTRY_NAMES[id], "path": folder + "skinsuit.png"})
 		# Plain white shells are represented by a single clear option.
-		if id in ["great_britain", "new_zealand", "france", "netherlands", "united_states"]:
-			if ResourceLoader.exists(folder + "helmet.png"):
-				helmet_options.append({"id": id, "label": COUNTRY_NAMES[id], "path": folder + "helmet.png"})
+		if ResourceLoader.exists(folder + "helmet.png"):
+			helmet_options.append({"id": id, "label": COUNTRY_NAMES[id], "path": folder + "helmet.png"})
 
 func _find(options: Array[Dictionary], id: String) -> Dictionary:
 	for option in options:

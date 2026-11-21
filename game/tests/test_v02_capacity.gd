@@ -12,7 +12,7 @@ func check(ok: bool,message: String) -> void:
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
 	for mode in [0,1,2,3]:
-		for percent in [40.,60.,80.,100.]:
+		for percent in [40.,60.,80.,100.,105.,120.]:
 			var game := Game.new(); root.add_child(game)
 			game.race_mode = mode; game.rider_count = 6; game.ai_difficulty = percent
 			game.race_laps = 20
@@ -37,7 +37,7 @@ func run() -> void:
 			game.free()
 	var game := Game.new(); root.add_child(game); game.race_mode = 4
 	var last_target := 0.; var last_seconds := INF
-	for percent in [40.,60.,80.,100.]:
+	for percent in [40.,60.,80.,100.,105.,120.]:
 		var pacer = preload("res://pursuit_pacer.gd").new()
 		pacer.difficulty_percent = percent; pacer.wprime_j = 24000.; pacer.max_power_w = 900.
 		pacer.prepare(game,1000.,300.,game._rider_distance(1,0.),game.LANES[0])
@@ -54,12 +54,21 @@ func run() -> void:
 		print("V02_PURSUIT percent=",percent," watts=",last_target," seconds=",last_seconds)
 	game.free()
 	# The team opponent uses the same scaled pacer through its actual setup path.
-	for percent in [40.,60.,80.,100.]:
+	for percent in [40.,60.,80.,100.,105.,120.]:
 		var team := Game.new(); root.add_child(team)
 		team.race_mode = 5; team.race_laps = 4; team.pursuit_opponent_percent = percent
 		team._configure_peloton(); team.team_race.prepare(team,{},300.)
 		check(is_equal_approx(team.team_race.pacer.cp_w,300.*percent/100.),"Team pursuit scales opponent CP")
 		check(is_equal_approx(team.team_race.pacer.reserve_j,20000.*percent/100.),"Team pursuit scales opponent reserve")
 		team.free()
+	var records = preload("res://pursuit_records.gd")
+	var original := {"time_s": 100.0, "samples": [{"t": 0.0}, {"t": 100.0}]}
+	for percent in [40.,80.,100.,105.,120.]:
+		var replay: Dictionary = records.scaled_replay(original, percent)
+		check(is_equal_approx(replay.time_s,10000./percent),"Replay supports the full race range")
+	check(original.time_s == 100.0,"Replay scaling preserves the saved performance")
+	var derny = preload("res://keirin_race.gd")
+	check(is_equal_approx(derny.target_kmh(70),45.) and is_equal_approx(derny.target_kmh(100),50.),"Derny preserves existing speed anchors")
+	check(derny.target_kmh(40) < derny.target_kmh(70) and derny.target_kmh(120) > derny.target_kmh(100),"Derny supports both extended limits")
 	print("V02_CAPACITY failures=",failures)
 	quit(0 if failures == 0 else 1)

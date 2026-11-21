@@ -11,6 +11,7 @@ var result: Label
 var start_button: Button
 var stop_button: Button
 var back_button: Button
+var return_to_history := false
 var upload_button: Button
 var result_graph: Control
 var selected_activity := {}
@@ -127,6 +128,7 @@ func begin() -> void:
 
 func prepare_new_training() -> void:
 	if session.running(): return
+	set_history_origin(false)
 	selected_activity = {}
 	upload_status = ""
 	session.phase = "IDLE"
@@ -136,6 +138,10 @@ func finish(reason: String) -> void:
 	if is_instance_valid(scene) and scene.active: scene.finish_session(reason)
 	else: session.stop(reason)
 	_refresh()
+func set_history_origin(from_history: bool) -> void:
+	return_to_history = from_history
+	back_button.text = "← Opgeslagen trainingen" if from_history else "← Pistetraining"
+
 func leave() -> void:
 	if session.running(): finish("Training verlaten")
 	environment_requested.emit(false)

@@ -21,6 +21,7 @@ const Layout := preload("res://infield_layout.gd")
 const GLASS_OFFSET := Layout.FENCE_OFFSET
 var supporter_count := 0
 var simple_infield := false
+var crowd_density := 0.60
 var rail_supporter_count := 0
 var supporter_positions: Array[Vector3] = []
 const NEAR_M := 20.0                      # detailed people closer than this, light figures further away
@@ -136,8 +137,10 @@ func _label(parent: Node3D, text: String, pos: Vector3, size: int = 64, colour: 
 func _cell_key(p: Vector3) -> String:
 	return "%d_%d" % [int(floor(p.x / 20.0)), int(floor(p.z / 20.0))]
 
-func _person(variant: String, pos: Vector3, yaw: float, look: Array = []) -> void:
+func _person(variant: String, pos: Vector3, yaw: float, look: Array = [], force_public: bool = false) -> void:
 	if not variant.begins_with("staff_"):
+		if not force_public and not _keep_public_person(pos):
+			return
 		supporter_count += 1
 		supporter_positions.append(pos)
 	if look.is_empty():
@@ -160,11 +163,13 @@ func _random_standing() -> String:
 func _group_around(centre: Vector3, count: int, radius: float, variants: Array = []) -> void:
 	# A small group of people facing the middle (chatting around a table, a stall, ...)
 	var start := rng.randf() * TAU
+	var keep_count := roundi(float(count) * crowd_density)
 	for i in range(count):
 		var a := start + TAU * float(i) / float(count) + rng.randf_range(-0.25, 0.25)
 		var p := centre + Vector3(cos(a), 0.0, sin(a)) * (radius + rng.randf_range(-0.08, 0.12))
 		var v: String = variants[i % variants.size()] if not variants.is_empty() else _random_standing()
-		_person(v, p, _yaw_to(centre - p) + rng.randf_range(-0.3, 0.3))
+		if int(floor(float(i + 1) * keep_count / count)) > int(floor(float(i) * keep_count / count)):
+			_person(v, p, _yaw_to(centre - p) + rng.randf_range(-0.3, 0.3), [], true)
 
 # ------------------------------------------------------------------ build
 func _ready() -> void:
@@ -172,6 +177,7 @@ func _ready() -> void:
 	var cfg := ConfigFile.new()
 	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") == OK:
 		simple_infield = bool(cfg.get_value("arena", "simple_infield", false))
+		crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
 	if crowd == null:
 		crowd = CrowdKit.new()
 	rng.seed = 1613
@@ -218,7 +224,7 @@ func _build_simple_plazas() -> void:
 			blockers.append([Vector2(p.x, p.z), 0.25])
 		s += 1.15
 	var tries := 0
-	while supporter_count < 400 and tries < 8000:
+	while supporter_count < roundi(400.0 * crowd_density) and tries < 8000:
 		tries += 1
 		var p := Vector3(rng.randf_range(-11.0, 11.0), 0, rng.randf_range(-43.0, 43.0))
 		if Layout.inset(p) < 6.0 or not _free_spot(p, 0.45):
@@ -558,6 +564,17 @@ func _build_ends() -> void:
 			_prop("beach_flag", p, _yaw_to(-Vector3(p.x, 0, p.z - end_sign * 34.2)), {"beachflag": flags[k % 4]}, 0.4)
 			k += 1
 
+# Stable per-person thinning, independent of crowd cell or nearby groups.
+func _keep_public_person(pos: Vector3) -> bool:
+	if crowd_density <= 0.0:
+		return false
+	if crowd_density >= 1.0:
+		return true
+	var x := int(round(pos.x * 100.0))
+	var z := int(round(pos.z * 100.0))
+	var hash_value := posmod(x * 73856093 + z * 19349663, 1000003)
+	return float(hash_value) / 1000003.0 < crowd_density
+
 func _build_rail_public() -> void:
 	# Four continuous rows; leave working boxes and their access corridor open.
 	var s := 0.0
@@ -576,7 +593,7 @@ func _build_rail_public() -> void:
 func _build_wanderers() -> void:
 	# Fill public plaza space while preserving props, stairs and coach access.
 	var tries := 0
-	while supporter_count < 2000 and tries < 16000:
+	while supporter_count < roundi(2000.0 * crowd_density) and tries < 16000:
 		tries += 1
 		var p := Vector3(rng.randf_range(-11.0, 11.0), 0, rng.randf_range(-43.0, 43.0))
 		if Layout.inset(p) < 6.0 or not _free_spot(p, 0.35):
@@ -765,6 +782,10 @@ func _process(delta: float) -> void:
 		tail = minf(tail, distance)
 		if i < times.size() and float(times[i]) >= 0.0:
 			done += 1
+	# Scratch and tempo officials follow the same peloton clock as the HUD, not odometers.
+	if int(game.get("race_mode")) in [0, 8] and racing:
+		lead = float(game._last_lap_progress())
+		tail = lead
 	var length: float = float(int(game.get("race_laps"))) * LAP
 	if not official_new_model:
 		if done > finished_seen:

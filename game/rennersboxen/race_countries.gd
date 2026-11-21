@@ -1,7 +1,7 @@
 extends RefCounted
 ## Resolve national kit IDs and explicit race country metadata, never jersey colours/names.
 const Box = preload("res://rennersboxen/rider_box.gd")
-const CODES := {"BEL":"belgium","NED":"netherlands","FRA":"france","ITA":"italy","GER":"germany","GBR":"great_britain","DEN":"denmark","AUS":"australia","NZL":"new_zealand","POR":"portugal","USA":"united_states"}
+const CODES := {"BEL":"belgium","NED":"netherlands","FRA":"france","ITA":"italy","GER":"germany","GBR":"great_britain","DEN":"denmark","AUS":"australia","NZL":"new_zealand","POR":"portugal","USA":"united_states","JAP":"Japan","ESP":"spain","SUI":"switzerland","POL":"poland","CHN":"china","CZE":"czechia","AUT":"austria","KAZ":"kazakhstan","MEX":"mexico","ARG":"argentina","TUR":"turkey","VEN":"venezuela","IRL":"ireland","COL":"colombia"}
 
 static func valid_country(value: String) -> String:
 	var id := value.strip_edges().to_lower()
@@ -19,6 +19,10 @@ static func from_kit(config: Dictionary) -> String:
 	return valid_country(String(config.get("country_kit","")))
 
 static func configured_country(game: Node, index: int) -> String:
+	var omnium = game.get("omnium_race")
+	if omnium != null and omnium.enabled():
+		var identities: Array = game.get("rider_identities")
+		if index < identities.size(): return valid_country(String(identities[index].get("country", "")))
 	var kits: Array = game.get("rider_kits")
 	if int(game.get("race_mode")) in [4,5] and index < kits.size():
 		var selected := from_kit(kits[index])

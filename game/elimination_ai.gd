@@ -3,6 +3,7 @@ extends "res://x_scratch_ai.gd"
 const Motion := preload("res://elimination_motion.gd")
 const CONTROL_SECONDS := 0.2
 const GRID := [1.18,1.78,2.38,2.98,3.58,4.18,4.78,5.38,5.98,6.58,7.18]
+var elimination_interval_m := 500.0
 var elimination_line_m := 500.0
 var final_line_m := 7500.0
 var rear_reference_offset := 0.0
@@ -25,9 +26,10 @@ func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float
 	_wheel_ids.resize(profiles.size()); _wheel_ids.fill(-1)
 	_control_bucket=-1; _power_limits=0; _speed_caps=0; motion_ready=false
 
-static func cycle_urgency(progress: float) -> float:
-	# Prepare a route 50m before the bell; full positional effort at 200m to go.
-	return clampf((fposmod(maxf(0.0,progress),500.0)-200.0)/100.0,0.0,1.0)
+static func cycle_urgency(progress: float, interval_m: float = 500.0) -> float:
+	# Preserve the 500 m policy; scale its preparation window for shorter cycles.
+	var span := maxf(1.0, interval_m)
+	return clampf((fposmod(maxf(0.0,progress),span)-0.4*span)/(0.2*span),0.0,1.0)
 
 func _metric(i: int, lane: float, lanes: Array[float]) -> float:
 	if metric_predictor.is_valid(): return maxf(0.5,float(metric_predictor.call(i,lane)))
@@ -79,7 +81,7 @@ func _lane_safe(i: int, candidate: float, active: Array[int], distances: Array[f
 func _plan_lines(active: Array[int], distances: Array[float], speeds: Array[float], lanes: Array[float], clock: float, urgency: float, final_pair: bool) -> void:
 	var reserved: Dictionary={0:lane_targets[0]}
 	var head: float=distances[active[0]]
-	var remaining: float=500.0-fposmod(maxf(0.0,head-rear_reference_offset),500.0)
+	var remaining: float=elimination_interval_m-fposmod(maxf(0.0,head-rear_reference_offset),elimination_interval_m)
 	for rank in range(active.size()):
 		var i: int=active[rank]
 		if i==0: continue
@@ -125,7 +127,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 	if bucket!=_control_bucket:
 		_control_bucket=bucket
 		var head: float=distances[active[0]]
-		var urgency: float=cycle_urgency(head-rear_reference_offset) if not final_pair else clampf((220.0-maxf(0.0,final_line_m-head))/170.0,0.0,1.0)
+		var urgency: float=cycle_urgency(head-rear_reference_offset, elimination_interval_m) if not final_pair else clampf((220.0-maxf(0.0,final_line_m-head))/170.0,0.0,1.0)
 		_plan_lines(active,distances,speeds,lanes,clock,urgency,final_pair)
 		for rank in range(active.size()):
 			var i: int=active[rank]

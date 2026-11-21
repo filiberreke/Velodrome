@@ -8,7 +8,7 @@ const SIMPLE_DURATION := 2.5
 const OPPONENT_START := 8.0
 const OPPONENT_END := 10.0
 const WELCOME := "Welkom bij Velodrome!"
-const DISCIPLINES := {0: "scratch", 1: "puntenkoers", 3: "keirin", 4: "achtervolging", 5: "ploegenachtervolging", 6: "ploegkoers"}
+const DISCIPLINES := {0: "scratch", 2: "afvalling", 1: "puntenkoers", 3: "keirin", 4: "achtervolging", 5: "ploegenachtervolging", 6: "ploegkoers", 8: "temporace"}
 
 static func welcome_for_mode(mode: int) -> String:
 	if not DISCIPLINES.has(mode): return WELCOME
@@ -80,6 +80,8 @@ func setup(owner_game: Node3D) -> void:
 	overlay.hide()
 
 func start() -> void:
+	# Apply the selected profile before the light show saves the current values.
+	game._set_stadium_training_lighting(not game._race_lighting_enabled())
 	# Only an accepted first start consumes the intro, including a manual skip.
 	# Keep the normal finish path for subsequent events and mode switches.
 	var settings := game.get_node_or_null("GameSettings")

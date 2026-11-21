@@ -28,7 +28,7 @@ func run_test() -> void:
 	check(ui.exit_button.is_visible_in_tree() and ui.layer > 30, "Exit above settings and rider picker layers")
 	game.get_node("GameSettings").panel_root.hide()
 	ui.exit_button.pressed.emit()
-	check(ui.quitting_application and not game.quit_requested, "Exit opens confirmation before application cleanup")
+	check(ui.quitting_application and not ui.stop_race_button.visible and not game.quit_requested, "Gallery exit shows the application confirmation only")
 	escape(game)
 	check(not ui.quitting_application and not game.quit_requested, "Escape cancels application exit")
 	ui.exit_button.pressed.emit()
@@ -42,7 +42,7 @@ func run_test() -> void:
 	game.setup_panel.startlist_page.start_button.pressed.emit()
 	game.broadcast_intro.finish()
 	game._physics_process(0.01)
-	check(not ui.exit_button.visible, "Exit hidden from start staging")
+	check(ui.exit_button.visible, "Exit available during start staging")
 	for state in ["WAIT_STOP", "COUNTDOWN", "NEUTRAL", "RUN_UP", "RACING"]:
 		game.start_state = state
 		game.running = state in ["NEUTRAL", "RUN_UP", "RACING"]
@@ -52,6 +52,20 @@ func run_test() -> void:
 		var run_up_time: float = game.flying_start.elapsed
 		var distance: float = game.distances[0]
 		var lane: int = game.player_lane
+		check(ui.exit_button.visible, "Exit available during " + state)
+		var settings = game.get_node("GameSettings")
+		settings.open_button.pressed.emit()
+		check(settings.panel_root.visible and game.race_paused, "Settings pauses " + state)
+		check(not ui.backdrop.visible, "Direct settings has no pause or quit menu underneath")
+		game._physics_process(0.5)
+		check(game.clock == 12.0 and game.distances[0] == distance, "Settings freezes race")
+		settings._close_settings()
+		check(not game.race_paused and not ui.backdrop.visible, "Direct settings returns to riding")
+		ui.exit_button.pressed.emit()
+		check(ui.quitting_application and game.race_paused, "HUD exit pauses before confirmation")
+		check(ui.stop_race_button.is_visible_in_tree() and ui.leave_button.text == "Spel afsluiten", "HUD exit offers both ways to leave")
+		ui.cancel_or_resume()
+		check(not game.race_paused and not ui.backdrop.visible, "Cancelling HUD exit returns to riding")
 		escape(game)
 		check(game.race_paused and ui.backdrop.visible, "Escape pauses " + state)
 		game._physics_process(0.5)
@@ -59,6 +73,10 @@ func run_test() -> void:
 		game._process_steering(100)
 		game._process_bridge_packet({"type":"button", "button":"LEFT", "source_button":"SHIFT_UP_LEFT"})
 		check(game.start_state == state and game.race_paused, "Controller cannot reset paused event")
+		settings.toggle_menu()
+		check(settings.panel_root.visible and not ui.backdrop.visible, "Pause settings hides the underlying menu")
+		settings._close_settings()
+		check(game.race_paused and ui.backdrop.visible, "Pause settings returns to pause")
 		check(game.clock == 12.0 and game.countdown == 2.0 and game.distances[0] == distance, "Race and countdown frozen")
 		check(game.neutral_start.elapsed == neutral_time and game.flying_start.elapsed == run_up_time, "Opening-lap clocks remain frozen while paused")
 		check(game.player_lane == lane, "Keyboard and trainer steering blocked while paused")
@@ -92,6 +110,17 @@ func run_test() -> void:
 	ui.leave_button.pressed.emit()
 	check(game.start_state == "SETUP" and not game.race_paused and game.setup_panel.page == 1, "Confirmed leave returns to gallery")
 	check(ui.exit_button.visible and not ui.backdrop.visible, "Exit restored after leave")
+	game.start_state = "RACING"
+	game.running = true
+	ui.exit_button.pressed.emit()
+	ui.leave_button.pressed.emit()
+	check(game.quit_requested, "HUD exit can still close the application")
+	ui.cancel_or_resume()
+	game.quit_requested = false
+	ui.exit_button.pressed.emit()
+	ui.stop_race_button.pressed.emit()
+	check(not game.quit_requested and not game.race_paused and game.start_state == "SETUP" and game.setup_panel.page == 1, "Stop from HUD exit returns to race selection")
+
 	game.finished = true
 	game.start_state = "RACING"
 	game._physics_process(0.01)

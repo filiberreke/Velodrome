@@ -11,6 +11,16 @@ var simple_infield := false
 var simple_infield_check: CheckButton
 var always_show_intro := false
 var intro_check: CheckButton
+var race_lighting := true
+var race_lighting_check: CheckButton
+const FPS_LIMITS := [30, 60, 90]
+var max_fps := 90
+var show_fps := false
+var fps_choice: OptionButton
+var fps_check: CheckButton
+var fps_label: Label
+var fps_wait := 0.0
+var preset_hint: Label
 var crowd_slider: HSlider
 var crowd_label: Label
 var panel_root: Control
@@ -31,6 +41,8 @@ var appearance_tabs: TabContainer
 var ride_tabs: Button
 var return_to_devices := false
 var return_focus: Control
+var resume_race_on_close := false
+var restore_pause_menu := false
 var suit_choice: OptionButton
 var helmet_choice: OptionButton
 var visor_choice: OptionButton
@@ -45,6 +57,7 @@ func _ready() -> void:
 	_load_rider_profile()
 	_apply_display()
 	_build_menu()
+	_build_fps_label()
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -60,12 +73,19 @@ func _load_settings() -> void:
 	crowd_density = clampf(float(cfg.get_value("arena", "crowd_density", 0.60)), 0.0, 1.0)
 	simple_infield = bool(cfg.get_value("arena", "simple_infield", false))
 	always_show_intro = bool(cfg.get_value("presentation", "always_show_intro", false))
+	race_lighting = bool(cfg.get_value("arena", "race_lighting", true))
+	var limit := int(cfg.get_value("display", "max_fps", 90))
+	max_fps = limit if FPS_LIMITS.has(limit) else 90
+	show_fps = bool(cfg.get_value("display", "show_fps", false))
 
 func _apply_display() -> void:
 	# Keep 2D UI at the reference viewport resolution while scaling 3D separately.
 	get_window().content_scale_size = Vector2i(1920, 1080)
 	get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	get_viewport().scaling_3d_scale = render_scale
+	Engine.max_fps = max_fps
+	if fps_label != null:
+		fps_label.visible = show_fps
 	if fullscreen:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	else:
@@ -82,8 +102,11 @@ func _save_settings() -> void:
 	cfg.set_value("display", "height", resolution.y)
 	cfg.set_value("display", "render_scale", render_scale)
 	cfg.set_value("display", "fullscreen", fullscreen)
+	cfg.set_value("display", "max_fps", max_fps)
+	cfg.set_value("display", "show_fps", show_fps)
 	cfg.set_value("arena", "crowd_density", crowd_density)
 	cfg.set_value("arena", "simple_infield", simple_infield)
+	cfg.set_value("arena", "race_lighting", race_lighting)
 	cfg.set_value("presentation", "always_show_intro", always_show_intro)
 	var err := cfg.save(preload("res://config_paths.gd").user_path("display_settings.cfg"))
 	if err != OK:
@@ -211,10 +234,14 @@ func _build_menu() -> void:
 	rider_ftp_input.value = preload("res://player_profile.gd").new().ftp()
 	box.add_child(rider_ftp_input)
 	_build_appearance_controls(box, player_tab)
+	var display_tab := HBoxContainer.new()
+	display_tab.name = "Beeld"
+	display_tab.add_theme_constant_override("separation", 40)
+	appearance_tabs.add_child(display_tab)
 	box = VBoxContainer.new()
-	box.name = "Beeld"
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", 10)
-	appearance_tabs.add_child(box)
+	display_tab.add_child(box)
 	var display_heading := Label.new()
 	display_heading.text = "BEELDINSTELLINGEN"
 	display_heading.add_theme_color_override("font_color", MenuStyle.BLUE)
@@ -247,7 +274,7 @@ func _build_menu() -> void:
 	var crowd_header := HBoxContainer.new()
 	box.add_child(crowd_header)
 	var crowd_heading := Label.new()
-	crowd_heading.text = "PUBLIEK OP DE TRIBUNES (na herstart)"
+	crowd_heading.text = "PUBLIEK OP TRIBUNES EN MIDDENPLEIN (na herstart)"
 	crowd_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	crowd_header.add_child(crowd_heading)
 	crowd_label = Label.new()
@@ -260,6 +287,24 @@ func _build_menu() -> void:
 	crowd_slider.value_changed.connect(func(v: float): crowd_label.text = "%d%%" % roundi(v * 100.0))
 	box.add_child(crowd_slider)
 	crowd_label.text = "%d%%" % roundi(crowd_density * 100.0)
+	var preset_button := Button.new()
+	preset_button.name = "OudereComputer"
+	preset_button.text = "Instellingen voor een oudere computer"
+	preset_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	preset_button.tooltip_text = "3D-resolutie 60%, geen publiek, eenvoudige graphics, trainingsverlichting en maximaal 60 beelden per seconde."
+	preset_button.pressed.connect(apply_older_computer_preset)
+	box.add_child(preset_button)
+	preset_hint = Label.new()
+	preset_hint.text = "Voorstel ingevuld. Kies Toepassen en bewaren; publiek en eenvoudige graphics werken na een herstart."
+	preset_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	preset_hint.custom_minimum_size.x = 480
+	preset_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
+	preset_hint.visible = false
+	box.add_child(preset_hint)
+	box = VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 10)
+	display_tab.add_child(box)
 	simple_infield_check = CheckButton.new()
 	simple_infield_check.name = "EenvoudigMiddenplein"
 	simple_infield_check.text = "Eenvoudige graphics (na herstart)"
@@ -270,6 +315,11 @@ func _build_menu() -> void:
 	fullscreen_check.text = "Volledig scherm"
 	fullscreen_check.button_pressed = fullscreen
 	box.add_child(fullscreen_check)
+	race_lighting_check = CheckButton.new()
+	race_lighting_check.text = "Wedstrijdverlichting"
+	race_lighting_check.button_pressed = race_lighting
+	race_lighting_check.tooltip_text = "Uit: gebruik tijdens wedstrijden dezelfde verlichting als bij trainingen."
+	box.add_child(race_lighting_check)
 	intro_check = CheckButton.new()
 	intro_check.text = "Intro bij elke wedstrijd tonen"
 	intro_check.button_pressed = always_show_intro
@@ -278,10 +328,31 @@ func _build_menu() -> void:
 	var intro_hint := Label.new()
 	intro_hint.text = "Uit: alleen de eerste wedstrijd van de sessie. Aan: elke wedstrijd."
 	intro_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
+	intro_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro_hint.custom_minimum_size.x = 480
 	box.add_child(intro_hint)
+	fps_check = CheckButton.new()
+	fps_check.name = "ToonFPS"
+	fps_check.text = "Toon FPS"
+	fps_check.button_pressed = show_fps
+	fps_check.tooltip_text = "Toont klein bovenaan het scherm hoeveel beelden per seconde het spel haalt."
+	box.add_child(fps_check)
+	var fps_limit_label := Label.new()
+	fps_limit_label.text = "Maximum beelden per seconde"
+	box.add_child(fps_limit_label)
+	fps_choice = OptionButton.new()
+	fps_choice.name = "MaxFPS"
+	for limit in FPS_LIMITS:
+		fps_choice.add_item("%d" % limit)
+	fps_choice.select(FPS_LIMITS.find(max_fps))
+	fps_choice.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	fps_choice.custom_minimum_size.x = 160
+	box.add_child(fps_choice)
 	var info := Label.new()
 	info.text = "Een lagere 3D-resolutie verbetert de prestaties.\nMenu’s en uitslagen blijven scherp.\nStel je sneltoetsen in op het tabblad Toetsenbord."
 	info.add_theme_color_override("font_color", MenuStyle.MUTED)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.custom_minimum_size.x = 480
 	box.add_child(info)
 	box = VBoxContainer.new()
 	box.name = "Strava"
@@ -446,6 +517,13 @@ func open_device_mapping() -> void:
 func _close_settings() -> void:
 	keyboard_settings.cancel_capture()
 	panel_root.hide()
+	var game := get_parent()
+	if resume_race_on_close:
+		game.call("_resume_race")
+	elif restore_pause_menu:
+		game.exit_menu.backdrop.show()
+	resume_race_on_close = false
+	restore_pause_menu = false
 	close_button.text = "← Terug"
 	appearance_preview.set_active(false)
 	if controller_test != null:
@@ -466,13 +544,53 @@ func _on_apply() -> void:
 	render_scale = float(scale_slider.value)
 	fullscreen = fullscreen_check.button_pressed
 	always_show_intro = intro_check.button_pressed
+	race_lighting = race_lighting_check.button_pressed
 	crowd_density = float(crowd_slider.value)
 	simple_infield = simple_infield_check.button_pressed
+	show_fps = fps_check.button_pressed
+	max_fps = FPS_LIMITS[maxi(0, fps_choice.selected)]
+	preset_hint.visible = false
 	_apply_display()
 	_save_settings()
 	_save_rider_profile()
 	get_parent().call("apply_player_appearance")
 	_close_settings()
+
+## Fills in the lightest settings; nothing is stored until Apply.
+func apply_older_computer_preset() -> void:
+	scale_slider.value = 0.6
+	crowd_slider.value = 0.0
+	simple_infield_check.button_pressed = true
+	race_lighting_check.button_pressed = false
+	fps_choice.select(FPS_LIMITS.find(60))
+	preset_hint.visible = true
+
+func _build_fps_label() -> void:
+	# Small and unobtrusive, top centre, above menus and HUD.
+	fps_label = Label.new()
+	fps_label.name = "FPS"
+	fps_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	fps_label.offset_left = -60
+	fps_label.offset_right = 60
+	fps_label.offset_top = 6
+	fps_label.offset_bottom = 30
+	fps_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fps_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fps_label.add_theme_font_size_override("font_size", 16)
+	fps_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.78))
+	fps_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+	fps_label.add_theme_constant_override("outline_size", 4)
+	fps_label.visible = show_fps
+	add_child(fps_label)
+
+func _update_fps_label(delta: float) -> void:
+	if fps_label == null or not fps_label.visible:
+		return
+	fps_wait -= delta
+	if fps_wait > 0.0:
+		return
+	fps_wait = 0.5
+	fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 
 func toggle_menu() -> void:
 	if panel_root.visible:
@@ -480,10 +598,17 @@ func toggle_menu() -> void:
 	else:
 		return_focus = get_viewport().gui_get_focus_owner()
 		get_parent().call("_clear_look_back")
-		if get_parent().get("start_state") not in ["SETUP", "INTRO"] and not get_parent().get("finished"):
-			get_parent().call("_pause_race")
+		var game := get_parent()
+		restore_pause_menu = game.exit_menu.backdrop.visible
+		game.exit_menu.backdrop.hide()
+		resume_race_on_close = not game.race_paused and game.start_state not in ["SETUP", "INTRO"] and not game.finished
+		if resume_race_on_close: game.call("_pause_race", false)
 		_sync_appearance_controls()
 		intro_check.button_pressed = always_show_intro
+		race_lighting_check.button_pressed = race_lighting
+		fps_check.button_pressed = show_fps
+		fps_choice.select(FPS_LIMITS.find(max_fps))
+		preset_hint.visible = false
 		panel_root.show()
 		_on_settings_tab_changed(appearance_tabs.current_tab)
 		ride_tabs.grab_focus()
@@ -509,7 +634,8 @@ func bridge_action(button: String, from_keyboard: bool = false) -> void:
 	# A controller test can only be left through Z, so no gameplay input escapes.
 	get_parent().ride_navigation.navigate(panel_root, button, ride_tabs, true)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_update_fps_label(delta)
 	open_button.text = "Instellingen: " + get_parent().keyboard_mapping.caption("global", "settings")
 	ride_tabs.text = "Tab: links/rechts · Controller: B/Z sluiten · Toetsenbord: " + get_parent().keyboard_mapping.caption("menu","back") + " sluiten"
 	if open_button != null:

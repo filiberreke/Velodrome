@@ -25,6 +25,9 @@ var allow_released_session := false
 var requested_erg := 0
 var last_target := -1
 var last_response := -100.0
+var debug_commands := false
+var grade_rate := 10.0
+var grade_deadline := INF # Optional wall-clock deadline for transient feedback.
 var erg_only := false # Explicit training opt-in; race probing stays SIM-only.
 
 func arm(explicit_start: bool = true) -> void:
@@ -33,6 +36,33 @@ func arm(explicit_start: bool = true) -> void:
 	armed = true
 	error = ""
 	allow_released_session = explicit_start
+
+## Grade for the trainer from the rider's route grade. A rider of about 80 kg
+## carries momentum through the short climb into each bend and the descent out of
+## it (1.3 m on the stayers line); a trainer flywheel stores far less energy and
+## would turn that oscillation into a pedal wall. The game speed model keeps the
+## full physics. The trainer gets a direct share for feel plus a slow part with
+## the rider's inertia time scale; sustained climbs still reach the full grade.
+class RouteGradeFilter extends RefCounted:
+	const FAST_RATE := 8.0 # Former frame-noise smoothing, per second.
+	const INERTIA_TAU_S := 4.0
+	const DIRECT_SHARE := 0.2
+	var fast := 0.0
+	var slow := 0.0
+	var value := 0.0
+
+	func reset() -> void:
+		fast = 0.0
+		slow = 0.0
+		value = 0.0
+
+	func step(raw: float, dt: float) -> float:
+		if dt <= 0.0:
+			return value
+		fast = lerpf(fast, raw, 1.0 - exp(-FAST_RATE * dt))
+		slow = lerpf(slow, raw, 1.0 - exp(-dt / INERTIA_TAU_S))
+		value = DIRECT_SHARE * fast + (1.0 - DIRECT_SHARE) * slow
+		return value
 
 static func route_grade(previous: Vector3, current: Vector3) -> float:
 	# Bank angle itself is not road grade. Use rise / horizontal travelled path.
@@ -50,7 +80,10 @@ func _request(command: String, params: Dictionary, now: float, mutation: bool = 
 	sequence += 1
 	var packet := {"type": "command", "v": 1, "id": "%s-%d" % [session, sequence], "command": command}
 	packet.merge(params)
+	if debug_commands and command in ["set_grade","set_target_power"]:
+		print("MADISON_TRAINER_COMMAND ", JSON.stringify({"at_s":now,"packet":packet}))
 	var request := {"packet": packet, "raw": JSON.stringify(packet).to_utf8_buffer(), "at": now, "retry_at": now + 0.3, "tries": 0, "seq": sequence}
+	if command == "set_grade": request["expires_at"] = grade_deadline
 	requests[packet.id] = request
 	if mutation: pending = request
 	socket.put_packet(request.raw)
@@ -222,6 +255,10 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		armed = false
 	enabled_before = enabled
 	_receive(now)
+	if not pending.is_empty() and now >= float(pending.get("expires_at", INF)):
+		# Do not retry a short force pulse after its intended lifetime.
+		_block("Aflossingscommando verlopen", true, now)
+		return
 	if not pending.is_empty() and now >= float(pending.retry_at):
 		if int(pending.tries) >= 3:
 			var was_release: bool = pending.packet.command == "set_target_power"
@@ -255,7 +292,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 	grade = snappedf(clampf(grade, -20.0, 20.0), 0.01)
 	aero = snappedf(clampf(aero, 0.0, 1.0), 0.01)
 	if absf(grade - last_grade) < 0.05 and (not aero_supported or absf(aero - last_aero) < 0.02): return
-	var params := {"grade_pct": grade, "ramp_pct_per_s": 10.0}
+	var params := {"grade_pct": grade, "ramp_pct_per_s": clampf(grade_rate, 0.1, 100.0)}
 	if aero_supported: params["aero_scale"] = aero
 	_request("set_grade", params, now, true)
 	last_grade = grade

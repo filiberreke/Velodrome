@@ -78,5 +78,146 @@
     "skinsuit_png": "res://assets/riders/national_kits/united_states/skinsuit.png",
     "helmet_png": "res://assets/riders/national_kits/united_states/helmet.png",
     "visor": "donker"
+  },
+  {
+    "id": "japan",
+    "name": "Japan",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/japan/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/japan/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "poland",
+    "name": "Polen",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/poland/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/poland/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "spain",
+    "name": "Spanje",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/spain/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/spain/helmet.png",
+    "visor": "donker"
+  },
+  {
+    "id": "switzerland",
+    "name": "Zwitserland",
+    "sleeves": "short",
+    "skinsuit_png": "res://assets/riders/national_kits/switzerland/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/switzerland/helmet.png",
+    "visor": "donker"
+  },{
+    "id": "china",
+    "name": "China",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/china/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/china/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#ce2436",
+    "shorts_color": "#161d29"
+  },
+  {
+    "id": "czechia",
+    "name": "Tsjechië",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/czechia/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/czechia/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#1456ae",
+    "shorts_color": "#132440"
+  },
+  {
+    "id": "austria",
+    "name": "Oostenrijk",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/austria/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/austria/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#d32237",
+    "shorts_color": "#171d28"
+  },
+  {
+    "id": "kazakhstan",
+    "name": "Kazachstan",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/kazakhstan/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/kazakhstan/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#20b3d0",
+    "shorts_color": "#122737"
+  },
+  {
+    "id": "mexico",
+    "name": "Mexico",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/mexico/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/mexico/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#08774b",
+    "shorts_color": "#13241f"
+  },
+  {
+    "id": "argentina",
+    "name": "Argentinië",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/argentina/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/argentina/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#8cd3f0",
+    "shorts_color": "#142a41"
+  },
+  {
+    "id": "turkey",
+    "name": "Turkije",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/turkey/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/turkey/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#d21e37",
+    "shorts_color": "#211c2a"
+  },
+  {
+    "id": "venezuela",
+    "name": "Venezuela",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/venezuela/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/venezuela/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#f6cd32",
+    "shorts_color": "#17365e"
+  },
+  {
+    "id": "ireland",
+    "name": "Ierland",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/ireland/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/ireland/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#078456",
+    "shorts_color": "#142c29"
+  },
+  {
+    "id": "colombia",
+    "name": "Colombia",
+    "sleeves": "long",
+    "skinsuit_png": "res://assets/riders/national_kits/colombia/skinsuit.png",
+    "helmet_png": "res://assets/riders/national_kits/colombia/helmet.png",
+    "visor": "donker",
+    "concept": true,
+    "shirt_color": "#86c9eb",
+    "shorts_color": "#172b48"
   }
 ]

@@ -27,6 +27,8 @@ const TIERS := [
 
 var main: Node3D
 var board: Label3D
+var stand_lights: Array[OmniLight3D] = []
+var track_lights: Array[OmniLight3D] = []
 var sponsor_texture: Texture2D = preload("res://wielerpraat.jpg")
 var seat_count := 0
 var spectator_count := 0
@@ -55,6 +57,7 @@ func _ready() -> void:
 		load("res://tour_spectator_details.gd").new().build(self)
 	_build_facades_and_railings()
 	_build_roof()
+	preload("res://arena_flags.gd").new().build(self)
 	var show := preload("res://stadium_show.gd").new()
 	show.name = "VelodromeStadiumShow"
 	add_child(show)
@@ -65,7 +68,8 @@ func _ready() -> void:
 	infield_scene.set("crowd", crowd)
 	add_child(infield_scene)
 	_build_scoreboard()
-	print("Velodrome 250 arena: %d procedurele stoeltjes, %d toeschouwers, MultiMesh" % [seat_count, spectator_count])
+	var culled: int = preload("res://prop_culling.gd").apply(self)
+	print("Velodrome 250 arena: %d procedurele stoeltjes, %d toeschouwers, MultiMesh, %d kleine props met zichtafstand" % [seat_count, spectator_count, culled])
 
 func _point(s: float, offset: float) -> Vector3:
 	return main.call("_at", s, offset)
@@ -390,20 +394,27 @@ func _build_roof() -> void:
 		lamp.omni_range = 32.0
 		lamp.shadow_enabled = false
 		add_child(lamp)
-	# A few focused neutral-white overhead lamps give the wood and riders contrast.
-	# Decorative strips remain emissive; avoid a costly shadow light per panel.
+		stand_lights.append(lamp)
+	# Overlap the lights around the riding surface, including through the bends.
 	for i in range(8):
 		var s: float = LAP * (float(i) + 0.5) / 8.0
-		var race_light := SpotLight3D.new()
-		race_light.name = "Piste schijnwerper %d" % (i + 1)
-		race_light.position = _roof_light_mount(s) - Vector3.UP * 0.65
-		add_child(race_light)
-		race_light.look_at(_stadium_point(s, 3.6, 0.4), Vector3.UP)
-		race_light.light_color = Color("f4f5ff")
-		race_light.light_energy = 1.05
-		race_light.spot_range = 37.0
-		race_light.spot_angle = 56.0
-		race_light.shadow_enabled = false
+		var lamp := OmniLight3D.new()
+		lamp.name = "Pisteverlichting %d" % (i + 1)
+		lamp.position = _point(s, 4.5) + Vector3.UP * 8.0
+		lamp.light_color = Color("f4f5ff")
+		lamp.light_energy = 2.7
+		lamp.omni_range = 62.326
+		lamp.omni_attenuation = 0.7
+		lamp.light_specular = 0.15
+		lamp.shadow_enabled = false
+		add_child(lamp)
+		track_lights.append(lamp)
+
+func set_track_lighting_training(training: bool) -> void:
+	for lamp in stand_lights:
+		lamp.visible = training
+	for lamp in track_lights:
+		lamp.visible = not training
 
 func _roof_light_mount(s: float) -> Vector3:
 	# Suspend the fixtures under the sloping canopy, above and in front of the stands.
@@ -555,6 +566,7 @@ func _build_glass_boarding() -> void:
 func _build_track_banner() -> void:
 	# Preserve EXACT UV coordinates from beta.16.11.8; no more banner regressions.
 	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
 	var tex := PackedVector2Array()
 	var steps := 28
 	for k in range(steps):
@@ -566,13 +578,19 @@ func _build_track_banner() -> void:
 		var d: Vector3 = _point(s1, 8.1) + Vector3.UP * 0.075
 		var u0: float = float(k) / float(steps)
 		var u1: float = float(k + 1) / float(steps)
-		for v in [a, b, c, c, b, d]:
+		# Preserve UV order while orienting both triangles toward the lit track surface.
+		var normal: Vector3 = (b - a).cross(c - a).normalized()
+		if normal.y < 0.0:
+			normal = -normal
+		for v in [a, c, b, c, d, b]:
 			verts.append(v)
-		for uv in [Vector2(1.0 - u0, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 0.0)]:
+			normals.append(normal)
+		for uv in [Vector2(1.0 - u0, 1.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u0, 0.0), Vector2(1.0 - u1, 1.0), Vector2(1.0 - u1, 0.0), Vector2(1.0 - u0, 0.0)]:
 			tex.append(uv)
 	var data: Array = []
 	data.resize(Mesh.ARRAY_MAX)
 	data[Mesh.ARRAY_VERTEX] = verts
+	data[Mesh.ARRAY_NORMAL] = normals
 	data[Mesh.ARRAY_TEX_UV] = tex
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, data)
@@ -580,7 +598,7 @@ func _build_track_banner() -> void:
 	banner.mesh = mesh
 	var mat := StandardMaterial3D.new()
 	mat.albedo_texture = sponsor_texture
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.roughness = 0.85
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	banner.material_override = mat
 	add_child(banner)

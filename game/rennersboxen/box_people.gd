@@ -3,7 +3,7 @@ extends Node3D
 const Kit = preload("res://crowd_kit.gd")
 const Themes = preload("res://rennersboxen/themes.gd")
 const SUPPORTER_POSES := ["stand_m_cheer","stand_m_clap","stand_f_talk","stand_f_drink"]
-const FLAG_ACCENTS := {"belgium":0.0,"netherlands":0.375,"france":0.125,"italy":0.625,"germany":0.0,"great_britain":0.125,"denmark":0.125,"australia":0.0,"new_zealand":0.25,"portugal":0.125,"united_states":0.125}
+const FLAG_ACCENTS := {"belgium":0.0,"netherlands":0.375,"france":0.125,"italy":0.625,"germany":0.0,"great_britain":0.125,"denmark":0.125,"australia":0.0,"new_zealand":0.25,"portugal":0.125,"united_states":0.125,"spain":0.125,"switzerland":0.125,"poland":0.125,"japan":0.125,"china":0.125,"czechia":0.125,"austria":0.125,"kazakhstan":0.375,"mexico":0.0,"argentina":0.375,"turkey":0.125,"venezuela":0.375,"ireland":0.0,"colombia":0.375}
 var kit: RefCounted
 var country := ""
 var actors: Array[Node3D] = []

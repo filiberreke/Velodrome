@@ -7,8 +7,10 @@ const CLUSTER_GAP_M := 12.0
 var credits: Array[int] = []
 var events: Array[Dictionary] = []
 var previous_progress: Array[float] = []
+var finish_clock := -1.0
 
 func reset(count: int) -> void:
+	finish_clock = -1.0
 	credits.resize(count)
 	credits.fill(0)
 	previous_progress.clear()
@@ -75,3 +77,26 @@ func better(a: int, b: int, finish_times: Array[float], progress: Array[float]) 
 	if af != bf:
 		return af
 	return progress[a] > progress[b]
+
+func advance(previous: Array[float], current: Array[float], seconds: float, dt: float, finish_times: Array[float], laps: int) -> void:
+	# Keep odometers intact; a lap gained changes classification, not the finish line.
+	if previous_progress.size() != previous.size(): previous_progress = previous.duplicate()
+	var crossings: Array[Dictionary] = []
+	for i in range(current.size()):
+		if finish_times[i] >= 0.0: continue
+		for lap in range(maxi(1, floori(previous[i] / LAP_M) + 1), floori(current[i] / LAP_M) + 1):
+			var fraction: float = (lap * LAP_M - previous[i]) / maxf(0.000000001, current[i] - previous[i])
+			crossings.append({"rider": i, "lap": lap, "seconds": seconds - dt + dt * fraction})
+	crossings.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a.rider < b.rider if a.seconds == b.seconds else a.seconds < b.seconds)
+	for crossing in crossings:
+		if finish_clock < 0.0:
+			var at: Array[float] = []
+			var fraction: float = clampf((crossing.seconds - seconds + dt) / maxf(dt, 0.000000001), 0.0, 1.0)
+			for i in range(current.size()): at.append(lerpf(previous[i], current[i], fraction))
+			examine(at, finish_times, crossing.seconds)
+			if int(crossing.lap) - credits[int(crossing.rider)] >= laps:
+				finish_clock = crossing.seconds
+		if finish_clock >= 0.0 and finish_times[crossing.rider] < 0.0:
+			finish_times[crossing.rider] = crossing.seconds
+	if finish_clock < 0.0: examine(current, finish_times, seconds)

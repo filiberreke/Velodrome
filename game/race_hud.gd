@@ -46,8 +46,8 @@ var eliminated_rows: VBoxContainer
 var eliminated_scroll: ScrollContainer
 var nearby_panel: PanelContainer
 var peloton_label: Label
-var points_panel: PanelContainer
-var points_rows: Array[Dictionary] = []
+const StandingsPanel := preload("res://omnium/omnium_hud.gd")
+var points_panel: StandingsPanel
 var team_laps_panel: PanelContainer
 var team_laps_scroll: ScrollContainer
 var team_lap_rows: Array[Dictionary] = []
@@ -125,7 +125,9 @@ func _ready() -> void:
 	row_player.set_content_margin_all(8)
 	_build_nearby()
 	_build_eliminated()
-	_build_points_standings()
+	points_panel = StandingsPanel.new()
+	add_child(points_panel)
+	points_panel.hide()
 	_build_team_laps()
 	_build_solo_checkpoints()
 	_build_bottom()
@@ -328,7 +330,7 @@ func _build_eliminated() -> void:
 	eliminated_panel.hide()
 
 func _update_eliminated(data: Dictionary) -> void:
-	eliminated_panel.visible = bool(data.get("elimination", false))
+	eliminated_panel.visible = bool(data.get("elimination", false)) and not bool(data.get("omnium", false))
 	if not eliminated_panel.visible: return
 	var out: Array = data.get("eliminated", [])
 	eliminated_scroll.custom_minimum_size.y = minf(360.0, out.size() * 30.0)
@@ -742,7 +744,7 @@ func update_race(data: Dictionary) -> void:
 	gear_label.text = "ERG %.0f W" % float(erg_watts) if erg_active else str(data["gear"])
 	gear_label.get_parent().get_child(0).text = "WEERSTAND" if erg_active else "VERSNELLING"
 	var lap_suffix: int = int(data.get("lap_credit", 0))
-	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if bool(data.get("points_race", false)) and lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
+	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]
@@ -755,7 +757,6 @@ func update_race(data: Dictionary) -> void:
 	map.set_peloton(data.get("peloton", {}))
 	peloton_label.text = str(data.get("peloton_gap", ""))
 	peloton_label.visible = not peloton_label.text.is_empty()
-	_update_points_standings(data)
 	_update_eliminated(data)
 	var order: Array[int] = data["order"].duplicate()
 	if bool(data.get("elimination", false)):
@@ -791,44 +792,3 @@ static func closest_race_ids(order: Array[int], positions: Array) -> Array[int]:
 	close.resize(mini(6,close.size()))
 	close.sort_custom(func(a: int, b: int) -> bool: return order.find(a) < order.find(b))
 	return close
-
-func _build_points_standings() -> void:
-	points_panel = panel(self, Control.PRESET_TOP_RIGHT, -410, 330, -32, 858)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 5)
-	points_panel.add_child(column)
-	column.add_child(text("TUSSENSTAND · PUNTEN", 18, ACCENT))
-	for i in range(16):
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		column.add_child(row)
-		var rank := text("", 17, MUTED)
-		rank.custom_minimum_size.x = 26
-		row.add_child(rank)
-		var name_label := text("", 17)
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		name_label.clip_text = true
-		row.add_child(name_label)
-		var score := text("", 18, ACCENT)
-		score.custom_minimum_size.x = 45
-		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		row.add_child(score)
-		points_rows.append({"row":row,"rank":rank,"name":name_label,"score":score})
-	points_panel.hide()
-
-func _update_points_standings(data: Dictionary) -> void:
-	points_panel.visible = bool(data.get("points_race", false))
-	if not points_panel.visible: return
-	var order: Array = data.get("points_order", [])
-	var scores: Array = data.get("point_scores", [])
-	points_panel.offset_bottom = 330 + minf(528.0, 80.0+order.size()*26.0)
-	for i in range(points_rows.size()):
-		var row: Dictionary = points_rows[i]
-		row.row.visible = i < order.size()
-		if i >= order.size(): continue
-		var id: int = int(order[i])
-		row.rank.text = str(i+1)
-		row.name.text = data.names[id]
-		row.name.add_theme_color_override("font_color", ACCENT if id == 0 else INK)
-		row.score.text = str(scores[id])

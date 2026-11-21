@@ -1,0 +1,14 @@
+name: Export simulation source
+on:
+  push:
+    branches: [v0.3]
+    paths: ['.github/workflows/export-simulation-source.yml']
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simulation-source
+          path: simulation/*.py

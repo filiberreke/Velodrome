@@ -1,6 +1,10 @@
 extends Node3D
 # Integrated Blender rig + skinned meshes. Contains both bicycle and cyclist.
 const RIDER_SCENE: PackedScene = preload("res://assets/riders/velodrome_rider.glb")
+const RIDER_FEMALE_SCENE: PackedScene = preload("res://assets/riders/velodrome_rider_female.glb")
+const HAIR_STYLES: Array[String] = ["low_bun", "ponytail", "short"]
+const HAIR_COLORS := {"blond": Color("d9b56a"), "lichtbruin": Color("9c7a4e"), "kastanjebruin": Color("6e4026"), "donkerbruin": Color("3b2a22"), "zwart": Color("1e1a18"), "rood": Color("b5502e"), "grijs": Color("a7a49d")}
+const FEMALE_PROFILE_SCALE := {"ShoulderWidth": 0.7, "ArmMass": 0.7}
 const PURSUIT_SCENE: PackedScene = preload("res://assets/riders/velodrome_pursuit.glb")
 const SKINSUIT_COVERAGE: Shader = preload("res://skinsuit_coverage.gdshader")
 const BASE_CADENCE: float = 60.0
@@ -16,6 +20,10 @@ const DECAL_DIR := "res://assets/riders/decals/"
 @export_file("*.png") var skinsuit_png: String = ""
 @export_file("*.png") var helmet_png: String = ""
 @export var visor: String = ""
+@export var category: String = "men"
+@export var hair_style: String = ""
+@export var hair_color: String = ""
+var female: bool = false
 const KIT_DIR := "res://assets/riders/national_kits/"
 var _default_materials: Array[Material] = []
 # Index order: player, drafter, sprinter, attacker.
@@ -42,7 +50,14 @@ var exchange_overlay: Node
 var body_mesh: MeshInstance3D
 
 func _ready() -> void:
-	rig_scene = (PURSUIT_SCENE if bool(get_meta("pursuit_mode", false)) else RIDER_SCENE).instantiate()
+	var appearance: Dictionary = get_meta("jersey_config", {})
+	var requested_category := String(get_meta("category", appearance.get("category", category))).strip_edges().to_lower()
+	female = requested_category == "women"
+	var pursuit := bool(get_meta("pursuit_mode", false))
+	if female and pursuit:
+		push_warning("Velodrome rider: vrouwelijk pursuit-model ontbreekt; standaard pursuit-model gebruikt")
+		female = false
+	rig_scene = (PURSUIT_SCENE if pursuit else (RIDER_FEMALE_SCENE if female else RIDER_SCENE)).instantiate()
 	rig_scene.name = "BlenderRiderAndBike"
 	add_child(rig_scene)
 	animator = _find_animation_player(rig_scene)
@@ -85,6 +100,9 @@ func _ready() -> void:
 
 	set_helmet_png(String(get_meta("helmet_png", config.get("helmet_png", helmet_png))))
 	set_visor(String(get_meta("visor", config.get("visor", visor))))
+	if female:
+		set_hair_style(String(get_meta("hair_style", config.get("hair_style", hair_style))))
+		set_hair_color(String(get_meta("hair_color", config.get("hair_color", hair_color))))
 
 func _find_animation_player(root: Node) -> AnimationPlayer:
 	if root is AnimationPlayer:
@@ -119,7 +137,7 @@ func _apply_rider_profile(index: int) -> void:
 		var shape_name: String = String(body.mesh.get_blend_shape_name(shape_index))
 		var profile_key: int = SHAPE_KEYS.find(shape_name)
 		if profile_key >= 0:
-			body.set_blend_shape_value(shape_index, clampf(float((get_meta("body_shapes", {}) as Dictionary).get(shape_name, RIDER_SHAPES[index][profile_key])), -1.0, 1.0))
+			body.set_blend_shape_value(shape_index, clampf(float((get_meta("body_shapes", {}) as Dictionary).get(shape_name, _profile_shape(index, profile_key))), -1.0, 1.0))
 	# Independent material overrides on every instance. Neither mutate shared
 	# GLB materials nor tint skin, chain, tires, visor or other bike parts.
 	var palettes: Array[Dictionary] = [
@@ -421,3 +439,60 @@ func finish_pose(_winner: bool) -> void:
 func resume_riding() -> void:
 	stopped = false
 	_apply_phase()
+
+func _profile_shape(index: int, key: int) -> float:
+	var value: float = RIDER_SHAPES[index][key]
+	if female and value > 0.0:
+		value *= float(FEMALE_PROFILE_SCALE.get(SHAPE_KEYS[key], 1.0))
+	return value
+
+func _hair_mesh(style: String) -> MeshInstance3D:
+	if rig_scene == null:
+		return null
+	return rig_scene.find_child("Hair_" + style, true, false) as MeshInstance3D
+
+func set_hair_style(style: String) -> bool:
+	var key := style.strip_edges().to_lower()
+	if key.is_empty(): key = "low_bun"
+	if not HAIR_STYLES.has(key):
+		push_warning("Velodrome rider: onbekend kapsel: " + style)
+		return false
+	var found := false
+	for name in HAIR_STYLES:
+		var node := _hair_mesh(name)
+		if node != null:
+			node.visible = name == key
+			found = true
+	if found: hair_style = key
+	return found
+
+func set_hair_color(value: String) -> bool:
+	var key := value.strip_edges().to_lower()
+	if key.is_empty(): return true
+	var colour: Color
+	if HAIR_COLORS.has(key):
+		colour = HAIR_COLORS[key]
+	elif key.is_valid_html_color():
+		colour = Color.html(key)
+	else:
+		push_warning("Velodrome rider: onbekende haarkleur: " + value)
+		return false
+	var found := false
+	for name in HAIR_STYLES:
+		var node := _hair_mesh(name)
+		if node == null or node.mesh == null: continue
+		for surface in range(node.mesh.get_surface_count()):
+			var src := node.mesh.surface_get_material(surface) as StandardMaterial3D
+			if src != null and src.resource_name.to_lower().begins_with("hair"):
+				var tinted := src.duplicate() as StandardMaterial3D
+				tinted.albedo_color = colour
+				node.set_surface_override_material(surface, tinted)
+				found = true
+	if found: hair_color = key
+	return found
+
+func get_visible_hair_style() -> String:
+	for name in HAIR_STYLES:
+		var node := _hair_mesh(name)
+		if node != null and node.visible: return name
+	return ""

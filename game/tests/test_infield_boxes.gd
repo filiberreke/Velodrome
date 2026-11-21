@@ -29,12 +29,12 @@ func run_test() -> void:
 	await process_frame
 	var infield: Node3D = game.arena.get_node("LevendigMiddenterrein")
 	var row: Node3D = infield.get_node("Rennersboxen")
-	check(row.boxes.size()==6,"Six physical cabins replace the old material posts")
+	check(row.boxes.size()==9,"Nine physical cabins replace the old material posts")
 	check(row.assigned_countries[0]=="france" and row.assigned_countries[1]=="netherlands","Rank countries by actual start-list frequency")
 	check("belgium" in row.assigned_countries,"Player's current country always included")
-	for i in range(6):
+	for i in range(9):
 		var box: Node3D = row.boxes[i]
-		check(box.position.is_equal_approx(Vector3(-12.6,0,-25.0+10.0*i)),"Back-straight position "+str(i))
+		check(box.position.is_equal_approx(Vector3(-12.6,0,-24.8+5.7*i+2.0*floori(float(i)/3.0))),"Back-straight position "+str(i))
 		check((box.basis*Vector3.FORWARD).x>0.99,"Opening +Z points toward the track on world -X")
 		check(box.curtain_open==1,"Every mass-race cabin is open")
 		check(box.get_meta("bike_source")=="res://assets/riders/velodrome_rider.glb","Use the Bike mesh from the live Blender racing rig")
@@ -51,7 +51,7 @@ func run_test() -> void:
 	await process_frame
 	check(row.assigned_countries.has("new_zealand") and row.assigned_countries.has("france"),"Both pursuit countries assigned")
 	var opened := 0
-	for i in range(6):
+	for i in range(9):
 		var should_open: bool = row.assigned_countries[i] in ["new_zealand","france"]
 		check(is_equal_approx(row.boxes[i].curtain_open,1.0 if should_open else 0.0),"Pursuit closes every non-racing country immediately")
 		if should_open:opened+=1
@@ -64,7 +64,7 @@ func run_test() -> void:
 		var solo_roster := Countries.roster(game)
 		check(solo_roster.mode == "time_trial" and solo_roster.racing == ["new_zealand"], "Solo roster includes only the player's country")
 		var solo_open := 0
-		for i in range(6):
+		for i in range(9):
 			var own_box: bool = row.assigned_countries[i] == "new_zealand"
 			check(is_equal_approx(row.boxes[i].curtain_open, 1.0 if own_box else 0.0), "Only player's cabin opens in a " + start_type + " time trial")
 			check(row.boxes[i].bike_variant == "pursuit", "Solo cabins use time-trial bicycles")
@@ -78,14 +78,14 @@ func run_test() -> void:
 	await process_frame
 	var roster := Countries.roster(game)
 	check(roster.start_list==["new_zealand","new_zealand","new_zealand","portugal","portugal","portugal"],"A pursuit team shares one national box")
-	for i in range(6):
+	for i in range(9):
 		var should_open: bool = row.assigned_countries[i] in ["new_zealand","portugal"]
 		check(is_equal_approx(row.boxes[i].curtain_open,1.0 if should_open else 0.0),"Only the two competing teams open")
 	game.race_mode = 0
 	game.rider_count = 8
 	game._configure_peloton()
 	await process_frame
-	for box in row.boxes:check(box.curtain_open==1,"Returning to a mass race reopens all six cabins")
+	for box in row.boxes:check(box.curtain_open==1,"Returning to a mass race reopens all nine cabins")
 	# Check actual mesh area: original 240-segment capsule minus a rectangular hole.
 	var floor_mesh: Mesh = infield.get_node("Middenterrein vloer").mesh
 	var vertices: PackedVector3Array = floor_mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]

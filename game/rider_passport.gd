@@ -15,42 +15,12 @@ class Emblem extends Control:
 	var country := ""
 	var tint := Color.WHITE
 	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO,size)
 		if not country.is_empty():
-			var bands: Array = []
-			match country:
-				"italy": bands = [Color("15965b"),Color.WHITE,Color("dc3c4c")]
-				"france": bands = [Color("2258b3"),Color.WHITE,Color("e33d4d")]
-				"belgium": bands = [Color("15191e"),Color("ffe34a"),Color("ed3b4f")]
-				"netherlands": bands = [Color("d6424c"),Color.WHITE,Color("244f9e")]
-				"germany": bands = [Color("15191e"),Color("dc3546"),Color("ffd045")]
-			if not bands.is_empty():
-				for i in 3:
-					var vertical := country in ["italy","france","belgium"]
-					draw_rect(Rect2(Vector2(size.x*i/3.0,0) if vertical else Vector2(0,size.y*i/3.0),Vector2(size.x/3.0,size.y) if vertical else Vector2(size.x,size.y/3.0)),bands[i])
-			elif country == "denmark":
-				draw_rect(r,Color("d52a43"));draw_rect(Rect2(0,size.y*.43,size.x,size.y*.14),Color.WHITE);draw_rect(Rect2(size.x*.30,0,size.x*.10,size.y),Color.WHITE)
-			elif country == "portugal":
-				draw_rect(r,Color("df3543"));draw_rect(Rect2(0,0,size.x*.4,size.y),Color("07834e"));draw_circle(Vector2(size.x*.4,size.y*.5),size.y*.20,Color("ffdb5b"))
-			elif country == "united_states":
-				draw_rect(r,Color.WHITE)
-				for i in 7: draw_rect(Rect2(0,size.y*i*2/13.0,size.x,size.y/13.0),Color("d14152"))
-				draw_rect(Rect2(0,0,size.x*.45,size.y*.54),Color("294c89"))
-				for x in 3:
-					for y in 3: draw_circle(Vector2(size.x*(.08+x*.13),size.y*(.1+y*.16)),.8,Color.WHITE)
-			else:
-				draw_rect(r,Color("152b67") if country != "new_zealand" else Color("142b5a"))
-				# Union flag canton, also used by Australia and New Zealand.
-				var full := country == "great_britain"
-				var w := size.x if full else size.x*.5
-				var h := size.y if full else size.y*.5
-				draw_line(Vector2.ZERO,Vector2(w,h),Color.WHITE,3)
-				draw_line(Vector2(w,0),Vector2(0,h),Color.WHITE,3)
-				draw_rect(Rect2(0,h*.36,w,h*.28),Color.WHITE);draw_rect(Rect2(w*.39,0,w*.22,h),Color.WHITE)
-				draw_rect(Rect2(0,h*.43,w,h*.14),Color("df3e51"));draw_rect(Rect2(w*.45,0,w*.10,h),Color("df3e51"))
-				if not full:
-					for at in [Vector2(.76,.3),Vector2(.64,.6),Vector2(.82,.78),Vector2(.91,.49)]: draw_circle(at*size,1.7,Color("ed5362") if country == "new_zealand" else Color.WHITE)
-			draw_rect(r,Color(1,1,1,.30),false,1)
+			var texture: Texture2D = preload("res://national_flags.gd").texture(country)
+			if texture != null:
+				var dimensions := texture.get_size()
+				var fitted := dimensions * minf(size.x / dimensions.x, size.y / dimensions.y)
+				draw_texture_rect(texture, Rect2((size - fitted) * 0.5, fitted), false)
 			return
 		var c := size*.5
 		match kind:
@@ -220,7 +190,14 @@ func _build_compact() -> void:
 	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stats.add_theme_constant_override("separation", 4)
 	body.add_child(stats)
-	stats.add_child(text(country_name(entry.country), 14, MenuStyle.MUTED))
+	var country_row := HBoxContainer.new()
+	country_row.add_theme_constant_override("separation", 6)
+	stats.add_child(country_row)
+	var flag := Emblem.new()
+	flag.country = entry.country
+	flag.custom_minimum_size = Vector2(28, 18)
+	country_row.add_child(flag)
+	country_row.add_child(text(country_name(entry.country), 14, MenuStyle.MUTED))
 	for item in [["CP", entry.cp_w, "W"], ["Sprint", entry.max_power_w, "W"], ["W′", entry.w_prime_j, "J"]]:
 		var row := HBoxContainer.new()
 		stats.add_child(row)
