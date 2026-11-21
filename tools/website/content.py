@@ -187,17 +187,17 @@ def page(lang, key, L, IMG, PREVIEW, VIDEO):
       <p>{"Slipstream telt. Uit de wind blijven spaart energie voor later; een sprint die te vroeg komt, betaal je in de laatste bocht." if nl else "Drafting matters. Sheltering saves energy for later, and a sprint launched too early costs you in the final bend."}</p></div>
     <div class="feature"><h2>{"Tegenstanders met een eigen profiel" if nl else "Opponents with their own profile"}</h2>
       <p>{"Sprinters, tijdrijders en aanvallers koersen elk op hun manier: wegspringen, het tempo hoog houden of wachten op de bel. Elke renner heeft een paspoort met zijn sterktes." if nl else "Sprinters, time triallists and attackers each race their own way: jumping away, driving the pace or waiting for the bell. Every rider has a passport showing their strengths."}</p></div>
-    <div class="feature"><h2>{"Echte watts" if nl else "Real watts"}</h2>
-      <p>{"Koppel een Wahoo KICKR of KICKR CORE, stuur en schakel met Zwift Ride en zie je Garmin-hartslag in beeld. De piste stuurt helling en slipstream naar je trainer." if nl else "Connect a Wahoo KICKR or KICKR CORE, steer and shift with Zwift Ride and see your Garmin heart rate on screen. The track sends gradient and draft to your trainer."} <a href="{L("training")}#strava">{"Exporteer je rit naar Strava" if nl else "Export your ride to Strava"}</a>.</p></div>
-    <div class="feature"><h2>{"Ook zonder trainer" if nl else "No trainer needed"}</h2>
-      <p>{"Stuur met A en D en regel je vermogen met de pijltjestoetsen, in stappen van 25 W." if nl else "Steer with A and D and set your power with the arrow keys, in 25 W steps."}</p></div>
+    <div class="feature"><h2>{"Echte watts, echte inspanning" if nl else "Real watts, real effort"}</h2>
+      <p>{"Koppel een compatibele fietstrainer via het FTMS-protocol en voel de piste tot in je benen. Hellingsgraad en slipstream beïnvloeden de weerstand. Bestuur je renner met Zwift Ride of het toetsenbord en koppel je hartslagmeter via Bluetooth." if nl else "Connect a compatible FTMS smart trainer and feel the track in your legs. Track gradient and slipstream affect resistance. Control your rider with Zwift Ride or your keyboard, and connect your heart rate monitor via Bluetooth."} <a href="{L("training")}#strava">{"Exporteer je rit naar Strava" if nl else "Export your ride to Strava"}</a>.</p></div>
+    <div class="feature"><h2>{"Ook zonder fietstrainer" if nl else "No smart trainer needed"}</h2>
+      <p>{"Geen fietstrainer? Geen probleem. Regel je watts en stuur je renner met het toetsenbord. Zo kun je ook zonder extra hardware wedstrijden rijden en de sfeer op de piste beleven." if nl else "No smart trainer? No problem. Set your watts and steer your rider with the keyboard. You can race and experience the atmosphere of the velodrome without any extra hardware."}</p></div>
   </section>
 
   <section>
     <div class="split">
       <div>
         <h2>{"Wedstrijdvormen" if nl else "Race formats"}</h2>
-        <p>{"Scratch, puntenkoers en afvalling beginnen met één geneutraliseerde ronde. Daarna is het koers. De keirin start achter de derny." if nl else "Scratch, points and elimination open with one neutralised lap. Then it’s racing. The keirin starts behind the derny."}</p>
+        <p>{"Van scratch en puntenkoers tot temporace, afvalling, keirin en achtervolging: elke discipline vraagt een andere tactiek. Werk samen in een ploegachtervolging, ontdek de aflossing of bewijs je veelzijdigheid in het omnium. Kies je favoriete wedstrijd en neem het op tegen een virtueel peloton." if nl else "From scratch and points races to tempo, elimination, keirin and pursuit: every discipline demands a different tactic. Work together in team pursuit, discover Madison exchanges or prove your versatility in the omnium. Choose your favourite race and take on a virtual peloton."}</p>
       </div>
       <figure>{IMG("screen", "Groot scherm boven de piste tijdens een puntenkoers" if nl else "Big screen above the track during a points race")}
         <figcaption>{"Het grote scherm hangt boven het middenplein." if nl else "The big screen hangs above the infield."}</figcaption></figure>
