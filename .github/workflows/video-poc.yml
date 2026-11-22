@@ -1,0 +1,45 @@
+name: Video POC - install native WRY
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package-poc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/video
+      - name: Download Godot WRY native extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, urllib.request, pathlib, zipfile, io
+          api = "https://api.github.com/repos/doceazedo/godot_wry/releases/latest"
+          req = urllib.request.Request(api, headers={"User-Agent": "Velodrome-video-poc"})
+          with urllib.request.urlopen(req) as response:
+              release = json.load(response)
+          assets = [a for a in release["assets"] if a["name"].lower().endswith(".zip")]
+          if len(assets) != 1:
+              raise SystemExit("Expected one ZIP asset; found: " + str([a["name"] for a in assets]))
+          req = urllib.request.Request(assets[0]["browser_download_url"], headers={"User-Agent": "Velodrome-video-poc"})
+          with urllib.request.urlopen(req) as response:
+              archive = zipfile.ZipFile(io.BytesIO(response.read()))
+          destination = pathlib.Path("game/addons")
+          destination.mkdir(parents=True, exist_ok=True)
+          for item in archive.infolist():
+              path = pathlib.PurePosixPath(item.filename)
+              if path.is_absolute() or ".." in path.parts:
+                  raise SystemExit("Unsafe archive path")
+          archive.extractall(destination)
+          extensions = list(destination.rglob("*.gdextension"))
+          if not extensions:
+              raise SystemExit("No .gdextension manifest found")
+          print("Found:", [str(p) for p in extensions])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: velodrome-video-poc-wry
+          path: game/
+          retention-days: 7
