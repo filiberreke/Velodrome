@@ -278,8 +278,8 @@ func rebuild() -> void:
 	var silver := _mat("acb7c1",0.75)
 	var inside := _mat("c4c6c5")
 	var navy := _mat("16243c")
-	var base: Color = _print("panel").albedo_texture.get_image().get_pixel(4,4)
-	var frame := _mat(base.to_html(false))
+	var base := String(Themes.DATA[country]["base"]).trim_prefix("#")
+	var frame := _mat(base)
 	# Structural dimensions: outside faces x ±1.30, z ±1.25, top rail y 2.10.
 	_box(Vector3(0,0.035,0),Vector3(2.60,0.07,2.50),_mat("323c44"))
 	_box(Vector3(0,1.03,-1.22),Vector3(2.60,2.06,0.06),inside)
