@@ -3,7 +3,7 @@ from html import escape
 
 # Teksten voor velodrome.wielerpraat.be. Controleer speelbaarheid in het spelmenu van de huidige versie.
 REPO = "https://github.com/filiberreke/Velodrome"
-RELEASE_API = "https://api.github.com/repos/filiberreke/Velodrome/releases/latest"
+RELEASE_API = "https://api.github.com/repos/filiberreke/Velodrome/releases/tags/v0.3"
 PAGES = ["home", "races", "training", "manual", "downloads", "dev"]
 SLUG = {
     "nl": {"home": "", "races": "wedstrijden", "training": "training", "manual": "handleiding", "downloads": "downloads", "dev": "ontwikkeling"},
