@@ -8,7 +8,7 @@ async function showReleaseDownloads() {
     const release = await response.json();
     const uploaded = new Set(release.assets.filter((asset) => asset.state === "uploaded").map((asset) => asset.name));
     for (const link of releaseDownloads) {
-      link.hidden = !uploaded.has(link.dataset.releaseAsset);
+      link.hidden = false;
     }
   } catch {
     // The GitHub Releases index remains available when the API cannot be reached.
