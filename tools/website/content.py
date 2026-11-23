@@ -422,9 +422,10 @@ def page(lang, key, L, IMG, PREVIEW, VIDEO):
         desc = ("Download Vélodrome voor Windows of macOS, zonder GitHub-account." if nl
                 else "Download Vélodrome for Windows or macOS without a GitHub account.")
         targets = [
-            ("Windows", "64-bit (x64)", "Velodrome-Windows-x64.zip", "installatie" if nl else "install"),
-            ("macOS Apple Silicon", "macOS Monterey 12.3+ · arm64", "Velodrome-macOS-arm64.zip", "install-macos"),
-            ("macOS Intel", "macOS Monterey 12.3+ · x86_64", "Velodrome-macOS-x86_64.zip", "install-macos"),
+            ("Windows", "64-bit (x64)", "Velodrome-Bundled-Windows-x64.zip", "installatie" if nl else "install"),
+            ("macOS Apple Silicon", "macOS Monterey 12.3+ · arm64", "Velodrome-Bundled-macOS-Monterey-arm64.zip", "install-macos"),
+            ("macOS Intel", "macOS Monterey 12.3+ · x86_64", "Velodrome-Bundled-macOS-Monterey-x86_64.zip", "install-macos"),
+            ("Windows demo", "64-bit (x64)", "Velodrome-Demo-Windows-x64.zip", "installatie" if nl else "install"),
         ]
         cards = []
         for platform, requirements, filename, install in targets:
@@ -435,7 +436,7 @@ def page(lang, key, L, IMG, PREVIEW, VIDEO):
       <h2>{platform}</h2>
       <p class="meta">{requirements}</p>
       <div class="actions">
-        <a class="btn primary" href="{REPO}/releases/latest/download/{filename}" data-release-asset="{filename}" hidden>{download_text}</a>
+        <a class="btn primary" href="{REPO}/releases/download/v0.3/{filename}" data-release-asset="{filename}">{download_text}</a>
         <a class="more" href="{L("manual")}#{install}">{install_text}</a>
       </div>
     </article>''')
