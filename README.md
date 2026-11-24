@@ -12,6 +12,7 @@ De broncode op `main` kan vooruitlopen op de downloadpakketten. In de broncode z
 
 - [Godot-spel en tests](game/README.md)
 - [Python-bridge en hardware](bridge/README.md)
+- [Release v0.4: documentatie en releasechecks](docs/release-v0.4.md)
 - [Historische documentatie](docs/archive/ARCHIEF.md)
 
 Vélodrome gebruikt de [GPLv3-licentie](LICENSE). De vlaggen hebben [eigen bron- en licentievermeldingen](game/assets/flags/SOURCES.md).
