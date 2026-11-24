@@ -650,3 +650,464 @@ PC-proefrit · gesimuleerde activiteit"
 "OMNIUM_RACE_POINTS","RACE POINTS","KOERSPUNTEN"
 "OMNIUM_OMNIUM_POINTS","OMNIUM POINTS","OMNIUMPUNTEN"
 "OMNIUM_D_LAP_S","%+d lap%s","%+d ronde%s"
+"RACE_TIME_TRIALLIST","TIME TRIALLIST","TIJDRIJDER"
+"RACE_SPRINTER","SPRINTER","SPRINTER"
+"RACE_ATTACKER","ATTACKER","AANVALLER"
+"RACE_SCRATCH","SCRATCH","SCRATCH"
+"RACE_POINTS_RACE","POINTS RACE","PUNTENKOERS"
+"RACE_ELIMINATION_RACE","ELIMINATION RACE","AFVALLING"
+"RACE_KEIRIN","KEIRIN","KEIRIN"
+"RACE_PURSUIT","PURSUIT","ACHTERVOLGING"
+"RACE_MADISON","MADISON","PLOEGKOERS"
+"RACE_YOUR_LAP_D_2F_S","YOUR LAP %d: %.2f s","JOUW RONDE %d: %.2f s"
+"RACE_LAP_GAINED_20_POINTS_BACK_IN_THE_PELOTON","LAP GAINED · +20 POINTS · BACK IN THE PELOTON","RONDE GEWONNEN · +20 PUNTEN · TERUG IN HET PELOTON"
+"RACE_LAP_LOST_20_POINTS","LAP LOST · −20 POINTS","RONDE VERLOREN · −20 PUNTEN"
+"RACE_S_P_R_I_N_T_2_5_0_M_OFFICIAL_RACE_RESULTS","S P R I N T   2 5 0 M     |     OFFICIAL RACE RESULTS","S P R I N T   2 5 0 M     |     OFFICIELE WEDSTRIJDRESULTATEN"
+"BRIDGE_THE_BRIDGE_LACKS_CURRENT_POWER_DATA_UPDATE_AND_RESTART_THE_BRIDGE","The bridge lacks current power data. Update and restart the bridge.","De bridge mist actuele vermogensgegevens. Werk de bridge bij en start die opnieuw."
+"BRIDGE_NO_FRESH_POWER_READINGS_CHECK_THE_TRAINER_CONNECTION","No fresh power readings. Check the trainer connection.","Geen verse vermogensmetingen. Controleer de trainerverbinding."
+"BRIDGE_TRAINER_CONTROL_HAS_NOT_BEEN_RELEASED_YET_WAIT_FOR_CONFIRMATION_FROM_T","Trainer control has not been released yet. Wait for confirmation from the bridge.","De trainerbediening is nog niet vrij. Wacht op bevestiging van de bridge."
+"RACE_THIS_RIDE_IS_NO_LONGER_AVAILABLE_CHOOSE_ANOTHER_OPPONENT","This ride is no longer available. Choose another opponent.","Deze rit is niet meer beschikbaar. Kies een andere tegenstander."
+"EXPORT_NO_KICKR_READINGS_RECORDED_CHECK_THE_LIVE_CONNECTION_AND_START_A_RACE","No KICKR readings recorded; check the LIVE connection and start a race.","Geen KICKR-metingen opgenomen; controleer LIVE-verbinding en start wedstrijd."
+"EXPORT_ERROR_RECORDING_DIRECTORY_UNAVAILABLE_D","ERROR: recording directory unavailable (%d)","FOUT: opnamemap niet beschikbaar (%d)"
+"EXPORT_ERROR_RECORDING_NOT_SAVED_D","ERROR: recording not saved (%d)","FOUT: opname niet opgeslagen (%d)"
+"EXPORT_KICKR_RECORDING_SAVED_S_D_READINGS","KICKR recording saved: %s (%d readings)","KICKR-opname opgeslagen: %s (%d metingen)"
+"EXPORT_STRAVA_EXPORT_NO_KICKR_DATA_AVAILABLE_DEMO_IS_NOT_EXPORTED","Strava export: no KICKR data available (demo is not exported).","Strava-export: geen KICKR-data beschikbaar (demo wordt niet geexporteerd)."
+"EXPORT_STRAVA_EXPORT_COULD_NOT_CREATE_DIRECTORY_D","Strava export: could not create directory (%d)","Strava-export: map kon niet gemaakt worden (%d)"
+"EXPORT_STRAVA_EXPORT_FAILED_D","Strava export failed (%d)","Strava-export mislukt (%d)"
+"EXPORT_STRAVA_TCX_SAVED","Strava TCX saved: ","Strava TCX opgeslagen: "
+"EXPORT_TEST_EXPORT_SIMULATED_RIDE","TEST EXPORT - simulated ride","TESTEXPORT - gesimuleerde rit"
+"EXPORT_WARNING_THIS_FILE_CONTAINS_SIMULATED_POWER_CADENCE_AND_SPEED_NO_REAL_K","WARNING: this file contains SIMULATED power, cadence and speed.
+No real KICKR ride was recorded.
+
+Use only to test FIT export; do not publish as a real sporting performance.","WAARSCHUWING: dit bestand bevat GESIMULEERDE wattages, cadans en snelheid.
+Er is geen echte KICKR-rit gemeten.
+
+Alleen gebruiken om de FIT-export te testen; niet publiceren als echte sportprestatie."
+"EXPORT_SAVE_DEMO_FIT","Save demo FIT","Demo-FIT opslaan"
+"EXPORT_FIT_EXPORT_AT_LEAST_2_READINGS_REQUIRED_COMPLETE_A_DEMO_RACE_FIRST","FIT export: at least 2 readings required. Complete a demo race first.","FIT-export: minstens 2 metingen nodig. Rijd eerst een demorace."
+"EXPORT_FIT_ALREADY_SAVED","FIT already saved: ","FIT reeds opgeslagen: "
+"EXPORT_FIT_EXPORT_DESTINATION_DIRECTORY_UNAVAILABLE_D","FIT export: destination directory unavailable (%d)","FIT-export: doelmap niet beschikbaar (%d)"
+"EXPORT_FIT_EXPORT_INSUFFICIENT_DATA","FIT export: insufficient data","FIT-export: onvoldoende gegevens"
+"EXPORT_FIT_EXPORT_COULD_NOT_CREATE_FILE_D","FIT export: could not create file (%d)","FIT-export: bestand kon niet gemaakt worden (%d)"
+"EXPORT_NOTE_SIMULATED_TEST_RIDE","NOTE: SIMULATED TEST RIDE - ","LET OP: GESIMULEERDE TESTRIT - "
+"EXPORT_FIT_SAVED_S_S","FIT saved (%s): %s","FIT opgeslagen (%s): %s"
+"RACE_D_LAP_S_BEHIND","%d lap(s) behind","%d ronde(n) achter"
+"RACE_SPRINT_COMPLETED_PLACE_D_D","SPRINT COMPLETED - PLACE %d/%d","SPRINT VOLTOOID - PLAATS %d/%d"
+"RESULT_FINISH_TIME_2F_S_AVG_SPEED_1F_KM_H_PEAK_SPEED_1F_KM_H_AVG_POWER_0F_W_P","Finish time: %.2f s
+Avg. speed: %.1f km/h    Peak speed: %.1f km/h
+Avg. power: %.0f W    Peak power: %.0f W
+Gap to winner: %s
+
+STANDINGS (live until everyone finishes)
+","Eindtijd: %.2f s
+Gem. snelheid: %.1f km/u    Piek snelheid: %.1f km/u
+Gem. vermogen: %.0f W    Piekvermogen: %.0f W
+Verschil met winnaar: %s
+
+KLASSEMENT (live tot iedereen finisht)
+"
+"RESULT_D_15S_STILL_RACING_0F_M","%d. %-15s still racing (%+.0f m)
+","%d. %-15s nog bezig (%+.0f m)
+"
+"HUD_YOUR_POWER_OVER_D_M","YOUR POWER OVER %d m","JOUW VERMOGEN OVER %d m"
+"HUD_KICKR_WAITING_FOR_DATA","KICKR WAITING FOR DATA","KICKR WACHT OP DATA"
+"HUD_KICKR_SIGNAL_LOST_HOLDING_0F_W_D_S","KICKR SIGNAL LOST - holding %.0f W (%d s)","KICKR SIGNAAL WEG - %.0f W vastgehouden (%d s)"
+"HUD_CHOOSE_AI_STRENGTH_AND_PRESS_START","CHOOSE AI STRENGTH AND PRESS START","KIES AI-STERKTE EN DRUK START"
+"HUD_WAITING_FOR_STANDSTILL","WAITING FOR STANDSTILL","WACHT OP STILSTAND"
+"HUD_READY_TO_START","READY TO START","KLAAR VOOR VERTREK"
+"HUD_START_IN_D","START IN %d","START OVER %d"
+"HUD_SIGNAL_LOST_CONTINUING_AT_0F_W","SIGNAL LOST - CONTINUING AT %.0f W","SIGNAAL WEG - DOORRIJDEN OP %.0f W"
+"HUD_PAUSED_NO_KICKR_DATA","PAUSED - NO KICKR DATA","PAUZE - GEEN KICKR DATA"
+"HUD_BOOST_TAPER_1F_S","BOOST TAPER %.1f s","BOOST AFBOUW %.1f s"
+"HUD_VELODROME_250_S_S_LAP_D_D_TIME_1F_S_0F_W_1F_KM_H_CADENCE_S_REMAINING_0","VELODROME 250  |  %s
+%s    Lap %d/%d    Time: %.1f s
+%.0f W    %.1f km/h    Cadence: %s
+Remaining: %.0f m    Riding line: %d/%d
+Slipstream: %d%% less air resistance","VELODROME 250  |  %s
+%s    Ronde %d/%d    Tijd: %.1f s
+%.0f W    %.1f km/u    Cadans: %s
+Nog: %.0f m    Rijlijn: %d/%d
+Slipstream: %d%% minder luchtweerstand"
+"HUD_SCRATCH_STANDINGS_RELATIVE_TO_YOU","SCRATCH STANDINGS (relative to you)
+","SCRATCH-KLASSEMENT (t.o.v. jou)
+"
+"HUD_STANDINGS_RELATIVE_TO_YOU","STANDINGS (relative to you)
+","RANGLIJST (t.o.v. jou)
+"
+"HUD_0F_M_AHEAD","%.0f m ahead","%.0f m voor"
+"HUD_0F_M_BEHIND","%.0f m behind","%.0f m achter"
+"HUD_D_LAP_S","%+d lap(s)","%+d ronde(n)"
+"HUD_FINAL_LAP","
+FINAL LAP
+","
+LAATSTE RONDE
+"
+"HUD_FINISH_PLACE_D_D_2F_S_S_R_RETRY","FINISH: place %d/%d | %.2f s | %s | R = retry","FINISH: plaats %d/%d | %.2f s | %s | R = opnieuw"
+"HUD_DEMO_NO_REAL_RECORDING","demo: no real recording","demo: geen echte opname"
+"RACE_CHOOSE_THE_RACE_MODE_AI_STRENGTH_RIDERS_AND_LAPS","Choose the race mode, AI strength, riders and laps.","Kies de spelmodus, AI-sterkte, deelnemers en rondes."
+"RACE_YOU_MAY_KEEP_PEDALLING_WAIT_FOR_VALID_TRAINER_DATA","You may keep pedalling; wait for valid trainer data.","Je mag blijven trappen; wacht op geldige trainergegevens."
+"RACE_READY_FOR_THE_LEAD_IN","Ready for the lead-in.","Klaar voor de aanloop."
+"RACE_KICKR_WAITING_FOR_FRESH_BLUETOOTH_DATA","KICKR: waiting for fresh Bluetooth data.","KICKR: wacht op verse Bluetooth-data."
+"RACE_KICKR_SPEED_UNAVAILABLE_START_BLOCKED","KICKR: speed unavailable; start blocked.","KICKR: snelheid ontbreekt; start geblokkeerd."
+"RACE_STOP_PEDALLING_KICKR_MUST_REPORT_0_W_AND_0_KM_H_1F_KM_H","Stop pedalling: KICKR must report 0 W and 0 km/h. (%.1f km/h)","Stop met trappen: KICKR moet 0 W en 0 km/u melden. (%.1f km/u)"
+"RACE_DEMO_0_W_0_KM_H_STARTING_POWER_0F_W_ARROW_KEYS","Demo: 0 W / 0 km/h. Starting power: %.0f W (arrow keys).","Demo: 0 W / 0 km/u. Startvermogen: %.0f W (pijlen)."
+"RACE_KEEP_PEDALLING_GENTLY_THE_LEAD_IN_BEGINS_AFTER_THE_COUNTDOWN","Keep pedalling gently; the lead-in begins after the countdown.","Blijf rustig trappen; de aanloop begint na de aftelling."
+"RACE_REMAIN_STATIONARY_UNTIL_START","Remain stationary until START!","Blijf stil staan tot START!"
+"RACE_START_FROM_STANDSTILL_0F_W_FROM_GO_ARROW_KEYS_CHANGE_PRESET","Start from standstill; %.0f W from GO. Arrow keys change preset.","Start uit stilstand; vanaf GO %.0f W. Pijlen wijzigen preset."
+"RACE_KICKR_RECORDING_D_READINGS_P_SAVE","KICKR recording: %d readings | P = save","KICKR-opname: %d metingen | P = bewaren"
+"RACE_SPACE_ONE_OFF_ARCADE_BOOST","SPACE: one-off arcade boost!","SPATIE: eenmalige arcade-boost!"
+"RACE_CHOOSE_YOUR_LINE_TACTICALLY_SPRINT_TO_THE_FINISH_P_SAVE_KICKR_RECORDIN","Choose your line tactically. Sprint to the finish! (P = save KICKR recording)","Kies tactisch je rijlijn. Sprint naar de finish! (P = KICKR-opname bewaren)"
+"RACE_NEUTRALISED_LAP_0F_W_1F_KM_H_S","NEUTRALISED LAP | %.0f W | %.1f km/h
+%s","GENEUTRALISEERDE RONDE | %.0f W | %.1f km/u
+%s"
+"RACE_RACE_TIMING_AND_LAP_COUNTING_BEGIN_AT_THE_FLYING_START","Race timing and lap counting begin at the flying start.","De wedstrijdtijd en rondentelling beginnen bij de vliegende start."
+"RACE_LEAD_IN_LAP_0F_W_1F_KM_H_S","LEAD-IN LAP | %.0f W | %.1f km/h
+%s","AANLOOPRONDE | %.0f W | %.1f km/u
+%s"
+"RACE_ACCELERATE_FOR_THE_FLYING_START_THE_CLOCK_STARTS_AT_GO","Accelerate for the flying start. The clock starts at GO!","Versnel voor de vliegende start. De klok begint bij GO!"
+"HUD_0_M_BEHIND","0 m behind","0 m achter"
+"HUD_D_LAP"," · %+d lap"," · %+d ronde"
+"RACE_STOP_PEDALLING_TO_START_THE_COUNTDOWN","Stop pedalling to start the countdown.","Stop met trappen om de aftelling te starten."
+"RACE_READY_TO_START_DEMO","Ready to start · demo","Klaar voor de start · demo"
+"RACE_YOU_MAY_KEEP_PEDALLING_READY_FOR_THE_LEAD_IN","You may keep pedalling · ready for the lead-in","Je mag blijven trappen · klaar voor de aanloop"
+"RACE_WAITING_FOR_VALID_TRAINER_DATA","Waiting for valid trainer data…","Wachten op geldige trainergegevens…"
+"RACE_REMAIN_STATIONARY_START_IN_D","Remain stationary · start in %d","Blijf stilstaan · start over %d"
+"RACE_YOU_MAY_KEEP_PEDALLING_START_IN_D","You may keep pedalling · start in %d","Je mag blijven trappen · vertrek over %d"
+"RACE_TRAINER_CONNECTION_INTERRUPTED_POWER_TEMPORARILY_HELD","Trainer connection interrupted · power temporarily held","Trainerverbinding onderbroken · vermogen tijdelijk vastgehouden"
+"RACE_RACE_PAUSED_WAITING_FOR_TRAINER_CONNECTION","Race paused · waiting for trainer connection","Wedstrijd gepauzeerd · wacht op de trainerverbinding"
+"RACE_D_RIDERS_ELIMINATION_IN_0F_M","%d riders · elimination in %.0f m","%d renners · afvalling over %.0f m"
+"RACE_FINAL_LAST_TWO_RIDERS","Final · last two riders","Finale · laatste twee renners"
+"HUD_V_RIDER_NAMES","V | Rider names: ","V | Rennersnamen: "
+"COMMON_AUTO","Auto","Auto"
+"COMMON_ON","On","Aan"
+"COMMON_OFF","Off","Uit"
+"RACE_DERNY_1F_KM_H_LEAVES_AFTER_3_LAPS","DERNY · %.1f km/h · leaves after 3 laps","DERNY · %.1f km/u · uitsturen na 3 ronden"
+"RACE_DERNY_OUT_UNPACED_RACE","DERNY OUT · UNPACED RACE","DERNY UIT · VRIJE WEDSTRIJD"
+"RESULT_PURSUIT_D_KM","PURSUIT · %d km","ACHTERVOLGING · %d km"
+"RESULT_KEIRIN_RESULTS","Keirin · Results","Keirin · Uitslag"
+"RESULT_ELIMINATION_RACE_RESULTS","Elimination race · Results","Afvalling · Uitslag"
+"RESULT_SCRATCH_RACE_RESULTS","Scratch race · Results","Scratch · Uitslag"
+"RESULT_FLYING_START_125_M_SPLITS","FLYING START · 125 M SPLITS","VLIEGENDE START · 125 M TUSSENTIJDEN"
+"RESULT_STANDING_START_125_M_SPLITS","STANDING START · 125 M SPLITS","STAANDE START · 125 M TUSSENTIJDEN"
+"RESULT_YOUR_TIME_AND_OPPONENT","YOUR TIME AND OPPONENT","JOUW TIJD EN TEGENSTANDER"
+"RESULT_RIDERS_STILL_RACING_RESULTS_UPDATE_AUTOMATICALLY","Riders still racing - results update automatically","Nog renners onderweg - uitslag wordt automatisch aangevuld"
+"RESULT_RESULTS_BEING_CALCULATED_AT_ACCELERATED_SPEED_D_D_RIDERS_FINISHED","Results being calculated at accelerated speed · %d/%d riders finished","Uitslag wordt versneld berekend · %d/%d renners afgewerkt"
+"RESULT_YOUR_TIME_S_AVG_POWER_0F_W_PEAK_0F_W_S","YOUR TIME   %s    •    AVG. POWER   %.0f W    •    PEAK   %.0f W
+%s","JOUW TIJD   %s    •    GEM. VERMOGEN   %.0f W    •    PIEK   %.0f W
+%s"
+"RESULT_STILL_RACING","Still racing","Onderweg"
+"RESULT_OMNIUM_D_POINTS_TOTAL_D_S","
+OMNIUM · +%d points · total %d · %s","
+OMNIUM · +%d punten · totaal %d · %s"
+"EXPORT_TCX_SAVED_IN_RECORDINGS_FOLDER","
+TCX saved in recordings folder","
+TCX opgeslagen in recordings-map"
+"EXPORT_INDOOR_FIT_SAVED_IN_DOWNLOADS","
+Indoor FIT saved in Downloads","
+FIT indoor opgeslagen in Downloads"
+"EXPORT_GPS_FIT_SAVED_IN_DOWNLOADS","
+GPS FIT saved in Downloads","
+FIT GPS opgeslagen in Downloads"
+"RESULT_D_LAP","  (%+d lap)","  (%+d ronde)"
+"RESULT_D_LAP_S","%d lap(s)","%d ronde(n)"
+"RESULT_WINNER","WINNER","WINNAAR"
+"RESULT_SAVE_THIS_RIDE_TO_RACE_AGAINST_IT_LATER","Save this ride to race against it later.","Bewaar deze rit om er later tegen te rijden."
+"RESULT_SAVED_S_AVAILABLE_AS_AN_OPPONENT_AT_THIS_DISTANCE","Saved: %s · available as an opponent at this distance.","Opgeslagen: %s · beschikbaar bij deze afstand als tegenstander."
+"STRAVA_YOUR_RIDE_HAS_BEEN_PUBLISHED_AS_A_VIRTUAL_ACTIVITY","Your ride has been published as a virtual activity.
+
+","Je rit is gepubliceerd als virtuele activiteit.
+
+"
+"STRAVA_SCREENSHOT_SAVED_IN_DOWNLOADS_ADD_IT_TO_STRAVA_MANUALLY","Screenshot saved in Downloads; add it to Strava manually.
+
+","Screenshot opgeslagen in Downloads; voeg die handmatig toe op Strava.
+
+"
+"STRAVA_OPEN_THE_ACTIVITY_IN_STRAVA","Open the activity in Strava?","Open de activiteit in Strava?"
+"STRAVA_D_POINTS",", %d points",", %d punten"
+"STRAVA_CHOOSE_AN_ACTIVITY_TITLE_AN_OPTIONAL_RESULTS_SCREENSHOT_IS_SAVED_IN_DO","Choose an activity title. An optional results screenshot is saved in Downloads and can be added to Strava manually.","Kies een activiteitstitel. Een optionele uitslagscreenshot wordt opgeslagen in Downloads en kan handmatig op Strava worden toegevoegd."
+"STRAVA_STRAVA_ACTIVITY_NAME","Strava activity name","Naam van de Strava-activiteit"
+"STRAVA_DESCRIPTION","Description","Beschrijving"
+"STRAVA_SAVE_RESULTS_SCREEN_AS_PNG_IN_DOWNLOADS","Save results screen as PNG in Downloads","Sla uitslagenscherm op als PNG in Downloads"
+"STRAVA_NOTE_DEMO_WITH_SIMULATED_VALUES_USE_ONLY_AS_A_PRIVATE_TEST","NOTE: DEMO with SIMULATED values. Use only as a private test.","LET OP: DEMO met GESIMULEERDE waarden. Alleen gebruiken als privetest."
+"STRAVA_STRAVA_INSUFFICIENT_RIDE_READINGS_TO_UPLOAD","Strava: insufficient ride readings to upload.","Strava: onvoldoende ritmetingen om te uploaden."
+"STRAVA_STRAVA_FAILED_TO_BUILD_FIT_FILE","Strava: failed to build FIT file.","Strava: FIT-opbouw mislukt."
+"STRAVA_STRAVA_COULD_NOT_CREATE_TEMPORARY_FIT_FILE","Strava: could not create temporary FIT file.","Strava: tijdelijk FIT-bestand kon niet worden gemaakt."
+"RESULT_COMPLETED_PERFORMANCE","Completed performance","Voltooide prestatie"
+"RESULT_ELIMINATION_REAR_WHEEL_S","ELIMINATION · REAR WHEEL · %s","AFVALLING · ACHTERWIEL · %s"
+"RESULT_ELIMINATED","Eliminated","Afgevallen"
+"STRAVA_A_STRAVA_UPLOAD_IS_ALREADY_IN_PROGRESS","A Strava upload is already in progress.","Er is al een Strava-upload bezig."
+"STRAVA_AT_LEAST_TWO_RIDE_READINGS_REQUIRED_FOR_STRAVA","At least two ride readings required for Strava.","Minstens twee ritmetingen nodig voor Strava."
+"STRAVA_COULD_NOT_CREATE_STRAVA_FILE","Could not create Strava file.","Strava-bestand kon niet worden gemaakt."
+"STRAVA_VE_LODROME_OMNIUM_WARM_UP_RIDE","Vélodrome - Omnium - Warm-up ride","Vélodrome - Omnium - Losrijden"
+"STRAVA_DERNY_TRAINING_AVERAGE_STARTING_SPEED_D_KM_H_HIGHEST_COMPLETED_STEP_D_","Derny training · average starting speed %d km/h · highest completed step %d km/h. Lead-in of %.0f s included automatically. Virtual speed and distance; power, heart rate and cadence from sensors where available.","Dernytraining · gemiddelde startsnelheid %d km/u · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar."
+"STRAVA_S_S_STARTED_AT_A_VIRTUAL_ROLLING_SPEED_OF_0F_KM_H_VIRTUAL_SPEED_AND_DI","%s · %s. Started at a virtual rolling speed of %.0f km/h. Virtual speed and distance; power, heart rate and cadence from sensors where available.","%s · %s. Begonnen met virtuele rolsnelheid %.0f km/u. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar."
+"STRAVA_PASSAGE_2F_KM_H_PEAK_0F_W"," Passage %.2f km/h · peak %.0f W."," Passage %.2f km/u · piek %.0f W."
+"STRAVA_FREE_RIDING_2F_KM_D_COMPLETED_LAPS"," Free riding · %.2f km · %d completed laps."," Vrij rijden · %.2f km · %d voltooide rondes."
+"STRAVA_PELOTON_0F_KM_H_1F_M_GAINED"," Peloton %.0f km/h · %.1f m gained."," Peloton %.0f km/u · %.1f m gewonnen."
+"STRAVA_FTP_TEST_S_ESTIMATED_FTP_0F_W_VIRTUAL_SPEED_AND_DISTANCE_POWER_HEART_R","FTP test · %s · estimated FTP %.0f W. Virtual speed and distance; power, heart rate and cadence from sensors where available.","FTP-test · %s · geschatte FTP %.0f W. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar."
+"STRAVA_SIMULATED_PC_TEST_RIDE","SIMULATED PC TEST RIDE. ","GESIMULEERDE PC-PROEFRIT. "
+"DERNY_ACTUAL_POWER","Actual power","Geleverd vermogen"
+"DERNY_CONTROLS","CONTROLS","BEDIENING"
+"DERNY_TOO_CLOSE_SPEED_LIMITED","Too close - speed limited","Te dicht - snelheid begrensd"
+"DERNY_CHOOSE_YOUR_STARTING_SPEED_YOU_ARE_AUTOMATICALLY_PACED_DURING_THE_LEAD","Choose your starting speed. You are automatically paced during the lead-in lap. The selected speed is a lap average, increasing by 1 km/h every minute.
+The derny rides at constant power: slower uphill, faster downhill. It starts at the bottom and moves one line higher for every additional 5 km/h. You follow automatically.
+While drafting, the game prevents accidental overtaking; deliberately steer two lines sideways to pass.
+Request pace: → faster (+1 km/h), ← slower (−1 km/h), on trainer and simulator. Once you request a change, automatic acceleration stops and you control the pace for the rest of the session.
+Falling more than 15 metres behind for 5 seconds ends the session.
+Every session is saved locally. You can upload to Strava afterwards.","Kies je startsnelheid. Tijdens de aanloopronde word je automatisch meegenomen. De gekozen snelheid is een rondegemiddelde, elke minuut +1 km/u.
+De derny rijdt met vast vermogen: trager bergop, sneller bergaf. Hij begint onderaan en gaat bij elke extra 5 km/u één rijlijn hoger. Jij volgt automatisch.
+In het wiel remt het spel onbedoeld inhalen af; stuur bewust twee rijlijnen opzij om te passeren.
+Tempo vragen: → sneller (+1 km/u), ← trager (−1 km/u), op trainer en simulator. Zodra je sneller of trager vraagt, stopt het automatisch versnellen en bepaal je zelf het tempo voor de rest van de training.
+Meer dan 15 meter achterstand gedurende 5 seconden beëindigt de training.
+Elke training wordt lokaal bewaard. Na afloop kun je naar Strava uploaden."
+"DERNY_UP_TO_60_AERODYNAMIC_BENEFIT_0_65_KM_H","Up to 60% aerodynamic benefit
+0–65 km/h","Tot 60% aerovoordeel
+0–65 km/u"
+"DERNY_SELECTED_PACER_UP_TO_60_AERODYNAMIC_BENEFIT_WHILE_DRAFTING_DEPENDING_O","Selected pacer. Up to 60% aerodynamic benefit while drafting, depending on distance and lateral position.","Geselecteerde gangmaker. Tot 60% aerovoordeel in het wiel, afhankelijk van afstand en zijwaartse positie."
+"DERNY_NOT_YET_AVAILABLE_THIS_MOTORBIKE_WILL_OFFER_MORE_AERODYNAMIC_SHELTER_T","Not yet available. This motorbike will offer more aerodynamic shelter than the current derny.","Nog niet beschikbaar. Deze motor zal meer aerodynamische beschutting bieden dan de huidige derny."
+"DERNY_HEAVY_MOTORBIKE","Heavy motorbike","Zware motor"
+"DERNY_MORE_AERODYNAMIC_BENEFIT_COMING_SOON","More aerodynamic benefit
+Coming soon","Meer aerovoordeel
+Binnenkort"
+"DERNY_START_DERNY_TRAINING","Start derny training","Start dernytraining"
+"DERNY_SAVED_TRAINING_SESSIONS","← Saved training sessions","← Opgeslagen trainingen"
+"DERNY_STARTING_SPEED_FOR_NEXT_SESSION","Starting speed for next session","Startsnelheid volgende training"
+"DERNY_S_D_02D_2F_KM_STARTING_SPEED_D_KM_H_HIGHEST_COMPLETED_STEP_D_KM_H_S","%s · %d:%02d · %.2f km
+Starting speed: %d km/h · highest completed step: %d km/h
+%s","%s · %d:%02d · %.2f km
+Startsnelheid: %d km/u · hoogste voltooide stap: %d km/u
+%s"
+"DERNY_TRAINING_SAVED_BEFORE_COMPLETION","Training saved before completion","Tussentijds bewaarde training"
+"DERNY_YOU_CAN_DO_A_PC_TEST_RIDE_WITHOUT_A_TRAINER","You can do a PC test ride without a trainer.","Zonder trainer kun je een PC-proefrit maken."
+"ERG_COMPLETED_ERG_SESSIONS_AND_FTP_TESTS","COMPLETED ERG SESSIONS AND FTP TESTS","GEREDEN ERG-TRAININGEN EN FTP-TESTS"
+"ERG_OVERVIEW","← Overview","← Overzicht"
+"ERG_NO_RECORDED_ERG_SESSIONS_OR_FTP_TESTS_YET_AFTER_A_RIDE_THE_MEASURED_VA","No recorded ERG sessions or FTP tests yet.
+After a ride, the measured values and training graph appear here.","Nog geen geregistreerde ERG-trainingen of FTP-tests.
+Na een rit verschijnen hier de gemeten waarden en de trainingsgrafiek."
+"ERG_TRAINING","Training","Training"
+"ERG_ELAPSED_TIME_D_02D_AVERAGE_0F_W_2F_KM","Elapsed time %d:%02d · average %.0f W · %.2f km","Gereden tijd %d:%02d · gemiddeld %.0f W · %.2f km"
+"ERG_AVG_HR_S_AVG_CADENCE_S"," · avg. HR %s · avg. cadence %s"," · gem. HR %s · gem. cadans %s"
+"ERG_CALCULATED_FTP_0F_W"," · calculated FTP %.0f W"," · berekende FTP %.0f W"
+"FTP_TRAINER_DOES_NOT_CONFIRM_ERG","Trainer does not confirm ERG","Trainer bevestigt ERG niet"
+"FTP_SAFETY_LIMIT_OF_1300_W_REACHED","Safety limit of 1300 W reached","Veiligheidslimiet van 1300 W bereikt"
+"FTP_INVALID_POWER_READING","Invalid power reading","Ongeldige vermogensmeting"
+"FTP_TARGET_POWER_CAN_NO_LONGER_BE_SUSTAINED","Target power can no longer be sustained","Doelvermogen niet meer vol te houden"
+"FTP_20_MINUTE_FTP","20-minute FTP","FTP 20 minuten"
+"FTP_TRAINING_SAVED_LOCALLY","Training saved locally.","Training lokaal opgeslagen."
+"FTP_WARM_UP_FOR_5_MINUTES_AT_YOUR_OWN_POWER_WITHOUT_AN_ERG_TARGET_THEN_100","Warm up for 5 minutes at your own power, without an ERG target.
+Then 100 W, increasing by 20 W every minute. Stay seated and pedal steadily.
+Stop when you can no longer continue. FTP = 75% of your best measured 60 seconds.
+A real trainer with fresh power readings is required.","5 minuten vrij opwarmen op je eigen vermogen, zonder ERG-doel.
+Daarna 100 W, elke minuut +20 W. Blijf zitten en trap gelijkmatig.
+Stop zodra je niet meer kunt. FTP = 75% van je beste gemeten 60 seconden.
+Een echte trainer met verse vermogensmetingen is vereist."
+"FTP_SUGGESTED_POWER_AROUND_80_120_W_OR_LOWER_IF_MORE_COMFORTABLE_THIS_IS_O","Suggested power: around 80–120 W, or lower if more comfortable.
+This is only a guide: choose a gentle, comfortable power.","Richtvermogen: ongeveer 80–120 W, of lager als dat prettiger is.
+Dit is een vrijblijvende indicatie: kies een rustig, comfortabel vermogen."
+"FTP_START_FTP_TEST","Start FTP test","Start FTP-test"
+"FTP_STOP_TEST_RELEASE_ERG","Stop test · release ERG","Stop test · ERG vrijgeven"
+"FTP_NO_RESPONSE_FROM_BRIDGE","No response from bridge","Geen antwoord van bridge"
+"FTP_FTP_TEST_STOPPED_PAUSE_LONGER_THAN_1_MINUTE","FTP test stopped: pause longer than 1 minute","FTP-test gestopt: pauze langer dan 1 minuut"
+"FTP_FTP_TEST_STOPPED_PAUSED_OR_EXITED","FTP test stopped: paused or exited","FTP-test gestopt: pauze of verlaten"
+"FTP_TRAINER_BRIDGE_NO_LONGER_RESPONDING","Trainer bridge no longer responding","Geen antwoord meer van trainerbridge"
+"FTP_ERG_TARGET_NOT_CONFIRMED_BY_TRAINER","ERG target not confirmed by trainer","ERG-doel niet bevestigd door trainer"
+"FTP_SELF_PACED_POWER","Self-paced power","Vrij vermogen"
+"FTP_FREE_WARM_UP","Free warm-up","Vrije opwarming"
+"FTP_WAIT_FOR_ERG_CONFIRMATION","Wait for ERG confirmation","Wacht op ERG-bevestiging"
+"FTP_S_02D_02D_S_MEASURED_0F_W_BEST_60_S_1F_W","%s · %02d:%02d
+%s · measured %.0f W
+Best 60 s: %.1f W","%s · %02d:%02d
+%s · gemeten %.0f W
+Beste 60 s: %.1f W"
+"FTP_TEST_STARTS_IN_02D_02D_S_MEASURED_0F_W_GEAR_SHIFTING_REMAINS_AVAILABLE","Test starts in %02d:%02d
+%s · measured %.0f W
+Gear shifting remains available. ERG then takes over at 100 W.","Start test over %02d:%02d
+%s · gemeten %.0f W
+Schakelen blijft beschikbaar. Daarna neemt ERG over op 100 W."
+"FTP_FTP_SAVED_IN_YOUR_PLAYER_PROFILE","FTP saved in your player profile.","FTP opgeslagen in je spelersprofiel."
+"FTP_FTP_COULD_NOT_BE_SAVED","FTP could not be saved.","FTP kon niet worden opgeslagen."
+"FTP_ESTIMATED_FTP_0F_W_BEST_60_S_1F_W","Estimated FTP: %.0f W · best 60 s: %.1f W","Geschatte FTP: %.0f W · beste 60 s: %.1f W"
+"FTP_NO_FTP_FEWER_THAN_60_SECONDS_OF_CONSECUTIVE_RAMP_READINGS","No FTP: fewer than 60 seconds of consecutive ramp readings.","Geen FTP: minder dan 60 seconden aaneengesloten rampmetingen."
+"FTP_ERG_RELEASED","
+ERG released.","
+ERG vrijgegeven."
+"FTP_ERG_RELEASE_NOT_YET_CONFIRMED_THE_BRIDGE_ALSO_MONITORS_THE_LEASE","
+ERG release not yet confirmed. The bridge also monitors the lease.","
+ERG-vrijgave nog niet bevestigd. Bridge bewaakt ook de lease."
+"FTP_UPDATE_THE_BRIDGE_FOR_THE_FTP_TEST","Update the bridge for the FTP test.","Werk de bridge bij voor de FTP-test."
+"FTP_TRAINER_READY","Trainer ready.","Trainer gereed."
+"FTP_WAIT_FOR_FRESH_TRAINER_DATA","Wait for fresh trainer data.","Wacht op verse trainergegevens."
+"FTP_FIRST_WARM_UP_FREELY_FOR_5_MINUTES_THEN_RIDE_FOR_20_MINUTES_AT_THE_HIG","First warm up freely for 5 minutes. Then ride for 20 minutes at the highest power you can sustain evenly.
+Choose your own gear and power; ERG remains off.
+FTP = 95% of the average measured power over the full 20 minutes.
+A real trainer with fresh power readings is required. If the signal is lost, the last power is held for up to 10 seconds. The test then pauses; a pause longer than 1 minute ends it. If stopped early, your existing FTP is retained.","Eerst 5 minuten vrij opwarmen. Rijd daarna 20 minuten op het hoogste vermogen dat je gelijkmatig kunt volhouden.
+Je kiest zelf je versnelling en vermogen; ERG blijft uit.
+FTP = 95% van het gemiddelde gemeten vermogen over de volledige 20 minuten.
+Een echte trainer met verse vermogensmetingen is vereist. Bij signaalverlies wordt het laatste vermogen maximaal 10 seconden behouden. Daarna pauzeert de test; bij een pauze langer dan 1 minuut stopt hij. Bij voortijdig stoppen blijft je bestaande FTP behouden."
+"FTP_FREE_WARM_UP_02D_02D_REMAINING_THEN_20_MINUTES_SELF_PACED_POWER_GUIDE_","Free warm-up · %02d:%02d remaining
+Then 20 minutes self-paced power · guide %.0f W","Vrije opwarming · nog %02d:%02d
+Daarna 20 minuten vrij vermogen · richtlijn %.0f W"
+"FTP_20_MINUTE_FTP_TEST_02D_02D_REMAINING_MEASURED_0F_W_AVERAGE_1F_W_SELF_P","20-minute FTP test · %02d:%02d remaining
+Measured %.0f W · average %.1f W
+Self-paced power · ERG off · %s","20 minuten FTP-test · nog %02d:%02d
+Gemeten %.0f W · gemiddeld %.1f W
+Vrij vermogen · ERG uit · %s"
+"FTP_AVERAGE_1F_W_ESTIMATED_FTP_0F_W_S","
+Average %.1f W · estimated FTP %.0f W
+%s","
+Gemiddeld %.1f W · geschatte FTP %.0f W
+%s"
+"FTP_TEST_INCOMPLETE_YOUR_EXISTING_FTP_IS_RETAINED","
+Test incomplete; your existing FTP is retained.","
+Geen volledige test; je bestaande FTP blijft behouden."
+"FTP_TRAINER_READY_START_BEGINS_WITH_5_MINUTES_OF_FREE_WARM_UP","Trainer ready. Start begins with 5 minutes of free warm-up.","Trainer gereed. Start begint met 5 minuten vrije opwarming."
+"FTP_20_MINUTES_COMPLETED","20 minutes completed","20 minuten voltooid"
+"MADISON_PRACTISE_WITH_YOUR_TEAMMATE_A_GRAB_IN_ADVANCED_HOLD_AND_RELEASE_EASY_S","Practise with your teammate. A: grab; in Advanced, hold and release. Easy slings and releases automatically (max 70%).
+←/→ or steering paddles: riding line. The fast rider rides inside; the receiving rider near the blue line. Each player lap, your teammate reappears for one targeted exchange attempt.","Oefen met je ploegmaat. A: grijpen; in Advanced vasthouden en loslaten. Easy slingert en laat automatisch los (max 70%).
+←/→ of stuurpaddles: rijlijn. De snelle renner rijdt binnen; de ontvanger bij de blauwe lijn. Elke spelersronde verschijnt de ploegmaat opnieuw voor één gerichte aflossingspoging."
+"MADISON_EASY_AUTOMATIC_SLING_MAX_70","Easy · automatic sling · max 70%","Easy · automatisch slingeren · max 70%"
+"MADISON_ADVANCED_HOLD_RELEASE_A_MAX_100","Advanced · hold/release A · max 100%","Advanced · A vasthouden/loslaten · max 100%"
+"MADISON_10_EXCHANGE_ATTEMPTS","10 exchange attempts","10 aflossingspogingen"
+"MADISON_20_EXCHANGE_ATTEMPTS","20 exchange attempts","20 aflossingspogingen"
+"MADISON_START_EXCHANGE_TRAINING","Start exchange training","Start aflossingstraining"
+"MADISON_ADVANCED_LOCKED_ACHIEVE_7_10_OR_14_20_IN_EASY","Advanced locked · achieve 7/10 or 14/20 in Easy.","Advanced vergrendeld · haal 7/10 of 14/20 in Easy."
+"MADISON_ADVANCED_UNLOCKED","Advanced unlocked.","Advanced vrijgespeeld."
+"MADISON_S_D_D_ATTEMPTS_D_SUCCESSFUL_S","%s · %d/%d attempts · %d successful
+%s","%s · %d/%d pogingen · %d geslaagd
+%s"
+"MADISON_FOLLOW_THE_YELLOW_EXCHANGE_ZONE_OUTGOING_YOU_GIVE_THE_SLING_ON_THE_INS","Follow the yellow exchange zone. Outgoing: you give the sling on the inside. Incoming: you receive near the blue line.
+Score: maximum 100/100 in both modes; Easy transfers up to 70% momentum.","Volg de gele wisselzone. Uitgaand: jij geeft aan de binnenkant. Inkomend: jij ontvangt bij de blauwe lijn.
+Score: maximaal 100/100 in beide modi; Easy draagt maximaal 70% momentum over."
+"MADISON_ATTEMPT","Attempt","Poging"
+"MADISON_ROLE","Role","Rol"
+"MADISON_RESULT","Result","Resultaat"
+"MADISON_REASON_FOR_FAILURE","Reason for failure","Reden bij mislukken"
+"MADISON_SUCCESSFUL","Successful","Gelukt"
+"MADISON_FAILED","Failed","Mislukt"
+"MADISON_OUTGOING","Outgoing","Uitgaand"
+"MADISON_INCOMING","Incoming","Inkomend"
+"MADISON_STEER"," steer"," sturen"
+"MADISON_FOLLOW_THE_YELLOW_LINE","Follow the yellow line","Volg de gele lijn"
+"MADISON_EXCHANGE_UNAVAILABLE_DUE_TO_POOR_POSITIONING","
+Exchange unavailable due to poor positioning
+","
+Aflossen niet mogelijk wegens slechte positionering
+"
+"MADISON_EXCHANGE_UNAVAILABLE_DUE_TO_YOUR_SPEED","
+Exchange unavailable due to your speed
+","
+Aflossen niet mogelijk wegens je snelheid
+"
+"MADISON_GRAB",": grab",": grijpen"
+"MADISON_WAIT_UNTIL_YOUR_TEAMMATE_IS_WITHIN_REACH","
+Wait until your teammate is within reach","
+Wacht tot je ploegmaat binnen handbereik is"
+"MADISON_RELEASE_S_SCORE_D_100","Release %s: score %d/100","%s loslaten: score %d/100"
+"MADISON_AUTOMATIC_SLING_MAXIMUM_MOMENTUM_70","Automatic sling · maximum momentum 70%","Automatische slinger · momentum maximaal 70%"
+"OMNIUM_PAST_TOURNAMENTS","Past tournaments","Gereden toernooien"
+"OMNIUM_NO_PAST_TOURNAMENTS_YET","No past tournaments yet","Nog geen gereden toernooien"
+"OMNIUM_COMPLETED","Completed","Voltooid"
+"OMNIUM_STOPPED","Stopped","Gestopt"
+"OMNIUM_EXPIRED","Expired","Verlopen"
+"OMNIUM_S_S_D_RIDERS_D_4_RACES","%s · %s · %d riders · %d/4 races","%s · %s · %d deelnemers · %d/4 wedstrijden"
+"OMNIUM_OMNIUM_FINAL_STANDINGS","Omnium · Final standings","Omnium · Eindklassement"
+"OMNIUM_OMNIUM_INTERIM_STANDINGS","Omnium · Interim standings","Omnium · Tussenklassement"
+"OMNIUM_OMNIUM_STOPPED_OR_EXPIRED_NO_FINAL_WINNER_CANNOT_RESUME","Omnium stopped or expired · no final winner · cannot resume","Omnium gestopt of verlopen · geen definitieve winnaar · hervatten niet mogelijk"
+"OMNIUM_RIDER","Rider","Renner"
+"OMNIUM_TOTAL","Total","Totaal"
+"OMNIUM_VIEW_RESULTS","View results · ","Bekijk uitslag · "
+"OMNIUM_VIRTUAL_OMNIUM","VIRTUAL OMNIUM","VIRTUEEL OMNIUM"
+"OMNIUM_LAPS","LAPS","RONDEN"
+"PURSUIT_1_KM_4_LAPS","1 km
+4 laps","1 km
+4 ronden"
+"PURSUIT_4_KM_16_LAPS","4 km
+16 laps","4 km
+16 ronden"
+"PURSUIT_D_RIDERS","%d riders","%d renners"
+"PURSUIT_TEAM_SETTINGS","Team settings","Ploeginstellingen"
+"PURSUIT_RESISTANCE","Resistance","Weerstand"
+"PURSUIT_MANUAL","Manual","Manueel"
+"PURSUIT_POSITION_D_DRAFTING_POWER","Position %d · drafting power","%de positie · vermogen in het wiel"
+"PURSUIT_PERSONAL_PERFORMANCES","Personal performances","Eigen prestaties"
+"PURSUIT_OPPONENT_STRENGTH","Opponent strength","Sterkte tegenstander"
+"PURSUIT_CHOOSE_OPPONENT","Choose opponent →","Kies tegenstander →"
+"PURSUIT_RACE","← Race","← Wedstrijd"
+"PURSUIT_CHOOSE_YOUR_OPPONENT","Choose your opponent","Kies je tegenstander"
+"PURSUIT_01_DISTANCE_02_OPPONENT","01  Distance     /     02  Opponent","01  Afstand     /     02  Tegenstander"
+"PURSUIT_D_RIDERS_2","  ·  %d riders","  ·  %d renners"
+"PURSUIT_NO_PERSONAL_PERFORMANCES_FOR_THIS_RACE_YET_RIDE_AND_SAVE_A_RIDE_FIRST_","No personal performances for this race yet.
+Ride and save a ride first, or choose an AI opponent.","Nog geen eigen prestaties voor deze wedstrijd.
+Rijd en bewaar eerst een rit, of kies een AI-tegenstander."
+"PURSUIT_NO_PERFORMANCES_AVAILABLE","No performances available","Geen prestaties beschikbaar"
+"PURSUIT_100_FULL_CAPACITY_OF_THE_AI_PROFILE","100% = full capacity of the AI profile","100% = volledige capaciteit van het AI-profiel"
+"PURSUIT_100_EXACT_PERSONAL_PERFORMANCE_HIGHER_PERCENTAGE_FASTER_PACE","100% = exact personal performance · higher percentage = faster pace","100% = exacte eigen prestatie · hoger percentage = sneller tempo"
+"PURSUIT_BRIDGE_UNAVAILABLE_CLOSE_OTHER_GAME_INSTANCES","Bridge unavailable: close other game instances.","Bridge niet beschikbaar: sluit andere spelinstanties."
+"PURSUIT_CHOOSE_AN_OPPONENT_TO_START","Choose an opponent to start.","Kies een tegenstander om te starten."
+"PURSUIT_1_KM_4_LAPS_2","1 km · 4 laps","1 km · 4 ronden"
+"PURSUIT_4_KM_16_LAPS_2","4 km · 16 laps","4 km · 16 ronden"
+"PURSUIT_OPPONENT","Opponent","Tegenstander"
+"PURSUIT_A_PREVIOUS_RIDE","A previous ride","Een vorige rit"
+"PURSUIT_OPPONENT_CP_W","Opponent CP (W)","CP tegenstander (W)"
+"PURSUIT_VIEW_ALL_RIDER_PROFILES","View all rider profiles →","Bekijk alle rennerpaspoorten →"
+"PURSUIT_SAVED_RIDE","Saved ride","Opgeslagen rit"
+"PURSUIT_NO_RIDE_SAVED_AT_THIS_DISTANCE_YET","No ride saved at this distance yet","Nog geen rit van deze afstand opgeslagen"
+"PURSUIT_CHOOSE_AI_RIDER","Choose AI rider","Kies AI-renner"
+"PURSUIT_2_TEAMMATES_3_RIDERS","2 teammates · 3 riders","2 ploegmaats · 3 renners"
+"PURSUIT_3_TEAMMATES_4_RIDERS","3 teammates · 4 riders","3 ploegmaats · 4 renners"
+"PURSUIT_A_PREVIOUS_TEAM_PERFORMANCE","A previous team performance","Een vorige ploegprestatie"
+"PURSUIT_OPPOSING_TEAM_CP_LEADING_POWER_W","Opposing team CP · leading power (W)","CP tegenploeg · kopvermogen (W)"
+"PURSUIT_DRAFTING_POWER_OF_YOUR_LAST_TURN_ON_THE_FRONT","Drafting power (% of your last turn on the front)","Vermogen in het wiel (% van je laatste kopbeurt)"
+"PURSUIT_POSITION_D","Position %d","%de positie"
+"PURSUIT_ERG_WHILE_DRAFTING_PEDAL_FREELY_WHILE_LEADING_AND_DROPPING_BACK","ERG while drafting; pedal freely while leading and dropping back.","ERG in het wiel; op kop en tijdens afzakken vrij trappen."
+"PURSUIT_PEDAL_AT_THE_INDICATED_TARGET_POWER_YOURSELF","Pedal at the indicated target power yourself.","Trap zelf het aangegeven doelvermogen."
+"PURSUIT_CHOOSE_OPPOSING_TEAM_COUNTRY","Choose opposing team country","Kies land tegenploeg"
+"RIDER_FIXED_ATTRIBUTES_ROUNDED_BASE_VALUES_DAILY_FORM_97_5_102_5","Fixed attributes · rounded base values · daily form 97.5–102.5%","Vaste kwaliteiten · afgeronde basiswaarden · dagvorm 97,5–102,5%"
+"RIDER_SEARCH_FOR_A_RIDER","Search for a rider","Zoek een renner"
+"RIDER_ALL_COUNTRIES","All countries","Alle landen"
+"RIDER_ALL_SPECIALITIES","All specialities","Alle specialiteiten"
+"RIDER_BELGIUM","Belgium","België"
+"RIDER_D_RIDER_S","%d rider%s","%d renner%s"
+"RIDER_LISTED_RECORDS","LISTED RECORDS","OPGEGEVEN RECORDS"
+"RIDER_NO_RECORD_YET","no record yet","nog geen record"
+"RIDER_ACHIEVED_GAME_RECORDS_BY_DISCIPLINE_DISTANCE_AND_AI_STRENGTH","
+
+ACHIEVED GAME RECORDS
+By discipline, distance and AI strength","
+
+BEHAALDE SPELRECORDS
+Per discipline, afstand en AI-sterkte"
+"RIDER_NO_COMPLETED_PERFORMANCE_YET","
+No completed performance yet.","
+Nog geen voltooide prestatie."
+"RIDER_S_D_M_AI_D_D_S_PEAK_D_W","
+%s · %d m · AI %d%%: %d s · peak %d W","
+%s · %d m · AI %d%%: %d s · piek %d W"
+"RIDER_CP_D_W"," · CP %d W"," · CP %d W"
+"RIDER_ENDURANCE_POWER","Endurance power","Duurvermogen"
+"RIDER_SPRINT_POWER","Sprint power","Sprintvermogen"
+"WORKOUT_FTP_FOR_THIS_WORKOUT_W","FTP for this workout (W)","FTP voor deze training (W)"
+"WORKOUT_DEFAULTS_TO_YOUR_PLAYER_FTP_CHANGES_HERE_APPLY_ONLY_TO_THIS_WORKOUT","Defaults to your player FTP. Changes here apply only to this workout.","Standaard je spelers-FTP. Een wijziging hier geldt alleen voor deze training."
+"WORKOUT_START_WORKOUT","Start workout","Start workout"
+"WORKOUT_EDIT","Edit","Bewerken"
+"WORKOUT_STOP_RELEASE_ERG","Stop · release ERG","Stop · ERG vrijgeven"
+"WORKOUT_D_BLOCKS_D_MINUTES_YOUR_PROFILE_FTP_IS_USED_BY_DEFAULT_YOU_CAN_OVERRID","%d blocks · %d minutes
+Your profile FTP is used by default. You can override it below for this workout only.","%d blokken · %d minuten
+Je profiel-FTP wordt als standaard gebruikt. Je kunt hieronder alleen voor deze training afwijken."
+"WORKOUT_WAIT_FOR_FRESH_POWER_READINGS","Wait for fresh power readings.","Wacht op verse vermogensmetingen."
+"WORKOUT_WAIT_FOR_THE_PREVIOUS_TRAINER_SESSION_TO_BE_RELEASED","Wait for the previous trainer session to be released.","Wacht op vrijgave van de vorige trainersessie."
+"WORKOUT_THIS_FTP_PRODUCES_A_TARGET_ABOVE_1300_W_ADJUST_THE_WORKOUT_OR_YOUR_FTP","This FTP produces a target above 1300 W. Adjust the workout or your FTP.","Deze FTP levert een doel boven 1300 W op. Pas de workout of je FTP aan."
+"WORKOUT_RELEASE_FOR_FREE_RIDING_NOT_CONFIRMED","Release for free riding not confirmed","Vrijgave voor vrij rijden niet bevestigd"
+"WORKOUT_D_02D_D_02D_S_0F_W_MEASURED_S","%d:%02d / %d:%02d
+%s · %.0f W measured
+%s","%d:%02d / %d:%02d
+%s · %.0f W gemeten
+%s"
+"WORKOUT_FREE_RIDING","Free riding","Vrij rijden"
+"WORKOUT_TRAINER_RELEASED","
+Trainer released.","
+Trainer vrijgegeven."
+"WORKOUT_TRAINER_BEING_RELEASED","
+Trainer being released.","
+Trainer wordt vrijgegeven."
