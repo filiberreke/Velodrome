@@ -325,3 +325,328 @@ keys,en,nl
 "CONTROLLER_SETTINGS_BACK_HOLD_LOOK_BEHIND","Back / hold: look behind","Terug / vasthouden: achteruitkijken"
 "CONTROLLER_SETTINGS_NAME_POWER_ENERGY_V","Name / power / energy (V)","Naam / wattage / energie (V)"
 "CONTROLLER_SETTINGS_PAUSE_SETTINGS_EXIT_TEST","Pause / settings / exit test","Pauze / instellingen / test verlaten"
+"DEVICES_TRAINER_ROLLERS","Trainer / rollers","Trainer / rollen"
+"DEVICES_CONTROLS","Controls","Besturing"
+"DEVICES_HEART_RATE_MONITOR","Heart rate monitor","Hartslagmeter"
+"DEVICES_CONFIGURE_BRIDGE_DEVICES","Configure bridge devices","Bridge-apparaten instellen"
+"DEVICES_DEVICES","Devices","Apparaten"
+"DEVICES_CONNECTED","Connected","Verbonden"
+"DEVICES_USE_KEYBOARD_CONTROLS","Use keyboard controls","Toetsenbordbediening gebruiken"
+"DEVICES_KEYBOARD_SELECTION_COULD_NOT_BE_SAVED","Keyboard selection could not be saved.","Toetsenbordkeuze kon niet worden opgeslagen."
+"DEVICES_CONFIGURE_KEYBOARD_AND_CONTROLLER","Configure keyboard and controller","Toetsenbord en controller instellen"
+"DEVICES_CUSTOMISE_ALL_KEYS_KEYBOARD_WORKS_WITHOUT_ZWIFT_RIDE_TOO","Customise all keys; keyboard works without Zwift Ride too","Alle toetsen aanpassen; toetsenbord werkt ook zonder Zwift Ride"
+"DEVICES_SKIP","Skip","Overslaan"
+"DEVICES_NO_CONFIRMATION_RECEIVED_CHECK_THE_BRIDGE_THE_LIST_WILL_BE_RETRIEVED_A","No confirmation received. Check the bridge; the list will be retrieved again.","Geen bevestiging ontvangen. Controleer de bridge; de lijst wordt opnieuw opgehaald."
+"DEVICES_CONFIGURE_BRIDGE_DEVICES_2","
+Configure bridge devices","
+Bridge-apparaten instellen"
+"DEVICES_BRIDGE_UNREACHABLE_START_THE_BRIDGE_OR_CONTINUE_WITH_SKIP","Bridge unreachable. Start the bridge or continue with Skip.","Bridge niet bereikbaar. Start de bridge of ga verder met Overslaan."
+"DEVICES_THIS_BRIDGE_DOES_NOT_SUPPORT_DEVICE_SELECTION_UPDATE_THE_BRIDGE","This bridge does not support device selection. Update the bridge.","Deze bridge ondersteunt apparaatselectie niet. Werk de bridge bij."
+"DEVICES_DEVICE_SELECTION_FAILED","Device selection failed.","Apparaatselectie mislukt."
+"DEVICES_CHOOSE_FROM_DETECTED_DEVICES_THE_BRIDGE_REMEMBERS_YOUR_CHOICES_CONNECT","Choose from detected devices. The bridge remembers your choices; connecting may take a moment.","Kies uit gevonden apparaten. Keuzes worden door de bridge onthouden; verbinden kan even duren."
+"DEVICES_NONE_SKIP","None / skip","Geen / overslaan"
+"DEVICES_CONNECTED_2"," · connected"," · verbonden"
+"DEVICES_UNAVAILABLE"," · unavailable"," · niet beschikbaar"
+"DEVICES_DISCONNECTED","Disconnected","Niet verbonden"
+"DEVICES_USE_THIS_SETUP","Use this setup","Kies deze setup"
+"DEVICES_RIDE_CONNECTED","Ride connected","Ride verbonden"
+"DEVICES_NO_RIDE_KEYBOARD_AVAILABLE","No Ride: keyboard available","Geen Ride: toetsenbord beschikbaar"
+"CONTROL_RESERVED_FOR_ARCADE","Reserved for arcade","Gereserveerd voor arcade"
+"CONTROL_NO_GAME_ACTION_YET","No game action yet","Nog geen spelactie"
+"CONTROL_ZWIFT_RIDE_CONTROLLER_TEST","ZWIFT RIDE  /  CONTROLLER TEST","ZWIFT RIDE  /  CONTROLLERTEST"
+"CONTROL_SAFE_BUTTON_TEST_Z_EXITS_THE_TEST_EXCEPT_WHILE_CHANGING_A_BUTTON_SHIFT","Safe button test. Z exits the test (except while changing a button). SHIFT still changes gears in the bridge; analogue paddles still steer.","Veilige knoptest. Z verlaat de test (behalve tijdens knop wijzigen). SHIFT blijft schakelen in de bridge; analoge paddles blijven sturen."
+"CONTROL_CONNECTION_WAITING_FOR_A_RIDE_SIGNAL","Connection: waiting for a Ride signal","Verbinding: wacht op een Ride-signaal"
+"CONTROL_ANALOGUE_PADDLES_STEERING_VALUE_0","Analogue paddles / steering value: 0","Analoge paddles / stuurwaarde: 0"
+"CONTROL_LAST_INPUT","Last input: —","Laatste invoer: —"
+"CONTROL_RIDE_CONNECTED","Ride: connected","Ride: verbonden"
+"CONTROL_RIDE_DISCONNECTED","Ride: disconnected","Ride: verbinding verbroken"
+"CONTROL_S_S_CONFIRM_TO_SAVE","%s → %s. Confirm to save.","%s → %s. Bevestig om op te slaan."
+"CONTROL_LAST_INPUT_S_S","Last input: %s %s","Laatste invoer: %s %s"
+"CONTROL_RIDE_BUTTON_DATA_RECEIVED","Ride: button data received","Ride: knopdata ontvangen"
+"CONTROL_ANALOGUE_PADDLES_STEERING_VALUE_D","Analogue paddles / steering value: %d","Analoge paddles / stuurwaarde: %d"
+"CONTROL_LAST_INPUT_STEERING_VALUE_D","Last input: steering value %d","Laatste invoer: stuurwaarde %d"
+"CONTROL_BUTTON_ASSIGNMENT","Button assignment","Knoptoewijzing"
+"CONTROL_MENU","Menu","Menu"
+"CONTROL_RACE","Race","Wedstrijd"
+"CONTROL_ON_PRESS","On press","Bij indrukken"
+"CONTROL_ON_RELEASE","On release","Bij loslaten"
+"CONTROL_HOLD","Hold","Vasthouden"
+"CONTROL_CHANGE_BUTTON","Change button","Knop wijzigen"
+"CONTROL_RESET_CONTEXT","Reset context","Herstel context"
+"CONTROL_RESET_ALL","Reset all","Herstel alles"
+"CONTROL_PRESS_THE_DESIRED_PHYSICAL_BUTTON_RELEASE_ANY_HELD_BUTTON_FIRST","Press the desired physical button (release any held button first).","Druk de gewenste fysieke knop in (laat een ingedrukte knop eerst los)."
+"CONTROL_UNASSIGN_THE_OTHER_ACTION_FIRST",". Unassign the other action first.",". Maak de andere actie eerst vrij."
+"CONTROL_FAILED_TO_SAVE_PREVIOUS_MAPPING_REMAINS_ACTIVE","Failed to save; previous mapping remains active.","Opslaan mislukt; vorige mapping blijft actief."
+"CONTROL_MAPPING_SAVED_TEST_THE_BUTTON_HERE_GAME_ACTIONS_WORK_OUTSIDE_THE_TEST","Mapping saved. Test the button here; game actions work outside the test.","Mapping opgeslagen. Test de knop hier; spelacties werken buiten de test."
+"CONTROL_DEFAULT_SETTINGS_SAVED","Default settings saved.","Standaardinstellingen opgeslagen."
+"CONTROL_UNASSIGNED_NO_GAME_ACTION","Unassigned / no game action","Vrij / geen spelactie"
+"CONTROL_MADISON_EXCHANGE_PRESS_TO_GRAB_EASY_AUTOMATIC_HAND_SLING_AND_RELEASE_A","Madison exchange: press to grab. Easy: automatic hand sling and release. Advanced: hold to sling, release to exchange.","Madison-aflossing: indrukken = grijpen. Easy: automatisch slingeren en loslaten. Advanced: vasthouden = slingeren, loslaten = aflossen."
+"CONTROL_GEAR_SHIFTING_IN_BRIDGE"," · gear shifting in bridge"," · schakelen in bridge"
+"MENU_DEMO_AVAILABLE","Demo available","Demo beschikbaar"
+"MENU_KEIRIN","Keirin","Keirin"
+"MENU_RECORDS","Records","Records"
+"MENU_YOUR_FASTEST_TIMES_EVER","Your fastest times ever.","Jouw snelste tijden aller tijden."
+"MENU_TOP_10_INDIVIDUAL_AND_TEAM_PURSUIT","Top 10 individual and team pursuit.","Top 10 achtervolging en ploegenachtervolging."
+"MENU_01_RACE_MODE_02_SETTINGS","01  Race mode     /     02  Settings","01  Spelvorm     /     02  Instellingen"
+"MENU_PLAY","PLAY","SPEEL"
+"MENU_COMING_SOON","COMING SOON","BINNENKORT"
+"MENU_STATUS","Status","Status"
+"MENU_ARROW_KEYS_SELECT_A_CONFIRM_B_BACK_Z_F10_SETTINGS","Arrow keys: select  •  A: confirm  •  B: back  •  Z / F10: settings","Pijltjes: kiezen  •  A: bevestigen  •  B: terug  •  Z / F10: instellingen"
+"MENU_IMAGES","Images","Afbeeldingen"
+"MENU_COMING_SOON_2"," · Coming soon"," · Binnenkort"
+"MENU_RACES","Races","Wedstrijden"
+"MENU_CHOOSE_YOUR_DISCIPLINE_AND_RACE_TO_WIN","Choose your discipline and race to win.","Kies je discipline en ga voor de winst."
+"MENU_TOURNAMENTS","Tournaments","Toernooien"
+"MENU_MULTIPLE_RACES_ONE_SET_OF_STANDINGS","Multiple races, one set of standings.","Meerdere wedstrijden, één klassement."
+"MENU_POWER_BASED_WORKOUTS_AND_FTP_TESTS","Power-based workouts and FTP tests.","Workouts op vermogen en FTP-tests."
+"MENU_TRACK_TRAINING","Track training","Pistetraining"
+"MENU_FREE_RIDING_DERNY_AND_SPECIFIC_TRACK_SESSIONS","Free riding, derny and specific track sessions.","Vrij rijden, derny en specifieke pistesessies."
+"MENU_PERSONAL","Personal","Persoonlijk"
+"MENU_MY_RIDER","My rider","Mijn renner"
+"MENU_CUSTOMISE_YOUR_RIDER_COMING_SOON","Customise your rider · Coming soon","Pas je renner aan · Binnenkort"
+"MENU_PALMARE_S","Palmarès","Palmares"
+"MENU_RECORDS_AND_ACHIEVEMENTS_COMING_SOON","Records and achievements · Coming soon","Records en prestaties · Binnenkort"
+"MENU_MY_RIDES","My rides","Mijn ritten"
+"MENU_ALL_SAVED_ACTIVITIES","All saved activities","Alle opgeslagen activiteiten"
+"MENU_CUSTOM_WORKOUTS","Custom workouts","Eigen workouts"
+"MENU_DURATION","Duration","Tijdsduur"
+"MENU_ALL_DURATIONS","All durations","Alle tijdsduren"
+"MENU_UNDER_30_MIN","Under 30 min","Korter dan 30 min"
+"MENU_30_60_MIN","30–60 min","30–60 min"
+"MENU_OVER_60_MIN","Over 60 min","Langer dan 60 min"
+"MENU_INTENSITY","Intensity","Intensiteit"
+"MENU_ALL_INTENSITIES","All intensities","Alle intensiteiten"
+"MENU_FREE_RIDING_ONLY","Free riding only","Alleen vrij rijden"
+"MENU_AVERAGE_PLANNED_TARGET_POWER_AS_A_PERCENTAGE_OF_FTP_WEIGHTED_BY_DURATI","Average planned target power as a percentage of FTP, weighted by duration. Free-ride blocks are excluded.","Gemiddeld gepland doelvermogen als percentage van FTP, gewogen naar tijd. Blokken vrij rijden tellen niet mee."
+"MENU_NO_CUSTOM_WORKOUTS_YET_CREATE_A_WORKOUT_IN_THE_EDITOR_OR_IMPORT_A_ZWO_","No custom workouts yet. Create a workout in the editor or import a .zwo file.","Nog geen eigen workouts. Maak een workout in de editor of importeer een .zwo-bestand."
+"MENU_FREE_RIDING_LAP_TIMES_AND_FOUR_COLOURED_PACERS","Free riding, lap times and four coloured pacers.","Vrij rondfietsen, rondetijden en vier gekleurde pacers."
+"MENU_FOLLOW_THE_PACER_AND_INCREASE_THE_PACE_TOGETHER","Follow the pacer and increase the pace together.","Volg de gangmaker en verhoog samen het tempo."
+"MENU_USE_THE_BANKING_AND_IMPROVE_YOUR_SPEED_AT_THE_LINE","Use the banking and improve your speed at the line.","Gebruik de hoogte en verbeter je snelheid op de lijn."
+"MENU_GAIN_A_LAP_ON_A_PELOTON_RIDING_AT_A_CONSTANT_PACE","Gain a lap on a peloton riding at a constant pace.","Win een ronde op een peloton met vast tempo."
+"MENU_MADISON_EXCHANGE_TRAINING","Madison exchange training","Aflossingstraining"
+"MENU_PRACTISE_10_OR_20_HAND_SLING_EXCHANGES_WITH_YOUR_TEAMMATE","Practise 10 or 20 hand sling exchanges with your teammate.","Oefen 10 of 20 handaflossingen met je ploegmaat."
+"MENU_VIEW_YOUR_PREVIOUS_TRAINING_SESSIONS_AND_PERFORMANCES","View your previous training sessions and performances.","Bekijk je eerdere trainingen en prestaties."
+"MENU_EXIT_TEST","Exit test","Test verlaten"
+"MENU_WELCOME_TO_VELODROME","Welcome to Velodrome","Welkom in Velodrome"
+"MENU_OMNIUM","Omnium","Omnium"
+"MENU_HISTORY_ERG_TRAINING","History · ERG training","Historiek · ERG-training"
+"MENU_FTP_RAMP_TEST","FTP ramp test","FTP-ramp test"
+"MENU_DETERMINE_YOUR_FTP_AND_SAVE_IT_IN_YOUR_PROFILE","Determine your FTP and save it in your profile.","Bepaal je FTP en bewaar die in je profiel."
+"MENU_STANDARD_VELODROME_TEST","STANDARD VELODROME TEST","VASTE TEST VAN VELODROME"
+"MENU_20_MINUTE_FTP_TEST","20-minute FTP test","20’ FTP-test"
+"MENU_5_MINUTES_OF_WARM_UP_20_MINUTES_OF_SELF_PACED_POWER_FTP_95_OF_AVERAGE_","5 minutes of warm-up, 20 minutes of self-paced power · FTP = 95% of average power.","5 minuten opwarming, 20 minuten vrij vermogen · FTP = 95% gemiddeld."
+"MENU_STANDARD_TEST","STANDARD TEST","VASTE TEST"
+"MENU_CREATE_A_CUSTOM_WORKOUT_OR_EDIT_AN_EXISTING_ONE","Create a custom workout or edit an existing one.","Maak een eigen workout of bewerk een bestaande."
+"MENU_EDITOR","EDITOR","EDITOR"
+"MENU_HISTORY","History","Historiek"
+"MENU_ALL_COMPLETED_ERG_SESSIONS_AND_FTP_TESTS","All completed ERG sessions and FTP tests.","Alle gereden ERG-trainingen en FTP-tests."
+"MENU_RESULTS","RESULTS","RESULTATEN"
+"MENU_FREE_RIDING","free riding","vrij rijden"
+"MENU_AVG_D_FTP","avg. %d%% FTP","gem. %d%% FTP"
+"MENU_D_S_D_MINUTES_S","%d %s · %d minutes · %s","%d %s · %d minuten · %s"
+"MENU_NO_CUSTOM_WORKOUTS_MATCH_THESE_FILTERS_CHOOSE_ANOTHER_DURATION_OR_INTE","No custom workouts match these filters. Choose another duration or intensity.","Geen eigen workouts met deze filters. Kies een andere tijdsduur of intensiteit."
+"MENU_FTP_RAMP_TEST_2","FTP Ramp Test","FTP Ramp Test"
+"MENU_RIDERS_INCLUDING_YOU","Riders · including you","Deelnemers · inclusief jou"
+"MENU_LAPS_250_METRES_PER_LAP","Laps · 250 metres per lap","Ronden · 250 meter per ronde"
+"MENU_DERNY_PACE_70_45_KM_H_100_50_KM_H","Derny pace · 70% = 45 km/h, 100% = 50 km/h","Dernytempo · 70% = 45 km/u, 100% = 50 km/u"
+"MENU_START_TYPE","Start type","Startwijze"
+"MENU_FLYING_START_1_LEAD_IN_LAP","Flying start · 1 lead-in lap","Vliegende start · 1 aanloopronde"
+"MENU_500_METRES_2_LAPS","500 metres · 2 laps","500 meter · 2 ronden"
+"MENU_1_KILOMETRE_4_LAPS","1 kilometre · 4 laps","1 kilometer · 4 ronden"
+"MENU_RECENT_PB_60_DAYS","Recent PB · 60 days","Recent PR · 60 dagen"
+"MENU_ALL_TIME_PB","All-time PB","All-time PR"
+"MENU_DEMO_STARTING_POWER_WITHOUT_TRAINER_W","Demo starting power · without trainer (W)","Demo-startvermogen · zonder trainer (W)"
+"MENU_RACE_MODES","←  Race modes","←  Spelvormen"
+"MENU_READY_TO_START_CONFIGURE_YOUR_RACE","Ready to start. Configure your race.","Klaar voor de start. Stel je wedstrijd in."
+"MENU_PLAYABLE_SOON_THIS_RACE_MODE_IS_STILL_IN_DEVELOPMENT","Playable soon. This race mode is still in development.","Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+"MENU_COMING_SOON_3","Coming soon","Binnenkort"
+"MENU_TRAINER_CONNECTED","●  Trainer connected","●  Trainer verbonden"
+"MENU_TRAINER_FOUND_WAITING_FOR_DATA","Trainer found · waiting for data","Trainer gevonden · wacht op gegevens"
+"MENU_DEMO_AVAILABLE_NO_TRAINER","Demo available · no trainer","Demo beschikbaar · geen trainer"
+"MENU_CONNECTION_BUSY_CLOSE_THE_OTHER_GAME_INSTANCE","Connection busy · close the other game instance","Verbinding bezet · sluit de andere spelinstantie"
+"MENU_CHOOSE_YOUR_DISTANCE_AND_OPPONENT","Choose your distance and opponent.","Kies je afstand en tegenstander."
+"MENU_NO_SAVED_RIDE_AT_THIS_DISTANCE_YET_RACE_AGAINST_THE_AI_FIRST_AND_SAVE_","No saved ride at this distance yet. Race against the AI first and save your ride.","Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
+"MENU_YOUR_FASTEST_TIMES_ON_THE_TRACK","Your fastest times on the track","Jouw snelste tijden op de piste"
+"MENU_01_RACE_SETTINGS_02_START_LIST","01  Race settings     /     02  Start list","01  Wedstrijdinstellingen     /     02  Startlijst"
+"MENU_COULD_NOT_BE_STARTED"," could not be started. "," kon niet worden gestart. "
+"MENU_OMNIUM_RESULTS","Omnium · Results","Omnium · Uitslag"
+"HUD_LAP_TIMES","LAP TIMES","RONDETIJDEN"
+"HUD_SPEED","SPEED","SNELHEID"
+"HUD_HEART_RATE","HEART RATE","HARTSLAG"
+"HUD_CADENCE","CADENCE","CADANS"
+"HUD_GEAR","GEAR","VERSNELLING"
+"HUD_SLIPSTREAM","SLIPSTREAM","SLIPSTREAM"
+"HUD_TIME_PER_125_M_CUMULATIVE_GAP_AT_THE_SAME_DISTANCE_AHEAD_BEHIND_WAITIN","Time per 125 m · cumulative gap at the same distance: + ahead, − behind. (…) waiting for the opposing team.","Tijd per 125 m · cumulatief verschil op hetzelfde afstandspunt: + voor, − achter. (…) wacht op de tegenploeg."
+"HUD_TIME","TIME","TIJD"
+"HUD_LEAD_POSITION","LEAD POSITION","KOPPOSITIE"
+"HUD_POSITION","POSITION","POSITIE"
+"HUD_PAUSE"," · Pause"," · Pauze"
+"HUD_SETTINGS"," - Settings"," - Instellingen"
+"HUD_TIME_FOR_EACH_125_METRE_SEGMENT_NEGATIVE_GREEN_FASTER_POSITIVE_RED_SLO","Time for each 125-metre segment · negative/green = faster, positive/red = slower than the reference.","Tijd per afzonderlijke 125 meter · negatief/groen = sneller, positief/rood = langzamer dan de referentie."
+"HUD_LEAD_IN_LAP_CLOCK_STARTS_AT_GO","Lead-in lap · clock starts at GO!","Aanloopronde · klok start bij GO!"
+"HUD_REFERENCE","Reference","Referentie"
+"HUD_1F_KM_H_0F_W","%.1f km/h · %.0f W","%.1f km/u · %.0f W"
+"HUD_DEVELOPER_HUD","DEVELOPER HUD","DEVELOPER HUD"
+"HUD_X_CLOSE","X  ·  Close","X  ·  Sluiten"
+"HUD_COAST_AUTOMATICALLY_REJOIN_AT_THE_BACK","COAST · automatically rejoin at the back","UITBOLLEN · automatisch aansluiten achteraan"
+"HUD_FIRST_TURN_ON_THE_FRONT_STEER_RIGHT_TO_CHANGE_OVER","FIRST TURN ON THE FRONT · steer right to change over","EERSTE KOPBEURT · stuur rechts om te wisselen"
+"HUD_LEADING_STEER_RIGHT_TO_CHANGE_OVER","Leading · steer right to change over","Op kop · stuur rechts om te wisselen"
+"HUD_0F_LESS_AIR_RESISTANCE_MAXIMUM_0F","%.0f%% less air resistance · maximum %.0f%%","%.0f%% minder luchtweerstand · maximaal %.0f%%"
+"HUD_RESISTANCE","RESISTANCE","WEERSTAND"
+"HUD_NEUTRAL","NEUTRAL","NEUTRAAL"
+"HUD_PELOTON","PELOTON","PELOTON"
+"SETTINGS_DISPLAY_SETTINGS_NOT_SAVED_D","Display settings not saved: %d","Beeldinstellingen niet opgeslagen: %d"
+"SETTINGS_SELECT_TAB_LEFT_RIGHT_DOWN_OPTIONS_B_Z_CLOSE","Select tab: left / right  ·  down: options  ·  B/Z: close","Tab kiezen: links / rechts  ·  omlaag: opties  ·  B/Z: sluiten"
+"SETTINGS_RIDER_PLAYER_PROFILE","RIDER  /  PLAYER PROFILE","RENNE R  /  SPELERSPROFIEL"
+"SETTINGS_RIDER","RIDER","RENNER"
+"SETTINGS_DISPLAY","Display","Beeld"
+"SETTINGS_WINDOW_RESOLUTION_FULL_SCREEN_USES_THE_DISPLAY_RESOLUTION","Window resolution (full screen uses the display resolution)","Vensterresolutie (in volledig scherm geldt de schermresolutie)"
+"SETTINGS_CROWD_IN_STANDS_AND_INFIELD_AFTER_RESTART","CROWD IN STANDS AND INFIELD (after restart)","PUBLIEK OP TRIBUNES EN MIDDENPLEIN (na herstart)"
+"SETTINGS_3D_RESOLUTION_60_NO_CROWD_SIMPLIFIED_GRAPHICS_TRAINING_LIGHTING_AND_A_","3D resolution 60%, no crowd, simplified graphics, training lighting and a maximum of 60 frames per second.","3D-resolutie 60%, geen publiek, eenvoudige graphics, trainingsverlichting en maximaal 60 beelden per seconde."
+"SETTINGS_SUGGESTED_SETTINGS_SELECTED_CHOOSE_APPLY_AND_SAVE_CROWD_AND_SIMPLIFIED","Suggested settings selected. Choose Apply and save; crowd and simplified graphics take effect after restarting.","Voorstel ingevuld. Kies Toepassen en bewaren; publiek en eenvoudige graphics werken na een herstart."
+"SETTINGS_SIMPLIFIED_CROWD_IN_THE_STANDS_SIMPLIFIED_TENTS_AND_SUPPORTERS_IN_THE_","Simplified crowd in the stands, simplified tents and supporters in the infield. No media zone or commentary booth. A 2.5-second rider intro. Rider boxes, jury and commissaire remain.","Eenvoudig publiek op de tribunes, eenvoudige tenten en supporters op het middenplein. Zonder mediazone of commentaarcabine. Intro van 2,5 seconden bij de renners. Rennersboxen, jury en wedstrijdcommissaris blijven behouden."
+"SETTINGS_RACE_LIGHTING","Race lighting","Wedstrijdverlichting"
+"SETTINGS_OFF_USE_THE_SAME_LIGHTING_FOR_RACES_AS_FOR_TRAINING","Off: use the same lighting for races as for training.","Uit: gebruik tijdens wedstrijden dezelfde verlichting als bij trainingen."
+"SETTINGS_OFF_ONLY_BEFORE_THE_FIRST_RACE_OF_THIS_SESSION_ON_BEFORE_EVERY_RACE","Off: only before the first race of this session. On: before every race.","Uit: alleen bij de eerste wedstrijd van deze sessie. Aan: bij elke wedstrijd."
+"SETTINGS_OFF_FIRST_RACE_OF_THE_SESSION_ONLY_ON_EVERY_RACE","Off: first race of the session only. On: every race.","Uit: alleen de eerste wedstrijd van de sessie. Aan: elke wedstrijd."
+"SETTINGS_SHOWS_A_SMALL_FRAMES_PER_SECOND_COUNTER_AT_THE_TOP_OF_THE_SCREEN","Shows a small frames-per-second counter at the top of the screen.","Toont klein bovenaan het scherm hoeveel beelden per seconde het spel haalt."
+"SETTINGS_A_LOWER_3D_RESOLUTION_IMPROVES_PERFORMANCE_MENUS_AND_RESULTS_REMAIN_SH","A lower 3D resolution improves performance.
+Menus and results remain sharp.
+Configure shortcuts on the Keyboard tab.","Een lagere 3D-resolutie verbetert de prestaties.
+Menu’s en uitslagen blijven scherp.
+Stel je sneltoetsen in op het tabblad Toetsenbord."
+"SETTINGS_1_COPY_CONFIG_STRAVA_CONFIG_EXAMPLE_CFG_TO_CONFIG_STRAVA_CONFIG_CFG_2_","1. Copy config/strava_config.example.cfg to config/strava_config.cfg.
+2. Enter client_id and client_secret from strava.com/settings/api.
+3. Use redirect_uri = http://localhost and callback domain localhost.
+4. Select Connect your Strava account below and grant permission.
+5. Upload your activity to Strava after a race or track training session.
+
+Your training sessions and results also remain available locally.","1. Kopieer config/strava_config.example.cfg naar config/strava_config.cfg.
+2. Vul client_id en client_secret in via strava.com/settings/api.
+3. Gebruik redirect_uri = http://localhost en callbackdomein localhost.
+4. Kies hieronder Koppel je Strava-account en geef toestemming.
+5. Upload na een wedstrijd of pistetraining je activiteit naar Strava.
+
+Je trainingen en resultaten blijven ook lokaal beschikbaar."
+"SETTINGS_KEYBOARD","Keyboard","Toetsenbord"
+"SETTINGS_CLOSE","Close","Sluiten"
+"SETTINGS_HELMET","Helmet","Helm"
+"SETTINGS_VISOR","Visor","Vizier"
+"SETTINGS_THE_SKINSUIT_INCLUDES_THE_SHORTS_YOUR_SELECTION_APPLIES_ONLY_TO_YOUR_R","The skinsuit includes the shorts.
+Your selection applies only to your rider.
+Save to use your selection in the race.","Het wielerpak omvat ook de broek.
+Je keuze geldt alleen voor jouw renner.
+Bewaar om je keuze in de wedstrijd te gebruiken."
+"SETTINGS_REAR","Rear","Achterkant"
+"SETTINGS_FRONT","Front","Voorkant"
+"SETTINGS_TAB_LEFT_RIGHT_CONTROLLER_B_Z_TO_CLOSE_KEYBOARD","Tab: left/right · Controller: B/Z to close · Keyboard: ","Tab: links/rechts · Controller: B/Z sluiten · Toetsenbord: "
+"SETTINGS_TO_CLOSE"," to close"," sluiten"
+"HISTORY_TRACK_TRAINING","TRACK TRAINING","PISTETRAINING"
+"HISTORY_DURATION","DURATION","DUUR"
+"HISTORY_RESULT","RESULT","RESULTAAT"
+"HISTORY_SAVED_BEFORE_COMPLETION","
+Saved before completion","
+Tussentijds bewaard"
+"HISTORY_D_SAVED_TRACK_TRAINING_SESSION_S_NEWEST_FIRST","%d saved track training session%s · newest first","%d opgeslagen pistetraining%s · nieuwste eerst"
+"HISTORY_YOUR_TRACK_TRAINING_SESSIONS_APPEAR_HERE_COMPLETE_A_TRACK_TRAINING_SES","Your track training sessions appear here
+
+Complete a track training session, then view its results and graph here.","Je pistetrainingen verschijnen hier
+
+Rijd een pistetraining en bekijk daarna de resultaten en grafiek in dit overzicht."
+"WORKOUT_BUILDING_BLOCKS","BUILDING BLOCKS","BOUWSTENEN"
+"WORKOUT_POWER","POWER","VERMOGEN"
+"WORKOUT_POWER_STEPS","POWER STEPS","VERMOGENSSTAPPEN"
+"TRAINING_DURATION_FREE_WITHOUT_A_TIME_LIMIT_PACERS_30_35_40_45_KM_H_RECORDING_T","Duration
+Free, without a time limit
+
+Pacers
+30 · 35 · 40 · 45 km/h
+
+Recording
+Time, distance, lap times and power","Duur
+Vrij, zonder tijdslimiet
+
+Pacers
+30 · 35 · 40 · 45 km/u
+
+Registratie
+Tijd, afstand, rondetijden en vermogen"
+"TRAINING_START_30_KM_H_AT_THE_BOTTOM_OF_THE_TRACK_PREPARATION_ONE_LAP_GOAL_HIGH","Start
+30 km/h at the bottom of the track
+
+Preparation
+One lap
+
+Goal
+Highest speed at the start line","Start
+30 km/u onderaan de piste
+
+Voorbereiding
+Eén ronde
+
+Doel
+Hoogste snelheid op de startlijn"
+"RECORDS_YOU","You","Jij"
+"RECORDS_OLD_RIDE_PLAYER_NAME_WAS_NOT_SAVED_THE_DATE_IS_THE_ORIGINAL_SAVE_TIME_","
+Old ride: player name was not saved; the date is the original save time (UTC).","
+Oude rit: spelernaam was niet opgeslagen; de datum is het toenmalige opslagmoment (UTC)."
+"STRAVA_1_COPY_CONFIG_STRAVA_CONFIG_EXAMPLE_CFG_TO_CONFIG_STRAVA_CONFIG_CFG_AN","1. Copy config/strava_config.example.cfg
+   to config/strava_config.cfg and enter your details.
+   Client ID and Client Secret: strava.com/settings/api
+   redirect_uri: http://localhost · callback domain: localhost
+2. Grant permission to upload activities to Strava.
+3. Copy the full localhost URL from your browser.
+4. Paste it below and select Connect and upload.
+
+An unreachable localhost page is normal
+with this manual connection process.","1. Kopieer config/strava_config.example.cfg
+   naar config/strava_config.cfg en vul je gegevens in.
+   Client ID en Client Secret: strava.com/settings/api
+   redirect_uri: http://localhost · callbackdomein: localhost
+2. Geef Strava toestemming om activiteiten te uploaden.
+3. Kopieer de volledige localhost-URL uit je browser.
+4. Plak die hieronder en kies Koppel en upload.
+
+Een onbereikbare localhost-pagina is normaal
+bij deze handmatige koppeling."
+"TRAINING_RIDE_FREELY_ON_THE_TRACK_FOR_AS_LONG_AS_YOU_LIKE_TIME_DISTANCE_AND_EVE","Ride freely on the track for as long as you like. Time, distance and every lap time are recorded.
+Four independent pacers ride at 30, 35, 40 and 45 km/h, wearing blue, green, orange and red jerseys. Join their slipstream whenever you like.
+Left/right or paddles: riding line. Cameras and looking behind work as in races.","Rijd vrij op de piste, zolang je wilt. Tijd, afstand en iedere rondetijd worden bijgehouden.
+Vier onafhankelijke pacers rijden op 30, 35, 40 en 45 km/u, met blauwe, groene, oranje en rode truien. Sluit aan in hun slipstream wanneer je wilt.
+Links/rechts of de paddles: rijlijn. Camera's en achteruitkijken werken zoals in wedstrijden."
+"TRAINING_ONE_PREPARATION_LAP_FROM_THE_RED_PURSUIT_LINE_EACH_ATTEMPT_STARTS_AT_3","One preparation lap from the red pursuit line. Each attempt starts at 30 km/h at the bottom of the track. Use the banking and choose when to descend.
+Compare your speed at the line with your average and maximum power. The best completed attempts are listed below, sorted by highest speed.","Eén voorbereidingsronde vanaf de rode achtervolgingslijn. Iedere poging begint op 30 km/u onderaan de piste. Gebruik de hoogte en kies wanneer je afdaalt.
+Vergelijk je snelheid op de lijn met je gemiddelde en maximale vermogen. De beste voltooide pogingen staan hieronder, gesorteerd op hoogste snelheid."
+"TRAINING_A_COMPACT_PELOTON_OF_EIGHT_RIDERS_MAINTAINS_A_CONSTANT_GROUP_PACE_ROTA","A compact peloton of eight riders maintains a constant group pace, rotating leaders in two to three rows. You start three metres behind at the same speed.
+Attack, gain a full lap and rejoin the back of the peloton. Ride freely among the riders, as in a scratch race. Drafting provides up to 50% shelter.
+Use left/right or the steering paddles to choose your line. Decide when to attack.","Een compact peloton van acht renners houdt een constant groepstempo, met wisselende koprijders in twee tot drie rijen. Je begint drie meter achteraan op dezelfde snelheid.
+Val aan, win een volledige ronde en sluit opnieuw aan achter het peloton. Je rijdt vrij tussen de renners, zoals in scratch. In het wiel krijg je maximaal 50% beschutting.
+Links/rechts of de stuurpaddles kiezen je rijlijn. Je bepaalt zelf het moment van je aanval."
+"TRAINING_SPEED_AT_THE_LINE_2F_KM_H_AVERAGE_POWER_0F_W_MAXIMUM_POWER_0F_W","Speed at the line: %.2f km/h
+Average power: %.0f W · maximum power: %.0f W
+","Snelheid op de lijn: %.2f km/u
+Gemiddeld vermogen: %.0f W · maximaal vermogen: %.0f W
+"
+"TRAINING_NO_COMPLETED_PASSAGE_ACROSS_THE_START_LINE","No completed passage across the start line.
+","Geen voltooide passage op de startlijn.
+"
+"TRAINING_DISTANCE_3F_KM_D_COMPLETED_LAPS_AVERAGE_POWER_0F_W_MAXIMUM_POWER_0F_W","Distance: %.3f km · %d completed laps
+Average power: %.0f W · maximum power: %.0f W
+","Afstand: %.3f km · %d voltooide rondes
+Gemiddeld vermogen: %.0f W · maximaal vermogen: %.0f W
+"
+"TRAINING_PELOTON_0F_KM_H_1F_250_M_GAINED_PEAK_POWER_0F_W_AVERAGE_0F_W","Peloton %.0f km/h · %.1f / 250 m gained
+Peak power %.0f W · average %.0f W
+","Peloton %.0f km/u · %.1f / 250 m gewonnen
+Piekvermogen %.0f W · gemiddeld %.0f W
+"
+"TRAINING_PC_TEST_RIDE_SIMULATED_ACTIVITY","
+PC test ride · simulated activity","
+PC-proefrit · gesimuleerde activiteit"
+"OMNIUM_PAST_TOURNAMENTS_D_SAVED","Past tournaments →
+%d saved","Gereden toernooien →
+%d bewaard"
+"OMNIUM_FORMAT","Format","Format"
+"OMNIUM_RACE_POINTS","RACE POINTS","KOERSPUNTEN"
+"OMNIUM_OMNIUM_POINTS","OMNIUM POINTS","OMNIUMPUNTEN"
+"OMNIUM_D_LAP_S","%+d lap%s","%+d ronde%s"
