@@ -31,7 +31,7 @@ func setup(owner_game: Node) -> void:
 	exit_button.offset_top = 48
 	exit_button.offset_bottom = 100
 	exit_button.icon = MenuStyle.icon('<path d="M10 4H4v16h6M14 8l4 4-4 4M8 12h10"/>')
-	exit_button.tooltip_text = "Spel afsluiten"
+	exit_button.tooltip_text = "EXIT_GAME"
 	exit_button.pressed.connect(show_quit)
 	backdrop = ColorRect.new()
 	screen.add_child(backdrop)
@@ -62,12 +62,12 @@ func setup(owner_game: Node) -> void:
 	resume_button.pressed.connect(cancel_or_resume)
 	box.add_child(resume_button)
 	settings_button = Button.new()
-	settings_button.text = "Instellingen"
+	settings_button.text = "COMMON_SETTINGS"
 	settings_button.custom_minimum_size.y = 60
 	settings_button.pressed.connect(func(): game.get_node("GameSettings").toggle_menu())
 	box.add_child(settings_button)
 	stop_race_button = Button.new()
-	stop_race_button.text = "Stop deze wedstrijd"
+	stop_race_button.text = "EXIT_STOP_RACE"
 	stop_race_button.custom_minimum_size.y = 60
 	stop_race_button.pressed.connect(func(): game._reset())
 	box.add_child(stop_race_button)
@@ -84,10 +84,10 @@ func set_exit_visible(value: bool) -> void:
 func show_pause() -> void:
 	quitting_application = false
 	confirming_leave = false
-	heading.text = "Wedstrijd gepauzeerd"
-	detail.text = "Wat wil je doen?"
-	resume_button.text = "Wedstrijd hervatten"
-	leave_button.text = "Wedstrijd verlaten"
+	heading.text = "EXIT_PAUSED"
+	detail.text = "EXIT_CHOICE"
+	resume_button.text = "EXIT_RESUME"
+	leave_button.text = "EXIT_LEAVE_RACE"
 	settings_button.show()
 	stop_race_button.hide()
 	backdrop.show()
@@ -119,10 +119,10 @@ func show_quit() -> void:
 	returning_to_menu = false
 	quitting_application = true
 	confirming_leave = false
-	heading.text = "Wedstrijd gepauzeerd" if race_in_progress else "Spel afsluiten?"
-	detail.text = "Na het stoppen kun je deze wedstrijd niet hervatten." if race_in_progress else "Wil je Velodrome afsluiten?"
-	resume_button.text = "Terug"
-	leave_button.text = "Spel afsluiten"
+	heading.text = "EXIT_PAUSED" if race_in_progress else "EXIT_CONFIRM_GAME"
+	detail.text = "EXIT_CANNOT_RESUME" if race_in_progress else "EXIT_CONFIRM_VELODROME"
+	resume_button.text = "COMMON_BACK"
+	leave_button.text = "EXIT_GAME"
 	stop_race_button.visible = race_in_progress
 	settings_button.hide()
 	backdrop.show()
@@ -138,10 +138,10 @@ func _leave_pressed() -> void:
 		return
 	confirming_leave = true
 	settings_button.hide()
-	heading.text = "Wedstrijd verlaten?"
-	detail.text = "Je kunt deze wedstrijd daarna niet hervatten."
-	resume_button.text = "Terug"
-	leave_button.text = "Terug naar omnium" if game.omnium_race.enabled() else "Verlaten naar hoofdmenu"
+	heading.text = "EXIT_CONFIRM_RACE"
+	detail.text = "EXIT_NO_RESUME"
+	resume_button.text = "COMMON_BACK"
+	leave_button.text = "EXIT_BACK_OMNIUM" if game.omnium_race.enabled() else "EXIT_MAIN_MENU"
 	resume_button.grab_focus()
 
 func show_results_leave() -> void:
@@ -149,10 +149,10 @@ func show_results_leave() -> void:
 	quitting_application = false
 	returning_to_menu = true
 	confirming_leave = true
-	heading.text = "Resultaat sluiten?"
-	detail.text = "Wil je terugkeren naar het omnium?" if game.omnium_race.enabled() else "Wil je het resultaat verlaten en terugkeren naar de wedstrijdkeuze?"
-	resume_button.text = "Resultaat bekijken"
-	leave_button.text = "Terug naar omnium" if game.omnium_race.enabled() else "Terug naar wedstrijdkeuze"
+	heading.text = "EXIT_CLOSE_RESULTS"
+	detail.text = "EXIT_CONFIRM_OMNIUM" if game.omnium_race.enabled() else "EXIT_CONFIRM_RESULTS"
+	resume_button.text = "EXIT_VIEW_RESULTS"
+	leave_button.text = "EXIT_BACK_OMNIUM" if game.omnium_race.enabled() else "EXIT_RACE_SELECTION"
 	settings_button.hide()
 	backdrop.show()
 	exit_button.hide()

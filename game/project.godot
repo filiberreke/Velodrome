@@ -20,6 +20,12 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 
+[internationalization]
+
+locale/test="en"
+locale/fallback="en"
+locale/translations=PackedStringArray("res://translations/translations.en.translation", "res://translations/translations.nl.translation")
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

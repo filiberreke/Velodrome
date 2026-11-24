@@ -15,7 +15,7 @@ func collect(jury, leader_distance: float, tempo: bool = false) -> Array[String]
 	for i in range(seen_events, jury.events.size()):
 		var event: Dictionary = jury.events[i]
 		if int(event.rider) == 0:
-			awards.append({"seconds":float(event.get("seconds",-INF)),"kind":1,"text":"+ 20 punten!" if int(event.delta) > 0 else "- 20 punten"})
+			awards.append({"seconds":float(event.get("seconds",-INF)),"kind":1,"text":tr("HUD_POINTS_GAIN") if int(event.delta) > 0 else tr("HUD_POINTS_LOSS")})
 	seen_events = jury.events.size()
 	for sprint in jury.sprints:
 		var place: int = sprint.order.find(0)
@@ -23,7 +23,7 @@ func collect(jury, leader_distance: float, tempo: bool = false) -> Array[String]
 		seen_awards[sprint.lap] = true
 		if int(sprint.awards[place]) > 0:
 			var times: Array = sprint.get("times",[])
-			awards.append({"seconds":float(times[place]) if place < times.size() else INF,"kind":0,"text":"+ %d punten" % int(sprint.awards[place])})
+			awards.append({"seconds":float(times[place]) if place < times.size() else INF,"kind":0,"text":tr("HUD_POINTS_AWARD") % int(sprint.awards[place])})
 	# At one line passage show sprint points before the protected gained-lap bonus.
 	awards.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
 		return a.kind < b.kind if a.seconds == b.seconds else a.seconds < b.seconds)
@@ -33,11 +33,11 @@ func collect(jury, leader_distance: float, tempo: bool = false) -> Array[String]
 		# The first scoring passage follows one lap later.
 		if not warned.has("tempo_points_start") and leader_distance >= 4.0 * jury.LAP:
 			warned["tempo_points_start"] = true
-			messages.append("Vanaf nu elke ronde 1 punt")
+			messages.append(tr("HUD_TEMPO_START"))
 	elif jury.finish_clock < 0.0:
 		for lap in range(jury.INTERVAL, jury.laps + 1, jury.INTERVAL):
 			if not warned.has(lap) and leader_distance >= (lap - 1) * jury.LAP:
 				warned[lap] = true
 				if leader_distance < lap * jury.LAP:
-					messages.append("Eindsprint over 1 ronde!" if lap == jury.laps else "Tussensprint over 1 ronde!")
+					messages.append(tr("HUD_FINAL_SPRINT") if lap == jury.laps else tr("HUD_INTERMEDIATE_SPRINT"))
 	return messages
