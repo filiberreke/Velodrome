@@ -32,6 +32,7 @@ func _initialize() -> void: call_deferred("run_test")
 func complete(game) -> void:
 	for i in range(game.rider_count): game.finish_times[i] = 100.0 + i
 func run_test() -> void:
+	TranslationServer.set_locale("nl")
 	var game := Game.new()
 	root.add_child(game)
 	game.race_laps = 10
@@ -86,7 +87,7 @@ func run_test() -> void:
 	check(preview.text == game._strava_activity_description(), "Dialog previews the actual upload description")
 	input.text = "   "
 	for button in dialog.find_children("*", "Button", true, false):
-		if button.text == "Upload rit": button.pressed.emit()
+		if button.tr(button.text) == "Upload rit": button.pressed.emit()
 	check(capture.received.size() == 3, "Upload passes FIT path, title and description to client")
 	if capture.received.size() == 3:
 		check(capture.received[1] == "Velodrome - Tijdrit" and capture.received[2] == preview.text, "Blank title falls back to current mode and description survives upload path")

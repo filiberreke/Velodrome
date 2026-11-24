@@ -121,7 +121,7 @@ func classification(limit := 3, offset := 0) -> Array[String]:
 			if id < points.size(): suffix = "   %d PT" % int(points[id])
 		elif state == FINISH:
 			var finishes: Array = frame.finishes
-			if id < finishes.size(): suffix = "   " + (clock_text(finishes[id]) if finishes[id] >= 0.0 else "ONDERWEG")
+			if id < finishes.size(): suffix = "   " + (clock_text(finishes[id]) if finishes[id] >= 0.0 else String(TranslationServer.translate("ARENA_STILL_RACING")))
 		rows.append("%d   %s%s" % [rank + 1, rider_name(id), suffix])
 	return rows
 
@@ -130,64 +130,64 @@ func view() -> Dictionary:
 	var headline := ""
 	var footer := ""
 	var rows: Array[String] = []
-	var badge := "RACE CENTRE"
+	var badge := String(TranslationServer.translate("ARENA_RACE_CENTRE"))
 	var page := 0
 	if frame.get("phase", "") == "RUN_UP":
-		headline = "AANLOOPRONDE"
-		footer = "VLIEGENDE START NA DEZE RONDE"
+		headline = String(TranslationServer.translate("ARENA_RUN_UP"))
+		footer = String(TranslationServer.translate("ARENA_FLYING_START_NEXT"))
 		badge = title
 	elif frame.get("phase", "") == "NEUTRAL":
-		headline = "NEUTRAAL"
-		footer = "VLIEGENDE START NA DEZE RONDE"
+		headline = String(TranslationServer.translate("ARENA_NEUTRAL"))
+		footer = String(TranslationServer.translate("ARENA_FLYING_START_NEXT"))
 		badge = title
 	elif state == INTRO:
 		headline = title
-		footer = "%s KM   •   %d RONDEN" % ["%.2f" % (float(frame.get("length", 0)) / 1000.0), int(frame.get("laps", 0))]
-		badge = "WELCOME TO VELODROME"
+		footer = String(TranslationServer.translate("ARENA_DISTANCE_LAPS")) % ["%.2f" % (float(frame.get("length", 0)) / 1000.0), int(frame.get("laps", 0))]
+		badge = String(TranslationServer.translate("ARENA_WELCOME"))
 	elif state == FINISH:
 		headline = rider_name(int(frame.winner))
-		badge = "WINNAAR" if bool(frame.all_finished) else "FINISH • VOORLOPIG"
+		badge = String(TranslationServer.translate("ARENA_WINNER")) if bool(frame.all_finished) else String(TranslationServer.translate("ARENA_PROVISIONAL_FINISH"))
 		var count: int = frame.order.size()
 		if bool(frame.all_finished) and age >= 9.0: page = int((age - 9.0) / 6.0) % maxi(1, ceili(float(count) / 3.0))
 		rows = classification(3, page * 3)
-		footer = "DEFINITIEVE UITSLAG" if bool(frame.all_finished) else "UITSLAG WORDT AANGEVULD"
+		footer = String(TranslationServer.translate("ARENA_FINAL_RESULTS")) if bool(frame.all_finished) else String(TranslationServer.translate("ARENA_RESULTS_PENDING"))
 		if bool(frame.all_finished) and count > 3: footer += "   •   %d–%d / %d" % [page * 3 + 1, mini(count, page * 3 + 3), count]
 	elif state == LAP_GAIN:
-		headline = "%+d POINTS" % int(active.payload.points) if int(frame.mode) == 1 else "RONDEWINST"
+		headline = "%+d POINTS" % int(active.payload.points) if int(frame.mode) == 1 else String(TranslationServer.translate("ARENA_LAP_GAIN"))
 		var riders: Array = active.payload.riders
-		badge = rider_name(int(riders[0])) + ("  +%d RENNERS" % (riders.size() - 1) if riders.size() > 1 else "")
+		badge = rider_name(int(riders[0])) + (String(TranslationServer.translate("ARENA_EXTRA_RIDERS")) % (riders.size() - 1) if riders.size() > 1 else "")
 		rows = classification()
-		footer = "BIJGEWERKTE STAND"
+		footer = String(TranslationServer.translate("ARENA_UPDATED_STANDINGS"))
 	elif state == SPRINT:
-		headline = "SPRINT!" if moment == "sprint" else "SPRINTUITSLAG"
-		badge = "RONDE %d" % int(active.payload.lap)
+		headline = "SPRINT!" if moment == "sprint" else String(TranslationServer.translate("ARENA_SPRINT_RESULT"))
+		badge = String(TranslationServer.translate("ARENA_LAP_NUMBER")) % int(active.payload.lap)
 		for sprint in frame.get("sprints", []):
 			if int(sprint.lap) != int(active.payload.lap): continue
 			for rank in mini(4, sprint.order.size()):
 				rows.append("%d   %s   +%d PT" % [rank + 1, rider_name(int(sprint.order[rank])), int(sprint.awards[rank])])
-		footer = "PUNTEN OP DE LIJN" if moment == "sprint" else "OFFICIËLE JURY-UITSLAG"
+		footer = String(TranslationServer.translate("ARENA_LINE_POINTS")) if moment == "sprint" else String(TranslationServer.translate("ARENA_JURY_RESULT"))
 	else:
 		if moment == "final_lap":
 			headline = "FINAL LAP"
-			footer = "DUBBELE SPRINTPUNTEN" if int(frame.mode) == 1 else "NOG ÉÉN RONDE"
+			footer = String(TranslationServer.translate("ARENA_DOUBLE_POINTS")) if int(frame.mode) == 1 else String(TranslationServer.translate("ARENA_ONE_LAP_LEFT"))
 		elif int(frame.mode) in [4, 5]:
 			var gap: Variant = frame.get("gap_seconds", null)
-			headline = "GELIJK" if gap != null and absf(float(gap)) < 0.005 else ("%.2f s" % absf(float(gap)) if gap != null else "TIJDMETING")
-			badge = "TIJDVERSCHIL • %d m" % int(frame.get("checkpoint_m", 0)) if gap != null else "WACHT OP TUSSENTIJD"
-			if gap != null and absf(float(gap)) >= 0.005: badge += "  •  " + rider_name(0 if float(gap) > 0 else 1) + " LEIDT"
+			headline = String(TranslationServer.translate("ARENA_TIED")) if gap != null and absf(float(gap)) < 0.005 else ("%.2f s" % absf(float(gap)) if gap != null else String(TranslationServer.translate("ARENA_TIMING")))
+			badge = String(TranslationServer.translate("ARENA_TIME_GAP")) % int(frame.get("checkpoint_m", 0)) if gap != null else String(TranslationServer.translate("ARENA_WAIT_FOR_SPLIT"))
+			if gap != null and absf(float(gap)) >= 0.005: badge += "  •  " + rider_name(0 if float(gap) > 0 else 1) + String(TranslationServer.translate("ARENA_LEADS"))
 			for id in 2:
 				var laps: Array = frame.lap_times[id]
 				var last: float = float(laps[-1]) if not laps.is_empty() else -1.0
-				rows.append("%s\nRONDE %s   •   SPLIT %s" % [rider_name(id), clock_text(last), clock_text(float(frame.split_times[id]))])
-			footer = "NOG %d RONDEN   •   %s" % [laps_left(), clock_text(float(frame.clock))]
+				rows.append(String(TranslationServer.translate("ARENA_LAP_AND_SPLIT")) % [rider_name(id), clock_text(last), clock_text(float(frame.split_times[id]))])
+			footer = String(TranslationServer.translate("ARENA_LAPS_AND_CLOCK")) % [laps_left(), clock_text(float(frame.clock))]
 		else:
-			headline = "%d RONDEN" % laps_left()
-			badge = "NOG TE RIJDEN"
+			headline = String(TranslationServer.translate("ARENA_LAPS")) % laps_left()
+			badge = String(TranslationServer.translate("ARENA_TO_GO"))
 			rows = classification()
 			footer = str(frame.get("breakaway", ""))
 			if int(frame.mode) == 1:
 				var next: int = frame.get("next_sprint", -1)
-				footer = "VOLGENDE SPRINT  RONDE %d   •   %.0f m" % [next, maxf(0.0, next * float(frame.lap_length) - leader_progress())] if next > 0 else "LAATSTE SPRINT"
+				footer = String(TranslationServer.translate("ARENA_NEXT_SPRINT")) % [next, maxf(0.0, next * float(frame.lap_length) - leader_progress())] if next > 0 else String(TranslationServer.translate("ARENA_FINAL_SPRINT"))
 				var gains: Array = frame.get("gains", [])
-				if not gains.is_empty(): footer += "   •   RONDEWINSTEN %d" % int(gains.reduce(func(a: int, b: int) -> int: return a + b, 0))
-	return {"state": state, "moment": moment, "title": title, "headline": headline, "badge": badge, "rows": rows, "footer": footer, "page": page}
+				if not gains.is_empty(): footer += String(TranslationServer.translate("ARENA_LAPS_GAINED")) % int(gains.reduce(func(a: int, b: int) -> int: return a + b, 0))
+	return {"state": state, "moment": moment, "title": title, "headline": headline, "badge": badge, "winner_confirmed": state == FINISH and bool(frame.all_finished), "rows": rows, "footer": footer, "page": page}

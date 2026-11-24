@@ -46,7 +46,7 @@ static func _number(value: Variant) -> bool:
 func save(name: String, distance: int, seconds: float, samples: Array[Dictionary], metadata: Dictionary = {}) -> Dictionary:
 	var title: String = name.strip_edges().replace("\n", " ").replace("\r", " ").left(48)
 	if title.is_empty():
-		return {"error": "Geef je rit eerst een naam."}
+		return {"error": String(TranslationServer.translate("PURSUIT_RIDE_NAME_REQUIRED"))}
 	var id: String = Crypto.new().generate_random_bytes(12).hex_encode()
 	var record := {"version": VERSION, "physics": PHYSICS, "id": id, "name": title, "distance_m": distance, "time_s": seconds, "created_at": Time.get_unix_time_from_system(), "created_local": Time.get_datetime_string_from_system(false, true), "samples": samples.duplicate(true)}
 	for key in ["performance_id", "player_name", "finished_at", "finished_local"]:
@@ -56,20 +56,20 @@ func save(name: String, distance: int, seconds: float, samples: Array[Dictionary
 		record["team_size"] = squad_size
 		record["team_timing"] = "first_wheel_v1"
 	if not valid(record):
-		return {"error": "Alleen een volledig afgewerkte achtervolging kan worden bewaard."}
+		return {"error": String(TranslationServer.translate("PURSUIT_FULL_RIDE_REQUIRED"))}
 	var absolute: String = ProjectSettings.globalize_path(directory)
 	if DirAccess.make_dir_recursive_absolute(absolute) != OK:
-		return {"error": "De map voor opgeslagen ritten kon niet worden gemaakt."}
+		return {"error": String(TranslationServer.translate("PURSUIT_REPLAY_FOLDER_FAILED"))}
 	var path: String = directory.path_join(id + ".json")
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
-		return {"error": "De rit kon niet worden opgeslagen. Probeer opnieuw."}
+		return {"error": String(TranslationServer.translate("PURSUIT_SAVE_RIDE_FAILED"))}
 	file.store_string(JSON.stringify(record))
 	file.flush()
 	var error: Error = file.get_error()
 	file.close()
 	if error != OK or DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path)) != OK:
-		return {"error": "Opslaan is niet voltooid. Probeer opnieuw."}
+		return {"error": String(TranslationServer.translate("PURSUIT_SAVE_INCOMPLETE"))}
 	return {"id": id, "name": title}
 
 func load_ride(id: String) -> Dictionary:

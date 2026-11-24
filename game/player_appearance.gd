@@ -3,22 +3,22 @@ extends RefCounted
 const SAVE_PATH := "user://config/player_appearance.cfg"
 const KEYS := ["country_kit", "skinsuit_png", "helmet_png", "visor"]
 const COUNTRY_NAMES := {
-	"denmark": "Denemarken", "portugal": "Portugal", "italy": "Italië",
-	"great_britain": "Groot-Brittannië", "australia": "Australië",
-	"new_zealand": "Nieuw-Zeeland", "germany": "Duitsland", "france": "Frankrijk",
-	"netherlands": "Nederland", "united_states": "Verenigde Staten","spain": "Spanje",
-"switzerland": "Zwitserland",
-"poland": "Polen",
+	"denmark": "COUNTRY_DENMARK", "portugal": "Portugal", "italy": "COUNTRY_ITALY",
+	"great_britain": "COUNTRY_GREAT_BRITAIN", "australia": "COUNTRY_AUSTRALIA",
+	"new_zealand": "COUNTRY_NEW_ZEALAND", "germany": "COUNTRY_GERMANY", "france": "COUNTRY_FRANCE",
+	"netherlands": "COUNTRY_NETHERLANDS", "united_states": "COUNTRY_UNITED_STATES","spain": "COUNTRY_SPAIN",
+"switzerland": "COUNTRY_SWITZERLAND",
+"poland": "COUNTRY_POLAND",
 "japan": "Japan",
 "china": "China",
-"czechia": "Tsjechië",
-"austria": "Oostenrijk",
-"kazakhstan": "Kazachstan",
+"czechia": "COUNTRY_CZECHIA",
+"austria": "COUNTRY_AUSTRIA",
+"kazakhstan": "COUNTRY_KAZAKHSTAN",
 "mexico": "Mexico",
-"argentina": "Argentinië",
-"turkey": "Turkije",
+"argentina": "COUNTRY_ARGENTINA",
+"turkey": "COUNTRY_TURKIYE",
 "venezuela": "Venezuela",
-"ireland": "Ierland",
+"ireland": "COUNTRY_IRELAND",
 "colombia": "Colombia",
 }
 var settings_path: String
@@ -31,14 +31,14 @@ var helmet_options: Array[Dictionary] = []
 func _init(path: String = SAVE_PATH) -> void:
 	settings_path = path
 	suit_options = [
-		{"id": "configured", "label": "Bestaande keuze", "path": ""},
-		{"id": "default", "label": "Standaardkleuren", "path": ""},
-		{"id": "belgium", "label": "België", "path": "res://assets/riders/national_kits/belgium/skinsuit.png"},
+		{"id": "configured", "label": "APPEARANCE_CURRENT_SELECTION", "path": ""},
+		{"id": "default", "label": "APPEARANCE_DEFAULT_COLOURS", "path": ""},
+		{"id": "belgium", "label": "RIDER_BELGIUM", "path": "res://assets/riders/national_kits/belgium/skinsuit.png"},
 	]
 	helmet_options = [
-		{"id": "configured", "label": "Bestaande keuze", "path": ""},
-		{"id": "default", "label": "Standaardkleuren", "path": ""},
-		{"id": "white", "label": "Wit", "path": "res://assets/riders/national_kits/denmark/helmet.png"},
+		{"id": "configured", "label": "APPEARANCE_CURRENT_SELECTION", "path": ""},
+		{"id": "default", "label": "APPEARANCE_DEFAULT_COLOURS", "path": ""},
+		{"id": "white", "label": "APPEARANCE_WHITE", "path": "res://assets/riders/national_kits/denmark/helmet.png"},
 	]
 	# Use resource paths directly so exported builds do not depend on raw JSON inclusion.
 	for id in COUNTRY_NAMES:

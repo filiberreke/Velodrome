@@ -63,7 +63,7 @@ func run_test() -> void:
 		check(not game.race_paused and not ui.backdrop.visible, "Direct settings returns to riding")
 		ui.exit_button.pressed.emit()
 		check(ui.quitting_application and game.race_paused, "HUD exit pauses before confirmation")
-		check(ui.stop_race_button.is_visible_in_tree() and ui.leave_button.text == "Spel afsluiten", "HUD exit offers both ways to leave")
+		check(ui.stop_race_button.is_visible_in_tree() and ui.leave_button.text == "EXIT_GAME", "HUD exit offers both ways to leave")
 		ui.cancel_or_resume()
 		check(not game.race_paused and not ui.backdrop.visible, "Cancelling HUD exit returns to riding")
 		escape(game)

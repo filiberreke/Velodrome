@@ -68,7 +68,7 @@ func update(game, podium: Node3D) -> void:
 		standing_pose(visual,place == 0)
 		var name_label := Label3D.new()
 		var caption: String = game._rider_name(index)
-		if game.race_mode == 5: caption = "Jouw ploeg" if index == 0 else "Tegenploeg"
+		if game.race_mode == 5: caption = String(TranslationServer.translate("TEAM_YOUR_TEAM")) if index == 0 else "Tegenploeg"
 		name_label.text = "%d\n%s" % [place+1,caption]
 		name_label.position = Vector3(STEPS[place].x,STEPS[place].y*.50,.468)
 		name_label.font_size = 48

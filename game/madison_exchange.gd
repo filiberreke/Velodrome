@@ -41,7 +41,7 @@ var grab_right := 0.88
 var grab_window_valid := false
 var visual_offsets: Array[float] = [0.0, 0.0]
 var contact_point := Vector3.ZERO
-var last_result := "Zoek je ploegmaat op bij de blauwe lijn"
+var last_result := String(TranslationServer.translate("MADISON_FIND_TEAMMATE"))
 var _impulse := 0.0
 var release_reason := ""
 var position_valid := false
@@ -60,7 +60,7 @@ func reset() -> void:
 	_impulse = 0.0
 	release_reason = ""
 	failure_reason = ""; position_valid = false; position_reason = ""; speed_valid = false; speed_reason = ""
-	last_result = "Zoek je ploegmaat op bij de blauwe lijn"
+	last_result = String(TranslationServer.translate("MADISON_FIND_TEAMMATE"))
 
 func _change(next: int) -> void:
 	phase = next
@@ -75,7 +75,7 @@ func button(pressed: bool) -> void:
 		return
 	if not active or phase != Phase.APPROACH or attempted: return
 	if not can_grab:
-		miss_attempt(position_reason if not position_valid else speed_reason if not speed_valid else "Te vroeg gedrukt — vóór de groene zone" if marker < grab_left else "Te laat gedrukt — voorbij de groene zone")
+		miss_attempt(position_reason if not position_valid else speed_reason if not speed_valid else String(TranslationServer.translate("MADISON_PRESSED_TOO_EARLY")) if marker < grab_left else String(TranslationServer.translate("MADISON_PRESSED_TOO_LATE")))
 		return
 	attempted = true
 	precision = clampf(1.0 - absf(marker - 0.8) / 0.2, 0.0, 1.0)
@@ -97,7 +97,7 @@ func _release(reason: String = "player") -> void:
 	efficiency = precision * envelope(sling_t) * (1.0 if advanced else 0.7)
 	failure_reason = ""
 	if efficiency <= 0.0:
-		failure_reason = "Te vroeg of te laat gegrepen" if precision <= 0.0 else "Handbereik overschreden vóór de slinger" if reason == "reach" else "Te lang vastgehouden" if reason == "max_hold" else "Te vroeg losgelaten"
+		failure_reason = String(TranslationServer.translate("MADISON_GRAB_TIMING")) if precision <= 0.0 else String(TranslationServer.translate("MADISON_REACH_LOST")) if reason == "reach" else String(TranslationServer.translate("MADISON_HELD_TOO_LONG")) if reason == "max_hold" else String(TranslationServer.translate("MADISON_RELEASED_TOO_EARLY"))
 	last_result = "Score: %d/100 · %d%% momentum" % [roundi(score_percent()), roundi(efficiency * 100.0)]
 	if not failure_reason.is_empty(): last_result += " · " + failure_reason
 	active_rider = receiver
@@ -130,10 +130,10 @@ func positioning(game) -> Dictionary:
 	var r: int = 1-g
 	var lateral: float = game._at(game.distances[0],game.lane_offsets[g]).distance_to(game._at(game.distances[0],game.lane_offsets[r]))
 	var reason := ""
-	if game.lane_offsets[g] >= game.lane_offsets[r]-0.4: reason = "De snelle renner moet aan de binnenkant rijden"
-	elif absf(game.lane_offsets[r]-3.58) > 0.15 and absf(game.lane_offsets[r]-2.98) > 0.15: reason = "De ontvanger moet op de blauwe lijn of één lijn eronder rijden"
-	elif lateral < 0.6: reason = "Te dicht bij je ploegmaat"
-	elif lateral > max_reach+0.0001: reason = "Te ver van je ploegmaat"
+	if game.lane_offsets[g] >= game.lane_offsets[r]-0.4: reason = String(TranslationServer.translate("MADISON_FAST_RIDER_INSIDE"))
+	elif absf(game.lane_offsets[r]-3.58) > 0.15 and absf(game.lane_offsets[r]-2.98) > 0.15: reason = String(TranslationServer.translate("MADISON_RECEIVER_AT_BLUE_LINE"))
+	elif lateral < 0.6: reason = String(TranslationServer.translate("MADISON_TOO_CLOSE"))
+	elif lateral > max_reach+0.0001: reason = String(TranslationServer.translate("MADISON_TOO_FAR"))
 	return {"valid":reason.is_empty(),"reason":reason}
 
 func speed_guidance(game) -> Dictionary:
@@ -146,11 +146,11 @@ func speed_guidance(game) -> Dictionary:
 	var minimum_kmh: float = ceilf(maxf(0.0,game.speeds[g]-maximum_closing)*36.0)/10.0
 	var reason := ""
 	if game.speeds[g]*3.6 > giver_max_kmh:
-		reason = "Je reed te snel als uitgaande renner: %.1f km/u (maximum %.0f km/u)" % [game.speeds[g]*3.6,giver_max_kmh] if g == 0 else "Uitgaande ploegmaat reed boven %.0f km/u" % giver_max_kmh
+		reason = String(TranslationServer.translate("MADISON_GIVER_TOO_FAST")) % [game.speeds[g]*3.6,giver_max_kmh] if g == 0 else String(TranslationServer.translate("MADISON_TEAMMATE_GIVER_TOO_FAST")) % giver_max_kmh
 	elif game.speeds[r]*3.6 < minimum_kmh:
-		reason = "Je reed te traag als inkomende renner: %.1f km/u (minimum %.1f km/u bij gever %.1f km/u)" % [game.speeds[r]*3.6,minimum_kmh,game.speeds[g]*3.6] if r == 0 else "Snelheidsverschil te groot: inkomende ploegmaat reed %.1f km/u (minimum %.1f km/u)" % [game.speeds[r]*3.6,minimum_kmh]
+		reason = String(TranslationServer.translate("MADISON_RECEIVER_TOO_SLOW")) % [game.speeds[r]*3.6,minimum_kmh,game.speeds[g]*3.6] if r == 0 else String(TranslationServer.translate("MADISON_TEAMMATE_RECEIVER_TOO_SLOW")) % [game.speeds[r]*3.6,minimum_kmh]
 	elif difference <= minimum_closing_mps:
-		reason = "De uitgaande gever moet sneller rijden dan de ontvanger" if g == 0 else "Je reed te snel: de uitgaande ploegmaat kon niet bijsluiten"
+		reason = String(TranslationServer.translate("MADISON_GIVER_MUST_BE_FASTER")) if g == 0 else String(TranslationServer.translate("MADISON_PLAYER_TOO_FAST"))
 	return {"valid":reason.is_empty(),"reason":reason,"minimum_kmh":minimum_kmh,"maximum_closing_kmh":maximum_closing*3.6,"giver_max_kmh":giver_max_kmh}
 
 func _gap_interval(offset: Vector3, tangent: Vector3, reach: float) -> Vector2:
@@ -227,7 +227,7 @@ func step(game, dt: float) -> void:
 			Phase.APPROACH:
 				_impulse = minf(max_impulse_mps, maxf(0.0, game.speeds[giver]) * impulse_speed_fraction)
 				marker = clampf((approach_distance - gap) / (approach_distance + 2.5), 0.0, 1.0)
-				if gap < -2.5 or gap > approach_distance + 3.0: cancel(position_reason if not position_valid else speed_reason if not speed_valid else "Greep gemist — niet op tijd op A gedrukt")
+				if gap < -2.5 or gap > approach_distance + 3.0: cancel(position_reason if not position_valid else speed_reason if not speed_valid else String(TranslationServer.translate("MADISON_MISSED_GRAB")))
 			Phase.GRAB, Phase.SLING:
 				if not position_valid:
 					cancel("Handcontact verloren — " + position_reason)

@@ -37,6 +37,6 @@ func reset_clock(now: float) -> void:
 	paused_total = 0; paused_since = -1; resumed_at = now
 func status(now: float) -> String:
 	update(now)
-	if paused_since >= 0: return "Training gepauzeerd · wacht op trainerverbinding"
+	if paused_since >= 0: return String(TranslationServer.translate("TRAINING_WAITING_FOR_SIGNAL"))
 	if not valid and dropout_since >= 0: return "Signaal tijdelijk weg · laatste vermogen behouden (%d s)" % maxi(0,ceili(HOLD_SECONDS-(now-dropout_since)))
 	return ""

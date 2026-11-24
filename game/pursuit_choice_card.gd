@@ -38,17 +38,17 @@ func _ready()->void:
 	for side in [SIDE_LEFT,SIDE_TOP,SIDE_RIGHT,SIDE_BOTTOM]:style.set_content_margin(side,20)
 	add_theme_stylebox_override("panel",style)
 	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",8);add_child(column)
-	column.add_child(label("EIGEN PLOEGPRESTATIE"if replay and is_team else("EIGEN PRESTATIE"if replay else"NATIONALE PLOEG"),15,MenuStyle.WOOD if replay else MenuStyle.BLUE))
+	column.add_child(label("EIGEN PLOEGPRESTATIE"if replay and is_team else("EIGEN PRESTATIE"if replay else String(TranslationServer.translate("PURSUIT_NATIONAL_TEAM"))),15,MenuStyle.WOOD if replay else MenuStyle.BLUE))
 	var title:=label(String(data.get("name","")),26);title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;title.custom_minimum_size.x=400;title.max_lines_visible=2;column.add_child(title)
 	if replay:
 		var date:=String(data.get("finished_local",data.get("created_local","")))
 		if date.is_empty()and float(data.get("created_at",0))>0:date=Time.get_datetime_string_from_unix_time(int(data.created_at)).replace("T"," ")+" UTC"
-		column.add_child(label(date if not date.is_empty()else"Datum onbekend",16,MenuStyle.MUTED))
+		column.add_child(label(date if not date.is_empty()else String(TranslationServer.translate("TRAINING_HISTORY_DATE_UNKNOWN")),16,MenuStyle.MUTED))
 		var chart:=PowerChart.new();chart.samples=data.get("samples",[]);chart.custom_minimum_size.y=64;column.add_child(chart)
 		_stat(column,"record","Gereden tijd",_duration(float(data.time_s)))
 		_stat(column,"peak","Gemiddeld vermogen","%d W"%roundi(Records.average_power(data)))
-		_stat(column,"cp","Afstand","%d m"%int(data.distance_m))
-		column.add_child(label("Doeltijd bij %d%%: %s"%[roundi(strength),_duration(float(data.time_s)*100.0/strength)],16,MenuStyle.WOOD))
+		_stat(column,"cp",String(TranslationServer.translate("RECORDS_PAGE_DISTANCE")),"%d m"%int(data.distance_m))
+		column.add_child(label(String(TranslationServer.translate("PURSUIT_TARGET_TIME"))%[roundi(strength),_duration(float(data.time_s)*100.0/strength)],16,MenuStyle.WOOD))
 	else:
 		var country:=String(data.get("country","belgium"))
 		var row:=HBoxContainer.new();row.add_theme_constant_override("separation",10);column.add_child(row)
@@ -59,8 +59,8 @@ func _ready()->void:
 			var portrait=preload("res://player_appearance_preview.gd").new();portrait.custom_minimum_size=Vector2(92,110);riders.add_child(portrait)
 			portrait.show_identity({"profile":1,"morphs":{},"jersey":{"country_kit":country}})
 			portrait.viewport.render_target_update_mode=SubViewport.UPDATE_ONCE
-		_stat(column,"cp","Ploeg","%d renners"%team_size)
-		_stat(column,"peak","CP op kop","%d W"%roundi(float(data.get("cp_w",250.0))))
+		_stat(column,"cp",String(TranslationServer.translate("PURSUIT_TEAM")),String(TranslationServer.translate("PURSUIT_D_RIDERS"))%team_size)
+		_stat(column,"peak",String(TranslationServer.translate("PURSUIT_LEADING_CP")),"%d W"%roundi(float(data.get("cp_w",250.0))))
 		_stat(column,"reserve","W′-reserve","%d J"%roundi(float(data.get("w_prime_j",20000.0))))
 
 static func _duration(seconds:float)->String:

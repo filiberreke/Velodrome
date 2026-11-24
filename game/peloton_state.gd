@@ -52,7 +52,7 @@ func sample(progress: Array[float], credits: Array[int], finished: Array[float])
 	return {"ids":previous_ids.duplicate(),"tail":tail,"front":front,"center":0.5*(tail+front)}
 
 static func gap_text(position: float, bunch: Dictionary) -> String:
-	if bunch.is_empty(): return "Peloton niet gevormd"
+	if bunch.is_empty(): return String(TranslationServer.translate("PELOTON_NOT_FORMED"))
 	if position > float(bunch.front)+1.0: return "%.0f m vóór peloton" % (position-float(bunch.front))
 	if position < float(bunch.tail)-1.0: return "%.0f m achter peloton" % (float(bunch.tail)-position)
-	return "In het peloton"
+	return String(TranslationServer.translate("PELOTON_IN_PACK"))

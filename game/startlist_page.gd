@@ -31,14 +31,14 @@ func _ready() -> void:
 	navigation.add_theme_constant_override("separation", 14)
 	add_child(navigation)
 	previous_button = Button.new()
-	previous_button.text = "← Wedstrijdinstellingen"
+	previous_button.text = "STARTLIST_BACK"
 	previous_button.custom_minimum_size = Vector2(300, 54)
 	previous_button.pressed.connect(back)
 	navigation.add_child(previous_button)
 	menu.place_back(previous_button, self)
 	navigation.add_spacer(false)
 	start_button = Button.new()
-	start_button.text = "Start wedstrijd →"
+	start_button.text = "RACE_MENU_START_RACE"
 	start_button.custom_minimum_size = Vector2(310, 54)
 	MenuStyle.primary(start_button)
 	start_button.pressed.connect(func() -> void:
@@ -119,7 +119,7 @@ func _render() -> void:
 	for child in grid.get_children():
 		grid.remove_child(child)
 		child.queue_free()
-	summary.text = "%s · Jij + %d tegenstanders · AI %d%%" % [menu.MODES[menu.selected].title, lineup.size(), int(menu.difficulty_slider.value)]
+	summary.text = tr("STARTLIST_SUMMARY") % [tr(menu.MODES[menu.selected].title), lineup.size(), int(menu.difficulty_slider.value)]
 	for slot in range(lineup.size()):
 		var card = preload("res://rider_passport.gd").new()
 		card.entry = lineup[slot]

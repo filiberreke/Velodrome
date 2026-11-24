@@ -10,16 +10,16 @@ func save(activity: Dictionary) -> bool:
 	var path := _path(str(activity.get("id", "")))
 	if path.is_empty(): error = "Ongeldige trainingsnaam"; return false
 	var result := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(folder))
-	if result != OK: error = "Trainingsmap niet beschikbaar"; return false
+	if result != OK: error = String(TranslationServer.translate("TRAINING_FOLDER_UNAVAILABLE")); return false
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
-	if file == null: error = "Training kon niet worden opgeslagen"; return false
+	if file == null: error = String(TranslationServer.translate("TRAINING_SAVE_FAILED")); return false
 	file.store_string(JSON.stringify(activity))
 	file.flush()
 	var write_error := file.get_error()
 	file.close()
-	if write_error != OK: error = "Schrijven van training mislukt"; return false
+	if write_error != OK: error = String(TranslationServer.translate("TRAINING_WRITE_FAILED")); return false
 	result = DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path))
-	if result != OK: error = "Training kon niet worden bijgewerkt"; return false
+	if result != OK: error = String(TranslationServer.translate("TRAINING_UPDATE_FAILED")); return false
 	return true
 func load_activity(id: String) -> Dictionary:
 	var path := _path(id)

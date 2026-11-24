@@ -41,7 +41,7 @@ class Emblem extends Control:
 				draw_line(c,c+Vector2(0,8),tint,2,true);draw_line(c+Vector2(-6,9),c+Vector2(6,9),tint,2,true)
 
 static func country_name(id: String) -> String:
-	return "België" if id == "belgium" else String(Appearance.COUNTRY_NAMES.get(id,id.capitalize()))
+	return String(TranslationServer.translate("RIDER_BELGIUM")) if id == "belgium" else String(TranslationServer.translate(Appearance.COUNTRY_NAMES.get(id, id.capitalize())))
 
 func text(value: String, font_size: int, color: Color = MenuStyle.INK) -> Label:
 	var node := Label.new()
@@ -113,7 +113,7 @@ func _ready() -> void:
 	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(stats)
 	_meter(stats,"cp","CP",float(entry.cp_w),350,"W")
-	_meter(stats,"peak","Sprintvermogen",float(entry.max_power_w),1800,"W")
+	_meter(stats,"peak",String(TranslationServer.translate("RIDER_SPRINT_POWER")),float(entry.max_power_w),1800,"W")
 	_meter(stats,"reserve","W′-reserve",float(entry.w_prime_j),40000,"J")
 	var record_row := HBoxContainer.new()
 	column.add_child(record_row)
@@ -121,13 +121,13 @@ func _ready() -> void:
 	trophy.kind = "record";trophy.tint = accent;trophy.custom_minimum_size = Vector2(26,26)
 	record_row.add_child(trophy)
 	var record_s := best_1000m()
-	record_row.add_child(text("1 km  ·  %d s" % roundi(record_s) if record_s > 0 else "1 km  ·  Nog geen record",16,MenuStyle.MUTED))
+	record_row.add_child(text("1 km  ·  %d s" % roundi(record_s) if record_s > 0 else String(TranslationServer.translate("RIDER_NO_1_KM_RECORD")),16,MenuStyle.MUTED))
 	if interactive:
 		var actions := HBoxContainer.new()
 		actions.add_theme_constant_override("separation",8)
 		column.add_child(actions)
 		var choose := Button.new()
-		choose.text = "Selecteer"
+		choose.text = "RIDER_SELECT"
 		choose.custom_minimum_size.y = 42
 		choose.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var button_skin := StyleBoxFlat.new();button_skin.bg_color = accent;button_skin.set_corner_radius_all(8)
@@ -135,7 +135,7 @@ func _ready() -> void:
 		MenuStyle.primary(choose)
 		choose.pressed.connect(func():selected.emit(entry))
 		actions.add_child(choose)
-		var records := Button.new();records.text = "Profiel & records";records.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var records := Button.new();records.text = "RIDER_PROFILE_RECORDS";records.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		records.pressed.connect(func():records_requested.emit(entry))
 		actions.add_child(records)
 
@@ -206,7 +206,7 @@ func _build_compact() -> void:
 		row.add_child(caption)
 		row.add_child(text("%d %s" % [roundi(float(item[1])), item[2]], 16))
 	var change := Button.new()
-	change.text = "Wissel renner"
+	change.text = "RIDER_CHANGE"
 	change.custom_minimum_size.y = 36
 	change.add_theme_font_size_override("font_size", 16)
 	change.pressed.connect(func() -> void: selected.emit(entry))

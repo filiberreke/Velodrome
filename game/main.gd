@@ -149,9 +149,6 @@ var track_geometry := preload("res://track_geometry.gd").new()
 const LANE_CHANGE_MPS := 1.15
 var lane_offsets: Array[float] = [1.18, 2.38, 3.58, 4.78]
 var ai_lane_targets: Array[float] = [1.18, 2.38, 3.58, 4.78]
-const NAMES := ["JIJ", "TIJDRIJDER", "SPRINTER", "AANVALLER"]
-const MODE_NAMES := ["SCRATCH", "PUNTENKOERS", "AFVALLING", "KEIRIN", "ACHTERVOLGING", "ARCADE", "PLOEGKOERS"]
-const PROFILE_NAMES := ["TIJDRIJDER", "SPRINTER", "AANVALLER"]
 var rider_count := 8
 var rider_profiles: Array[int] = [0, 1, 2, 3]
 var rider_names: Array[String] = ["JIJ", "TIJDRIJDER", "SPRINTER", "AANVALLER"]
@@ -633,6 +630,10 @@ var fit_export_path := ""
 var fit_gps_export_path := ""
 
 
+func _enter_tree() -> void:
+	preload("res://display_settings.gd").restore_language()
+
+
 func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	var legacy_mapping := OS.get_executable_path().get_base_dir().path_join("bridge/button_mapping.json")
@@ -999,7 +1000,7 @@ func _keyboard_race_action(action: String) -> void:
 		"steer_left": _steer_player(-1)
 		"steer_right": _steer_player(1)
 		"pause":
-			if training: piste_training.page.finish("Handmatig gestopt")
+			if training: piste_training.page.finish(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY")))
 			else: _pause_race()
 		"tempo_up", "tempo_down":
 			if training: piste_training.request_tempo(1 if action == "tempo_up" else -1)
@@ -1044,7 +1045,7 @@ func _resume_race() -> void:
 
 func _quit_application() -> void:
 	if setup_panel != null and setup_panel.workout_play_page != null: setup_panel.workout_play_page.shutdown()
-	if piste_training != null and piste_training.active: piste_training.finish_session("Spel gesloten",false)
+	if piste_training != null and piste_training.active: piste_training.finish_session(String(TranslationServer.translate("MAIN_GAME_CLOSED")),false)
 	if setup_panel != null and setup_panel.ftp_page != null: setup_panel.ftp_page.shutdown()
 	trainer_control.close()
 	_save_recording("exit")
@@ -1089,7 +1090,7 @@ func _ride_action(key: String, source: String = "B") -> void:
 			ride_look_source = source
 			ride_look_back = true
 			_refresh_look_back()
-		elif key == "Z": piste_training.page.finish("Handmatig gestopt")
+		elif key == "Z": piste_training.page.finish(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY")))
 		return
 	# Physical gears stay owned by the bridge during training, including when
 	# a user mapped their shift paddles to menu confirmation/back actions.
@@ -1419,7 +1420,7 @@ func _reset(omnium_archive: Dictionary = {}) -> void:
 		selected_startlist.clear(); startlist_mode = -1
 	results_completion.cancel()
 	if piste_training != null and piste_training.active:
-		piste_training.finish_session("Training verlaten",false)
+		piste_training.finish_session(String(TranslationServer.translate("MAIN_LEAVE_TRAINING")),false)
 		piste_training.page.environment_requested.emit(false)
 	_clear_look_back()
 	pursuit_start.clear()
@@ -1506,7 +1507,7 @@ func _reset(omnium_archive: Dictionary = {}) -> void:
 	finish_photo_capture_pending = false
 	if finish_photo_rect != null:
 		finish_photo_rect.texture = null
-		finish_photo_caption.text = "FINISHFOTO"
+		finish_photo_caption.text = "MAIN_FINISH_PHOTO"
 	_set_race_hud_visible(true)
 	if result_panel != null:
 		result_panel.hide()
@@ -1822,7 +1823,7 @@ func _register_lap_crossings(rider: int, previous: float, step: float, dt: float
 		lap_times[rider].append(lap_duration)
 		last_lap_crossing[rider] = crossing_time
 		if rider == 0:
-			lap_notice = "JOUW RONDE %d: %.2f s" % [next_lap, lap_duration]
+			lap_notice = String(TranslationServer.translate("RACE_YOUR_LAP_D_2F_S")) % [next_lap, lap_duration]
 			lap_notice_until = clock + 6.0
 		next_lap += 1
 
@@ -2069,11 +2070,11 @@ func _advance_race(dt: float) -> void:
 			var event: Dictionary = lap_events[index]
 			var change: int = int(event.get("delta", 1 if event.get("kind", "") == "gain" else -1))
 			if int(event.rider) == 0:
-				var message: String = "RONDE GEWONNEN · +20 PUNTEN · TERUG IN HET PELOTON" if change > 0 else "RONDE VERLOREN · −20 PUNTEN"
-				if race_mode == 0: message = "RONDE GEWONNEN" if change > 0 else "RONDE VERLOREN"
+				var message: String = String(TranslationServer.translate("RACE_LAP_GAINED_20_POINTS_BACK_IN_THE_PELOTON")) if change > 0 else String(TranslationServer.translate("RACE_LAP_LOST_20_POINTS"))
+				if race_mode == 0: message = String(TranslationServer.translate("MAIN_LAP_GAINED_83")) if change > 0 else String(TranslationServer.translate("MAIN_LAP_LOST_84"))
 				_announce_race_event(message)
 			else:
-				var detail: String = "ronde gewonnen" if change > 0 else "ronde verloren"
+				var detail: String = String(TranslationServer.translate("MAIN_LAP_GAINED")) if change > 0 else String(TranslationServer.translate("MAIN_LAP_LOST"))
 				if race_mode in [1, 8]: detail += " (+20 pt)" if change > 0 else " (−20 pt)"
 				_announce_race_event("%s · %s" % [_rider_name(int(event.rider)), detail], false)
 		peloton_info = peloton_state.sample(distances, _lap_credits(), finish_times)
@@ -2670,7 +2671,7 @@ func _build_hud() -> void:
 	heading_stack.add_child(finish_heading)
 	var subtitle := Label.new()
 	finish_subtitle = subtitle
-	subtitle.text = "S P R I N T   2 5 0 M     |     OFFICIELE WEDSTRIJDRESULTATEN"
+	subtitle.text = "RACE_S_P_R_I_N_T_2_5_0_M_OFFICIAL_RACE_RESULTS"
 	subtitle.add_theme_font_size_override("font_size", 14)
 	subtitle.add_theme_color_override("font_color", MenuSkin.MUTED)
 	heading_stack.add_child(subtitle)
@@ -2710,13 +2711,13 @@ func _build_hud() -> void:
 	save_row.add_theme_constant_override("separation", 16)
 	pursuit_save_box.add_child(save_row)
 	pursuit_save_name = LineEdit.new()
-	pursuit_save_name.placeholder_text = "Geef je rit een naam"
+	pursuit_save_name.placeholder_text = "MAIN_NAME_YOUR_RIDE"
 	pursuit_save_name.max_length = 48
 	pursuit_save_name.custom_minimum_size = Vector2(550, 52)
 	pursuit_save_name.add_theme_font_size_override("font_size", 22)
 	save_row.add_child(pursuit_save_name)
 	pursuit_save_button = Button.new()
-	pursuit_save_button.text = "Rit opslaan"
+	pursuit_save_button.text = "MAIN_SAVE_RIDE"
 	pursuit_save_button.custom_minimum_size = Vector2(220, 52)
 	_style_finish_button(pursuit_save_button, MenuSkin.BLUE, Color.WHITE)
 	pursuit_save_button.pressed.connect(_save_pursuit_ride)
@@ -2732,12 +2733,12 @@ func _build_hud() -> void:
 	sheet.add_child(buttons)
 	var again := Button.new()
 	again.name = "ReplayRaceButton"
-	again.text = "Wedstrijd opnieuw rijden"
+	again.text = "MAIN_RACE_AGAIN"
 	again.custom_minimum_size = Vector2(340, 58)
 	_style_finish_button(again, MenuSkin.BLUE, Color.WHITE)
 	again.pressed.connect(_restart_same_race)
 	var strava_button := Button.new()
-	strava_button.text = "Export naar Strava"
+	strava_button.text = "MAIN_EXPORT_TO_STRAVA"
 	strava_button.icon = load("res://strava_logo.svg")
 	strava_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	strava_button.custom_minimum_size = Vector2(250, 58)
@@ -2747,7 +2748,7 @@ func _build_hud() -> void:
 	strava_button.pressed.connect(_export_to_strava)
 	buttons.add_child(strava_button)
 	var fit_button := Button.new()
-	fit_button.text = "Exporteer .FIT"
+	fit_button.text = "RESULT_EXPORT_FIT"
 	fit_button.custom_minimum_size = Vector2(210, 58)
 	_style_finish_button(fit_button, MenuSkin.PAPER, MenuSkin.INK, MenuSkin.LINE)
 	fit_button.pressed.connect(func(): _export_strava_fit(true))
@@ -2756,7 +2757,7 @@ func _build_hud() -> void:
 	buttons.add_child(again)
 	var quit := Button.new()
 	quit.name = "MainMenuButton"
-	quit.text = "← Hoofdmenu"
+	quit.text = "RACE_MENU_MAIN_MENU"
 	quit.custom_minimum_size = Vector2(200, 48)
 	quit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	MenuSkin.primary(quit)
@@ -2785,7 +2786,7 @@ func _build_finish_photo_ui(row: HBoxContainer) -> void:
 	finish_photo_caption.add_theme_font_size_override("font_size", 14)
 	finish_photo_caption.add_theme_color_override("font_color", Color("1b2533"))
 	finish_photo_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	finish_photo_caption.text = "FINISHFOTO"
+	finish_photo_caption.text = "MAIN_FINISH_PHOTO"
 	stack.add_child(finish_photo_caption)
 	# Off-screen camera at the photographers' spot; renders only once, when the winner crosses the line.
 	finish_photo_viewport = SubViewport.new()
@@ -2818,7 +2819,7 @@ func _take_finish_photo(winner: int) -> void:
 	finish_photo_camera.global_position = spot
 	finish_photo_camera.look_at(target, Vector3.UP)
 	finish_photo_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	finish_photo_caption.text = "FINISHFOTO  •  %s  •  %.2f s" % [_rider_name(winner).to_upper(), finish_times[winner]]
+	finish_photo_caption.text = String(TranslationServer.translate("RESULT_FINISH_PHOTO")) % [_rider_name(winner).to_upper(), finish_times[winner]]
 	# Avoid duplicate connections if several riders cross within one frame.
 	if not finish_photo_capture_pending:
 		finish_photo_capture_pending = true
@@ -2839,7 +2840,9 @@ func _grab_finish_photo() -> void:
 			stadium_screen.scoreboard.show_elimination_photo(finish_photo_rect.texture, 5.0)
 
 func _rider_name(index: int) -> String:
-	return player_display_name if index == 0 else (rider_names[index] if index < rider_names.size() else "AI")
+	if index == 0:
+		return tr("RECORDS_YOU").to_upper() if player_display_name == "JIJ" else player_display_name
+	return rider_names[index] if index < rider_names.size() else "AI"
 
 func _set_race_hud_visible(is_visible: bool) -> void:
 	for item in race_hud_items:
@@ -2896,11 +2899,11 @@ func _piste_start_blocker() -> String:
 	if not trainer_seen: return ""
 	var ftp = setup_panel.ftp_page
 	if ftp.bridge_update_needed:
-		return "De bridge mist actuele vermogensgegevens. Werk de bridge bij en start die opnieuw."
+		return String(TranslationServer.translate("BRIDGE_THE_BRIDGE_LACKS_CURRENT_POWER_DATA_UPDATE_AND_RESTART_THE_BRIDGE"))
 	if not ftp.live(_now_s()):
-		return "Geen verse vermogensmetingen. Controleer de trainerverbinding."
+		return String(TranslationServer.translate("BRIDGE_NO_FRESH_POWER_READINGS_CHECK_THE_TRAINER_CONNECTION"))
 	if not ftp.release_complete() or not setup_panel.workout_play_page.release_complete() or trainer_control.phase == "RELEASING":
-		return "De trainerbediening is nog niet vrij. Wacht op bevestiging van de bridge."
+		return String(TranslationServer.translate("BRIDGE_TRAINER_CONTROL_HAS_NOT_BEEN_RELEASED_YET_WAIT_FOR_CONFIRMATION_FROM_T"))
 	return ""
 
 func _piste_environment_requested(active: bool) -> void:
@@ -2957,7 +2960,7 @@ func _madison_environment_requested(active: bool) -> void:
 
 func _difficulty_changed(value: float) -> void:
 	ai_difficulty = value
-	difficulty_label.text = "AI-sterkte · %d%%" % int(ai_difficulty)
+	difficulty_label.text = String(TranslationServer.translate("RACE_AI_STRENGTH")) % int(ai_difficulty)
 
 func _confirm_start() -> void:
 	if setup_panel == null or start_state != "SETUP" or bridge_bind_error != OK:
@@ -2977,7 +2980,7 @@ func _confirm_start() -> void:
 			if replay.is_empty() or replay["distance_m"] != options.distance_m():
 				options.refresh_rides()
 				setup_panel.pursuit_flow._load_candidates(true)
-				setup_panel.pursuit_flow.status.text = "Deze rit is niet meer beschikbaar. Kies een andere tegenstander."
+				setup_panel.pursuit_flow.status.text = "RACE_THIS_RIDE_IS_NO_LONGER_AVAILABLE_CHOOSE_ANOTHER_OPPONENT"
 				setup_panel.pursuit_flow.status.show()
 				return
 	if choice in [1,2]:
@@ -3033,13 +3036,13 @@ func _save_recording(reason: String) -> void:
 	if recording_saved:
 		return
 	if ride_records.is_empty():
-		recording_message = "Geen KICKR-metingen opgenomen; controleer LIVE-verbinding en start wedstrijd."
+		recording_message = String(TranslationServer.translate("EXPORT_NO_KICKR_READINGS_RECORDED_CHECK_THE_LIVE_CONNECTION_AND_START_A_RACE"))
 		print(recording_message)
 		return
 	var folder: String = OS.get_user_data_dir().path_join("recordings")
 	var error: Error = DirAccess.make_dir_recursive_absolute(folder)
 	if error != OK:
-		recording_message = "FOUT: opnamemap niet beschikbaar (%d)" % error
+		recording_message = String(TranslationServer.translate("EXPORT_ERROR_RECORDING_DIRECTORY_UNAVAILABLE_D")) % error
 		push_warning(recording_message)
 		return
 	var stamp: String = Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
@@ -3047,7 +3050,7 @@ func _save_recording(reason: String) -> void:
 	var path: String = folder.path_join(filename)
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		recording_message = "FOUT: opname niet opgeslagen (%d)" % FileAccess.get_open_error()
+		recording_message = String(TranslationServer.translate("EXPORT_ERROR_RECORDING_NOT_SAVED_D")) % FileAccess.get_open_error()
 		push_warning(recording_message)
 		return
 	file.store_csv_line(PackedStringArray(["time_s", "distance_m", "power_w", "trainer_speed_kmh", "game_speed_kmh", "cadence_rpm", "lane", "draft_pct", "heart_rate_bpm"]))
@@ -3063,14 +3066,14 @@ func _save_recording(reason: String) -> void:
 	recording_saved = true
 	recording_active = false
 	recording_folder = folder
-	recording_message = "KICKR-opname opgeslagen: %s (%d metingen)" % [filename, ride_records.size()]
+	recording_message = String(TranslationServer.translate("EXPORT_KICKR_RECORDING_SAVED_S_D_READINGS")) % [filename, ride_records.size()]
 	print(recording_message, " in ", path)
 
 # GPS-free indoor cycling export. Strava accepts TCX files with real workout samples.
 # The virtual track is represented by recorded distance, NOT fabricated ocean GPS.
 func _export_strava_tcx() -> void:
 	if ride_records.size() < 2:
-		recording_message = "Strava-export: geen KICKR-data beschikbaar (demo wordt niet geexporteerd)."
+		recording_message = String(TranslationServer.translate("EXPORT_STRAVA_EXPORT_NO_KICKR_DATA_AVAILABLE_DEMO_IS_NOT_EXPORTED"))
 		push_warning(recording_message)
 		if finish_overlay != null and finish_overlay.visible:
 			_refresh_fullscreen_results()
@@ -3083,7 +3086,7 @@ func _export_strava_tcx() -> void:
 	var folder: String = OS.get_user_data_dir().path_join("recordings")
 	var err: Error = DirAccess.make_dir_recursive_absolute(folder)
 	if err != OK:
-		recording_message = "Strava-export: map kon niet gemaakt worden (%d)" % err
+		recording_message = String(TranslationServer.translate("EXPORT_STRAVA_EXPORT_COULD_NOT_CREATE_DIRECTORY_D")) % err
 		push_warning(recording_message)
 		return
 	var epoch: int = ride_start_unix
@@ -3093,7 +3096,7 @@ func _export_strava_tcx() -> void:
 	var path: String = folder.path_join("velodrome_250_strava_%s.tcx" % stamp)
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		recording_message = "Strava-export mislukt (%d)" % FileAccess.get_open_error()
+		recording_message = String(TranslationServer.translate("EXPORT_STRAVA_EXPORT_FAILED_D")) % FileAccess.get_open_error()
 		push_warning(recording_message)
 		return
 	var start_time: String = Time.get_datetime_string_from_unix_time(epoch) + "Z"
@@ -3129,7 +3132,7 @@ func _export_strava_tcx() -> void:
 	file.store_line('  </Activity></Activities></TrainingCenterDatabase>')
 	file.close()
 	strava_export_path = path
-	recording_message = "Strava TCX opgeslagen: " + path
+	recording_message = String(TranslationServer.translate("EXPORT_STRAVA_TCX_SAVED")) + path
 	print(recording_message)
 	if finish_overlay != null and finish_overlay.visible:
 		_refresh_fullscreen_results()
@@ -3149,10 +3152,10 @@ func _capture_player_demo_fit_sample(force: bool = false) -> void:
 
 func _confirm_demo_fit_export(with_gps: bool) -> void:
 	var dialog := ConfirmationDialog.new()
-	dialog.title = "TESTEXPORT - gesimuleerde rit"
-	dialog.dialog_text = "WAARSCHUWING: dit bestand bevat GESIMULEERDE wattages, cadans en snelheid.\nEr is geen echte KICKR-rit gemeten.\n\nAlleen gebruiken om de FIT-export te testen; niet publiceren als echte sportprestatie."
-	dialog.ok_button_text = "Demo-FIT opslaan"
-	dialog.cancel_button_text = "Annuleren"
+	dialog.title = String(TranslationServer.translate("EXPORT_TEST_EXPORT_SIMULATED_RIDE"))
+	dialog.dialog_text = String(TranslationServer.translate("EXPORT_WARNING_THIS_FILE_CONTAINS_SIMULATED_POWER_CADENCE_AND_SPEED_NO_REAL_K"))
+	dialog.ok_button_text = "EXPORT_SAVE_DEMO_FIT"
+	dialog.cancel_button_text = "WORKOUT_EDITOR_CANCEL"
 	add_child(dialog)
 	dialog.confirmed.connect(func(): _export_strava_fit(with_gps, true))
 	dialog.popup_centered(Vector2i(580, 220))
@@ -3168,13 +3171,13 @@ func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
 		return
 	var export_records: Array[Dictionary] = demo_fit_records if is_demo else ride_records
 	if export_records.size() < 2:
-		recording_message = "FIT-export: minstens 2 metingen nodig. Rijd eerst een demorace."
+		recording_message = String(TranslationServer.translate("EXPORT_FIT_EXPORT_AT_LEAST_2_READINGS_REQUIRED_COMPLETE_A_DEMO_RACE_FIRST"))
 		push_warning(recording_message)
 		_refresh_fullscreen_results()
 		return
 	var old_path: String = fit_gps_export_path if with_gps else fit_export_path
 	if old_path != "":
-		recording_message = "FIT reeds opgeslagen: " + old_path
+		recording_message = String(TranslationServer.translate("EXPORT_FIT_ALREADY_SAVED")) + old_path
 		_refresh_fullscreen_results()
 		return
 	var folder: String = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
@@ -3182,7 +3185,7 @@ func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
 		folder = OS.get_user_data_dir().path_join("recordings")
 	var err: Error = DirAccess.make_dir_recursive_absolute(folder)
 	if err != OK:
-		recording_message = "FIT-export: doelmap niet beschikbaar (%d)" % err
+		recording_message = String(TranslationServer.translate("EXPORT_FIT_EXPORT_DESTINATION_DIRECTORY_UNAVAILABLE_D")) % err
 		push_warning(recording_message)
 		return
 	var epoch: int = ride_start_unix
@@ -3190,7 +3193,7 @@ func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
 		epoch = int(Time.get_unix_time_from_system() - float(export_records[-1]["time_s"]))
 	var payload: PackedByteArray = preload("res://fit_export.gd").build(export_records, epoch, with_gps)
 	if payload.is_empty():
-		recording_message = "FIT-export: onvoldoende gegevens"
+		recording_message = String(TranslationServer.translate("EXPORT_FIT_EXPORT_INSUFFICIENT_DATA"))
 		push_warning(recording_message)
 		return
 	var stamp: String = Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
@@ -3198,7 +3201,7 @@ func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
 	var path: String = folder.path_join("velodrome_250_%s_%s.fit" % [suffix, stamp])
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		recording_message = "FIT-export: bestand kon niet gemaakt worden (%d)" % FileAccess.get_open_error()
+		recording_message = String(TranslationServer.translate("EXPORT_FIT_EXPORT_COULD_NOT_CREATE_FILE_D")) % FileAccess.get_open_error()
 		push_warning(recording_message)
 		return
 	file.store_buffer(payload)
@@ -3207,7 +3210,7 @@ func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
 		fit_gps_export_path = path
 	else:
 		fit_export_path = path
-	recording_message = ("LET OP: GESIMULEERDE TESTRIT - " if is_demo else "") + "FIT opgeslagen (%s): %s" % [suffix, path]
+	recording_message = (String(TranslationServer.translate("EXPORT_NOTE_SIMULATED_TEST_RIDE")) if is_demo else "") + String(TranslationServer.translate("EXPORT_FIT_SAVED_S_S")) % [suffix, path]
 	print(recording_message)
 	_refresh_fullscreen_results()
 
@@ -3240,19 +3243,19 @@ func _show_results() -> void:
 	if rank > 1 and not ordered.is_empty():
 		var champion: int = ordered[0]
 		if race_mode == 0 and scratch_rules.credits[champion] != scratch_rules.credits[0]:
-			winner_gap_text = "%d ronde(n) achter" % (scratch_rules.credits[champion] - scratch_rules.credits[0])
+			winner_gap_text = String(TranslationServer.translate("RACE_D_LAP_S_BEHIND")) % (scratch_rules.credits[champion] - scratch_rules.credits[0])
 		elif finish_times[champion] >= 0.0:
 			winner_gap_text = "+%.2f s" % (finish_times[0] - finish_times[champion])
-	result_title.text = "SPRINT VOLTOOID - PLAATS %d/%d" % [rank, rider_count]
-	var table := "Eindtijd: %.2f s\nGem. snelheid: %.1f km/u    Piek snelheid: %.1f km/u\nGem. vermogen: %.0f W    Piekvermogen: %.0f W\nVerschil met winnaar: %s\n\nKLASSEMENT (live tot iedereen finisht)\n" % [finish_times[0], avg_speed, player_speed_peak_kmh, avg_power, player_peak_watts, winner_gap_text]
+	result_title.text = String(TranslationServer.translate("RACE_SPRINT_COMPLETED_PLACE_D_D")) % [rank, rider_count]
+	var table := String(TranslationServer.translate("RESULT_FINISH_TIME_2F_S_AVG_SPEED_1F_KM_H_PEAK_SPEED_1F_KM_H_AVG_POWER_0F_W_P")) % [finish_times[0], avg_speed, player_speed_peak_kmh, avg_power, player_peak_watts, winner_gap_text]
 	for pos in range(ordered.size()):
 		var idx: int = ordered[pos]
 		if finish_times[idx] >= 0.0:
 			table += "%d. %-15s %.2f s\n" % [pos + 1, _rider_name(idx), finish_times[idx]]
 		else:
 			var gap_m: float = distances[idx] - distances[0]
-			table += "%d. %-15s nog bezig (%+.0f m)\n" % [pos + 1, _rider_name(idx), gap_m]
-	table += "\nRONDETIJDEN (s)\n"
+			table += String(TranslationServer.translate("RESULT_D_15S_STILL_RACING_0F_M")) % [pos + 1, _rider_name(idx), gap_m]
+	table += tr("RESULT_LAP_TIMES_TEXT")
 	for idx in range(rider_count):
 		table += "%s: " % _rider_name(idx)
 		if lap_times[idx].is_empty():
@@ -3263,7 +3266,7 @@ func _show_results() -> void:
 		table += "\n"
 	result_body.text = table
 	if first_show:
-		result_graph.call("set_title", "JOUW VERMOGEN OVER %d m" % int(_race_length()))
+		result_graph.call("set_title", String(TranslationServer.translate("HUD_YOUR_POWER_OVER_D_M")) % int(_race_length()))
 		result_graph.call("set_samples", player_samples, _race_length(), maxf(900.0, player_peak_watts * 1.05))
 
 func _lean_debug_text() -> String:
@@ -3291,42 +3294,42 @@ func _update_hud() -> void:
 		setup_panel.footer_label.text = keyboard_mapping.menu_hint()
 		setup_panel.update_bridge_status(trainer_seen, connected and trainer_ready, bridge_bind_error != OK)
 		return
-	var status := "KICKR LIVE" if connected else ("KICKR WACHT OP DATA" if trainer_seen else "DEMO (startpreset %.0f W)" % demo_launch_watts)
+	var status := "KICKR LIVE" if connected else (String(TranslationServer.translate("HUD_KICKR_WAITING_FOR_DATA")) if trainer_seen else "DEMO (startpreset %.0f W)" % demo_launch_watts)
 	if not connected and _power_hold_active():
-		status = "KICKR SIGNAAL WEG - %.0f W vastgehouden (%d s)" % [last_good_watts, ceili(DROPOUT_HOLD_SECONDS - (_now_s() - dropout_since))]
+		status = String(TranslationServer.translate("HUD_KICKR_SIGNAL_LOST_HOLDING_0F_W_D_S")) % [last_good_watts, ceili(DROPOUT_HOLD_SECONDS - (_now_s() - dropout_since))]
 	var stage := "SPRINT!"
 	if finished:
 		stage = "FINISH!"
 	elif start_state == "SETUP":
-		stage = "KIES AI-STERKTE EN DRUK START"
+		stage = String(TranslationServer.translate("HUD_CHOOSE_AI_STRENGTH_AND_PRESS_START"))
 	elif start_state == "WAIT_STOP":
-		stage = "WACHT OP STILSTAND" if _start_requires_standstill() else "KLAAR VOOR VERTREK"
+		stage = String(TranslationServer.translate("HUD_WAITING_FOR_STANDSTILL")) if _start_requires_standstill() else String(TranslationServer.translate("HUD_READY_TO_START"))
 	elif start_state == "COUNTDOWN":
-		stage = "START OVER %d" % maxi(1, ceili(countdown))
+		stage = String(TranslationServer.translate("HUD_START_IN_D")) % maxi(1, ceili(countdown))
 	elif trainer_seen and not connected and _power_hold_active():
-		stage = "SIGNAAL WEG - DOORRIJDEN OP %.0f W" % last_good_watts
+		stage = String(TranslationServer.translate("HUD_SIGNAL_LOST_CONTINUING_AT_0F_W")) % last_good_watts
 	elif trainer_seen and not connected:
-		stage = "PAUZE - GEEN KICKR DATA"
+		stage = String(TranslationServer.translate("HUD_PAUSED_NO_KICKR_DATA"))
 	elif not trainer_seen and boost_left > 0.0:
 		stage = "1500 W BOOST! %.1f s" % boost_left
 	elif not trainer_seen and recovery_left > 0.0:
-		stage = "BOOST AFBOUW %.1f s" % recovery_left
-	hud.text = "VELODROME 250  |  %s\n%s    Ronde %d/%d    Tijd: %.1f s\n%.0f W    %.1f km/u    Cadans: %s\nNog: %.0f m    Rijlijn: %d/%d\nSlipstream: %d%% minder luchtweerstand" % [status, stage, mini(race_laps, int(distances[0] / LAP) + 1), race_laps, clock, watts, speeds[0] * 3.6, "--" if cadence < 0 else str(roundi(cadence)), _race_length() - distances[0], player_lane + 1, LANES.size(), roundi(100.0 * _draft_drag_reduction(0))]
+		stage = String(TranslationServer.translate("HUD_BOOST_TAPER_1F_S")) % recovery_left
+	hud.text = String(TranslationServer.translate("HUD_VELODROME_250_S_S_LAP_D_D_TIME_1F_S_0F_W_1F_KM_H_CADENCE_S_REMAINING_0")) % [status, stage, mini(race_laps, int(distances[0] / LAP) + 1), race_laps, clock, watts, speeds[0] * 3.6, "--" if cadence < 0 else str(roundi(cadence)), _race_length() - distances[0], player_lane + 1, LANES.size(), roundi(100.0 * _draft_drag_reduction(0))]
 	if lap_notice != "" and clock < lap_notice_until:
 		hud.text += "\n" + lap_notice
 	var order: Array[int] = []
 	for n in range(rider_count): order.append(n)
 	order.sort_custom(func(a, b): return _race_better(a, b))
-	var rows := "SCRATCH-KLASSEMENT (t.o.v. jou)\n" if race_mode == 0 else "RANGLIJST (t.o.v. jou)\n"
+	var rows := String(TranslationServer.translate("HUD_SCRATCH_STANDINGS_RELATIVE_TO_YOU")) if race_mode == 0 else String(TranslationServer.translate("HUD_STANDINGS_RELATIVE_TO_YOU"))
 	for i in range(order.size()):
 		var racer: int = order[i]
 		var gap: float = distances[racer] - distances[0]
-		var gap_text: String = "JIJ" if racer == 0 else ("%.0f m voor" % gap if gap >= 0.0 else "%.0f m achter" % -gap)
+		var gap_text: String = tr("RECORDS_YOU").to_upper() if racer == 0 else (String(TranslationServer.translate("HUD_0F_M_AHEAD")) % gap if gap >= 0.0 else String(TranslationServer.translate("HUD_0F_M_BEHIND")) % -gap)
 		if race_mode == 0 and racer != 0 and scratch_rules.credits[racer] != scratch_rules.credits[0]:
-			gap_text = "%+d ronde(n)" % (scratch_rules.credits[racer] - scratch_rules.credits[0])
+			gap_text = String(TranslationServer.translate("HUD_D_LAP_S")) % (scratch_rules.credits[racer] - scratch_rules.credits[0])
 		var finished_text: String = " | %.2f s" % finish_times[racer] if finish_times[racer] >= 0.0 else ""
 		rows += "%d. %s  %s%s\n" % [i + 1, _rider_name(racer), gap_text, finished_text]
-	rows += "\nLAATSTE RONDE\n"
+	rows += String(TranslationServer.translate("HUD_FINAL_LAP"))
 	for j in range(rider_count):
 		var n: int = lap_times[j].size()
 		rows += "%s: %s\n" % [_rider_name(j), ("%d: %.2f s" % [n, float(lap_times[j][n - 1])]) if n > 0 else "--"]
@@ -3346,31 +3349,31 @@ func _update_hud() -> void:
 		for i in range(1, rider_count):
 			if finish_times[i] >= 0.0 and _race_better(i, 0):
 				rank += 1
-		note.text = "FINISH: plaats %d/%d | %.2f s | %s | R = opnieuw" % [rank, rider_count, finish_times[0], recording_message if recording_message != "" else "demo: geen echte opname"]
+		note.text = String(TranslationServer.translate("HUD_FINISH_PLACE_D_D_2F_S_S_R_RETRY")) % [rank, rider_count, finish_times[0], recording_message if recording_message != "" else String(TranslationServer.translate("HUD_DEMO_NO_REAL_RECORDING"))]
 	elif start_state == "SETUP":
-		note.text = "Kies de spelmodus, AI-sterkte, deelnemers en rondes."
+		note.text = "RACE_CHOOSE_THE_RACE_MODE_AI_STRENGTH_RIDERS_AND_LAPS"
 	elif start_state == "WAIT_STOP":
 		if not _start_requires_standstill():
-			note.text = "Je mag blijven trappen; wacht op geldige trainergegevens." if trainer_seen else "Klaar voor de aanloop."
+			note.text = "RACE_YOU_MAY_KEEP_PEDALLING_WAIT_FOR_VALID_TRAINER_DATA" if trainer_seen else "RACE_READY_FOR_THE_LEAD_IN"
 		elif trainer_seen and not connected:
-			note.text = "KICKR: wacht op verse Bluetooth-data."
+			note.text = "RACE_KICKR_WAITING_FOR_FRESH_BLUETOOTH_DATA"
 		elif trainer_seen and trainer_speed_kmh < 0.0:
-			note.text = "KICKR: snelheid ontbreekt; start geblokkeerd."
+			note.text = "RACE_KICKR_SPEED_UNAVAILABLE_START_BLOCKED"
 		elif trainer_seen:
-			note.text = "Stop met trappen: KICKR moet 0 W en 0 km/u melden. (%.1f km/u)" % trainer_speed_kmh
+			note.text = String(TranslationServer.translate("RACE_STOP_PEDALLING_KICKR_MUST_REPORT_0_W_AND_0_KM_H_1F_KM_H")) % trainer_speed_kmh
 		else:
-			note.text = "Demo: 0 W / 0 km/u. Startvermogen: %.0f W (pijlen)." % demo_launch_watts
+			note.text = String(TranslationServer.translate("RACE_DEMO_0_W_0_KM_H_STARTING_POWER_0F_W_ARROW_KEYS")) % demo_launch_watts
 	elif start_state == "COUNTDOWN":
-		note.text = "Blijf rustig trappen; de aanloop begint na de aftelling." if not _start_requires_standstill() else ("Blijf stil staan tot START!" if trainer_seen else "Start uit stilstand; vanaf GO %.0f W. Pijlen wijzigen preset." % demo_launch_watts)
+		note.text = String(TranslationServer.translate("RACE_KEEP_PEDALLING_GENTLY_THE_LEAD_IN_BEGINS_AFTER_THE_COUNTDOWN")) if not _start_requires_standstill() else (String(TranslationServer.translate("RACE_REMAIN_STATIONARY_UNTIL_START")) if trainer_seen else String(TranslationServer.translate("RACE_START_FROM_STANDSTILL_0F_W_FROM_GO_ARROW_KEYS_CHANGE_PRESET")) % demo_launch_watts)
 	else:
-		note.text = "KICKR-opname: %d metingen | P = bewaren" % ride_records.size() if recording_active else (recording_message if recording_message != "" else ("SPATIE: eenmalige arcade-boost!" if not boost_used and not trainer_seen else "Kies tactisch je rijlijn. Sprint naar de finish! (P = KICKR-opname bewaren)"))
+		note.text = String(TranslationServer.translate("RACE_KICKR_RECORDING_D_READINGS_P_SAVE")) % ride_records.size() if recording_active else (recording_message if recording_message != "" else (String(TranslationServer.translate("RACE_SPACE_ONE_OFF_ARCADE_BOOST")) if not boost_used and not trainer_seen else String(TranslationServer.translate("RACE_CHOOSE_YOUR_LINE_TACTICALLY_SPRINT_TO_THE_FINISH_P_SAVE_KICKR_RECORDIN"))))
 
 	if start_state == "NEUTRAL":
-		hud.text = "GENEUTRALISEERDE RONDE | %.0f W | %.1f km/u\n%s" % [watts, speeds[0] * 3.6, neutral_start.notice(self)]
-		note.text = "De wedstrijdtijd en rondentelling beginnen bij de vliegende start."
+		hud.text = String(TranslationServer.translate("RACE_NEUTRALISED_LAP_0F_W_1F_KM_H_S")) % [watts, speeds[0] * 3.6, neutral_start.notice(self)]
+		note.text = "RACE_RACE_TIMING_AND_LAP_COUNTING_BEGIN_AT_THE_FLYING_START"
 	if start_state == "RUN_UP":
-		hud.text = "AANLOOPRONDE | %.0f W | %.1f km/u\n%s" % [watts, speeds[0] * 3.6, flying_start.notice(self)]
-		note.text = "Versnel voor de vliegende start. De klok begint bij GO!"
+		hud.text = String(TranslationServer.translate("RACE_LEAD_IN_LAP_0F_W_1F_KM_H_S")) % [watts, speeds[0] * 3.6, flying_start.notice(self)]
+		note.text = "RACE_ACCELERATE_FOR_THE_FLYING_START_THE_CLOCK_STARTS_AT_GO"
 	_update_compact_hud(order)
 
 static func _gear_from_packet(packet: Dictionary) -> String:
@@ -3386,13 +3389,13 @@ static func _gear_from_packet(packet: Dictionary) -> String:
 
 func _hud_leader_gap(order: Array[int]) -> String:
 	if order.size() < 2:
-		return "Aan kop"
+		return String(TranslationServer.translate("RACE_HUD_LEADING"))
 	var reference: int = order[1] if order[0] == 0 else order[0]
 	var gap: float = distances[0] - distances[reference]
-	var output: String = "%.0f m voor" % gap if gap > 0.5 else ("%.0f m achter" % -gap if gap < -0.5 else ("Aan kop" if order[0] == 0 else "0 m achter"))
+	var output: String = String(TranslationServer.translate("HUD_0F_M_AHEAD")) % gap if gap > 0.5 else (String(TranslationServer.translate("HUD_0F_M_BEHIND")) % -gap if gap < -0.5 else (String(TranslationServer.translate("RACE_HUD_LEADING")) if order[0] == 0 else String(TranslationServer.translate("HUD_0_M_BEHIND"))))
 	# Distances already include travelled laps; never add lap credits a second time.
 	if race_mode == 0 and scratch_rules.credits[0] != scratch_rules.credits[reference]:
-		output += " · %+d ronde" % (scratch_rules.credits[0] - scratch_rules.credits[reference])
+		output += String(TranslationServer.translate("HUD_D_LAP")) % (scratch_rules.credits[0] - scratch_rules.credits[reference])
 	return output
 
 func _update_compact_hud(order: Array[int]) -> void:
@@ -3414,7 +3417,7 @@ func _update_compact_hud(order: Array[int]) -> void:
 		physical_positions.append(_rider_distance(id, distances[id]))
 		names.append(_rider_name(id))
 		var delta: float = race_positions[id] - race_positions[0]
-		var gap_text: String = "JIJ" if id == 0 else "%+d m" % roundi(delta)
+		var gap_text: String = tr("RECORDS_YOU").to_upper() if id == 0 else "%+d m" % roundi(delta)
 
 		gaps.append(gap_text)
 		var colour: Color = palette[id % palette.size()]
@@ -3423,14 +3426,14 @@ func _update_compact_hud(order: Array[int]) -> void:
 		colours.append(colour)
 	var notice := ""
 	if start_state == "WAIT_STOP":
-		notice = "Stop met trappen om de aftelling te starten." if trainer_seen else "Klaar voor de start · demo"
-		if not _start_requires_standstill(): notice = "Je mag blijven trappen · klaar voor de aanloop"
+		notice = String(TranslationServer.translate("RACE_STOP_PEDALLING_TO_START_THE_COUNTDOWN")) if trainer_seen else String(TranslationServer.translate("RACE_READY_TO_START_DEMO"))
+		if not _start_requires_standstill(): notice = String(TranslationServer.translate("RACE_YOU_MAY_KEEP_PEDALLING_READY_FOR_THE_LEAD_IN"))
 		if trainer_seen and (not connected or trainer_speed_kmh < 0.0):
-			notice = "Wachten op geldige trainergegevens…"
+			notice = String(TranslationServer.translate("RACE_WAITING_FOR_VALID_TRAINER_DATA"))
 	elif start_state == "COUNTDOWN":
-		notice = ("Blijf stilstaan · start over %d" if _start_requires_standstill() else "Je mag blijven trappen · vertrek over %d") % maxi(1, ceili(countdown))
+		notice = (String(TranslationServer.translate("RACE_REMAIN_STATIONARY_START_IN_D")) if _start_requires_standstill() else String(TranslationServer.translate("RACE_YOU_MAY_KEEP_PEDALLING_START_IN_D"))) % maxi(1, ceili(countdown))
 	elif trainer_seen and not connected and not finished:
-		notice = "Trainerverbinding onderbroken · vermogen tijdelijk vastgehouden" if _power_hold_active() else "Wedstrijd gepauzeerd · wacht op de trainerverbinding"
+		notice = String(TranslationServer.translate("RACE_TRAINER_CONNECTION_INTERRUPTED_POWER_TEMPORARILY_HELD")) if _power_hold_active() else String(TranslationServer.translate("RACE_RACE_PAUSED_WAITING_FOR_TRAINER_CONNECTION"))
 	elif finished:
 		notice = "Finish · %.2f s" % finish_times[0]
 	if omnium_race.enabled() and race_mode == 2 and start_state == "RACING" and not finished:
@@ -3438,11 +3441,11 @@ func _update_compact_hud(order: Array[int]) -> void:
 		var head_rear := -INF
 		for i in range(rider_count):
 			if finish_times[i] < 0.0: head_rear = maxf(head_rear, distances[i] - REAR_TRAILING_EDGE_M)
-		notice = "%d renners · afvalling over %.0f m" % [remaining_count, maxf(0.0, elimination_rules.next_line_m - head_rear)] if remaining_count > 2 else "Finale · laatste twee renners"
-	if _now_s() < name_view_notice_until: notice = "V | Rennersnamen: " + ["Auto", "Aan", "Uit"][rider_name_mode]
+		notice = String(TranslationServer.translate("RACE_D_RIDERS_ELIMINATION_IN_0F_M")) % [remaining_count, maxf(0.0, elimination_rules.next_line_m - head_rear)] if remaining_count > 2 else String(TranslationServer.translate("RACE_FINAL_LAST_TWO_RIDERS"))
+	if _now_s() < name_view_notice_until: notice = String(TranslationServer.translate("HUD_V_RIDER_NAMES")) + [String(TranslationServer.translate("COMMON_AUTO")), String(TranslationServer.translate("COMMON_ON")), String(TranslationServer.translate("COMMON_OFF"))][rider_name_mode]
 	if clock < race_event_until: notice = race_event_message
 	if start_state == "NEUTRAL" and (not trainer_seen or connected or _power_hold_active()): notice = neutral_start.notice(self)
-	if race_mode == 3 and start_state == "RACING": notice = "DERNY · %.1f km/u · uitsturen na 3 ronden" % (keirin.speed*3.6) if keirin.phase == "PACED" else "DERNY UIT · VRIJE WEDSTRIJD"
+	if race_mode == 3 and start_state == "RACING": notice = String(TranslationServer.translate("RACE_DERNY_1F_KM_H_LEAVES_AFTER_3_LAPS")) % (keirin.speed*3.6) if keirin.phase == "PACED" else String(TranslationServer.translate("RACE_DERNY_OUT_UNPACED_RACE"))
 	if start_state == "RUN_UP" and (not trainer_seen or connected or _power_hold_active()): notice = flying_start.notice(self)
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
@@ -3530,13 +3533,13 @@ func _update_result_navigation() -> void:
 	var again := finish_overlay.find_child("ReplayRaceButton", true, false) as Button
 	var back := finish_overlay.find_child("MainMenuButton", true, false) as Button
 	if again != null:
-		again.text = "Ga verder met omnium" if in_omnium else "Wedstrijd opnieuw rijden"
+		again.text = "MAIN_CONTINUE_OMNIUM" if in_omnium else "MAIN_RACE_AGAIN"
 		again.disabled = not ready
-		again.tooltip_text = "" if ready else "De volledige uitslag wordt nog berekend."
+		again.tooltip_text = "" if ready else String(TranslationServer.translate("MAIN_THE_FULL_RESULTS_ARE_STILL_BEING_CALCULATED"))
 	if back != null:
-		back.text = "← Omnium" if in_omnium else "← Hoofdmenu"
+		back.text = "RACE_MENU_OMNIUM" if in_omnium else "RACE_MENU_MAIN_MENU"
 		back.disabled = not ready
-		back.tooltip_text = "" if ready else "De volledige uitslag wordt nog berekend."
+		back.tooltip_text = "" if ready else String(TranslationServer.translate("MAIN_THE_FULL_RESULTS_ARE_STILL_BEING_CALCULATED"))
 
 func _refresh_fullscreen_results() -> void:
 	if not results_completion.refresh_due(self): return
@@ -3562,26 +3565,26 @@ func _refresh_fullscreen_results() -> void:
 	for n in range(rider_count): ordered.append(n)
 	ordered.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
 	var player_place: int = ordered.find(0) + 1
-	finish_heading.text = "TIJDRIT · %d m" % int(_race_length()) if race_mode == 7 else "ACHTERVOLGING · %d km" % int(_race_length() / 1000.0) if race_mode == 4 else ("Keirin · Uitslag" if race_mode == 3 else ("Afvalling · Uitslag" if race_mode == 2 else "Scratch · Uitslag"))
-	if omnium_race.enabled(): finish_heading.text = "Omnium · " + finish_heading.text
+	finish_heading.text = String(TranslationServer.translate("RESULT_TIME_TRIAL")) % int(_race_length()) if race_mode == 7 else String(TranslationServer.translate("RESULT_PURSUIT_D_KM")) % int(_race_length() / 1000.0) if race_mode == 4 else (String(TranslationServer.translate("RESULT_KEIRIN_RESULTS")) if race_mode == 3 else (String(TranslationServer.translate("RESULT_ELIMINATION_RACE_RESULTS")) if race_mode == 2 else String(TranslationServer.translate("RESULT_SCRATCH_RACE_RESULTS"))))
+	if omnium_race.enabled(): finish_heading.text = "Omnium · " + tr(finish_heading.text)
 	if finish_subtitle != null:
-		finish_subtitle.text = ("VLIEGENDE START · 125 M TUSSENTIJDEN" if time_trial_start_type == "flying" else "STAANDE START · 125 M TUSSENTIJDEN") if race_mode == 7 else "JOUW TIJD EN TEGENSTANDER" if race_mode == 4 else "OFFICIELE WEDSTRIJDRESULTATEN"
+		finish_subtitle.text = (String(TranslationServer.translate("RESULT_FLYING_START_125_M_SPLITS")) if time_trial_start_type == "flying" else String(TranslationServer.translate("RESULT_STANDING_START_125_M_SPLITS"))) if race_mode == 7 else String(TranslationServer.translate("RESULT_YOUR_TIME_AND_OPPONENT")) if race_mode == 4 else String(TranslationServer.translate("MAIN_OFFICIAL_RACE_RESULTS"))
 	if pursuit_save_box != null:
 		pursuit_save_box.visible = race_mode == 4 and finish_times[0] >= 0.0
 	finish_badge.text = "#%d / %d" % [player_place, rider_count]
 	var complete: bool = _all_riders_finished()
-	var status: String = "Alle renners gefinisht" if complete else "Nog renners onderweg - uitslag wordt automatisch aangevuld"
+	var status := String(TranslationServer.translate("MAIN_ALL_RIDERS_FINISHED")) if complete else String(TranslationServer.translate("RESULT_RIDERS_STILL_RACING_RESULTS_UPDATE_AUTOMATICALLY"))
 	if results_completion.active and not complete:
 		var classified := 0
 		for end_time in finish_times:
 			if end_time >= 0.0: classified += 1
-		status = "Uitslag wordt versneld berekend · %d/%d renners afgewerkt" % [classified, rider_count]
-	var summary: String = "JOUW TIJD   %s    •    GEM. VERMOGEN   %.0f W    •    PIEK   %.0f W\n%s" % [preload("res://omnium/omnium_results.gd").clock(finish_times[0]) if finish_times[0] >= 0.0 else "Onderweg", player_power_integral / maxf(0.1, finish_times[0]), player_peak_watts, status]
+		status = String(TranslationServer.translate("RESULT_RESULTS_BEING_CALCULATED_AT_ACCELERATED_SPEED_D_D_RIDERS_FINISHED")) % [classified, rider_count]
+	var summary: String = String(TranslationServer.translate("RESULT_YOUR_TIME_S_AVG_POWER_0F_W_PEAK_0F_W_S")) % [preload("res://omnium/omnium_results.gd").clock(finish_times[0]) if finish_times[0] >= 0.0 else String(TranslationServer.translate("RESULT_STILL_RACING")), player_power_integral / maxf(0.1, finish_times[0]), player_peak_watts, status]
 	if omnium_race.enabled():
 		var omnium_scores := preload("res://omnium/omnium_scoring.gd")
 		var earned: int = omnium_scores.place_points(player_place)
 		var previous: Dictionary = omnium_scores.totals(omnium_race.context.riders, omnium_race.context.results)
-		summary += "\nOMNIUM · +%d punten · totaal %d · %s" % [earned, int(previous[rider_identities[0].id]) + earned, "opgeslagen" if omnium_race.committed else "voorlopig"]
+		summary += String(TranslationServer.translate("RESULT_OMNIUM_D_POINTS_TOTAL_D_S")) % [earned, int(previous[rider_identities[0].id]) + earned, "opgeslagen" if omnium_race.committed else "voorlopig"]
 	if race_mode == 0 and not scratch_rules.events.is_empty():
 		var gains := 0
 		for event in scratch_rules.events:
@@ -3589,11 +3592,11 @@ func _refresh_fullscreen_results() -> void:
 				gains += 1
 		summary += "\nRondewinsten: %d" % gains
 	if strava_export_path != "":
-		summary += "\nTCX opgeslagen in recordings-map"
+		summary += String(TranslationServer.translate("EXPORT_TCX_SAVED_IN_RECORDINGS_FOLDER"))
 	if fit_export_path != "":
-		summary += "\nFIT indoor opgeslagen in Downloads"
+		summary += String(TranslationServer.translate("EXPORT_INDOOR_FIT_SAVED_IN_DOWNLOADS"))
 	if fit_gps_export_path != "":
-		summary += "\nFIT GPS opgeslagen in Downloads"
+		summary += String(TranslationServer.translate("EXPORT_GPS_FIT_SAVED_IN_DOWNLOADS"))
 	if recording_message != "":
 		summary += "\n" + recording_message
 	finish_results.text = summary
@@ -3603,12 +3606,12 @@ func _refresh_fullscreen_results() -> void:
 	var white := MenuSkin.INK
 	var gold := MenuSkin.INK
 	var header_bg := MenuSkin.PALE
-	_result_cell("PL.", gold, header_bg, 54, false, true)
-	_result_cell("RENNER", gold, header_bg, 205, false, true)
+	_result_cell(String(TranslationServer.translate("RESULT_PLACE")), gold, header_bg, 54, false, true)
+	_result_cell(String(TranslationServer.translate("SETTINGS_RIDER")), gold, header_bg, 205, false, true)
 	var omnium_scratch: bool = omnium_race.enabled() and race_mode == 0
-	_result_cell("TIJD / VERSCHIL", gold, header_bg, 180, true, true)
-	if omnium_race.enabled(): _result_cell("OMNIUMPUNTEN", gold, header_bg, 130, true, true)
-	if race_mode not in [0,2]: _result_cell("RONDETIJDEN", gold, header_bg, 300, false, true)
+	_result_cell(String(TranslationServer.translate("MAIN_TIME_GAP")), gold, header_bg, 180, true, true)
+	if omnium_race.enabled(): _result_cell(String(TranslationServer.translate("OMNIUM_OMNIUM_POINTS")), gold, header_bg, 130, true, true)
+	if race_mode not in [0,2]: _result_cell(String(TranslationServer.translate("HUD_LAP_TIMES")), gold, header_bg, 300, false, true)
 	finish_table.columns = finish_table.get_child_count()
 	var leader_time: float = -1.0
 	for index in ordered:
@@ -3619,16 +3622,16 @@ func _refresh_fullscreen_results() -> void:
 	for rank in range(ordered.size()):
 		var rider: int = ordered[rank]
 		var row_bg: Color = MenuSkin.GOLD if rank == 0 else (MenuSkin.PAPER if rank % 2 == 0 else MenuSkin.IVORY)
-		var display_time: String = preload("res://omnium/omnium_results.gd").clock(finish_times[rider]) if finish_times[rider] >= 0.0 else "Onderweg"
+		var display_time: String = preload("res://omnium/omnium_results.gd").clock(finish_times[rider]) if finish_times[rider] >= 0.0 else String(TranslationServer.translate("RESULT_STILL_RACING"))
 		if race_mode == 0 and scratch_rules.credits[rider] != 0:
-			display_time += "  (%+d ronde)" % scratch_rules.credits[rider]
+			display_time += String(TranslationServer.translate("RESULT_D_LAP")) % scratch_rules.credits[rider]
 		var gap: String = "+" + preload("res://omnium/omnium_results.gd").clock(maxf(0.0, finish_times[rider] - leader_time)) if finish_times[rider] >= 0.0 and leader_time >= 0.0 else "--"
 		if race_mode == 0 and not ordered.is_empty():
 			var leader_credit: int = scratch_rules.credits[ordered[0]]
 			if scratch_rules.credits[rider] != leader_credit:
-				gap = "%d ronde(n)" % (leader_credit - scratch_rules.credits[rider])
+				gap = String(TranslationServer.translate("RESULT_D_LAP_S")) % (leader_credit - scratch_rules.credits[rider])
 		if rank == 0:
-			gap = "SOLO" if race_mode == 7 else "WINNAAR"
+			gap = "SOLO" if race_mode == 7 else String(TranslationServer.translate("RESULT_WINNER"))
 		var laps_display := ""
 		for lap in range(lap_times[rider].size()):
 			if lap > 0:
@@ -3681,7 +3684,7 @@ func _prepare_pursuit(replay: Dictionary, cp: float) -> void:
 		pursuit_save_box.hide()
 		pursuit_save_name.text = ""
 		pursuit_save_button.disabled = false
-		pursuit_save_status.text = "Bewaar deze rit om er later tegen te rijden."
+		pursuit_save_status.text = "RESULT_SAVE_THIS_RIDE_TO_RACE_AGAINST_IT_LATER"
 
 func _pursuit_move_lanes(dt: float) -> Array[float]:
 	var heights: Array[float] = [0.0, 0.0]
@@ -3833,7 +3836,7 @@ func _save_pursuit_ride() -> void:
 		pursuit_save_status.text = result["error"]
 		return
 	pursuit_saved_id = result["id"]
-	pursuit_save_status.text = "Opgeslagen: %s · beschikbaar bij deze afstand als tegenstander." % result["name"]
+	pursuit_save_status.text = String(TranslationServer.translate("RESULT_SAVED_S_AVAILABLE_AS_AN_OPPONENT_AT_THIS_DISTANCE")) % result["name"]
 	pursuit_save_button.disabled = true
 	if setup_panel != null:
 		setup_panel.get("team_options" if race_mode == 5 else "pursuit_options").refresh_rides()
@@ -3862,10 +3865,10 @@ func _on_strava_status(message: String) -> void:
 func _on_strava_activity_created(activity_id: String) -> void:
 	strava_activity_url = "https://www.strava.com/activities/" + activity_id
 	var done := ConfirmationDialog.new()
-	done.title = "Strava-upload geslaagd"
-	done.dialog_text = "Je rit is gepubliceerd als virtuele activiteit.\n\n" + strava_desired_title + "\n\n" + ("Screenshot opgeslagen in Downloads; voeg die handmatig toe op Strava.\n\n" if not strava_screenshot_path.is_empty() else "") + "Open de activiteit in Strava?"
-	done.ok_button_text = "Open in Strava"
-	done.cancel_button_text = "Sluiten"
+	done.title = String(TranslationServer.translate("MAIN_STRAVA_UPLOAD_SUCCESSFUL"))
+	done.dialog_text = String(TranslationServer.translate("STRAVA_YOUR_RIDE_HAS_BEEN_PUBLISHED_AS_A_VIRTUAL_ACTIVITY")) + strava_desired_title + "\n\n" + (String(TranslationServer.translate("STRAVA_SCREENSHOT_SAVED_IN_DOWNLOADS_ADD_IT_TO_STRAVA_MANUALLY")) if not strava_screenshot_path.is_empty() else "") + String(TranslationServer.translate("STRAVA_OPEN_THE_ACTIVITY_IN_STRAVA"))
+	done.ok_button_text = "MAIN_OPEN_IN_STRAVA"
+	done.cancel_button_text = "SETTINGS_CLOSE"
 	add_child(done)
 	done.confirmed.connect(func(): OS.shell_open(strava_activity_url))
 	done.confirmed.connect(done.queue_free)
@@ -3873,38 +3876,38 @@ func _on_strava_activity_created(activity_id: String) -> void:
 	done.popup_centered(Vector2i(650, 290))
 
 func _strava_activity_title() -> String:
-	if omnium_race.enabled(): return "Vélodrome - Omnium - " + String({"scratch":"Scratch", "tempo":"Temporace", "elimination":"Afvalling", "points":"Puntenkoers"}.get(omnium_race.discipline(), ""))
+	if omnium_race.enabled(): return "Vélodrome - Omnium - " + String({"scratch":String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")), "tempo":String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")), "elimination":String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE")), "points":String(TranslationServer.translate("RACE_MENU_POINTS_RACE"))}.get(omnium_race.discipline(), ""))
 	for mode in preload("res://race_menu.gd").MODES:
 		if int(mode["race_id"]) == race_mode:
-			return "Velodrome - " + String(mode["title"])
+			return "Velodrome - " + String(TranslationServer.translate(mode["title"]))
 	return "Velodrome"
 
 func _strava_activity_description() -> String:
 	var level: float = pursuit_opponent_percent if race_mode in [4, 5] else (keirin_percent if race_mode == 3 else ai_difficulty)
-	return "Niveau: %d%%\n%s" % [roundi(level), _strava_result_description()]
+	return tr("STRAVA_LEVEL_AND_RESULTS") % [roundi(level), _strava_result_description()]
 
 func _strava_result_description() -> String:
 	if race_mode == 7:
 		var lines: PackedStringArray = []
-		if time_trial_start_type == "flying": lines.append("Vliegende start · 1 aanloopronde")
-		lines.append("Tijd: %.3f s" % finish_times[0] if finish_times[0] >= 0.0 else "Tijdrit nog niet voltooid.")
+		if time_trial_start_type == "flying": lines.append(String(TranslationServer.translate("MENU_FLYING_START_1_LEAD_IN_LAP")))
+		lines.append(tr("STRAVA_FINISH_TIME") % finish_times[0] if finish_times[0] >= 0.0 else String(TranslationServer.translate("MAIN_TIME_TRIAL_NOT_YET_COMPLETED")))
 		if not lap_times[0].is_empty():
-			lines.append("Rondetijden (250 m):")
+			lines.append(tr("STRAVA_250_M_LAP_TIMES"))
 			for lap in range(lap_times[0].size()):
-				lines.append("Ronde %d: %.3f s" % [lap + 1, float(lap_times[0][lap])])
+				lines.append(tr("STRAVA_LAP_TIME") % [lap + 1, float(lap_times[0][lap])])
 		return "\n".join(lines)
 	if race_mode == 5:
 		if team_race.times[0] < 0.0 or team_race.times[1] < 0.0:
-			return "Uitslag nog niet definitief."
-		return "Uitslag: %d/2" % (2 if team_race.better(1, 0) else 1)
+			return String(TranslationServer.translate("MAIN_RESULTS_ARE_NOT_YET_FINAL"))
+		return tr("STRAVA_RANK") % [2 if team_race.better(1, 0) else 1, 2]
 	if not _all_riders_finished():
-		return "Uitslag nog niet definitief."
+		return String(TranslationServer.translate("MAIN_RESULTS_ARE_NOT_YET_FINAL"))
 	var order: Array[int] = []
 	for rider in range(rider_count): order.append(rider)
 	order.sort_custom(func(a: int, b: int) -> bool: return _race_better(a, b))
-	var description := "Uitslag: %d/%d" % [order.find(0) + 1, rider_count]
+	var description := tr("STRAVA_RANK") % [order.find(0) + 1, rider_count]
 	if race_mode in [1, 8]:
-		description += ", %d punten" % (tempo_rules.points[0] if race_mode == 8 else points_rules.points[0])
+		description += String(TranslationServer.translate("STRAVA_D_POINTS")) % (tempo_rules.points[0] if race_mode == 8 else points_rules.points[0])
 	return description
 
 func _export_to_strava() -> void:
@@ -3912,7 +3915,7 @@ func _export_to_strava() -> void:
 	strava_desired_description = _strava_activity_description()
 	# Use a plain Window rather than ConfirmationDialog internals: Godot 4 has no get_vbox().
 	var dialog := Window.new()
-	dialog.title = "Export naar Strava"
+	dialog.title = String(TranslationServer.translate("MAIN_EXPORT_TO_STRAVA"))
 	dialog.size = Vector2i(730, 510)
 	dialog.min_size = Vector2i(660, 450)
 	dialog.transient = true
@@ -3929,17 +3932,17 @@ func _export_to_strava() -> void:
 	content.add_theme_constant_override("separation", 10)
 	margin.add_child(content)
 	var instruction := Label.new()
-	instruction.text = "Kies een activiteitstitel. Een optionele uitslagscreenshot wordt opgeslagen in Downloads en kan handmatig op Strava worden toegevoegd."
+	instruction.text = "STRAVA_CHOOSE_AN_ACTIVITY_TITLE_AN_OPTIONAL_RESULTS_SCREENSHOT_IS_SAVED_IN_DO"
 	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(instruction)
 	var title_label := Label.new()
-	title_label.text = "Naam van de Strava-activiteit"
+	title_label.text = "STRAVA_STRAVA_ACTIVITY_NAME"
 	content.add_child(title_label)
 	var title_input := LineEdit.new()
 	title_input.text = strava_desired_title
 	content.add_child(title_input)
 	var description_label := Label.new()
-	description_label.text = "Beschrijving"
+	description_label.text = "STRAVA_DESCRIPTION"
 	content.add_child(description_label)
 	var description_preview := RichTextLabel.new()
 	description_preview.text = strava_desired_description
@@ -3947,12 +3950,12 @@ func _export_to_strava() -> void:
 	description_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(description_preview)
 	var picture_check := CheckBox.new()
-	picture_check.text = "Sla uitslagenscherm op als PNG in Downloads"
+	picture_check.text = "STRAVA_SAVE_RESULTS_SCREEN_AS_PNG_IN_DOWNLOADS"
 	picture_check.button_pressed = strava_save_screenshot
 	content.add_child(picture_check)
 	if ride_records.size() < 2:
 		var demo_label := Label.new()
-		demo_label.text = "LET OP: DEMO met GESIMULEERDE waarden. Alleen gebruiken als privetest."
+		demo_label.text = "STRAVA_NOTE_DEMO_WITH_SIMULATED_VALUES_USE_ONLY_AS_A_PRIVATE_TEST"
 		demo_label.add_theme_color_override("font_color", Color("ffb448"))
 		demo_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(demo_label)
@@ -3964,11 +3967,11 @@ func _export_to_strava() -> void:
 	buttons.add_theme_constant_override("separation", 12)
 	content.add_child(buttons)
 	var cancel_button := Button.new()
-	cancel_button.text = "Annuleren"
+	cancel_button.text = "WORKOUT_EDITOR_CANCEL"
 	cancel_button.custom_minimum_size = Vector2(125, 38)
 	buttons.add_child(cancel_button)
 	var upload_button := Button.new()
-	upload_button.text = "Upload rit"
+	upload_button.text = "MAIN_UPLOAD_RIDE"
 	upload_button.custom_minimum_size = Vector2(145, 38)
 	buttons.add_child(upload_button)
 	cancel_button.pressed.connect(dialog.queue_free)
@@ -4009,19 +4012,19 @@ func _start_strava_upload() -> void:
 	var is_demo: bool = ride_records.size() < 2
 	var samples: Array[Dictionary] = _player_activity_samples()
 	if samples.size() < 2:
-		_on_strava_status("Strava: onvoldoende ritmetingen om te uploaden.")
+		_on_strava_status(String(TranslationServer.translate("STRAVA_STRAVA_INSUFFICIENT_RIDE_READINGS_TO_UPLOAD")))
 		return
 	var epoch: int = ride_start_unix
 	if epoch <= 0:
 		epoch = int(Time.get_unix_time_from_system() - float(samples[-1]["time_s"]))
 	var payload: PackedByteArray = preload("res://fit_export.gd").build(samples, epoch, true)
 	if payload.is_empty():
-		_on_strava_status("Strava: FIT-opbouw mislukt.")
+		_on_strava_status(String(TranslationServer.translate("STRAVA_STRAVA_FAILED_TO_BUILD_FIT_FILE")))
 		return
 	var temp_path := "user://strava_upload_temp.fit"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file == null:
-		_on_strava_status("Strava: tijdelijk FIT-bestand kon niet worden gemaakt.")
+		_on_strava_status(String(TranslationServer.translate("STRAVA_STRAVA_COULD_NOT_CREATE_TEMPORARY_FIT_FILE")))
 		return
 	file.store_buffer(payload)
 	file.close()
@@ -4030,12 +4033,12 @@ func _start_strava_upload() -> void:
 func _register_performance() -> void:
 	if race_mode not in [4, 5] or performance_recorded or finish_times[0] < 0.0:
 		return
-	var proof := {"version": PursuitRecords.VERSION, "physics": PursuitRecords.PHYSICS, "name": "Voltooide prestatie", "time_s": finish_times[0], "distance_m": int(_race_length()), "samples": pursuit_trace}
+	var proof := {"version": PursuitRecords.VERSION, "physics": PursuitRecords.PHYSICS, "name": String(TranslationServer.translate("RESULT_COMPLETED_PERFORMANCE")), "time_s": finish_times[0], "distance_m": int(_race_length()), "samples": pursuit_trace}
 	if not PursuitRecords.valid(proof): return
 	if performance_context.is_empty():
 		if performance_id.is_empty(): performance_id = Crypto.new().generate_random_bytes(12).hex_encode()
 		var player: String = player_display_name.strip_edges().left(64)
-		performance_context = {"id": performance_id, "mode": race_mode, "distance_m": int(_race_length()), "team_size": team_size if race_mode == 5 else 0, "seconds": finish_times[0], "player_name": player if not player.is_empty() else "Speler", "finished_at": Time.get_unix_time_from_system(), "finished_local": Time.get_datetime_string_from_system(false, true), "legacy": false}
+		performance_context = {"id": performance_id, "mode": race_mode, "distance_m": int(_race_length()), "team_size": team_size if race_mode == 5 else 0, "seconds": finish_times[0], "player_name": player if not player.is_empty() else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_PLAYER")), "finished_at": Time.get_unix_time_from_system(), "finished_local": Time.get_datetime_string_from_system(false, true), "legacy": false}
 	performance_recorded = performance_records.add(performance_context)
 	if not performance_recorded and pursuit_save_status != null:
 		pursuit_save_status.text = performance_records.last_error
@@ -4082,7 +4085,7 @@ func _update_race_standings(race_order: Array[int]) -> void:
 			row["score"] = jury.points[i]
 			row["bonus"] = int(bonuses.get(i, {}).get("points", 0))
 		rows.append(row)
-	panel.update_standings(rows, "RONDEWINST / -VERLIES" if scratch else "TUSSENSTAND · PUNTEN")
+	panel.update_standings(rows, "RONDEWINST / -VERLIES" if scratch else String(TranslationServer.translate("RACE_HUD_STANDINGS_POINTS")))
 	panel.show()
 
 func _recent_hud_points_awards(jury) -> Dictionary:
@@ -4204,7 +4207,7 @@ func _update_elimination_jury(dt: float) -> void:
 	if event.is_empty(): return
 	var loser: int = int(event.get("eliminated_id", -1))
 	if loser < 0:
-		elimination_notice.text = "FOTOFINISH · JURYBESLISSING"
+		elimination_notice.text = "MAIN_PHOTO_FINISH_JURY_DECISION"
 		elimination_notice_until = clock + 4.0
 		return
 	finish_times[loser] = clock
@@ -4214,7 +4217,7 @@ func _update_elimination_jury(dt: float) -> void:
 	var exit_countries: Array = RaceCountries.roster(self).get("start_list", [])
 	var exit_country: String = String(exit_countries[loser]) if loser < exit_countries.size() else ""
 	elimination_exit[loser] = {"stage": 0, "start_d": coast_distances[loser], "position": Vector3.ZERO, "target": exit_target, "gate_z": _elimination_exit_gate(exit_target), "box_country": exit_country, "heading": Vector3.FORWARD}
-	elimination_notice.text = "AFGEVALLEN · %s" % _rider_name(loser).to_upper()
+	elimination_notice.text = String(TranslationServer.translate("RACE_ELIMINATED_RIDER")) % _rider_name(loser).to_upper()
 	elimination_notice_until = clock + 4.0
 	_take_elimination_photo(loser, float(event.get("line_m", 0.0)))
 	if loser == 0 and not finished:
@@ -4229,7 +4232,7 @@ func _take_elimination_photo(rider: int, line_m: float) -> void:
 	spot.y = 1.5
 	finish_photo_camera.global_position = spot
 	finish_photo_camera.look_at(_at(line_m + 0.6, lane_offsets[rider]) + Vector3.UP * 0.65, Vector3.UP)
-	finish_photo_caption.text = "AFVALLING · ACHTERWIEL · %s" % _rider_name(rider).to_upper()
+	finish_photo_caption.text = String(TranslationServer.translate("RESULT_ELIMINATION_REAR_WHEEL_S")) % _rider_name(rider).to_upper()
 	finish_photo_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	if not finish_photo_capture_pending:
 		finish_photo_capture_pending = true
@@ -4315,7 +4318,7 @@ func _clear_elimination_feedback() -> void:
 		elimination_notice.hide()
 
 func _hud_elimination_gap() -> String:
-	if finish_times[0] >= 0.0: return "Afgevallen" if elimination_rules.eliminated.has(0) else "Finish"
+	if finish_times[0] >= 0.0: return String(TranslationServer.translate("RESULT_ELIMINATED")) if elimination_rules.eliminated.has(0) else "Finish"
 	var opponents: Array[int] = []
 	for i in range(1, rider_count):
 		if finish_times[i] < 0.0: opponents.append(i)
@@ -4344,30 +4347,30 @@ func available_startlist_riders() -> Array[Dictionary]:
 func _upload_training(activity: Dictionary) -> void:
 	var page = setup_panel.ftp_page if activity.get("kind","") == "ftp_test" else setup_panel.derny_page if activity.get("kind","derny") == "derny" else setup_panel.exercise_page
 	if strava_client.working:
-		page.upload_status = "Er is al een Strava-upload bezig."
+		page.upload_status = String(TranslationServer.translate("STRAVA_A_STRAVA_UPLOAD_IS_ALREADY_IN_PROGRESS"))
 		return
 	var payload := preload("res://training_store.gd").fit_payload(activity)
 	if payload.is_empty():
-		page.upload_status = "Minstens twee ritmetingen nodig voor Strava."
+		page.upload_status = String(TranslationServer.translate("STRAVA_AT_LEAST_TWO_RIDE_READINGS_REQUIRED_FOR_STRAVA"))
 		return
 	var file := FileAccess.open("user://training_upload.fit",FileAccess.WRITE)
 	if file == null:
-		page.upload_status = "Strava-bestand kon niet worden gemaakt."
+		page.upload_status = String(TranslationServer.translate("STRAVA_COULD_NOT_CREATE_STRAVA_FILE"))
 		return
 	file.store_buffer(payload)
 	file.close()
 	strava_desired_title = "Velodrome - " + str(activity.get("title","Dernytraining")) + (" (PC-proefrit)" if activity.get("demo",false) else "")
 	if not String(activity.get("omnium_id", "")).is_empty():
-		strava_desired_title = "Vélodrome - Omnium - Losrijden"
-	strava_desired_description = "Dernytraining · gemiddelde startsnelheid %d km/u · hoogste voltooide stap %d km/u. Aanloop %.0f s automatisch meegenomen. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
+		strava_desired_title = String(TranslationServer.translate("STRAVA_VE_LODROME_OMNIUM_WARM_UP_RIDE"))
+	strava_desired_description = String(TranslationServer.translate("STRAVA_DERNY_TRAINING_AVERAGE_STARTING_SPEED_D_KM_H_HIGHEST_COMPLETED_STEP_D_")) % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0)),float(activity.get("assisted_seconds",0))]
 	if activity.get("kind","derny") != "derny" and activity.get("kind","") != "ftp_test":
-		strava_desired_description = "%s · %s. Begonnen met virtuele rolsnelheid %.0f km/u. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("title","Pistetraining"),activity.get("reason",""),activity.get("initial_speed_kmh",30)]
-		if activity.get("kind") == "flying_start": strava_desired_description += " Passage %.2f km/u · piek %.0f W." % [activity.get("entry_speed_kmh",0),activity.get("peak_power_w",0)]
-		elif activity.get("kind") == "free_ride": strava_desired_description += " Vrij rijden · %.2f km · %d voltooide rondes." % [float(activity.get("distance_m",0))/1000,activity.get("laps",[]).size()]
-		else: strava_desired_description += " Peloton %.0f km/u · %.1f m gewonnen." % [activity.get("peloton_kmh",30),activity.get("gained_m",0)]
+		strava_desired_description = String(TranslationServer.translate("STRAVA_S_S_STARTED_AT_A_VIRTUAL_ROLLING_SPEED_OF_0F_KM_H_VIRTUAL_SPEED_AND_DI")) % [activity.get("title","Pistetraining"),activity.get("reason",""),activity.get("initial_speed_kmh",30)]
+		if activity.get("kind") == "flying_start": strava_desired_description += String(TranslationServer.translate("STRAVA_PASSAGE_2F_KM_H_PEAK_0F_W")) % [activity.get("entry_speed_kmh",0),activity.get("peak_power_w",0)]
+		elif activity.get("kind") == "free_ride": strava_desired_description += String(TranslationServer.translate("STRAVA_FREE_RIDING_2F_KM_D_COMPLETED_LAPS")) % [float(activity.get("distance_m",0))/1000,activity.get("laps",[]).size()]
+		else: strava_desired_description += String(TranslationServer.translate("STRAVA_PELOTON_0F_KM_H_1F_M_GAINED")) % [activity.get("peloton_kmh",30),activity.get("gained_m",0)]
 	if activity.get("kind","") == "ftp_test":
-		strava_desired_description = "FTP-test · %s · geschatte FTP %.0f W. Virtuele snelheid en afstand; vermogen, hartslag en cadans uit sensoren waar beschikbaar." % [activity.get("reason",""),float(activity.get("ftp_w",0.0))]
-	if activity.get("demo",false): strava_desired_description = "GESIMULEERDE PC-PROEFRIT. " + strava_desired_description
+		strava_desired_description = String(TranslationServer.translate("STRAVA_FTP_TEST_S_ESTIMATED_FTP_0F_W_VIRTUAL_SPEED_AND_DISTANCE_POWER_HEART_R")) % [activity.get("reason",""),float(activity.get("ftp_w",0.0))]
+	if activity.get("demo",false): strava_desired_description = String(TranslationServer.translate("STRAVA_SIMULATED_PC_TEST_RIDE")) + strava_desired_description
 	strava_save_screenshot = false
 	strava_screenshot_path = ""
 	strava_client.begin_export(ProjectSettings.globalize_path("user://training_upload.fit"),strava_desired_title,strava_desired_description)

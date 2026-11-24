@@ -20,7 +20,7 @@ func _ready() -> void:
 		owner_node = owner_node.get_parent()
 	add_theme_constant_override("separation", 12)
 	enabled_check = CheckButton.new()
-	enabled_check.text = "Toetsenbordbediening gebruiken (ook zonder Zwift Ride)"
+	enabled_check.text = "KEYBOARD_SETTINGS_USE_KEYBOARD_CONTROLS_ALSO_WITHOUT_ZWIFT_RIDE"
 	enabled_check.button_pressed = mapping.enabled
 	enabled_check.toggled.connect(func(value):
 		var before: bool = mapping.enabled
@@ -28,11 +28,11 @@ func _ready() -> void:
 		if mapping.save() != OK:
 			mapping.enabled = before
 			enabled_check.set_pressed_no_signal(before)
-			status.text = "Opslaan mislukt."
+			status.text = "WORKOUT_LIBRARY_FAILED_TO_SAVE"
 		game._clear_look_back())
 	add_child(enabled_check)
 	var help := Label.new()
-	help.text = "Kies een actie en druk de gewenste toets of toetscombinatie in. Achteruitkijken: vasthouden. Met trainer schakelen de pijltjes omhoog/omlaag; zonder trainer regelen ze het vermogen. Stel beide profielen afzonderlijk in."
+	help.text = "KEYBOARD_USAGE"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(help)
 	active_profile = Label.new()
@@ -45,19 +45,19 @@ func _ready() -> void:
 	context_choice.item_selected.connect(func(_i): cancel_capture(); refresh())
 	toolbar.add_child(context_choice)
 	var reset := Button.new()
-	reset.text = "Standaardtoetsen herstellen"
+	reset.text = "KEYBOARD_SETTINGS_RESTORE_DEFAULT_KEYS"
 	reset.pressed.connect(func():
 		var before: Dictionary = mapping.profiles.duplicate(true)
 		mapping.profiles = Mapping.DEFAULT_KEYS.duplicate(true)
 		if mapping.save() != OK:
 			mapping.profiles = before
-			status.text = "Opslaan mislukt."
-		else: status.text = "Standaardtoetsen opgeslagen."
+			status.text = "WORKOUT_LIBRARY_FAILED_TO_SAVE"
+		else: status.text = "KEYBOARD_SETTINGS_DEFAULT_KEYS_SAVED"
 		cancel_capture()
 		refresh())
 	toolbar.add_child(reset)
 	var cancel := Button.new()
-	cancel.text = "Annuleren"
+	cancel.text = "WORKOUT_EDITOR_CANCEL"
 	cancel.pressed.connect(cancel_capture)
 	toolbar.add_child(cancel)
 	status = Label.new()
@@ -95,10 +95,10 @@ func refresh() -> void:
 		key.pressed.connect(func():
 			capture_context = context()
 			capture_action = action
-			status.text = "Druk een toets in voor: " + str(Mapping.ACTIONS[capture_context][action]))
+			status.text = String(TranslationServer.translate("KEYBOARD_SETTINGS_PRESS_A_KEY_FOR")) + TranslationServer.translate(Mapping.ACTIONS[capture_context][action]))
 		row.add_child(key)
 		var clear := Button.new()
-		clear.text = "Vrijmaken"
+		clear.text = "KEYBOARD_SETTINGS_UNASSIGN"
 		clear.pressed.connect(func(): store(context(), action, 0))
 		row.add_child(clear)
 
@@ -116,17 +116,17 @@ func store(scope: String, action: String, key: int) -> void:
 	var before: Dictionary = mapping.profiles.duplicate(true)
 	var error: String = mapping.assign(scope, action, key)
 	if not error.is_empty():
-		status.text = error + ". Maak die actie eerst vrij of kies een andere toets."
+		status.text = error + String(TranslationServer.translate("KEYBOARD_CONFLICT_HINT"))
 		return
 	if mapping.save() != OK:
 		mapping.profiles = before
-		status.text = "Opslaan mislukt; vorige toetsen blijven actief."
+		status.text = "KEYBOARD_SETTINGS_FAILED_TO_SAVE_PREVIOUS_KEYS_REMAIN_ACTIVE"
 		return
 	cancel_capture()
-	status.text = "Toetsenbordmapping opgeslagen."
+	status.text = "KEYBOARD_SETTINGS_KEYBOARD_MAPPING_SAVED"
 	refresh()
 
 func _process(_delta: float) -> void:
 	if not is_visible_in_tree(): return
-	active_profile.text = "Actief profiel: " + str(Mapping.CONTEXT_LABELS[Mapping.CONTEXTS.find(game._keyboard_profile())])
+	active_profile.text = String(TranslationServer.translate("KEYBOARD_SETTINGS_ACTIVE_PROFILE")) + tr(Mapping.CONTEXT_LABELS[Mapping.CONTEXTS.find(game._keyboard_profile())])
 	enabled_check.set_pressed_no_signal(mapping.enabled)

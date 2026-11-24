@@ -2,9 +2,9 @@ extends RefCounted
 ## Keyboard profiles are independent of the physical Ride mapping.
 const PATH := "user://keyboard_mapping.json"
 const BASE_ACTIONS := {
-	"global": {"settings":"Instellingen openen / sluiten"},
-	"menu": {"up":"Omhoog", "down":"Omlaag", "left":"Links", "right":"Rechts", "accept":"Bevestigen", "back":"Terug"},
-	"race": {"shift_up":"Opschakelen (zwaarder)", "shift_down":"Afschakelen (lichter)", "steer_left":"Sturen naar links", "steer_right":"Sturen naar rechts", "camera_next":"Volgende camera", "camera_previous":"Vorige camera", "look_back":"Achteruitkijken (vasthouden)", "rider_info":"Naam / wattage / energie", "pause":"Pauze / training stoppen", "power_up":"Simulator: vermogen verhogen", "power_down":"Simulator: vermogen verlagen", "boost":"Simulator: sprint", "tempo_up":"Derny: tempo verhogen", "tempo_down":"Derny: tempo verlagen", "record":"Opname bewaren", "restart":"Herstart / terug naar menu", "developer":"Diagnostiek tonen"}
+	"global": {"settings":"INPUT_TOGGLE_SETTINGS"},
+	"menu": {"up":"INPUT_UP", "down":"INPUT_DOWN", "left":"INPUT_LEFT", "right":"INPUT_RIGHT", "accept":"CONTROLLER_SETTINGS_CONFIRM", "back":"COMMON_BACK"},
+	"race": {"shift_up":"INPUT_SHIFT_UP", "shift_down":"INPUT_SHIFT_DOWN", "steer_left":"INPUT_STEER_LEFT", "steer_right":"INPUT_STEER_RIGHT", "camera_next":"INPUT_NEXT_CAMERA", "camera_previous":"INPUT_PREVIOUS_CAMERA", "look_back":"INPUT_LOOK_BACK_HOLD", "rider_info":"INPUT_RIDER_INFO", "pause":"INPUT_PAUSE_OR_STOP", "power_up":"INPUT_SIM_POWER_UP", "power_down":"INPUT_SIM_POWER_DOWN", "boost":"INPUT_SIM_SPRINT", "tempo_up":"INPUT_DERNY_FASTER", "tempo_down":"INPUT_DERNY_SLOWER", "record":"INPUT_SAVE_RECORDING", "restart":"INPUT_RESTART_RETURN", "developer":"INPUT_SHOW_DIAGNOSTICS"}
 }
 const BASE_KEYS := {
 	"global": {"settings":KEY_F10},
@@ -12,7 +12,7 @@ const BASE_KEYS := {
 	"race": {"shift_up":KEY_UP,"shift_down":KEY_DOWN,"steer_left":KEY_A,"steer_right":KEY_D,"camera_next":KEY_C,"camera_previous":KEY_Q,"look_back":KEY_B,"rider_info":KEY_V,"pause":KEY_ESCAPE,"power_up":KEY_EQUAL,"power_down":KEY_MINUS,"boost":KEY_SPACE,"tempo_up":KEY_RIGHT,"tempo_down":KEY_LEFT,"record":KEY_P,"restart":KEY_R,"developer":KEY_X}
 }
 const CONTEXTS := ["global","menu","race","simulator","madison_race","madison_simulator"]
-const CONTEXT_LABELS := ["Algemeen","Menu","Trainer aangesloten","Zonder trainer (simulator)","Madison: met trainer","Madison: simulator"]
+const CONTEXT_LABELS := ["INPUT_GENERAL","Menu","INPUT_TRAINER_CONNECTED","INPUT_NO_TRAINER","INPUT_MADISON_TRAINER","INPUT_MADISON_SIMULATOR"]
 
 static func actions() -> Dictionary:
 	var result := BASE_ACTIONS.duplicate(true)
@@ -22,7 +22,7 @@ static func actions() -> Dictionary:
 	for profile in ["race","simulator"]:
 		result["madison_" + profile] = result[profile].duplicate(true)
 		for action in ["tempo_up","tempo_down"]: result["madison_" + profile].erase(action)
-		result["madison_" + profile]["madison_grab"] = "Madison: handaflossing (indrukken / loslaten)"
+		result["madison_" + profile]["madison_grab"] = "INPUT_MADISON_EXCHANGE"
 	return result
 
 static func defaults() -> Dictionary:
@@ -55,8 +55,8 @@ func validate(data: Variant) -> String:
 			var key: Variant = data[context].get(action)
 			if typeof(key) not in [TYPE_INT,TYPE_FLOAT] or float(key) != floor(float(key)) or key < 0 or key > 0x7fffffff: return "Ongeldige toets"
 			if key == 0: continue
-			if used.has(int(key)): return "Toets al gebruikt voor " + str(ACTIONS[context][used[int(key)]])
-			if context != "global" and data.global.values().has(key): return "Toets al gebruikt voor Instellingen"
+			if used.has(int(key)): return String(TranslationServer.translate("KEYBOARD_KEY_ALREADY_USED")) + TranslationServer.translate(ACTIONS[context][used[int(key)]])
+			if context != "global" and data.global.values().has(key): return String(TranslationServer.translate("KEYBOARD_KEY_USED_BY_SETTINGS"))
 			used[int(key)] = action
 	return ""
 
@@ -76,10 +76,10 @@ func action_for(context: String, event: InputEventKey) -> String:
 
 func caption(context: String, action: String) -> String:
 	var key := int(profiles[context][action])
-	return {0:"Niet toegewezen",KEY_ESCAPE:"ESC",KEY_UP:"↑",KEY_DOWN:"↓",KEY_LEFT:"←",KEY_RIGHT:"→"}.get(key, OS.get_keycode_string(key))
+	return {0:TranslationServer.translate("KEYBOARD_UNASSIGNED"),KEY_ESCAPE:"ESC",KEY_UP:"↑",KEY_DOWN:"↓",KEY_LEFT:"←",KEY_RIGHT:"→"}.get(key, OS.get_keycode_string(key))
 
 func menu_hint() -> String:
-	return "%s/%s kiezen · %s/%s aanpassen · %s bevestigen · %s terug · %s instellingen" % [caption("menu","up"),caption("menu","down"),caption("menu","left"),caption("menu","right"),caption("menu","accept"),caption("menu","back"),caption("global","settings")]
+	return TranslationServer.translate("KEYBOARD_MENU_HINT") % [caption("menu","up"),caption("menu","down"),caption("menu","left"),caption("menu","right"),caption("menu","accept"),caption("menu","back"),caption("global","settings")]
 
 func apply_ui() -> void:
 	for action in ["up","down","left","right","accept","back"]:

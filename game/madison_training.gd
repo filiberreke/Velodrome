@@ -10,13 +10,13 @@ func _ready() -> void:
 	progress.load_progress()
 	add_theme_constant_override("separation",14)
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
-	title = _label("Aflossingstraining",34)
-	detail = _label("Oefen met je ploegmaat. A: grijpen; in Advanced vasthouden en loslaten. Easy slingert en laat automatisch los (max 70%).\n←/→ of stuurpaddles: rijlijn. De snelle renner rijdt binnen; de ontvanger bij de blauwe lijn. Elke spelersronde verschijnt de ploegmaat opnieuw voor één gerichte aflossingspoging.",22)
-	difficulty = OptionButton.new(); difficulty.add_item("Easy · automatisch slingeren · max 70%"); difficulty.add_item("Advanced · A vasthouden/loslaten · max 100%"); add_child(difficulty)
-	count = OptionButton.new(); count.add_item("10 aflossingspogingen",10); count.add_item("20 aflossingspogingen",20); add_child(count)
+	title = _label("MENU_MADISON_EXCHANGE_TRAINING",34)
+	detail = _label("MADISON_PRACTISE_WITH_YOUR_TEAMMATE_A_GRAB_IN_ADVANCED_HOLD_AND_RELEASE_EASY_S",22)
+	difficulty = OptionButton.new(); difficulty.add_item("MADISON_EASY_AUTOMATIC_SLING_MAX_70"); difficulty.add_item("MADISON_ADVANCED_HOLD_RELEASE_A_MAX_100"); add_child(difficulty)
+	count = OptionButton.new(); count.add_item("MADISON_10_EXCHANGE_ATTEMPTS",10); count.add_item("MADISON_20_EXCHANGE_ATTEMPTS",20); add_child(count)
 	unlock_label = _label("",20)
 	result = _label("",24)
-	start_button = _button("Start aflossingstraining",begin)
+	start_button = _button("MADISON_START_EXCHANGE_TRAINING",begin)
 	result_graph = preload("res://training_graph.gd").new(); result_graph.size_flags_vertical = Control.SIZE_EXPAND_FILL; add_child(result_graph)
 	results_scroll = ScrollContainer.new(); results_scroll.custom_minimum_size.y = 180
 	results_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -25,9 +25,9 @@ func _ready() -> void:
 	results_table = GridContainer.new(); results_table.columns = 5; results_table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	results_table.add_theme_constant_override("h_separation",20); results_table.add_theme_constant_override("v_separation",8)
 	results_scroll.add_child(results_table)
-	upload_button = _button("Opslaan op Strava",func(): upload_requested.emit(selected_activity))
-	stop_button = _button("Stop training",func(): finish("Handmatig gestopt"))
-	back_button = _button("← Pistetraining",leave)
+	upload_button = _button("PISTE_EXERCISE_PAGE_SAVE_TO_STRAVA",func(): upload_requested.emit(selected_activity))
+	stop_button = _button("FTP_RAMP_HUD_STOP_TRAINING",func(): finish(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY"))))
+	back_button = _button("TRAINING_HISTORY_TRACK_TRAINING",leave)
 	_refresh()
 func begin() -> void:
 	if difficulty.selected == 1 and not progress.advanced_unlocked: return
@@ -37,7 +37,7 @@ func _refresh() -> void:
 	var locked: bool = not progress.advanced_unlocked
 	difficulty.set_item_disabled(1,locked)
 	if locked and difficulty.selected == 1: difficulty.select(0)
-	unlock_label.text = "Advanced vergrendeld · haal 7/10 of 14/20 in Easy." if locked else "Advanced vrijgespeeld."
+	unlock_label.text = "MADISON_ADVANCED_LOCKED_ACHIEVE_7_10_OR_14_20_IN_EASY" if locked else "MADISON_ADVANCED_UNLOCKED"
 	var has_result := not selected_activity.is_empty()
 	var running: bool = session.running()
 	for node in [difficulty,count,unlock_label]: node.visible = not running and not has_result
@@ -48,19 +48,19 @@ func _refresh() -> void:
 	results_scroll.visible = has_result and not selected_activity.get("exchanges",[]).is_empty()
 	upload_button.visible = has_result; upload_button.disabled = selected_activity.get("samples",[]).size() < 2
 	if has_result:
-		result.text = "%s · %d/%d pogingen · %d geslaagd\n%s" % [selected_activity.get("reason",""),selected_activity.get("attempts",0),selected_activity.get("target",10),selected_activity.get("successes",0),upload_status]
+		result.text = String(TranslationServer.translate("MADISON_S_D_D_ATTEMPTS_D_SUCCESSFUL_S")) % [selected_activity.get("reason",""),selected_activity.get("attempts",0),selected_activity.get("target",10),selected_activity.get("successes",0),upload_status]
 	elif session.phase == "RESULT": result.text = session.reason
-	else: result.text = "Volg de gele wisselzone. Uitgaand: jij geeft aan de binnenkant. Inkomend: jij ontvangt bij de blauwe lijn.\nScore: maximaal 100/100 in beide modi; Easy draagt maximaal 70% momentum over."
+	else: result.text = "MADISON_FOLLOW_THE_YELLOW_EXCHANGE_ZONE_OUTGOING_YOU_GIVE_THE_SLING_ON_THE_INS"
 
-func show_activity(activity: Dictionary, message: String = "Training opgeslagen in het spel.") -> void:
+func show_activity(activity: Dictionary, message: String = "TRAINING_ACTIVITY_SAVED") -> void:
 	super.show_activity(activity,message)
 	for child in results_table.get_children():
 		results_table.remove_child(child); child.queue_free()
-	for heading in ["Poging","Rol","Resultaat","Reden bij mislukken","Score /100"]:
+	for heading in [String(TranslationServer.translate("MADISON_ATTEMPT")),String(TranslationServer.translate("MADISON_ROLE")),String(TranslationServer.translate("MADISON_RESULT")),String(TranslationServer.translate("MADISON_REASON_FOR_FAILURE")),"Score /100"]:
 		_table_cell(heading,true)
 	for stored in activity.get("exchanges",[]):
 		var exchange: Dictionary = _display_exchange(stored)
-		for text in [str(exchange.get("number","")),str(exchange.get("role","")),"Gelukt" if exchange.get("success",false) else "Mislukt",str(exchange.get("reason","")),str(exchange.get("score",0))]:
+		for text in [str(exchange.get("number","")),TranslationServer.translate({"Uitgaand": "MADISON_OUTGOING", "Inkomend": "MADISON_INCOMING"}.get(exchange.get("role", ""), exchange.get("role", ""))),String(TranslationServer.translate("MADISON_SUCCESSFUL")) if exchange.get("success",false) else String(TranslationServer.translate("MADISON_FAILED")),str(exchange.get("reason","")),str(exchange.get("score",0))]:
 			_table_cell(text)
 
 func _table_cell(text: String, heading: bool = false) -> void:

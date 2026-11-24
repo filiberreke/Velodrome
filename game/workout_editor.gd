@@ -45,22 +45,22 @@ func _ready() -> void:
 		if id.is_empty(): new_workout()
 		else: load_workout(id)
 	)
-	_button(selection,"Nieuwe workout",new_workout)
-	MenuStyle.primary(_button(selection,"Opslaan",save_workout))
-	delete_workout_button = _button(selection,"Workout verwijderen",request_delete_workout)
+	_button(selection,String(TranslationServer.translate("WORKOUT_EDITOR_NEW_WORKOUT")),new_workout)
+	MenuStyle.primary(_button(selection,String(TranslationServer.translate("WORKOUT_EDITOR_SAVE")),save_workout))
+	delete_workout_button = _button(selection,String(TranslationServer.translate("WORKOUT_EDITOR_DELETE_WORKOUT")),request_delete_workout)
 	MenuStyle.destructive(delete_workout_button)
 	delete_dialog = ConfirmationDialog.new()
-	delete_dialog.title = "Workout verwijderen?"
-	delete_dialog.get_ok_button().text = "Verwijderen"
+	delete_dialog.title = String(TranslationServer.translate("WORKOUT_EDITOR_DELETE_WORKOUT_2"))
+	delete_dialog.get_ok_button().text = "WORKOUT_EDITOR_DELETE"
 	MenuStyle.destructive(delete_dialog.get_ok_button())
-	delete_dialog.get_cancel_button().text = "Annuleren"
+	delete_dialog.get_cancel_button().text = "WORKOUT_EDITOR_CANCEL"
 	delete_dialog.confirmed.connect(_confirm_delete_workout)
 	delete_dialog.canceled.connect(func(): pending_delete_id = "")
 	add_child(delete_dialog)
 	var toolbar := HBoxContainer.new()
 	add_child(toolbar)
 	name_edit = LineEdit.new()
-	name_edit.text = "Nieuwe training"
+	name_edit.text = "WORKOUT_EDITOR_NEW_TRAINING_SESSION"
 	name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	toolbar.add_child(name_edit)
 	_button(toolbar, "Importeer .zwo", _open)
@@ -69,13 +69,13 @@ func _ready() -> void:
 	columns.add_theme_constant_override("separation", 12)
 	add_child(columns)
 	var library := _panel(columns, 235)
-	library.add_child(_label("BOUWSTENEN", 23))
+	library.add_child(_label("WORKOUT_BUILDING_BLOCKS", 23))
 	for kind in ["Warmup", "SteadyState", "Recovery", "IntervalsT", "FreeRide", "Cooldown"]:
 		_button(library, _display(kind) + "  +", func(): _add(kind))
 	var middle := _panel(columns, 660)
 	middle.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	middle.add_child(_label("WORKOUT", 23))
-	middle.add_child(_label("Klik op een blok om de details rechts te bewerken.", 17))
+	middle.add_child(_label("WORKOUT_EDITOR_CLICK_A_BLOCK_TO_EDIT_ITS_DETAILS_ON_THE_RIGHT", 17))
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -90,12 +90,12 @@ func _ready() -> void:
 	scroll.add_child(graph)
 	var controls := HBoxContainer.new()
 	middle.add_child(controls)
-	action_buttons.append(_button(controls, "← Links", func(): _move(-1)))
+	action_buttons.append(_button(controls, String(TranslationServer.translate("WORKOUT_EDITOR_LEFT")), func(): _move(-1)))
 	action_buttons.append(_button(controls, "Rechts →", func(): _move(1)))
-	action_buttons.append(_button(controls, "Dupliceren", _duplicate))
-	action_buttons.append(_button(controls, "Verwijderen", _remove))
+	action_buttons.append(_button(controls, String(TranslationServer.translate("WORKOUT_EDITOR_DUPLICATE")), _duplicate))
+	action_buttons.append(_button(controls, String(TranslationServer.translate("WORKOUT_EDITOR_DELETE")), _remove))
 	var right := _panel(columns, 270)
-	right.add_child(_label("GESELECTEERD BLOK", 22))
+	right.add_child(_label("WORKOUT_EDITOR_SELECTED_BLOCK", 22))
 	inspector = VBoxContainer.new()
 	right.add_child(inspector)
 	var footer := HBoxContainer.new()
@@ -105,7 +105,7 @@ func _ready() -> void:
 	footer.add_child(summary)
 	status = _label("", 15)
 	footer.add_child(status)
-	back_button = _button(footer, "← ERG-training", func(): back_requested.emit())
+	back_button = _button(footer, String(TranslationServer.translate("WORKOUT_EDITOR_ERG_TRAINING")), func(): back_requested.emit())
 	_button(footer, "Exporteer .zwo", _export)
 	open_dialog = _dialog(FileDialog.FILE_MODE_OPEN_FILE)
 	save_dialog = _dialog(FileDialog.FILE_MODE_SAVE_FILE)
@@ -116,7 +116,7 @@ func _ready() -> void:
 func refresh_workout_choices() -> void:
 	delete_workout_button.visible = not current_id.is_empty()
 	workout_choice.clear()
-	workout_choice.add_item("Nieuwe workout")
+	workout_choice.add_item("WORKOUT_EDITOR_NEW_WORKOUT")
 	workout_choice.set_item_metadata(0,"")
 	for item in library.all_workouts():
 		workout_choice.add_item(item.name)
@@ -126,28 +126,28 @@ func new_workout() -> void:
 	pending_delete_id = ""
 	delete_dialog.hide()
 	current_id = ""
-	name_edit.text = "Nieuwe training"
+	name_edit.text = "WORKOUT_EDITOR_NEW_TRAINING_SESSION"
 	blocks.clear()
 	for kind in ["Warmup","SteadyState","Recovery","Cooldown"]: blocks.append(_new_block(kind))
 	_select(0)
 	refresh_workout_choices()
-	status.text = "Nieuwe workout"
+	status.text = "WORKOUT_EDITOR_NEW_WORKOUT"
 func load_workout(id: String) -> void:
 	var item: Dictionary = library.get_workout(id)
-	if item.is_empty(): status.text = "Workout niet gevonden"; return
+	if item.is_empty(): status.text = "WORKOUT_EDITOR_WORKOUT_NOT_FOUND"; return
 	current_id = id
 	name_edit.text = item.name
 	blocks.clear()
 	for block in item.blocks: blocks.append(block.duplicate(true))
 	_select(0)
 	refresh_workout_choices()
-	status.text = "Workout geopend"
+	status.text = "WORKOUT_EDITOR_WORKOUT_OPENED"
 func save_workout() -> void:
 	var id: String = library.save_workout(current_id,name_edit.text,blocks)
 	if id.is_empty(): status.text = library.error; return
 	current_id = id
 	refresh_workout_choices()
-	status.text = "Workout opgeslagen"
+	status.text = "WORKOUT_EDITOR_WORKOUT_SAVED"
 	workout_saved.emit(id)
 
 func request_delete_workout() -> void:
@@ -163,7 +163,7 @@ func _confirm_delete_workout() -> void:
 	if id.is_empty() or id != current_id: return
 	if not library.delete_workout(id): status.text = library.error; return
 	new_workout()
-	status.text = "Workout verwijderd"
+	status.text = "WORKOUT_EDITOR_WORKOUT_DELETED"
 	workout_deleted.emit(id)
 
 func _panel(parent: Node, min_width: float) -> VBoxContainer:
@@ -200,9 +200,9 @@ func _button(parent: Node, title: String, callback: Callable) -> Button:
 
 func _display(kind: String) -> String:
 	match kind:
-		"Warmup": return "Opwarming"
-		"Recovery": return "Herstel"
-		"SteadyState": return "Constant vermogen"
+		"Warmup": return String(TranslationServer.translate("WORKOUT_EDITOR_WARM_UP"))
+		"Recovery": return String(TranslationServer.translate("WORKOUT_EDITOR_RECOVERY"))
+		"SteadyState": return String(TranslationServer.translate("WORKOUT_EDITOR_CONSTANT_POWER"))
 		"IntervalsT": return "Interval"
 		"FreeRide": return "Free Ride"
 		"Cooldown": return "Cooldown"
@@ -245,14 +245,14 @@ func _refresh() -> void:
 		inspector.remove_child(child)
 		child.queue_free()
 	if selected >= 0 and selected < blocks.size(): _build_inspector()
-	else: inspector.add_child(_label("Voeg links een bouwsteen toe.", 16))
+	else: inspector.add_child(_label("WORKOUT_EDITOR_ADD_A_BUILDING_BLOCK_ON_THE_LEFT", 16))
 	_update_timeline()
 	if restore_focus and selected >= 0: block_buttons[selected].grab_focus.call_deferred()
 
 func _update_timeline() -> void:
 	var total := 0.0
 	for block in blocks: total += _duration(block)
-	summary.text = "%d blokken  ·  %s totaal" % [blocks.size(), _clock(total)]
+	summary.text = String(TranslationServer.translate("WORKOUT_EDITOR_D_BLOCKS_S_TOTAL")) % [blocks.size(), _clock(total)]
 	action_buttons[0].disabled = selected <= 0
 	action_buttons[1].disabled = selected < 0 or selected >= blocks.size() - 1
 	for i in [2, 3]: action_buttons[i].disabled = selected < 0
@@ -307,24 +307,24 @@ func _build_inspector() -> void:
 	var block := blocks[selected]
 	inspector.add_child(_label(_display(block.kind), 20))
 	if block.kind == "IntervalsT":
-		_spin(inspector, "Herhalingen", block.repeat, 1, 100, 1, func(v): _set_block_value("repeat", int(v)))
+		_spin(inspector, String(TranslationServer.translate("WORKOUT_EDITOR_REPETITIONS")), block.repeat, 1, 100, 1, func(v): _set_block_value("repeat", int(v)))
 		for key in ["on_duration", "off_duration"]:
-			_spin(inspector, ("Inspanning" if key == "on_duration" else "Herstel") + " (seconden)", block[key], 1, 3600, 1, func(v): _set_block_value(key, v))
+			_spin(inspector, (String(TranslationServer.translate("WORKOUT_EDITOR_EFFORT")) if key == "on_duration" else String(TranslationServer.translate("WORKOUT_EDITOR_RECOVERY"))) + " (seconden)", block[key], 1, 3600, 1, func(v): _set_block_value(key, v))
 		for key in ["on_power", "off_power"]:
-			_spin(inspector, ("Inspanning" if key == "on_power" else "Herstel") + " (% FTP)", float(block[key]) * 100, 0, 300, 1, func(v): _set_block_value(key, v / 100.0))
+			_spin(inspector, (String(TranslationServer.translate("WORKOUT_EDITOR_EFFORT")) if key == "on_power" else String(TranslationServer.translate("WORKOUT_EDITOR_RECOVERY"))) + " (% FTP)", float(block[key]) * 100, 0, 300, 1, func(v): _set_block_value(key, v / 100.0))
 	else:
 		_spin(inspector, "Duur (seconden)", block.duration, 1, 86400, 1, func(v): _set_block_value("duration", v))
 		if block.kind != "FreeRide":
-			_spin(inspector, "Startvermogen (% FTP)", float(block.power_low) * 100, 0, 300, 1, func(v): _set_block_value("power_low", v / 100.0))
+			_spin(inspector, String(TranslationServer.translate("WORKOUT_EDITOR_STARTING_POWER_FTP")), float(block.power_low) * 100, 0, 300, 1, func(v): _set_block_value("power_low", v / 100.0))
 			if block.kind in ["Warmup", "Cooldown", "Ramp"]:
-				_spin(inspector, "Eindvermogen (% FTP)", float(block.power_high) * 100, 0, 300, 1, func(v): _set_block_value("power_high", v / 100.0))
-	inspector.add_child(_label("Tekstbericht", 18))
+				_spin(inspector, String(TranslationServer.translate("WORKOUT_EDITOR_ENDING_POWER_FTP")), float(block.power_high) * 100, 0, 300, 1, func(v): _set_block_value("power_high", v / 100.0))
+	inspector.add_child(_label("WORKOUT_EDITOR_TEXT_MESSAGE", 18))
 	message_edit = LineEdit.new()
-	message_edit.placeholder_text = "Instructie voor de renner"
+	message_edit.placeholder_text = "WORKOUT_EDITOR_INSTRUCTION_FOR_THE_RIDER"
 	if not block.events.is_empty(): message_edit.text = str(block.events[0].message)
 	inspector.add_child(message_edit)
-	offset_spin = _spin(inspector, "Na seconden", float(block.events[0].time) if not block.events.is_empty() else 0.0, 0, _duration(block), 1, func(_v): pass)
-	_button(inspector, "Bericht bewaren", _save_message)
+	offset_spin = _spin(inspector, String(TranslationServer.translate("WORKOUT_EDITOR_AFTER_SECONDS")), float(block.events[0].time) if not block.events.is_empty() else 0.0, 0, _duration(block), 1, func(_v): pass)
+	_button(inspector, String(TranslationServer.translate("WORKOUT_EDITOR_SAVE_MESSAGE")), _save_message)
 
 func _set_block_value(key: String, value: Variant) -> void:
 	if selected < 0: return
@@ -394,15 +394,15 @@ func _draw_graph() -> void:
 		graph.draw_string(font, Vector2(x + 8, h + 22), "%d · %s" % [i + 1, _display(block.kind)], HORIZONTAL_ALIGNMENT_LEFT, width - 16, 14, MenuStyle.INK)
 		graph.draw_string(font, Vector2(x + 8, h + 42), _clock(_duration(block)), HORIZONTAL_ALIGNMENT_LEFT, width - 16, 14, MenuStyle.MUTED)
 		x += width
-	if blocks.is_empty(): graph.draw_string(font, Vector2(20, 60), "Voeg links een bouwsteen toe.", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, MenuStyle.MUTED)
+	if blocks.is_empty(): graph.draw_string(font, Vector2(20, 60), String(TranslationServer.translate("WORKOUT_EDITOR_ADD_A_BUILDING_BLOCK_ON_THE_LEFT")), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, MenuStyle.MUTED)
 
 func _dialog(mode: FileDialog.FileMode) -> FileDialog:
 	var d := FileDialog.new()
 	d.access = FileDialog.ACCESS_FILESYSTEM
 	d.file_mode = mode
-	d.title = "Importeer workout" if mode == FileDialog.FILE_MODE_OPEN_FILE else "Exporteer workout"
-	d.get_ok_button().text = "Importeren" if mode == FileDialog.FILE_MODE_OPEN_FILE else "Exporteren"
-	d.get_cancel_button().text = "Annuleren"
+	d.title = String(TranslationServer.translate("WORKOUT_EDITOR_IMPORT_WORKOUT")) if mode == FileDialog.FILE_MODE_OPEN_FILE else String(TranslationServer.translate("WORKOUT_EDITOR_EXPORT_WORKOUT"))
+	d.get_ok_button().text = "WORKOUT_EDITOR_IMPORT" if mode == FileDialog.FILE_MODE_OPEN_FILE else "WORKOUT_EDITOR_EXPORT"
+	d.get_cancel_button().text = "WORKOUT_EDITOR_CANCEL"
 	MenuStyle.primary(d.get_ok_button())
 	d.add_filter("*.zwo", "Zwift Workout")
 	add_child(d)
@@ -417,7 +417,7 @@ func _export() -> void:
 func _load_file(path: String) -> void:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		status.text = "Openen mislukt"
+		status.text = "WORKOUT_EDITOR_FAILED_TO_OPEN"
 		return
 	var workout := Workout.new()
 	if not workout.parse(file.get_as_text()):
@@ -428,7 +428,7 @@ func _load_file(path: String) -> void:
 	blocks = workout.blocks.duplicate(true)
 	_select(0)
 	refresh_workout_choices()
-	status.text = "ZWO geïmporteerd"
+	status.text = "WORKOUT_EDITOR_ZWO_IMPORTED"
 
 func _escape(value: String) -> String:
 	return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&apos;")
@@ -437,7 +437,7 @@ func _save_file(path: String) -> void:
 	if not path.to_lower().ends_with(".zwo"): path += ".zwo"
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		status.text = "Opslaan mislukt"
+		status.text = "WORKOUT_EDITOR_FAILED_TO_SAVE"
 		return
 	file.store_line('<?xml version="1.0" encoding="UTF-8"?>')
 	file.store_line("<workout_file><author>Velodrome</author><name>%s</name><description></description><sportType>bike</sportType><workout>" % _escape(name_edit.text))
@@ -460,4 +460,4 @@ func _save_file(path: String) -> void:
 	file.store_line("</workout></workout_file>")
 	file.close()
 	save_workout()
-	if not current_id.is_empty(): status.text = "Opgeslagen: " + path.get_file()
+	if not current_id.is_empty(): status.text = String(TranslationServer.translate("WORKOUT_EDITOR_SAVED_FILE")) + path.get_file()

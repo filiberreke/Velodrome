@@ -45,7 +45,7 @@ func _advance(now: float) -> void:
 	integrated_until = maxf(integrated_until, end)
 	if covered >= DURATION - 0.0001:
 		phase = "RESULT"
-		reason = "20 minuten voltooid"
+		reason = "FTP_20_MINUTES_COMPLETED"
 
 func tick(now: float) -> void:
 	_advance(now)
@@ -56,7 +56,7 @@ func stop(message: String) -> void:
 	reason = message
 
 func complete() -> bool:
-	return phase == "RESULT" and reason == "20 minuten voltooid" and covered >= DURATION - 0.0001
+	return phase == "RESULT" and reason == "FTP_20_MINUTES_COMPLETED" and covered >= DURATION - 0.0001
 
 func average_power() -> float:
 	return energy / DURATION if complete() else 0.0

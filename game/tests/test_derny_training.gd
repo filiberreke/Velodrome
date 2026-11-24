@@ -68,7 +68,7 @@ func run_test() -> void:
 	scene.demo_power = 1000
 	for i in range(20): scene.advance(.25)
 	check(scene.gap() >= 2.79 and scene.too_close and scene.player_speed <= scene.motor.speed_mps+.02, "Excess watts are capped behind derny with warning")
-	check(scene.hud.status_panel.visible and scene.hud.phase_label.text == "Te dicht - snelheid begrensd", "Closing warning is visible")
+	check(scene.hud.status_panel.visible and scene.hud.phase_label.tr(scene.hud.phase_label.text) == "Te dicht - snelheid begrensd", "Closing warning is visible")
 	check(scene.hud.power_meter.fill_color == scene.hud.power_meter.zone_color(1000),"Power bar uses the common high-watt zone colour")
 	check(not scene.hud.power_meter.target_visible, "Power bar has no target needle")
 	check(scene.samples.size() > 20 and scene.store.load_activity(scene.activity.id).samples.size() > 1, "Time series is periodically persisted while riding")

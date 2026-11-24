@@ -207,7 +207,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		if state.get("reconnect_ready", false) and not state.get("release_confirmed", false): return
 		if erg_only:
 			if not state.get("power_supported", false):
-				_block("Trainer ondersteunt geen ERG")
+				_block(String(TranslationServer.translate("TRAINER_ERG_UNSUPPORTED")))
 			elif state.get("udp_owned", false):
 				_block("control_busy")
 			elif state.get("mode") == "SIM" or (state.get("mode") == "RELEASED" and state.get("release_confirmed", false)):
@@ -240,7 +240,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 	enabled = enabled and armed
 	if not socket.is_bound() and not enabled: return
 	if not _open():
-		_block("Lokale commandosocket niet beschikbaar")
+		_block(String(TranslationServer.translate("TRAINER_COMMAND_SOCKET_UNAVAILABLE")))
 		return
 	if enabled and not enabled_before and phase != "RELEASING":
 		phase = "PROBE"
@@ -263,7 +263,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		if int(pending.tries) >= 3:
 			var was_release: bool = pending.packet.command == "set_target_power"
 			pending = {}
-			_block("Geen antwoord van bridge", owned and not was_release, now)
+			_block("FTP_NO_RESPONSE_FROM_BRIDGE", owned and not was_release, now)
 		else:
 			socket.put_packet(pending.raw) # Identical id, content and source port.
 			pending.tries += 1

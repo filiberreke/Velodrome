@@ -19,17 +19,17 @@ func _ready() -> void:
 	add_theme_constant_override("separation",14)
 	title = _label("Workout",34)
 	detail = _label("",22)
-	var caption := _label("FTP voor deze training (W)",20)
+	var caption := _label("WORKOUT_FTP_FOR_THIS_WORKOUT_W",20)
 	ftp_caption = caption
-	caption.tooltip_text = "Standaard je spelers-FTP. Een wijziging hier geldt alleen voor deze training."
+	caption.tooltip_text = "WORKOUT_DEFAULTS_TO_YOUR_PLAYER_FTP_CHANGES_HERE_APPLY_ONLY_TO_THIS_WORKOUT"
 	ftp_input = SpinBox.new()
 	ftp_input.min_value = 20; ftp_input.max_value = 1000; ftp_input.step = 1
 	add_child(ftp_input)
 	result = _label("",24)
-	start_button = _button("Start workout",begin)
-	edit_button = _button("Bewerken",func(): edit_requested.emit(workout_id))
-	stop_button = _button("Stop · ERG vrijgeven",func(): finish("Handmatig gestopt"))
-	back_button = _button("← ERG-training",leave)
+	start_button = _button("WORKOUT_START_WORKOUT",begin)
+	edit_button = _button("WORKOUT_EDIT",func(): edit_requested.emit(workout_id))
+	stop_button = _button("WORKOUT_STOP_RELEASE_ERG",func(): finish(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY"))))
+	back_button = _button("WORKOUT_EDITOR_ERG_TRAINING",leave)
 	_refresh()
 func load_workout(workout: Dictionary) -> void:
 	item = workout
@@ -39,17 +39,17 @@ func load_workout(workout: Dictionary) -> void:
 		get_meta("preparation_card").preview.set_workout(item.blocks)
 	ftp_input.value = player_profile.ftp()
 	title.text = str(item.name)
-	detail.text = "%d blokken · %d minuten\nJe profiel-FTP wordt als standaard gebruikt. Je kunt hieronder alleen voor deze training afwijken." % [item.blocks.size(),int(ceil(test.duration()/60))]
+	detail.text = String(TranslationServer.translate("WORKOUT_D_BLOCKS_D_MINUTES_YOUR_PROFILE_FTP_IS_USED_BY_DEFAULT_YOU_CAN_OVERRID")) % [item.blocks.size(),int(ceil(test.duration()/60))]
 	_refresh()
 func begin() -> void:
 	var now := now_s()
 	if test.running(): return
-	if not live(now): result.text = "Wacht op verse vermogensmetingen."; return
-	if not release_complete() or (menu != null and not menu.ftp_page.release_complete()): result.text = "Wacht op vrijgave van de vorige trainersessie."; return
+	if not live(now): result.text = "WORKOUT_WAIT_FOR_FRESH_POWER_READINGS"; return
+	if not release_complete() or (menu != null and not menu.ftp_page.release_complete()): result.text = "WORKOUT_WAIT_FOR_THE_PREVIOUS_TRAINER_SESSION_TO_BE_RELEASED"; return
 	test.ftp_w = roundi(ftp_input.value)
 	for block in test.blocks:
 		if block.kind != "FreeRide" and maxf(float(block.power_low),float(block.power_high))*test.ftp_w > 1300:
-			result.text = "Deze FTP levert een doel boven 1300 W op. Pas de workout of je FTP aan."; return
+			result.text = "WORKOUT_THIS_FTP_PRODUCES_A_TARGET_ABOVE_1300_W_ADJUST_THE_WORKOUT_OR_YOUR_FTP"; return
 	reset_session(now,trainer)
 	ramp_chart_start = session_now(now)
 	activity_started_unix = int(Time.get_unix_time_from_system())
@@ -88,18 +88,18 @@ func _process(dt: float) -> void:
 		confirmation_at = now
 		if fresh(now) and test.phase in ["ERG","FREE"]: test.advance(advancing)
 	elif test.running():
-		if not trainer.error.is_empty(): finish("Trainerfout: " + trainer.error)
-		elif not free and trainer.last_response >= 0 and now-control_response_at(trainer) > 3: finish("Geen antwoord meer van trainerbridge")
+		if not trainer.error.is_empty(): finish("Trainerfout: " + tr(trainer.error))
+		elif not free and trainer.last_response >= 0 and now-control_response_at(trainer) > 3: finish(String(TranslationServer.translate("FTP_TRAINER_BRIDGE_NO_LONGER_RESPONDING")))
 		elif free:
 			if release_complete(): test.phase = "FREE"; test.advance(advancing)
-			elif now-confirmation_at > 8: finish("Vrijgave voor vrij rijden niet bevestigd")
+			elif now-confirmation_at > 8: finish(String(TranslationServer.translate("WORKOUT_RELEASE_FOR_FREE_RIDING_NOT_CONFIRMED")))
 		else:
 			var state: Dictionary = trainer.state
 			var owned_erg: bool = trainer.owned and state.get("mode") == "ERG" and state.get("desired_mode") == "ERG" and state.get("applied_revision",-1) == state.get("revision",-2)
 			var confirmed: bool = owned_erg and state.get("confirmed_target_w") == target
 			if confirmed: confirmation_at = now; test.phase = "ERG"
 			if test.phase == "ERG" and owned_erg: test.advance(advancing)
-			if now-confirmation_at > 8: finish("ERG-doel niet bevestigd door trainer")
+			if now-confirmation_at > 8: finish(String(TranslationServer.translate("FTP_ERG_TARGET_NOT_CONFIRMED_BY_TRAINER")))
 		if not test.running(): finish(test.reason)
 	_refresh()
 func finish(message: String) -> void:
@@ -123,14 +123,14 @@ func finish(message: String) -> void:
 		}
 		var archive := preload("res://training_store.gd").new()
 		selected_activity = activity
-		upload_status = "Training lokaal opgeslagen." if archive.save(activity) else archive.error
+		upload_status = String(TranslationServer.translate("FTP_TRAINING_SAVED_LOCALLY")) if archive.save(activity) else archive.error
 	_release(now_s())
 	if active_environment:
 		active_environment = false
 		environment_requested.emit(false)
 	_refresh()
 func leave() -> void:
-	finish("Training verlaten")
+	finish(String(TranslationServer.translate("MAIN_LEAVE_TRAINING")))
 	back_requested.emit()
 func _refresh() -> void:
 	if start_button == null: return
@@ -143,11 +143,11 @@ func _refresh() -> void:
 	detail.visible = not running
 	back_button.disabled = running
 	if running:
-		result.text = "%d:%02d / %d:%02d\n%s · %.0f W gemeten\n%s" % [int(test.elapsed)/60,int(test.elapsed)%60,int(test.duration())/60,int(test.duration())%60,"Vrij rijden" if test.phase == "FREE" else "Doel %d W" % test.target(now_s()),measured,test.instruction()]
+		result.text = String(TranslationServer.translate("WORKOUT_D_02D_D_02D_S_0F_W_MEASURED_S")) % [int(test.elapsed)/60,int(test.elapsed)%60,int(test.duration())/60,int(test.duration())%60,String(TranslationServer.translate("WORKOUT_FREE_RIDING")) if test.phase == "FREE" else "Doel %d W" % test.target(now_s()),measured,test.instruction()]
 		result.text += "\nCadans · " + cadence_text()
 		var status := signal_state.status(now_s())
 		if not status.is_empty(): result.text += "\n"+status
-	elif test.phase == "RESULT": result.text = test.reason + ("\nTrainer vrijgegeven." if release_complete() else "\nTrainer wordt vrijgegeven.") + ("\n" + upload_status if not upload_status.is_empty() else "")
+	elif test.phase == "RESULT": result.text = test.reason + (String(TranslationServer.translate("WORKOUT_TRAINER_RELEASED")) if release_complete() else String(TranslationServer.translate("WORKOUT_TRAINER_BEING_RELEASED"))) + ("\n" + upload_status if not upload_status.is_empty() else "")
 
 func _record_ramp_sample(_at: float, power: float) -> void:
 	if not test.running(): return

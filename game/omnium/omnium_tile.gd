@@ -5,7 +5,7 @@ var menu
 var manager
 
 func _ready() -> void:
-	name = "Omnium"
+	name = String(TranslationServer.translate("MENU_OMNIUM"))
 	custom_minimum_size = Vector2(0, 490)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -24,26 +24,26 @@ func _ready() -> void:
 	copy.alignment = BoxContainer.ALIGNMENT_CENTER
 	copy.add_theme_constant_override("separation", 16)
 	content.add_child(copy)
-	copy.add_child(menu.label("VIER DISCIPLINES · ÉÉN KLASSEMENT", 16, Style.MUTED))
+	copy.add_child(menu.label("OMNIUM_FOUR_DISCIPLINES", 16, Style.MUTED))
 	var title: Label = menu.label("Omnium →", 44)
 	title.add_theme_font_override("font", Style.heading())
 	copy.add_child(title)
 	var active: Dictionary = manager.state.active
 	if active.is_empty():
-		var description: Label = menu.label("Scratch, temporace, afvalling en puntenkoers.\nBouw je voorsprong op, van de eerste tot de laatste sprint.", 22)
+		var description: Label = menu.label(String(TranslationServer.translate("OMNIUM_TILE_DESCRIPTION")), 22)
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		copy.add_child(description)
 		copy.add_child(menu.label("Nieuw omnium samenstellen", 22, Style.BLUE))
 	else:
 		var completed: int = active.results.size()
 		copy.add_child(menu.label("%d/4 wedstrijden voltooid · %d deelnemers" % [completed, active.riders.size()], 22, Style.BLUE))
-		var next_name: String = ["Scratch", "Temporace", "Afvalling", "Puntenkoers"][mini(completed, 3)]
+		var next_name: String = [String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")), String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")), String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE")), String(TranslationServer.translate("RACE_MENU_POINTS_RACE"))][mini(completed, 3)]
 		copy.add_child(menu.label("Volgende wedstrijd: " + next_name, 22))
 		if manager.deadline() > 0:
 			var date := Time.get_datetime_dict_from_unix_time(manager.deadline())
-			copy.add_child(menu.label("Dit omnium eindigt op %02d/%02d/%02d" % [date.day, date.month, int(date.year) % 100], 22, Style.BLUE))
+			copy.add_child(menu.label(String(TranslationServer.translate("OMNIUM_END_DATE")) % [date.day, date.month, int(date.year) % 100], 22, Style.BLUE))
 		else:
-			copy.add_child(menu.label("De termijn begint bij de start van de scratch.", 19, Style.MUTED))
+			copy.add_child(menu.label(String(TranslationServer.translate("OMNIUM_DEADLINE_START")), 19, Style.MUTED))
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -51,7 +51,7 @@ func _ready() -> void:
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	content.add_child(grid)
-	for item in [[0,"Scratch"],[8,"Temporace"],[5,"Afvalling"],[3,"Puntenkoers"]]:
+	for item in [[0,String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE"))],[8,String(TranslationServer.translate("RACE_MENU_TEMPO_RACE"))],[5,String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE"))],[3,String(TranslationServer.translate("RACE_MENU_POINTS_RACE"))]]:
 		var panel := PanelContainer.new()
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL

@@ -1,7 +1,7 @@
 extends PanelContainer
 ## Replaceable broadcast card. Portraits are rendered from the selected riders.
 const Countries := preload("res://rennersboxen/race_countries.gd")
-const COUNTRY_LABELS := {"belgium":"België", "netherlands":"Nederland", "france":"Frankrijk", "italy":"Italië", "germany":"Duitsland", "great_britain":"Groot-Brittannië", "denmark":"Denemarken", "australia":"Australië", "new_zealand":"Nieuw-Zeeland", "portugal":"Portugal", "united_states":"Verenigde Staten"}
+const COUNTRY_LABELS := {"belgium":"RIDER_BELGIUM", "netherlands":"COUNTRY_NETHERLANDS", "france":"COUNTRY_FRANCE", "italy":"COUNTRY_ITALY", "germany":"COUNTRY_GERMANY", "great_britain":"COUNTRY_GREAT_BRITAIN", "denmark":"COUNTRY_DENMARK", "australia":"COUNTRY_AUSTRALIA", "new_zealand":"COUNTRY_NEW_ZEALAND", "portugal":"Portugal", "united_states":"COUNTRY_UNITED_STATES"}
 const PORTRAIT_FIRST_LAYER := 15
 var game: Node3D
 var profile: Dictionary = {}
@@ -76,12 +76,12 @@ func prepare() -> void:
 	var first: int = game.team_size if team else 1
 	var count: int = game.team_size if team else 1
 	var country := Countries.configured_country(game, first)
-	var country_name: String = COUNTRY_LABELS.get(country, "Land onbekend")
+	var country_name: String = String(tr(COUNTRY_LABELS.get(country, "INTRO_UNKNOWN_COUNTRY")))
 	var replay: Dictionary = game.team_race.replay if team else game.pursuit_replay
-	var title: String = country_name + " · ploeg" if team else String(game.pursuit_opponent_config.get("name", game.rider_names[first]))
+	var title: String = country_name + String(TranslationServer.translate("INTRO_TEAM_SUFFIX")) if team else String(game.pursuit_opponent_config.get("name", game.rider_names[first]))
 	if not replay.is_empty(): title = String(replay.get("name", "Vorige prestatie"))
 	profile = {"name": title, "country": country, "riders": []}
-	_label("DE TEGENSTANDER", 14, Color("69dff4"))
+	_label(String(TranslationServer.translate("INTRO_OPPONENT")), 14, Color("69dff4"))
 	_label(title, 25)
 	_label(country_name + (" · %d renners" % count if team else " · achtervolging"), 17, Color("bfcede"))
 	var row := HBoxContainer.new()

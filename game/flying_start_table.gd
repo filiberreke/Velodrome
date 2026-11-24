@@ -6,8 +6,8 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel",preload("res://menu_theme.gd").panel(Color("fffdf8"),Color("d2d9df"),14,10))
 	custom_minimum_size = Vector2(640,200)
 	var box := VBoxContainer.new(); box.add_theme_constant_override("separation",8); add_child(box)
-	var title := Label.new(); title.text = "Beste vliegende starts · top 10"; title.add_theme_font_size_override("font_size",23); box.add_child(title)
-	_row(box,["#","Poging","Snelheid","Gem. W","Max. W"],true)
+	var title := Label.new(); title.text = "TRAINING_BEST_FLYING_STARTS"; title.add_theme_font_size_override("font_size",23); box.add_child(title)
+	_row(box,["#",String(TranslationServer.translate("MADISON_ATTEMPT")),"Snelheid","Gem. W","Max. W"],true)
 	var scroll := ScrollContainer.new(); scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; box.add_child(scroll)
 	rows = VBoxContainer.new(); rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll.add_child(rows)
 func _row(parent: Node, values: Array, heading: bool = false) -> void:
@@ -37,4 +37,4 @@ func refresh() -> void:
 		if item.get("demo",false): date += " · PC"
 		_row(rows,[str(i+1),date,"%.2f km/u" % float(item.entry_speed_kmh),"%.0f" % float(item.get("mean_power_w",0)),"%.0f" % float(item.get("peak_power_w",0))])
 	if entries.is_empty():
-		var empty := Label.new(); empty.text = "Nog geen voltooide vliegende starts."; rows.add_child(empty)
+		var empty := Label.new(); empty.text = "TRAINING_NO_FLYING_STARTS"; rows.add_child(empty)

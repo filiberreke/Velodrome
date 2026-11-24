@@ -80,9 +80,9 @@ func _record_activity(at: float, power: float) -> void:
 	activity_samples.append({"time_s":elapsed,"distance_m":activity_distance,"game_speed_kmh":speed,"power_w":power,"cadence_rpm":cadence_rpm,"heart_rate_bpm":heart_rate_bpm if heart_rate_bpm > 0 else null})
 func _complete_activity() -> void:
 	if not selected_activity.is_empty() or activity_samples.size() < 2: return
-	selected_activity = {"version":1,"started_local":activity_started_local,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":"FTP 20 minuten" if twenty_mode else "FTP Ramp Test","reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp(),"ftp_reference_w":player_profile.ftp()}
+	selected_activity = {"version":1,"started_local":activity_started_local,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":String(TranslationServer.translate("FTP_20_MINUTE_FTP")) if twenty_mode else String(TranslationServer.translate("MENU_FTP_RAMP_TEST_2")),"reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp(),"ftp_reference_w":player_profile.ftp()}
 	var store := preload("res://training_store.gd").new()
-	upload_status = "Training lokaal opgeslagen." if store.save(selected_activity) else store.error
+	upload_status = String(TranslationServer.translate("FTP_TRAINING_SAVED_LOCALLY")) if store.save(selected_activity) else store.error
 
 var ftp_persisted := false
 var ftp_save_message := ""
@@ -108,14 +108,14 @@ func _ready() -> void:
 	trainer.erg_only = true
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 22)
-	title = _label("FTP Ramp Test", 38)
-	detail = _label("5 minuten vrij opwarmen op je eigen vermogen, zonder ERG-doel.\nDaarna 100 W, elke minuut +20 W. Blijf zitten en trap gelijkmatig.\nStop zodra je niet meer kunt. FTP = 75% van je beste gemeten 60 seconden.\nEen echte trainer met verse vermogensmetingen is vereist.", 24)
+	title = _label("MENU_FTP_RAMP_TEST_2", 38)
+	detail = _label("FTP_WARM_UP_FOR_5_MINUTES_AT_YOUR_OWN_POWER_WITHOUT_AN_ERG_TARGET_THEN_100", 24)
 	result = _label("", 30)
-	warmup_hint = _label("Richtvermogen: ongeveer 80–120 W, of lager als dat prettiger is.\nDit is een vrijblijvende indicatie: kies een rustig, comfortabel vermogen.", 22)
-	start_button = _button("Start FTP-test", begin)
-	stop_button = _button("Stop test · ERG vrijgeven", func(): finish("Handmatig gestopt"))
-	upload_button = _button("Opslaan op Strava", func(): upload_requested.emit(selected_activity))
-	back_button = _button("← ERG-training", leave)
+	warmup_hint = _label("FTP_SUGGESTED_POWER_AROUND_80_120_W_OR_LOWER_IF_MORE_COMFORTABLE_THIS_IS_O", 22)
+	start_button = _button("FTP_START_FTP_TEST", begin)
+	stop_button = _button("FTP_STOP_TEST_RELEASE_ERG", func(): finish(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY"))))
+	upload_button = _button("PISTE_EXERCISE_PAGE_SAVE_TO_STRAVA", func(): upload_requested.emit(selected_activity))
+	back_button = _button("WORKOUT_EDITOR_ERG_TRAINING", leave)
 	_refresh()
 
 func _label(text: String, size: int) -> Label:
@@ -154,7 +154,7 @@ func drive_trainer(client, active: bool, grade: float, aero: float, now: float, 
 	elif not receiving and not transient: interrupted_clients[id] = true
 	elif interrupted_clients.has(id):
 		if client.owned and client.armed: interrupted_clients.erase(id)
-		elif client.phase != "RELEASING" and (not client.state.get("udp_owned",false) or client.error == "Geen antwoord van bridge"):
+		elif client.phase != "RELEASING" and (not client.state.get("udp_owned",false) or client.error == "FTP_NO_RESPONSE_FROM_BRIDGE"):
 			client.arm(client.allow_released_session); interrupted_clients.erase(id); control_started_at[id] = now
 	client.grade_rate = grade_rate
 	client.tick(active and fresh(now) and (receiving or transient) and not resume_pending(client),grade,aero,now,target)
@@ -169,7 +169,7 @@ func receive(packet: Dictionary, now: float) -> void:
 	var valid_age: bool = (age is int or age is float) and is_finite(float(age)) and float(age) >= 0
 	var numeric: bool = (power is float or power is int) and is_finite(float(power)) and float(power) >= 0
 	var valid_id: bool = (id is int or id is float) and is_finite(float(id)) and float(id) >= 0 and floor(float(id)) == float(id)
-	if _ftp_pause_expired(now): finish("FTP-test gestopt: pauze langer dan 1 minuut")
+	if _ftp_pause_expired(now): finish(String(TranslationServer.translate("FTP_FTP_TEST_STOPPED_PAUSE_LONGER_THAN_1_MINUTE")))
 	var measured_ok: bool = packet.get("valid") == true and numeric and valid_age and valid_id
 	var recovering := not signal_state.live(now)
 	var was_paused: bool = signal_state.paused_since >= 0
@@ -247,14 +247,14 @@ func finish(reason: String) -> void:
 	_refresh()
 
 func leave() -> void:
-	finish("Test verlaten")
+	finish(String(TranslationServer.translate("MENU_EXIT_TEST")))
 	environment_requested.emit(false)
 	back_requested.emit()
 
 func _process(_delta: float) -> void:
 	if twenty_mode:
 		if twenty_warmup:
-			if _ftp_pause_expired(now_s()) or not is_visible_in_tree(): finish("FTP-test gestopt: pauze of verlaten")
+			if _ftp_pause_expired(now_s()) or not is_visible_in_tree(): finish(String(TranslationServer.translate("FTP_FTP_TEST_STOPPED_PAUSED_OR_EXITED")))
 			var warm_now: float = session_now(now_s())
 			if twenty_warmup and warm_now - twenty_warmup_at >= Ramp.WARMUP_SECONDS:
 				twenty_warmup = false
@@ -262,8 +262,8 @@ func _process(_delta: float) -> void:
 				# The warmup is excluded from the FTP test average.
 				test.sample(warm_now, measured)
 		if test.running():
-			if not is_visible_in_tree(): finish("Test verlaten")
-			if _ftp_pause_expired(now_s()): finish("FTP-test gestopt: pauze langer dan 1 minuut")
+			if not is_visible_in_tree(): finish(String(TranslationServer.translate("MENU_EXIT_TEST")))
+			if _ftp_pause_expired(now_s()): finish(String(TranslationServer.translate("FTP_FTP_TEST_STOPPED_PAUSE_LONGER_THAN_1_MINUTE")))
 			else: test.tick(session_now(now_s()))
 		_release(now_s())
 		_refresh()
@@ -271,21 +271,21 @@ func _process(_delta: float) -> void:
 	var now := now_s()
 	var clock := session_now(now)
 	var receiving := live(now)
-	if test.running() and not is_visible_in_tree(): finish("Test verlaten")
-	if _ftp_pause_expired(now): finish("FTP-test gestopt: pauze langer dan 1 minuut")
+	if test.running() and not is_visible_in_tree(): finish(String(TranslationServer.translate("MENU_EXIT_TEST")))
+	if _ftp_pause_expired(now): finish(String(TranslationServer.translate("FTP_FTP_TEST_STOPPED_PAUSE_LONGER_THAN_1_MINUTE")))
 	var target: int = test.target(clock)
 	drive_trainer(trainer,test.phase in ["CONNECTING","RAMP"],0,1,now,target)
 	if test.running():
 		if not receiving or resume_pending(trainer):
 			confirmation_since = clock
-		elif test.phase == "RAMP" and now-control_response_at(trainer) > 3: finish("Geen antwoord meer van trainerbridge")
-		elif not trainer.error.is_empty(): finish("Trainerfout: "+trainer.error)
+		elif test.phase == "RAMP" and now-control_response_at(trainer) > 3: finish(String(TranslationServer.translate("FTP_TRAINER_BRIDGE_NO_LONGER_RESPONDING")))
+		elif not trainer.error.is_empty(): finish("Trainerfout: "+tr(trainer.error))
 		if test.running() and fresh(now):
 			var state: Dictionary = trainer.state
 			var confirmed: bool = receiving and trainer.owned and state.get("mode") == "ERG" and state.get("desired_mode") == "ERG" and state.get("confirmed_target_w") == target and state.get("applied_revision",-1) == state.get("revision",-2)
 			if confirmation_target != target: confirmation_target = target; confirmation_since = clock
 			if confirmed: confirmation_since = clock
-			elif receiving and not resume_pending(trainer) and test.phase != "WARMUP" and clock-confirmation_since > 8: finish("ERG-doel niet bevestigd door trainer")
+			elif receiving and not resume_pending(trainer) and test.phase != "WARMUP" and clock-confirmation_since > 8: finish(String(TranslationServer.translate("FTP_ERG_TARGET_NOT_CONFIRMED_BY_TRAINER")))
 			test.tick(clock,confirmed)
 			if not test.running(): _release(now)
 	_refresh()
@@ -322,12 +322,12 @@ func _refresh() -> void:
 	warmup_hint.visible = test.phase == "IDLE"
 	if test.running():
 		var elapsed := maxf(0.0, session_now(now_s()) - test.started_at)
-		var target_text := "Vrij vermogen" if test.phase == "WARMUP" else "Doel %d W" % test.target(session_now(now_s()))
-		var caption := {"WARMUP": "Vrije opwarming", "CONNECTING": "Wacht op ERG-bevestiging", "RAMP": "Ramp Test"}
-		result.text = "%s · %02d:%02d\n%s · gemeten %.0f W\nBeste 60 s: %.1f W" % [caption[test.phase], int(elapsed) / 60, int(elapsed) % 60, target_text, measured, test.best_60]
+		var target_text := String(TranslationServer.translate("FTP_SELF_PACED_POWER")) if test.phase == "WARMUP" else "Doel %d W" % test.target(session_now(now_s()))
+		var caption := {"WARMUP": String(TranslationServer.translate("FTP_FREE_WARM_UP")), "CONNECTING": String(TranslationServer.translate("FTP_WAIT_FOR_ERG_CONFIRMATION")), "RAMP": "Ramp Test"}
+		result.text = String(TranslationServer.translate("FTP_S_02D_02D_S_MEASURED_0F_W_BEST_60_S_1F_W")) % [caption[test.phase], int(elapsed) / 60, int(elapsed) % 60, target_text, measured, test.best_60]
 		if test.phase == "WARMUP":
 			var remaining := int(ceil(maxf(0.0, Ramp.WARMUP_SECONDS - elapsed)))
-			result.text = "Start test over %02d:%02d\n%s · gemeten %.0f W\nSchakelen blijft beschikbaar. Daarna neemt ERG over op 100 W." % [remaining / 60, remaining % 60, target_text, measured]
+			result.text = String(TranslationServer.translate("FTP_TEST_STARTS_IN_02D_02D_S_MEASURED_0F_W_GEAR_SHIFTING_REMAINS_AVAILABLE")) % [remaining / 60, remaining % 60, target_text, measured]
 			if gear > 0: result.text += "\nVersnelling %d / 12" % gear
 		result.text += "\nCadans · " + cadence_text()
 		var connection_status := signal_state.status(now_s())
@@ -335,38 +335,38 @@ func _refresh() -> void:
 	elif test.phase == "RESULT":
 		if test.best_60 > 0 and not ftp_persisted:
 			ftp_persisted = true
-			ftp_save_message = "FTP opgeslagen in je spelersprofiel." if player_profile.set_ftp(test.ftp(),"ramp_test") == OK else "FTP kon niet worden opgeslagen."
-		result.text = "%s\n" % test.reason
-		result.text += "Geschatte FTP: %.0f W · beste 60 s: %.1f W" % [test.ftp(), test.best_60] if test.best_60 > 0.0 else "Geen FTP: minder dan 60 seconden aaneengesloten rampmetingen."
+			ftp_save_message = String(TranslationServer.translate("FTP_FTP_SAVED_IN_YOUR_PLAYER_PROFILE")) if player_profile.set_ftp(test.ftp(),"ramp_test") == OK else String(TranslationServer.translate("FTP_FTP_COULD_NOT_BE_SAVED"))
+		result.text = "%s\n" % TranslationServer.translate(test.reason)
+		result.text += String(TranslationServer.translate("FTP_ESTIMATED_FTP_0F_W_BEST_60_S_1F_W")) % [test.ftp(), test.best_60] if test.best_60 > 0.0 else String(TranslationServer.translate("FTP_NO_FTP_FEWER_THAN_60_SECONDS_OF_CONSECUTIVE_RAMP_READINGS"))
 		result.text += "\n" + ftp_save_message + "\n" + upload_status
-		result.text += "\nERG vrijgegeven." if release_complete() else "\nERG-vrijgave nog niet bevestigd. Bridge bewaakt ook de lease."
+		result.text += String(TranslationServer.translate("FTP_ERG_RELEASED")) if release_complete() else String(TranslationServer.translate("FTP_ERG_RELEASE_NOT_YET_CONFIRMED_THE_BRIDGE_ALSO_MONITORS_THE_LEASE"))
 	else:
-		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed." if live(now_s()) else "Wacht op verse trainergegevens."
+		result.text = "FTP_UPDATE_THE_BRIDGE_FOR_THE_FTP_TEST" if bridge_update_needed else "FTP_TRAINER_READY" if live(now_s()) else "FTP_WAIT_FOR_FRESH_TRAINER_DATA"
 
 func shutdown() -> void:
-	finish("Spel gesloten")
+	finish(String(TranslationServer.translate("MAIN_GAME_CLOSED")))
 	trainer.close()
 
 func _notification(what: int) -> void:
 	# Moving the HUD between menu and session containers also exits the tree.
 	# Only actual deletion closes the socket; a layout move must keep warmup alive.
 	if what == NOTIFICATION_PREDELETE:
-		test.stop("Spel gesloten")
+		test.stop(String(TranslationServer.translate("MAIN_GAME_CLOSED")))
 		trainer.close()
 
 func select_test(twenty: bool) -> void:
 	twenty_warmup = false
-	if test.running() or twenty_warmup: finish("Test verlaten")
+	if test.running() or twenty_warmup: finish(String(TranslationServer.translate("MENU_EXIT_TEST")))
 	twenty_mode = twenty
 	test = Twenty.new() if twenty else Ramp.new()
 	ftp_persisted = false
 	ftp_save_message = ""
-	title.text = "20’ FTP-test" if twenty else "FTP Ramp Test"
+	title.text = "MENU_20_MINUTE_FTP_TEST" if twenty else "MENU_FTP_RAMP_TEST_2"
 	if twenty:
-		detail.text = "Eerst 5 minuten vrij opwarmen. Rijd daarna 20 minuten op het hoogste vermogen dat je gelijkmatig kunt volhouden.\nJe kiest zelf je versnelling en vermogen; ERG blijft uit.\nFTP = 95% van het gemiddelde gemeten vermogen over de volledige 20 minuten.\nEen echte trainer met verse vermogensmetingen is vereist. Bij signaalverlies wordt het laatste vermogen maximaal 10 seconden behouden. Daarna pauzeert de test; bij een pauze langer dan 1 minuut stopt hij. Bij voortijdig stoppen blijft je bestaande FTP behouden."
+		detail.text = "FTP_FIRST_WARM_UP_FREELY_FOR_5_MINUTES_THEN_RIDE_FOR_20_MINUTES_AT_THE_HIG"
 	else:
-		detail.text = "5 minuten vrij opwarmen op je eigen vermogen, zonder ERG-doel.\nDaarna 100 W, elke minuut +20 W. Blijf zitten en trap gelijkmatig.\nStop zodra je niet meer kunt. FTP = 75% van je beste gemeten 60 seconden.\nEen echte trainer met verse vermogensmetingen is vereist."
-	stop_button.text = "Stop test" if twenty else "Stop test · ERG vrijgeven"
+		detail.text = "FTP_WARM_UP_FOR_5_MINUTES_AT_YOUR_OWN_POWER_WITHOUT_AN_ERG_TARGET_THEN_100"
+	stop_button.text = "FTP_RAMP_HUD_STOP_TEST" if twenty else "FTP_STOP_TEST_RELEASE_ERG"
 	_refresh()
 
 func _twenty_fresh(now: float) -> bool:
@@ -406,21 +406,21 @@ func _refresh_twenty() -> void:
 	detail.visible = not test.running() and test.phase != "RESULT"
 	if twenty_warmup:
 		var remaining_warm: int = ceili(maxf(0.0,Ramp.WARMUP_SECONDS-(session_now(now_s())-twenty_warmup_at)))
-		result.text = "Vrije opwarming · nog %02d:%02d\nDaarna 20 minuten vrij vermogen · richtlijn %.0f W" % [remaining_warm/60,remaining_warm%60,twenty_reference_w]
+		result.text = String(TranslationServer.translate("FTP_FREE_WARM_UP_02D_02D_REMAINING_THEN_20_MINUTES_SELF_PACED_POWER_GUIDE_")) % [remaining_warm/60,remaining_warm%60,twenty_reference_w]
 	elif test.running():
 		var remaining := ceili(maxf(0.0,Twenty.DURATION-(session_now(now_s())-test.start_at)))
 		var mean: float = test.energy / test.covered if test.covered > 0 else measured
-		result.text = "20 minuten FTP-test · nog %02d:%02d\nGemeten %.0f W · gemiddeld %.1f W\nVrij vermogen · ERG uit · %s" % [remaining/60,remaining%60,measured,mean,cadence_text()]
+		result.text = String(TranslationServer.translate("FTP_20_MINUTE_FTP_TEST_02D_02D_REMAINING_MEASURED_0F_W_AVERAGE_1F_W_SELF_P")) % [remaining/60,remaining%60,measured,mean,cadence_text()]
 		if gear > 0: result.text += "\nVersnelling %d / 12" % gear
 		var connection_status := signal_state.status(now_s())
 		if not connection_status.is_empty(): result.text += "\n" + connection_status
 	elif test.phase == "RESULT":
-		result.text = test.reason
+		result.text = TranslationServer.translate(test.reason)
 		if test.complete():
 			if not ftp_persisted:
 				ftp_persisted = true
-				ftp_save_message = "FTP opgeslagen in je spelersprofiel." if player_profile.set_ftp(test.ftp(),"twenty_minute_test") == OK else "FTP kon niet worden opgeslagen."
-			result.text += "\nGemiddeld %.1f W · geschatte FTP %.0f W\n%s" % [test.average_power(),test.ftp(),ftp_save_message + "\n" + upload_status]
-		else: result.text += "\nGeen volledige test; je bestaande FTP blijft behouden."
+				ftp_save_message = String(TranslationServer.translate("FTP_FTP_SAVED_IN_YOUR_PLAYER_PROFILE")) if player_profile.set_ftp(test.ftp(),"twenty_minute_test") == OK else String(TranslationServer.translate("FTP_FTP_COULD_NOT_BE_SAVED"))
+			result.text += String(TranslationServer.translate("FTP_AVERAGE_1F_W_ESTIMATED_FTP_0F_W_S")) % [test.average_power(),test.ftp(),ftp_save_message + "\n" + upload_status]
+		else: result.text += String(TranslationServer.translate("FTP_TEST_INCOMPLETE_YOUR_EXISTING_FTP_IS_RETAINED"))
 	else:
-		result.text = "Werk de bridge bij voor de FTP-test." if bridge_update_needed else "Trainer gereed. Start begint met 5 minuten vrije opwarming." if _twenty_fresh(now_s()) else "Wacht op verse trainergegevens."
+		result.text = "FTP_UPDATE_THE_BRIDGE_FOR_THE_FTP_TEST" if bridge_update_needed else "FTP_TRAINER_READY_START_BEGINS_WITH_5_MINUTES_OF_FREE_WARM_UP" if _twenty_fresh(now_s()) else "FTP_WAIT_FOR_FRESH_TRAINER_DATA"

@@ -39,28 +39,28 @@ func _read() -> Array:
 	if entries != null: return entries
 	entries = _read_file(path + ".bak")
 	if entries != null: return entries
-	last_error = "Het recordsbestand kon niet worden gelezen. De bestaande bestanden zijn behouden."
+	last_error = String(TranslationServer.translate("RECORDS_READ_FAILED"))
 	return []
 
 func _write(entries: Array) -> bool:
 	var absolute: String = ProjectSettings.globalize_path(path)
 	if DirAccess.make_dir_recursive_absolute(absolute.get_base_dir()) != OK:
-		last_error = "De map voor records kon niet worden gemaakt."
+		last_error = String(TranslationServer.translate("RECORDS_CREATE_FOLDER_FAILED"))
 		return false
 	# Keep the last readable version; never replace it with a corrupt primary.
 	if _read_file(path) != null:
 		if DirAccess.copy_absolute(absolute, absolute + ".bak") != OK:
-			last_error = "De reservekopie van je records kon niet worden bijgewerkt."
+			last_error = String(TranslationServer.translate("RECORDS_BACKUP_FAILED"))
 			return false
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
-		last_error = "Je records konden niet worden opgeslagen."
+		last_error = String(TranslationServer.translate("RECORDS_SAVE_FAILED"))
 		return false
 	file.store_string(JSON.stringify({"version": 1, "entries": entries}))
 	file.flush()
 	var error: Error = file.get_error(); file.close()
 	if error != OK or DirAccess.rename_absolute(absolute + ".tmp", absolute) != OK:
-		last_error = "Opslaan van je records is niet voltooid."
+		last_error = String(TranslationServer.translate("RECORDS_SAVE_INCOMPLETE"))
 		return false
 	return true
 
@@ -84,7 +84,7 @@ static func _trim(entries: Array) -> Array:
 
 func add(entry: Dictionary) -> bool:
 	if not valid(entry):
-		last_error = "Alleen een volledige achtervolgingsprestatie kan in de records."
+		last_error = String(TranslationServer.translate("RECORDS_FULL_PURSUIT_REQUIRED"))
 		return false
 	var entries: Array = _read()
 	if not last_error.is_empty(): return false

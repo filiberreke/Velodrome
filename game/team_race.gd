@@ -191,7 +191,7 @@ func hud(game: Node3D) -> void:
 	for i in range(game.rider_count):
 		positions.append(game._rider_distance(i, game.distances[i]))
 		names.append(game._rider_name(i)); order.append(i)
-		gaps.append("JIJ" if i == 0 else "%+d m" % roundi(game.distances[i] - game.distances[0]))
+		gaps.append(String(game.tr("RECORDS_YOU")).to_upper() if i == 0 else "%+d m" % roundi(game.distances[i] - game.distances[0]))
 		colours.append(Color("f4d46a") if i < game.team_size else Color("54d39b"))
 	order.sort_custom(func(a: int, b: int) -> bool: return game._race_better(a, b))
 	var pair: Array[float] = [-1.0, -1.0]
@@ -207,26 +207,26 @@ func hud(game: Node3D) -> void:
 		var first: int = 0 if pair[0] >= 0.0 else 1
 		live = float(game.pursuit_half_crossings[1][latest - 1]) - float(game.pursuit_half_crossings[0][latest - 1]) if pair[0] >= 0.0 and pair[1] >= 0.0 else maxf(0.0, game.clock - float(game.pursuit_half_crossings[first][latest - 1])) * (1.0 if first == 0 else -1.0)
 	var notice := ""
-	if game.start_state == "WAIT_STOP": notice = "Stop met trappen om de aftelling te starten."
-	elif game.start_state == "COUNTDOWN": notice = "Start over %d" % maxi(1, ceili(game.countdown))
-	elif game.trainer_seen and not game.connected and not game.finished: notice = "Trainerverbinding onderbroken"
+	if game.start_state == "WAIT_STOP": notice = String(TranslationServer.translate("RACE_STOP_PEDALLING_TO_START_THE_COUNTDOWN"))
+	elif game.start_state == "COUNTDOWN": notice = game.tr("TEAM_START_COUNTDOWN") % maxi(1, ceili(game.countdown))
+	elif game.trainer_seen and not game.connected and not game.finished: notice = game.tr("TEAM_TRAINER_DISCONNECTED")
 	var target: float = ours.target_watts()
-	game.race_overlay.update_race({"pursuit": true, "pursuit_player": "Jouw ploeg", "pursuit_opponent": "AI-ploeg" if replay.is_empty() else str(replay["name"]), "pursuit_laps": pair, "pursuit_live_gap": live, "pursuit_split_delta": -float(live) if live != null else 0.0, "pursuit_stats": stats, "draft_enabled": false, "watts": game.watts, "speed_kmh": velocity[0] * 3.6, "gear": game.trainer_gear if game.connected else "—", "pc_control": not game.trainer_seen, "pc_energy_fraction": game._pc_energy_fraction(), "pc_delivered_watts": game.pc_delivered_watts, "pc_power_limit_watts": game.pc_power_limit_watts, "heart_rate_bpm": game.trainer_heart_rate_bpm, "cadence_rpm": game.cadence if game.cadence >= 0.0 and game.connected else null, "lap": mini(game.race_laps, int(progress[0] / game.LAP) + 1), "laps": game.race_laps, "seconds": times[0] if times[0] >= 0.0 else game.clock, "position": 1 if better(0, 1) else 2, "count": 2, "leader_gap": "", "order": order, "distances": positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice, "team_mode": true, "team_half_crossings": game.pursuit_half_crossings[0], "opponent_half_crossings": game.pursuit_half_crossings[1], "team_target": target, "team_out": ours.player_is_out(), "team_leading": ours.order[0] == 0, "team_phase": ours.phase, "team_rank": ours.player_rank() + 1, "team_count": game.team_size, "team_active": game.start_state == "RACING" and not game.finished})
+	game.race_overlay.update_race({"pursuit": true, "pursuit_player": String(game.tr("TEAM_YOUR_TEAM")), "pursuit_opponent": String(game.tr("TEAM_AI")) if replay.is_empty() else str(replay["name"]), "pursuit_laps": pair, "pursuit_live_gap": live, "pursuit_split_delta": -float(live) if live != null else 0.0, "pursuit_stats": stats, "draft_enabled": false, "watts": game.watts, "speed_kmh": velocity[0] * 3.6, "gear": game.trainer_gear if game.connected else "—", "pc_control": not game.trainer_seen, "pc_energy_fraction": game._pc_energy_fraction(), "pc_delivered_watts": game.pc_delivered_watts, "pc_power_limit_watts": game.pc_power_limit_watts, "heart_rate_bpm": game.trainer_heart_rate_bpm, "cadence_rpm": game.cadence if game.cadence >= 0.0 and game.connected else null, "lap": mini(game.race_laps, int(progress[0] / game.LAP) + 1), "laps": game.race_laps, "seconds": times[0] if times[0] >= 0.0 else game.clock, "position": 1 if better(0, 1) else 2, "count": 2, "leader_gap": "", "order": order, "distances": positions, "names": names, "gaps": gaps, "colours": colours, "notice": notice, "team_mode": true, "team_half_crossings": game.pursuit_half_crossings[0], "opponent_half_crossings": game.pursuit_half_crossings[1], "team_target": target, "team_out": ours.player_is_out(), "team_leading": ours.order[0] == 0, "team_phase": ours.phase, "team_rank": ours.player_rank() + 1, "team_count": game.team_size, "team_active": game.start_state == "RACING" and not game.finished})
 	game.minimap.set("start_lines", [game.PURSUIT_START_M, game.PURSUIT_START_M + 125.0])
 	game.rankings.text = "PLOEGENACHTERVOLGING\nJouw ploeg: %.1f m\nTegenploeg: %.1f m\nKopvolgorde (0 = speler): %s\nKopbeurt: %.1f s\nOvergenomen beurt: %.1f s / %.1f W\nWissel: %s\nSpelerfactor: %.0f%%\nVermogen op kop: %.1f W" % [progress[0], progress[1], str(ours.order), ours.turn_seconds, ours.copied_seconds, ours.copied_watts, ours.phase, ours.factor(maxi(0, ours.player_rank())) * 100.0, ours.leader_power]
 
 func results(game: Node3D) -> void:
 	if game.finish_table == null: return
-	game.finish_heading.text = "PLOEGENACHTERVOLGING · %d km" % int(game._race_length() / 1000.0)
-	game.finish_subtitle.text = "%d RENNERS PER PLOEG" % game.team_size
+	game.finish_heading.text = game.tr("TEAM_RESULT_TITLE") % int(game._race_length() / 1000.0)
+	game.finish_subtitle.text = String(TranslationServer.translate("TEAM_RIDERS_PER_TEAM")) % game.team_size
 	game.finish_badge.text = "%d / 2" % (1 if better(0, 1) else 2)
-	game.finish_results.text = "JOUW PLOEG   %s\n%s" % [preload("res://omnium/omnium_results.gd").clock(times[0]) if times[0] >= 0.0 else "Onderweg", "Beide ploegen gefinisht" if times[1] >= 0.0 else "Tegenploeg nog onderweg"]
+	game.finish_results.text = String(TranslationServer.translate("TEAM_RESULTS_SUMMARY")) % [preload("res://omnium/omnium_results.gd").clock(times[0]) if times[0] >= 0.0 else String(TranslationServer.translate("RESULT_STILL_RACING")), String(TranslationServer.translate("TEAM_BOTH_FINISHED")) if times[1] >= 0.0 else String(TranslationServer.translate("TEAM_OPPONENT_STILL_RACING"))]
 	game.pursuit_save_box.visible = times[0] >= 0.0
 	for child in game.finish_table.get_children():
 		game.finish_table.remove_child(child); child.queue_free()
 	var bg := MenuSkin.PAPER
 	game.finish_table.columns = 4
-	for value in ["PL.", "PLOEG", "TIJD / VERSCHIL", "RONDETIJDEN"]:
+	for value in ["RESULT_PLACE", "TEAM_TABLE_TEAM", String(TranslationServer.translate("MAIN_TIME_GAP")), String(TranslationServer.translate("HUD_LAP_TIMES"))]:
 		game._result_cell(value, MenuSkin.INK, bg, 150, false, true)
 	var teams: Array[int] = [0, 1]
 	if not better(0, 1): teams.reverse()
@@ -235,10 +235,10 @@ func results(game: Node3D) -> void:
 		var laps := ""
 		for j in range(game.lap_times[team].size()):
 			laps += "%d: %s  " % [j + 1, preload("res://omnium/omnium_results.gd").clock(float(game.lap_times[team][j]))]
-		var shown_time: String = preload("res://omnium/omnium_results.gd").clock(times[team]) if times[team] >= 0.0 else "Onderweg"
+		var shown_time: String = preload("res://omnium/omnium_results.gd").clock(times[team]) if times[team] >= 0.0 else String(TranslationServer.translate("RESULT_STILL_RACING"))
 		if rank > 0 and times[team] >= 0.0 and times[teams[0]] >= 0.0:
 			shown_time = "+" + preload("res://omnium/omnium_results.gd").clock(maxf(0.0, times[team] - times[teams[0]]))
-		for value in [str(rank + 1), "Jouw ploeg" if team == 0 else ("AI-ploeg" if replay.is_empty() else str(replay["name"]).left(20)), shown_time, laps]:
+		for value in [str(rank + 1), String(game.tr("TEAM_YOUR_TEAM")) if team == 0 else (String(game.tr("TEAM_AI")) if replay.is_empty() else str(replay["name"]).left(20)), shown_time, laps]:
 			game._result_cell(value, MenuSkin.INK, bg, 150)
 			var label: Label = game.finish_table.get_child(-1).get_child(0)
 			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

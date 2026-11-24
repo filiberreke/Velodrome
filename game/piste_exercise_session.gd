@@ -22,7 +22,7 @@ var laps: Array[Dictionary] = []
 var lap_started_s := 0.0
 func running() -> bool: return phase == "RIDE"
 static func title(mode: String) -> String:
-	return {"flying_start":"Vliegende start","take_lap":"Neem een ronde","free_ride":"Vrije training"}.get(mode,"Pistetraining")
+	return {"flying_start":String(TranslationServer.translate("RACE_MENU_FLYING_START")),"take_lap":String(TranslationServer.translate("RACE_MENU_GAIN_A_LAP")),"free_ride":String(TranslationServer.translate("RACE_MENU_FREE_TRAINING"))}.get(mode,String(TranslationServer.translate("MENU_TRACK_TRAINING")))
 static func pursuit_line(game) -> float:
 	# The same reference coordinate as the painted pursuit line in main.gd.
 	return fposmod(game.PURSUIT_START_M,game.LAP)
@@ -65,7 +65,7 @@ func observe(dt: float, before: float, after: float, speed_before: float, speed_
 	peak_w = maxf(peak_w,maxf(0,power))
 	energy_j += maxf(0,power)*dt*last_fraction
 	gained_m = lerpf(previous,current,last_fraction)
-	if successful: stop("Startlijn gepasseerd" if kind == "flying_start" else "Ronde gewonnen")
+	if successful: stop("Startlijn gepasseerd" if kind == "flying_start" else String(TranslationServer.translate("TRACK_LAP_GAINED")))
 	elif elapsed >= time_limit-.000001: stop("Tijdslimiet bereikt")
 func result() -> Dictionary:
 	return {"kind":kind,"title":title(kind),"exercise_success":successful,"entry_speed_kmh":entry_kmh,"peak_power_w":peak_w,"mean_power_w":energy_j/maxf(.001,elapsed),"gained_m":gained_m,"peloton_kmh":target_kmh,"time_limit_s":time_limit,"laps":laps.duplicate(true)}

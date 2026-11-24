@@ -26,7 +26,7 @@ func _ready() -> void:
 	add_child(scroll)
 	body = VBoxContainer.new(); body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(body)
-	back_button = Button.new(); back_button.text = "← Hoofdmenu"
+	back_button = Button.new(); back_button.text = "RACE_MENU_MAIN_MENU"
 	back_button.pressed.connect(go_back); add_child(back_button)
 	manager.load_session(int(Time.get_unix_time_from_system()))
 	refresh()
@@ -49,24 +49,24 @@ func player() -> Dictionary:
 
 func refresh() -> void:
 	clear_body()
-	back_button.text = "← Omnium" if editing and not manager.state.active.is_empty() else ("← Deelnemersbron" if editing else ("← Speelinstellingen" if choosing_startlist and manager.state.active.is_empty() else ("← Toernooien" if opened else "← Hoofdmenu")))
+	back_button.text = String(TranslationServer.translate("RACE_MENU_OMNIUM")) if editing and not manager.state.active.is_empty() else (String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_RIDER_SOURCE")) if editing else (String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_GAME_SETTINGS")) if choosing_startlist and manager.state.active.is_empty() else (String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_TOURNAMENTS")) if opened else String(TranslationServer.translate("RACE_MENU_MAIN_MENU")))))
 	manager.check_deadline(int(Time.get_unix_time_from_system()))
 	var viewing: Dictionary = manager.state.active if archived_tournament.is_empty() else archived_tournament
 	if viewing.is_empty(): result_index = -1
 	if result_index >= 0 and result_index < viewing.results.size():
-		back_button.text = "← Omnium"
+		back_button.text = "RACE_MENU_OMNIUM"
 		preload("res://omnium/omnium_result_page.gd").render(self,viewing,result_index)
 		return
 	if not archived_tournament.is_empty():
-		back_button.text = "← Gereden toernooien"; archive_view.render(self); return
+		back_button.text = "OMNIUM_OMNIUM_PAGE_PAST_TOURNAMENTS"; archive_view.render(self); return
 	if archive_list:
-		back_button.text = "← Toernooien"; archive_view.render_list(self); return
+		back_button.text = "OMNIUM_OMNIUM_PAGE_TOURNAMENTS"; archive_view.render_list(self); return
 	if not opened:
 		var tile = preload("res://omnium/omnium_tile.gd").new()
 		tile.menu = menu; tile.manager = manager
 		tile.pressed.connect(func(): opened = true; refresh())
 		body.add_child(tile)
-		var archive_tile := button("Gereden toernooien →\n%d bewaard" % manager.state.archive.size(), open_archive_list)
+		var archive_tile := button(String(TranslationServer.translate("OMNIUM_PAST_TOURNAMENTS_D_SAVED")) % manager.state.archive.size(), open_archive_list)
 		archive_tile.custom_minimum_size.y = 88
 		archive_tile.add_theme_font_size_override("font_size",24)
 		return
@@ -76,13 +76,13 @@ func refresh() -> void:
 		details.render(self)
 		return
 	if not choosing_startlist: render_setup(); return
-	body.add_child(menu.label("Startlijst aanmaken · kies je deelnemersbron", 26))
+	body.add_child(menu.label("OMNIUM_OMNIUM_PAGE_CREATE_START_LIST_CHOOSE_YOUR_RIDER_SOURCE", 26))
 	if not draft.catalog.load_catalog(): body.add_child(menu.label(draft.catalog.error, 20)); return
 	for category in ["men", "women", "mixed"]:
-		button("Willekeurige lijst · " + {"men":"mannen", "women":"vrouwen", "mixed":"gemengd"}[category], generate.bind(category))
-	button("Zelf samenstellen", manual)
+		button(String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_RANDOM_LIST")) + {"men":"mannen", "women":"vrouwen", "mixed":"gemengd"}[category], generate.bind(category))
+	button("OMNIUM_OMNIUM_PAGE_BUILD_YOUR_OWN", manual)
 	for tournament in manager.state.archive:
-		button("Deelnemers kopiëren · " + String(tournament.id), copy_previous.bind(tournament))
+		button(String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_COPY_RIDERS")) + String(tournament.id), copy_previous.bind(tournament))
 
 func generate(category: String) -> void:
 	if roster_locked(): return
@@ -115,17 +115,17 @@ func edit_active() -> void:
 
 func render_editor() -> void:
 	var locked := roster_locked()
-	body.add_child(menu.label("Startlijst · speler + %d/23 tegenstanders · %d/24 totaal" % [draft.opponent_count(), draft.riders.size()], 26))
+	body.add_child(menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_START_LIST_PLAYER_D_23_OPPONENTS_D_24_TOTAL")) % [draft.opponent_count(), draft.riders.size()], 26))
 	if locked:
-		body.add_child(menu.label("De startlijst is vergrendeld sinds de start van de scratch.", 18))
+		body.add_child(menu.label("OMNIUM_OMNIUM_PAGE_THE_START_LIST_HAS_BEEN_LOCKED_SINCE_THE_START_OF_THE_SCRATCH_RACE", 18))
 	else:
 		var tools := HBoxContainer.new(); tools.add_theme_constant_override("separation", 12)
 		body.add_child(tools)
-		button("Herlaad random mannen", confirm_roster_change.bind(generate.bind("men"), false), tools)
-		button("Herlaad random vrouwen", confirm_roster_change.bind(generate.bind("women"), false), tools)
+		button("OMNIUM_OMNIUM_PAGE_REGENERATE_RANDOM_MEN_S_LIST", confirm_roster_change.bind(generate.bind("men"), false), tools)
+		button("OMNIUM_OMNIUM_PAGE_REGENERATE_RANDOM_WOMEN_S_LIST", confirm_roster_change.bind(generate.bind("women"), false), tools)
 		var previous := OptionButton.new()
 		previous.custom_minimum_size.y = 46
-		previous.add_item("Vorig toernooi")
+		previous.add_item("OMNIUM_OMNIUM_PAGE_PREVIOUS_TOURNAMENT")
 		previous.set_item_disabled(0, true)
 		for tournament in manager.state.archive: previous.add_item(String(tournament.id))
 		previous.disabled = manager.state.archive.is_empty()
@@ -133,7 +133,7 @@ func render_editor() -> void:
 			previous.select(0)
 			if index > 0: confirm_roster_change(copy_previous.bind(manager.state.archive[index - 1]), false))
 		tools.add_child(previous)
-		button("Wis lijst", confirm_roster_change.bind(manual, true), tools)
+		button("OMNIUM_OMNIUM_PAGE_CLEAR_LIST", confirm_roster_change.bind(manual, true), tools)
 	var grid := GridContainer.new(); grid.columns = 5
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 12)
@@ -148,7 +148,7 @@ func render_editor() -> void:
 			panel.add_theme_stylebox_override("panel", Style.panel(Style.PALE, Style.LINE, 12, 12))
 			tile.add_child(panel)
 			var copy := VBoxContainer.new(); panel.add_child(copy)
-			copy.add_child(menu.label("Speler", 18))
+			copy.add_child(menu.label("OMNIUM_OMNIUM_PAGE_PLAYER", 18))
 			copy.add_child(menu.label(String(entry.name), 22))
 			var flag := TextureRect.new()
 			flag.texture = preload("res://national_flags.gd").texture(String(entry.country))
@@ -161,13 +161,13 @@ func render_editor() -> void:
 		card.entry = entry; card.compact = true; card.interactive = not locked
 		if not locked: card.selected.connect(func(_entry): open_picker(i))
 		tile.add_child(card)
-		if not locked: button("Verwijderen", func(): draft.remove(i); refresh(), tile)
+		if not locked: button("WORKOUT_EDITOR_DELETE", func(): draft.remove(i); refresh(), tile)
 	if not locked:
-		var add_button := button("+ Renner toevoegen", open_picker.bind(-1))
+		var add_button := button("OMNIUM_OMNIUM_PAGE_ADD_RIDER", open_picker.bind(-1))
 		add_button.disabled = not draft.can_add()
-		message = menu.label("Minimaal 8 deelnemers nodig: speler + 7 tegenstanders." if draft.riders.size() < 8 else "", 18)
+		message = menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_AT_LEAST_8_RIDERS_REQUIRED_PLAYER_7_OPPONENTS")) if draft.riders.size() < 8 else "", 18)
 		body.add_child(message)
-		var confirm := button("Startlijst bevestigen", confirm_draft)
+		var confirm := button("OMNIUM_OMNIUM_PAGE_CONFIRM_START_LIST", confirm_draft)
 		confirm.disabled = draft.riders.size() < 8 or draft.riders.size() > 24
 
 func open_picker(slot: int) -> void:
@@ -191,11 +191,11 @@ func confirm_draft() -> void:
 	if manager.state.active.is_empty(): success = manager.create(draft.riders, draft.format_id, draft.strength, now)
 	else: success = manager.update_setup(draft.riders, draft.format_id, draft.strength, now)
 	if success: editing = false; choosing_startlist = false; refresh()
-	else: message.text = manager.error if not manager.error.is_empty() else "Controleer deelnemers, landen en format."
+	else: message.text = manager.error if not manager.error.is_empty() else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_CHECK_RIDERS_COUNTRIES_AND_FORMAT"))
 
 func confirm_stop() -> void:
 	var dialog := ConfirmationDialog.new()
-	dialog.dialog_text = "Omnium stoppen en archiveren? Hervatten is daarna niet mogelijk."
+	dialog.dialog_text = String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_STOP_AND_ARCHIVE_THE_OMNIUM_IT_CANNOT_BE_RESUMED_AFTERWARDS"))
 	dialog.confirmed.connect(func(): manager.archive("stopped", int(Time.get_unix_time_from_system())); refresh())
 	dialog.canceled.connect(dialog.queue_free)
 	dialog.confirmed.connect(dialog.queue_free)
@@ -222,26 +222,26 @@ func handle_navigation(key: String) -> bool:
 	return false
 
 func render_setup() -> void:
-	body.add_child(menu.label("Nieuw omnium · speelinstellingen", 28))
-	body.add_child(menu.label("Kies je format en de sterkte van je tegenstanders.", 20))
+	body.add_child(menu.label("OMNIUM_OMNIUM_PAGE_NEW_OMNIUM_GAME_SETTINGS", 28))
+	body.add_child(menu.label("OMNIUM_OMNIUM_PAGE_CHOOSE_YOUR_FORMAT_AND_THE_STRENGTH_OF_YOUR_OPPONENTS", 20))
 	var formats := OptionButton.new()
-	for title in ["Verkort", "Mannenafstanden", "Vrouwenafstanden"]: formats.add_item(title)
+	for title in [String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_SHORTENED")), String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_MEN_S_DISTANCES")), String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_WOMEN_S_DISTANCES"))]: formats.add_item(title)
 	formats.select(["short", "men", "women"].find(draft.format_id))
 	formats.item_selected.connect(func(index): draft.format_id = ["short", "men", "women"][index])
 	body.add_child(formats)
 	var strength := SpinBox.new(); strength.min_value = 40; strength.max_value = 120; strength.step = 5; strength.value = draft.strength
-	strength.prefix = "AI-sterkte "; strength.suffix = "%"
+	strength.prefix = String(TranslationServer.translate("OMNIUM_AI_STRENGTH_PREFIX")); strength.suffix = "%"
 	strength.value_changed.connect(func(value): draft.strength = value); body.add_child(strength)
 
-	button("Verder · startlijst aanmaken →", func(): choosing_startlist = true; refresh())
+	button("OMNIUM_OMNIUM_PAGE_CONTINUE_CREATE_START_LIST", func(): choosing_startlist = true; refresh())
 
 func confirm_roster_change(action: Callable, clear_list: bool) -> void:
 	if roster_locked(): return
 	var dialog := ConfirmationDialog.new()
-	dialog.title = "Startlijst wissen" if clear_list else "Startlijst vervangen"
-	dialog.dialog_text = "Ben je zeker dat je de huidige startlijst wil wissen?" if clear_list else "Ben je zeker dat je de huidige startlijst wil vervangen?"
-	dialog.ok_button_text = "Wissen" if clear_list else "Vervangen"
-	dialog.cancel_button_text = "Annuleren"
+	dialog.title = String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_CLEAR_START_LIST")) if clear_list else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_REPLACE_START_LIST"))
+	dialog.dialog_text = String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_ARE_YOU_SURE_YOU_WANT_TO_CLEAR_THE_CURRENT_START_LIST")) if clear_list else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_ARE_YOU_SURE_YOU_WANT_TO_REPLACE_THE_CURRENT_START_LIST"))
+	dialog.ok_button_text = String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_CLEAR")) if clear_list else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_REPLACE"))
+	dialog.cancel_button_text = "WORKOUT_EDITOR_CANCEL"
 	dialog.confirmed.connect(func():
 		if not roster_locked(): action.call()
 		dialog.queue_free())

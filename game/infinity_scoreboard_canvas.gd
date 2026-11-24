@@ -12,7 +12,7 @@ var transition_key := ""
 
 func present(data: Dictionary, elapsed: float, delta: float) -> void:
 	var key: String = str(data.state) + ":" + str(data.moment) + ":" + str(data.get("page", 0))
-	if data.badge == "WINNAAR": key += ":confirmed"
+	if data.winner_confirmed: key += ":confirmed"
 	if key != transition_key:
 		previous = current.duplicate(true)
 		fade = 0.0 if not current.is_empty() else 1.0
@@ -46,7 +46,7 @@ func layer(data: Dictionary, alpha: float) -> void:
 	text(data.title, Vector2(280, 65), 1200, 34, soft)
 	text(data.badge, Vector2(42, 140), 1440, 34, gold)
 	var rows: Array = data.rows
-	var burst: bool = age < 1.25 and (data.state in ["SPRINT", "LAP_GAIN"] or data.badge == "WINNAAR")
+	var burst: bool = age < 1.25 and (data.state in ["SPRINT", "LAP_GAIN"] or data.winner_confirmed)
 	var full_hero: bool = burst or rows.is_empty() or data.moment in ["final_lap", "sprint"]
 	text(data.headline, Vector2(42, 295 if full_hero else 265), 1450 if full_hero else 740, 174 if full_hero else 116, white)
 	if not full_hero:
@@ -76,7 +76,7 @@ func _draw() -> void:
 	if spectacle and age < 1.2:
 		var sweep := fmod(age * 1600, W + 200) - 200
 		draw_rect(Rect2(sweep, 6, 120, H - 12), Color(accent, 0.18))
-	if current.state == "FINISH" and current.badge == "WINNAAR" and age < 9.0:
+	if current.state == "FINISH" and current.winner_confirmed and age < 9.0:
 		for i in 32:
 			var x := fposmod(i * 113.0 + sin(age + i) * 25, W)
 			var y := fposmod(i * 71.0 + age * (36 + i % 5 * 8), H)

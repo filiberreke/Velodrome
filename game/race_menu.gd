@@ -7,6 +7,7 @@ signal piste_environment_requested(active: bool)
 signal exercise_environment_requested(active: bool)
 signal madison_environment_requested(active: bool)
 signal training_upload_requested(activity: Dictionary)
+const LocalizedText := preload("res://localized_text.gd")
 const MenuStyle := preload("res://menu_theme.gd")
 const Preview := preload("res://mode_preview.gd")
 const Records := preload("res://pursuit_records.gd")
@@ -25,21 +26,21 @@ var time_trial_settings: VBoxContainer
 var time_trial_start: OptionButton
 var time_trial_distance: OptionButton
 var time_trial_reference: OptionButton
-var bridge_status_text := "Demo beschikbaar"
+var bridge_status_text := "MENU_DEMO_AVAILABLE"
 var bridge_seen := false
 var bridge_live := false
 var bridge_unavailable := false
 const MODES := [
-	{"key": "scratch", "title": "Scratch", "hint": "Eén peloton. Eén finish.", "detail": "Start met één geneutraliseerde ronde. Blijf uit de wind, kies je moment en sprint als eerste over de meet.", "race_id": 0},
-	{"key": "pursuit", "title": "Achtervolging", "hint": "Jij, je tegenstander en de klok.", "detail": "Twee renners starten tegenover elkaar. Jaag op de beste tijd of haal je tegenstander in.", "race_id": 4},
-	{"key": "team_pursuit", "title": "Ploegenachtervolging", "hint": "Samen op jacht naar de snelste tijd.", "detail": "Jij bepaalt het tempo. Stuur op kop naar rechts voor een automatische wissel; volg daarna het wattagedoel.", "race_id": 5},
-	{"key": "points", "title": "Puntenkoers", "hint": "Elke sprint een nieuwe kans.", "detail": "Start met één geneutraliseerde ronde. Elke 10 ronden: 5–3–2–1 punten. Dubbele punten aan de finish. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 1},
-	{"key": "madison", "title": "Ploegkoers", "hint": "Wissel af. Blijf in de wedstrijd.", "detail": "Rijd als duo, los elkaar af en strijd samen om punten en ronden.", "race_id": 6},
-	{"key": "elimination", "title": "Afvalling", "hint": "Elke twee ronden valt de laatste af.", "detail": "Start met één geneutraliseerde ronde. Iedere twee ronden valt de laatste renner met het achterwiel over de meet af. Blijf uit de gevarenzone!", "race_id": 2},
-	{"key": "keirin", "title": "Keirin", "hint": "Volg het tempo. Ontketen je sprint.", "detail": "Zes renners, gelote startposities. Drie ronden begeleid achter de derny, daarna drie vrije ronden. Blijf in het wiel en kies je sprintmoment.", "race_id": 3},
-	{"key": "time_trial", "title": "Tijdrit", "hint": "Jij tegen de klok.", "detail": "500 m of 1 km met staande of vliegende start en vergelijking elke 125 meter.", "race_id": 7},
-	{"key": "tempo", "title": "Temporace", "hint": "Houd het tempo hoog.", "detail": "40 ronden. Vanaf ronde 5 levert de eerste renner bij elke doorkomst één punt op. Een ronde winnen of verliezen geeft +20 of −20 punten.", "race_id": 8},
-	{"key": "records", "title": "Records", "hint": "Jouw snelste tijden aller tijden.", "detail": "Top 10 achtervolging en ploegenachtervolging.", "race_id": -1}
+	{"key": "scratch", "title": "RACE_MENU_SCRATCH_RACE", "hint": "RACE_MENU_ONE_PELOTON_ONE_FINISH", "detail": "RACE_MENU_START_WITH_ONE_NEUTRALISED_LAP_STAY_SHELTERED_CHOOSE_YOUR_MOMENT_", "race_id": 0},
+	{"key": "pursuit", "title": "RACE_MENU_INDIVIDUAL_PURSUIT", "hint": "RACE_MENU_YOU_YOUR_OPPONENT_AND_THE_CLOCK", "detail": "RACE_MENU_TWO_RIDERS_START_OPPOSITE_EACH_OTHER_CHASE_THE_FASTEST_TIME_OR_CA", "race_id": 4},
+	{"key": "team_pursuit", "title": "RACE_MENU_TEAM_PURSUIT", "hint": "RACE_MENU_CHASE_THE_FASTEST_TIME_TOGETHER", "detail": "RACE_MENU_SET_THE_PACE_STEER_RIGHT_WHILE_LEADING_FOR_AN_AUTOMATIC_CHANGEOVE", "race_id": 5},
+	{"key": "points", "title": "RACE_MENU_POINTS_RACE", "hint": "RACE_MENU_EVERY_SPRINT_IS_ANOTHER_CHANCE", "detail": "RACE_MENU_START_WITH_ONE_NEUTRALISED_LAP_EVERY_10_LAPS_5_3_2_1_POINTS_DOUBL", "race_id": 1},
+	{"key": "madison", "title": "RACE_MENU_MADISON", "hint": "RACE_MENU_TAKE_TURNS_STAY_IN_THE_RACE", "detail": "RACE_MENU_RIDE_AS_A_PAIR_EXCHANGE_TURNS_AND_COMPETE_FOR_POINTS_AND_LAPS_TOG", "race_id": 6},
+	{"key": "elimination", "title": "RACE_MENU_ELIMINATION_RACE", "hint": "RACE_MENU_THE_LAST_RIDER_IS_ELIMINATED_EVERY_TWO_LAPS", "detail": "RACE_MENU_START_WITH_ONE_NEUTRALISED_LAP_EVERY_TWO_LAPS_THE_LAST_RIDER_ACRO", "race_id": 2},
+	{"key": "keirin", "title": "MENU_KEIRIN", "hint": "RACE_MENU_FOLLOW_THE_PACE_UNLEASH_YOUR_SPRINT", "detail": "RACE_MENU_SIX_RIDERS_RANDOMLY_DRAWN_STARTING_POSITIONS_THREE_LAPS_BEHIND_TH", "race_id": 3},
+	{"key": "time_trial", "title": "RACE_MENU_TIME_TRIAL", "hint": "RACE_MENU_YOU_AGAINST_THE_CLOCK", "detail": "RACE_MENU_500_M_OR_1_KM_WITH_A_STANDING_OR_FLYING_START_AND_COMPARISONS_EVE", "race_id": 7},
+	{"key": "tempo", "title": "RACE_MENU_TEMPO_RACE", "hint": "RACE_MENU_KEEP_THE_PACE_HIGH", "detail": "RACE_MENU_40_LAPS_FROM_LAP_5_THE_FIRST_RIDER_ACROSS_THE_LINE_EARNS_ONE_POIN", "race_id": 8},
+	{"key": "records", "title": "MENU_RECORDS", "hint": "MENU_YOUR_FASTEST_TIMES_EVER", "detail": "MENU_TOP_10_INDIVIDUAL_AND_TEAM_PURSUIT", "race_id": -1}
 ]
 const INK := MenuStyle.INK
 const MUTED := MenuStyle.MUTED
@@ -183,11 +184,11 @@ func _ready() -> void:
 	page_header = title_row
 	title_row.add_theme_constant_override("separation", 20)
 	layout.add_child(title_row)
-	page_title = label("Kies jouw wedstrijd", 44)
+	page_title = label("RACE_MENU_CHOOSE_YOUR_RACE", 44)
 	page_title.add_theme_font_override("font", MenuStyle.heading())
 	page_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(page_title)
-	breadcrumb = label("01  Spelvorm     /     02  Instellingen", 18, MUTED)
+	breadcrumb = label("MENU_01_RACE_MODE_02_SETTINGS", 18, MUTED)
 	breadcrumb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title_row.add_child(breadcrumb)
 	choice_page = VBoxContainer.new()
@@ -237,13 +238,13 @@ func _ready() -> void:
 		art.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(art)
-		var mode_title := label("Ploegen\nachtervolging" if i == 2 else MODES[i]["title"], 26)
+		var mode_title := label("RACE_TEAM_PURSUIT_TILE" if i == 2 else MODES[i]["title"], 26)
 		mode_title.add_theme_font_override("font", MenuStyle.heading())
 		mode_title.custom_minimum_size.y = 62
 		mode_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		mode_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(mode_title)
-		var status := label("TOP 10" if i == RECORDS_INDEX else ("SPEEL" if i in PLAYABLE else "BINNENKORT"), 13, MUTED)
+		var status := label("TOP 10" if i == RECORDS_INDEX else (String(TranslationServer.translate("MENU_PLAY")) if i in PLAYABLE else String(TranslationServer.translate("MENU_COMING_SOON"))), 13, MUTED)
 		status.name = "Status"
 		status.position = Vector2(20, 18)
 		# Available modes need no extra badge; keep status available to accessibility/tests.
@@ -263,7 +264,7 @@ func _ready() -> void:
 	layout.add_child(records_page)
 	place_back(records_page.back_button, records_page)
 	records_page.back_requested.connect(show_choices)
-	footer_label = label("Pijltjes: kiezen  •  A: bevestigen  •  B: terug  •  Z / F10: instellingen", 17, MUTED)
+	footer_label = label("MENU_ARROW_KEYS_SELECT_A_CONFIRM_B_BACK_Z_F10_SETTINGS", 17, MUTED)
 	layout.add_child(footer_label)
 	_build_hub(layout)
 	show_hub()
@@ -283,7 +284,7 @@ func _hub_tile(parent: Container, caption: String, description: String, preview_
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.tooltip_text = caption + " · " + description
+	LocalizedText.bind(button, &"tooltip_text", func(): return "%s · %s" % [tr(caption), tr(description)])
 	for state in ["normal", "hover", "pressed"]:
 		button.add_theme_stylebox_override(state, MenuStyle.panel(MenuStyle.PAPER if state == "normal" else MenuStyle.PALE, MenuStyle.LINE if state == "normal" else ACCENT, 0, 12))
 	parent.add_child(button)
@@ -301,7 +302,7 @@ func _hub_tile(parent: Container, caption: String, description: String, preview_
 	copy.alignment = BoxContainer.ALIGNMENT_CENTER
 	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(copy)
-	var title := label(caption + "  →", 34)
+	var title := label(caption, 34)
 	title.add_theme_font_override("font", MenuStyle.heading())
 	copy.add_child(title)
 	var detail := label(description, 19, MUTED)
@@ -341,7 +342,7 @@ func _personal_hub_tile(parent: Container, caption: String, description: String,
 	art.custom_minimum_size = Vector2(180, 130)
 	images.add_child(art)
 	if not available:
-		tile.tooltip_text = caption + " · Binnenkort"
+		LocalizedText.bind(tile, &"tooltip_text", func(): return String(tr(caption)) + tr("MENU_COMING_SOON_2"))
 
 func _personal_coming_soon(_caption: String) -> void:
 	pass
@@ -356,23 +357,23 @@ func _build_hub(layout: VBoxContainer) -> void:
 	first_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	first_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(first_row)
-	hub_button = _hub_tile(first_row, "Wedstrijden", "Kies je discipline en ga voor de winst.", [0], show_choices)
-	_hub_tile(first_row, "Toernooien", "Meerdere wedstrijden, één klassement.", [0], show_tournaments)
+	hub_button = _hub_tile(first_row, "MENU_RACES", "MENU_CHOOSE_YOUR_DISCIPLINE_AND_RACE_TO_WIN", [0], show_choices)
+	_hub_tile(first_row, "MENU_TOURNAMENTS", "MENU_MULTIPLE_RACES_ONE_SET_OF_STANDINGS", [0], show_tournaments)
 	var second_row := HBoxContainer.new()
 	second_row.name = "ErgEnPistetraining"
 	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	second_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(second_row)
-	_hub_tile(second_row, "ERG-training", "Workouts op vermogen en FTP-tests.", [], show_training)
-	_hub_tile(second_row, "Pistetraining", "Vrij rijden, derny en specifieke pistesessies.", [7], show_piste_training)
+	_hub_tile(second_row, "MENU_ERG_TRAINING", "MENU_POWER_BASED_WORKOUTS_AND_FTP_TESTS", [], show_training)
+	_hub_tile(second_row, "MENU_TRACK_TRAINING", "MENU_FREE_RIDING_DERNY_AND_SPECIFIC_TRACK_SESSIONS", [7], show_piste_training)
 	var personal_row := HBoxContainer.new()
 	personal_row.name = "Persoonlijk"
 	personal_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	personal_row.add_theme_constant_override("separation", 16)
 	hub_page.add_child(personal_row)
-	_personal_hub_tile(personal_row, "Mijn renner", "Pas je renner aan · Binnenkort", "rider", false)
-	_personal_hub_tile(personal_row, "Palmares", "Records en prestaties · Binnenkort", "palmares", false)
-	_personal_hub_tile(personal_row, "Mijn ritten", "Alle opgeslagen activiteiten", "rides", true)
+	_personal_hub_tile(personal_row, "MENU_MY_RIDER", "MENU_CUSTOMISE_YOUR_RIDER_COMING_SOON", "rider", false)
+	_personal_hub_tile(personal_row, "MENU_PALMARE_S", "MENU_RECORDS_AND_ACHIEVEMENTS_COMING_SOON", "palmares", false)
+	_personal_hub_tile(personal_row, "MENU_MY_RIDES", "MENU_ALL_SAVED_ACTIVITIES", "rides", true)
 	for tile_row in [first_row, second_row, personal_row]:
 		for tile in tile_row.get_children():
 			var artwork: Control = tile.get_child(0).get_child(1)
@@ -380,7 +381,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 			artwork.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			for preview in artwork.get_children():
 				preview.custom_minimum_size = Vector2(280, 200)
-	races_back = _hub_button(choice_page, "← Hoofdmenu", show_hub)
+	races_back = _hub_button(choice_page, "RACE_MENU_MAIN_MENU", show_hub)
 	races_back.reparent(page_header)
 	page_header.move_child(races_back, 0)
 	races_back.custom_minimum_size = Vector2(190, 48)
@@ -409,7 +410,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	var custom_header := HBoxContainer.new()
 	custom_header.add_theme_constant_override("separation", 18)
 	workout_sections.add_child(custom_header)
-	var custom_title := label("Eigen workouts", 27)
+	var custom_title := label("MENU_CUSTOM_WORKOUTS", 27)
 	custom_title.add_theme_font_override("font", MenuStyle.heading())
 	custom_header.add_child(custom_title)
 	var divider := HSeparator.new()
@@ -417,28 +418,28 @@ func _build_hub(layout: VBoxContainer) -> void:
 	divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	custom_header.add_child(divider)
 	var import_button := Button.new()
-	import_button.text = "Importeer .zwo"
+	import_button.text = "MENU_IMPORT_ZWO"
 	import_button.custom_minimum_size = Vector2(190, 48)
 	import_button.pressed.connect(func(): show_workout_editor(); workout_editor_page._open())
 	custom_header.add_child(import_button)
 	var custom_filters := HBoxContainer.new()
 	custom_filters.add_theme_constant_override("separation", 16)
 	workout_sections.add_child(custom_filters)
-	custom_filters.add_child(label("Tijdsduur", 19, MUTED))
+	custom_filters.add_child(label("MENU_DURATION", 19, MUTED))
 	custom_duration_filter = OptionButton.new()
-	for caption in ["Alle tijdsduren", "Korter dan 30 min", "30–60 min", "Langer dan 60 min"]: custom_duration_filter.add_item(caption)
+	for caption in [String(TranslationServer.translate("MENU_ALL_DURATIONS")), String(TranslationServer.translate("MENU_UNDER_30_MIN")), String(TranslationServer.translate("MENU_30_60_MIN")), String(TranslationServer.translate("MENU_OVER_60_MIN"))]: custom_duration_filter.add_item(caption)
 	custom_filters.add_child(custom_duration_filter)
-	custom_filters.add_child(label("Intensiteit", 19, MUTED))
+	custom_filters.add_child(label("MENU_INTENSITY", 19, MUTED))
 	custom_intensity_filter = OptionButton.new()
-	custom_intensity_filter.add_item("Alle intensiteiten")
+	custom_intensity_filter.add_item("MENU_ALL_INTENSITIES")
 	var intensity_art := preload("res://workout_intensity.gd")
 	for level in range(1, 6):
 		custom_intensity_filter.add_icon_item(intensity_art.filter_icon(level), intensity_art.LABELS[level])
-	custom_intensity_filter.add_item("Alleen vrij rijden")
-	custom_intensity_filter.tooltip_text = "Gemiddeld gepland doelvermogen als percentage van FTP, gewogen naar tijd. Blokken vrij rijden tellen niet mee."
+	custom_intensity_filter.add_item("MENU_FREE_RIDING_ONLY")
+	custom_intensity_filter.tooltip_text = "MENU_AVERAGE_PLANNED_TARGET_POWER_AS_A_PERCENTAGE_OF_FTP_WEIGHTED_BY_DURATI"
 	custom_filters.add_child(custom_intensity_filter)
 	for filter in [custom_duration_filter, custom_intensity_filter]: filter.item_selected.connect(func(_index): apply_workout_filters())
-	custom_workout_empty = label("Nog geen eigen workouts. Maak een workout in de editor of importeer een .zwo-bestand.", 20, MUTED)
+	custom_workout_empty = label("MENU_NO_CUSTOM_WORKOUTS_YET_CREATE_A_WORKOUT_IN_THE_EDITOR_OR_IMPORT_A_ZWO_", 20, MUTED)
 	custom_workout_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	workout_sections.add_child(custom_workout_empty)
 	workout_grid = GridContainer.new()
@@ -447,7 +448,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 	workout_grid.add_theme_constant_override("h_separation",16)
 	workout_grid.add_theme_constant_override("v_separation",16)
 	workout_sections.add_child(workout_grid)
-	var training_back := _hub_button(training_page,"← Hoofdmenu",show_hub)
+	var training_back := _hub_button(training_page,"RACE_MENU_MAIN_MENU",show_hub)
 	place_back(training_back, training_page)
 	piste_page = VBoxContainer.new()
 	piste_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -458,12 +459,12 @@ func _build_hub(layout: VBoxContainer) -> void:
 	piste_grid.add_theme_constant_override("h_separation", 16)
 	piste_grid.add_theme_constant_override("v_separation", 16)
 	piste_page.add_child(piste_grid)
-	piste_tiles["free_ride"] = _hub_tile(piste_grid,"Vrije training","Vrij rondfietsen, rondetijden en vier gekleurde pacers.",[],show_piste_exercise.bind("free_ride"),Preview.make(self,"free_training").get_texture())
-	piste_tiles["derny"] = _hub_tile(piste_grid,"Dernytraining","Volg de gangmaker en verhoog samen het tempo.",[],show_derny,Preview.make(self,"derny_training").get_texture())
-	piste_tiles["flying_start"] = _hub_tile(piste_grid,"Vliegende start","Gebruik de hoogte en verbeter je snelheid op de lijn.",[],show_piste_exercise.bind("flying_start"),Preview.make(self,"flying_training").get_texture())
-	piste_tiles["take_lap"] = _hub_tile(piste_grid,"Neem een ronde","Win een ronde op een peloton met vast tempo.",[0],show_piste_exercise.bind("take_lap"))
-	piste_tiles["madison"] = _hub_tile(piste_grid,"Aflossingstraining","Oefen 10 of 20 handaflossingen met je ploegmaat.",[4],show_madison_training)
-	var history_tile := _hub_tile(piste_grid,"Opgeslagen trainingen","Bekijk je eerdere trainingen en prestaties.",[],show_training_history)
+	piste_tiles["free_ride"] = _hub_tile(piste_grid,"RACE_MENU_FREE_TRAINING","MENU_FREE_RIDING_LAP_TIMES_AND_FOUR_COLOURED_PACERS",[],show_piste_exercise.bind("free_ride"),Preview.make(self,"free_training").get_texture())
+	piste_tiles["derny"] = _hub_tile(piste_grid,"TRAINING_HISTORY_DERNY_TRAINING","MENU_FOLLOW_THE_PACER_AND_INCREASE_THE_PACE_TOGETHER",[],show_derny,Preview.make(self,"derny_training").get_texture())
+	piste_tiles["flying_start"] = _hub_tile(piste_grid,"RACE_MENU_FLYING_START","MENU_USE_THE_BANKING_AND_IMPROVE_YOUR_SPEED_AT_THE_LINE",[],show_piste_exercise.bind("flying_start"),Preview.make(self,"flying_training").get_texture())
+	piste_tiles["take_lap"] = _hub_tile(piste_grid,"RACE_MENU_GAIN_A_LAP","MENU_GAIN_A_LAP_ON_A_PELOTON_RIDING_AT_A_CONSTANT_PACE",[0],show_piste_exercise.bind("take_lap"))
+	piste_tiles["madison"] = _hub_tile(piste_grid,"MENU_MADISON_EXCHANGE_TRAINING","MENU_PRACTISE_10_OR_20_HAND_SLING_EXCHANGES_WITH_YOUR_TEAMMATE",[4],show_madison_training)
+	var history_tile := _hub_tile(piste_grid,"RACE_MENU_SAVED_TRAINING_SESSIONS","MENU_VIEW_YOUR_PREVIOUS_TRAINING_SESSIONS_AND_PERFORMANCES",[],show_training_history)
 	var history_images: HBoxContainer = history_tile.get_child(0).get_child(1)
 	var old_history_art := history_images.get_child(0)
 	history_images.remove_child(old_history_art)
@@ -501,7 +502,7 @@ func _build_hub(layout: VBoxContainer) -> void:
 			artwork.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			artwork.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		old_content.free()
-	var piste_back := _hub_button(piste_page,"← Hoofdmenu",show_hub)
+	var piste_back := _hub_button(piste_page,"RACE_MENU_MAIN_MENU",show_hub)
 	place_back(piste_back, piste_page)
 	derny_page = preload("res://derny_training.gd").new()
 	layout.add_child(derny_page)
@@ -620,8 +621,8 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	if madison_page.scene != null and madison_page.scene.active: _madison_environment(false)
 	if derny_page.scene != null and derny_page.scene.active: _piste_environment(false)
 	if exercise_page.scene != null and exercise_page.scene.active: _exercise_environment(false)
-	if workout_play_page.test.running(): workout_play_page.finish("Training verlaten")
-	if ftp_page.test.running() or ftp_page.twenty_warmup: ftp_page.finish("Test verlaten")
+	if workout_play_page.test.running(): workout_play_page.finish(String(TranslationServer.translate("MAIN_LEAVE_TRAINING")))
+	if ftp_page.test.running() or ftp_page.twenty_warmup: ftp_page.finish(String(TranslationServer.translate("MENU_EXIT_TEST")))
 	_hide_hub_pages()
 	for child in [choice_page, settings_page, records_page, pursuit_flow, startlist_page]: child.hide()
 	page = index
@@ -647,11 +648,11 @@ func _show_section(index: int, caption: String, node: Control) -> void:
 	if focus != null: focus.grab_focus.call_deferred()
 
 func show_hub() -> void:
-	_show_section(0, "Welkom in Velodrome", hub_page)
+	_show_section(0, "MENU_WELCOME_TO_VELODROME", hub_page)
 
 func show_training() -> void:
 	refresh_workout_tiles()
-	_show_section(6, "ERG-training", training_page)
+	_show_section(6, "MENU_ERG_TRAINING", training_page)
 
 func _piste_back_requested(training) -> void:
 	if training == exercise_page and not exercise_page.omnium_origin.is_empty():
@@ -659,18 +660,18 @@ func _piste_back_requested(training) -> void:
 		tournament_page.opened = true
 		tournament_page.editing = false
 		tournament_page.refresh()
-		_show_section(7, "Omnium", tournament_page)
+		_show_section(7, "MENU_OMNIUM", tournament_page)
 		tournament_back.grab_focus.call_deferred()
 		return
 	if training.return_to_history: show_training_history()
 	else: show_piste_training()
 
 func show_piste_training() -> void:
-	_show_section(11, "Pistetraining", piste_page)
+	_show_section(11, "MENU_TRACK_TRAINING", piste_page)
 
 func show_madison_training(new_training: bool = true) -> void:
 	if new_training: madison_page.prepare_new_training()
-	_show_section(16,"Aflossingstraining",madison_page)
+	_show_section(16,"MENU_MADISON_EXCHANGE_TRAINING",madison_page)
 
 func _madison_environment(active: bool) -> void:
 	madison_environment_requested.emit(active)
@@ -681,7 +682,7 @@ func _madison_environment(active: bool) -> void:
 
 func show_derny(new_training: bool = true) -> void:
 	if new_training: derny_page.prepare_new_training()
-	_show_section(12, "Dernytraining", derny_page)
+	_show_section(12, "TRAINING_HISTORY_DERNY_TRAINING", derny_page)
 
 func show_piste_exercise(kind: String, new_training: bool = true) -> void:
 	# Opening the result of the same ride must preserve its return destination.
@@ -698,11 +699,11 @@ func _exercise_environment(active: bool) -> void:
 
 func show_erg_history() -> void:
 	erg_history_page.refresh()
-	_show_section(17,"Historiek · ERG-training",erg_history_page)
+	_show_section(17,"MENU_HISTORY_ERG_TRAINING",erg_history_page)
 
 func show_training_history() -> void:
 	training_history_page.refresh()
-	_show_section(13,"Opgeslagen trainingen",training_history_page)
+	_show_section(13,"RACE_MENU_SAVED_TRAINING_SESSIONS",training_history_page)
 
 func _piste_environment(active: bool) -> void:
 	piste_environment_requested.emit(active)
@@ -723,7 +724,7 @@ func show_tournaments() -> void:
 	tournament_page.editing = false
 	tournament_page.choosing_startlist = false
 	tournament_page.refresh()
-	_show_section(7, "Toernooien", tournament_page)
+	_show_section(7, "MENU_TOURNAMENTS", tournament_page)
 	tournament_back.grab_focus.call_deferred()
 
 func _workout_tile(caption: String, description: String, action: Callable, workout_blocks: Array = [], destination: GridContainer = null, badge_text: String = "") -> Button:
@@ -761,16 +762,16 @@ func _workout_tile(caption: String, description: String, action: Callable, worko
 func refresh_workout_tiles() -> void:
 	for child in workout_grid.get_children(): workout_grid.remove_child(child); child.queue_free()
 	for child in fixed_workout_grid.get_children(): fixed_workout_grid.remove_child(child); child.queue_free()
-	ftp_tile = _workout_tile("FTP-ramp test","Bepaal je FTP en bewaar die in je profiel.",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()),fixed_workout_grid,"VASTE TEST VAN VELODROME")
-	_workout_tile("20’ FTP-test","5 minuten opwarming, 20 minuten vrij vermogen · FTP = 95% gemiddeld.",show_ftp_twenty,_twenty_ftp_preview(),fixed_workout_grid,"VASTE TEST")
-	editor_tile = _workout_tile("Workout-editor","Maak een eigen workout of bewerk een bestaande.",show_workout_editor,[],fixed_workout_grid,"EDITOR")
-	_workout_tile("Historiek","Alle gereden ERG-trainingen en FTP-tests.",show_erg_history,[],fixed_workout_grid,"RESULTATEN")
+	ftp_tile = _workout_tile("MENU_FTP_RAMP_TEST","MENU_DETERMINE_YOUR_FTP_AND_SAVE_IT_IN_YOUR_PROFILE",show_ftp,preload("res://ftp_ramp.gd").preview_blocks(preload("res://player_profile.gd").new().ftp()),fixed_workout_grid,"MENU_STANDARD_VELODROME_TEST")
+	_workout_tile("MENU_20_MINUTE_FTP_TEST","MENU_5_MINUTES_OF_WARM_UP_20_MINUTES_OF_SELF_PACED_POWER_FTP_95_OF_AVERAGE_",show_ftp_twenty,_twenty_ftp_preview(),fixed_workout_grid,"MENU_STANDARD_TEST")
+	editor_tile = _workout_tile("MENU_WORKOUT_EDITOR","MENU_CREATE_A_CUSTOM_WORKOUT_OR_EDIT_AN_EXISTING_ONE",show_workout_editor,[],fixed_workout_grid,"MENU_EDITOR")
+	_workout_tile("MENU_HISTORY","MENU_ALL_COMPLETED_ERG_SESSIONS_AND_FTP_TESTS",show_erg_history,[],fixed_workout_grid,"MENU_RESULTS")
 	saved_workout_tiles.clear()
 	for item in workout_library.all_workouts():
 		var seconds: float = workout_library.total_seconds(item.blocks)
 		var intensity: float = workout_library.average_target(item.blocks)
-		var intensity_text := "vrij rijden" if intensity < 0 else "gem. %d%% FTP" % roundi(intensity * 100)
-		var tile := _workout_tile(item.name,"%d %s · %d minuten · %s" % [item.blocks.size(),"blok" if item.blocks.size() == 1 else "blokken",int(ceil(seconds/60)),intensity_text],show_workout.bind(str(item.id)),item.blocks)
+		var intensity_text := String(TranslationServer.translate("MENU_FREE_RIDING")) if intensity < 0 else String(TranslationServer.translate("MENU_AVG_D_FTP")) % roundi(intensity * 100)
+		var tile := _workout_tile(item.name,String(TranslationServer.translate("MENU_D_S_D_MINUTES_S")) % [item.blocks.size(),"blok" if item.blocks.size() == 1 else "blokken",int(ceil(seconds/60)),intensity_text],show_workout.bind(str(item.id)),item.blocks)
 		var intensity_badge := preload("res://workout_intensity.gd").new()
 		intensity_badge.configure(intensity)
 		tile.get_child(0).add_child(intensity_badge)
@@ -792,7 +793,7 @@ func apply_workout_filters() -> void:
 		tile.visible = duration_matches and intensity_matches
 		if tile.visible: visible_count += 1
 	custom_workout_empty.visible = visible_count == 0
-	custom_workout_empty.text = "Nog geen eigen workouts. Maak een workout in de editor of importeer een .zwo-bestand." if saved_workout_tiles.is_empty() else "Geen eigen workouts met deze filters. Kies een andere tijdsduur of intensiteit."
+	custom_workout_empty.text = "MENU_NO_CUSTOM_WORKOUTS_YET_CREATE_A_WORKOUT_IN_THE_EDITOR_OR_IMPORT_A_ZWO_" if saved_workout_tiles.is_empty() else "MENU_NO_CUSTOM_WORKOUTS_MATCH_THESE_FILTERS_CHOOSE_ANOTHER_DURATION_OR_INTE"
 func show_workout(id: String) -> void:
 	var item: Dictionary = workout_library.get_workout(id)
 	if item.is_empty(): return
@@ -817,12 +818,12 @@ func _workout_environment(active: bool) -> void:
 
 func show_workout_editor() -> void:
 	workout_editor_page.refresh_workout_choices()
-	_show_section(10, "Workout-editor", workout_editor_page)
+	_show_section(10, String(TranslationServer.translate("MENU_WORKOUT_EDITOR")), workout_editor_page)
 
 func show_ftp() -> void:
 	ftp_page.select_test(false)
 	ftp_page.get_meta("preparation_card").preview.set_workout(preload("res://ftp_ramp.gd").preview_blocks(ftp_page.player_profile.ftp()))
-	_show_section(8, "FTP Ramp Test", ftp_page)
+	_show_section(8, "MENU_FTP_RAMP_TEST_2", ftp_page)
 
 # Five minutes of free warmup followed by a 20-minute voluntary target at 95% of current FTP.
 func _twenty_ftp_preview() -> Array:
@@ -834,7 +835,7 @@ func _twenty_ftp_preview() -> Array:
 func show_ftp_twenty() -> void:
 	ftp_page.select_test(true)
 	ftp_page.get_meta("preparation_card").preview.set_workout(_twenty_ftp_preview())
-	_show_section(8, "20’ FTP-test", ftp_page)
+	_show_section(8, "MENU_20_MINUTE_FTP_TEST", ftp_page)
 
 func _build_settings(layout: VBoxContainer) -> void:
 	settings_page = CenterContainer.new()
@@ -865,37 +866,37 @@ func _build_settings(layout: VBoxContainer) -> void:
 	options.custom_minimum_size.x = 570
 	options.add_theme_constant_override("separation", 18)
 	row.add_child(options)
-	options.add_child(label("Jouw wedstrijd", 30))
+	options.add_child(label("RACE_MENU_YOUR_RACE", 30))
 	status_label = label("", 21, ACCENT)
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	options.add_child(status_label)
 	race_settings = VBoxContainer.new()
 	race_settings.add_theme_constant_override("separation", 16)
 	options.add_child(race_settings)
-	count_input = _number(race_settings, "Deelnemers · inclusief jou", 6, 12, 8)
+	count_input = _number(race_settings, String(TranslationServer.translate("MENU_RIDERS_INCLUDING_YOU")), 6, 12, 8)
 	elimination_count_picker = OptionButton.new()
-	for amount in [4, 12, 16]: elimination_count_picker.add_item("%d deelnemers" % amount, amount)
+	for amount in [4, 12, 16]: elimination_count_picker.add_item(String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_D_RIDERS")) % amount, amount)
 	elimination_count_picker.select(1)
 	race_settings.add_child(elimination_count_picker)
 	elimination_count_picker.visible = false
-	laps_input = _number(race_settings, "Ronden · 250 meter per ronde", 1, 30, 10)
+	laps_input = _number(race_settings, String(TranslationServer.translate("MENU_LAPS_250_METRES_PER_LAP")), 1, 30, 10)
 	difficulty_preferences.load(difficulty_preferences_path)
-	keirin_derny = _number(race_settings, "Dernytempo · 70% = 45 km/u, 100% = 50 km/u", 40, 120, 80)
+	keirin_derny = _number(race_settings, String(TranslationServer.translate("MENU_DERNY_PACE_70_45_KM_H_100_50_KM_H")), 40, 120, 80)
 	keirin_derny.step = 5
 	keirin_derny.value = clampf(snappedf(float(difficulty_preferences.get_value("race", "derny", 80.0)), 5.0), 40.0, 120.0)
 	keirin_derny.value_changed.connect(func(value: float): _save_difficulty("derny", value))
-	difficulty_label = label("AI-sterkte · 80%", 22)
+	difficulty_label = label(tr("RACE_AI_STRENGTH") % 80, 22)
 	race_settings.add_child(difficulty_label)
 	difficulty_slider = HSlider.new()
 	difficulty_slider.min_value = 40
 	difficulty_slider.max_value = 120
 	difficulty_slider.step = 5
 	difficulty_slider.value = clampf(snappedf(float(difficulty_preferences.get_value("race", "ai", 80.0)), 5.0), 40.0, 120.0)
-	difficulty_label.text = "AI-sterkte · %d%%" % int(difficulty_slider.value)
+	LocalizedText.bind(difficulty_label, &"text", func(): return tr("RACE_AI_STRENGTH") % int(difficulty_slider.value))
 	difficulty_slider.custom_minimum_size.y = 36
 	race_settings.add_child(difficulty_slider)
 	difficulty_slider.value_changed.connect(func(value: float) -> void:
-		difficulty_label.text = "AI-sterkte · %d%%" % int(value)
+		difficulty_label.text = String(TranslationServer.translate("RACE_AI_STRENGTH")) % int(value)
 		_save_difficulty("ai", value)
 		difficulty_changed.emit(value))
 	pursuit_options = preload("res://pursuit_options.gd").new()
@@ -913,32 +914,32 @@ func _build_settings(layout: VBoxContainer) -> void:
 	time_trial_settings = VBoxContainer.new()
 	time_trial_settings.add_theme_constant_override("separation", 12)
 	race_settings.get_parent().add_child(time_trial_settings)
-	time_trial_settings.add_child(label("Startwijze", 22))
+	time_trial_settings.add_child(label("MENU_START_TYPE", 22))
 	time_trial_start = OptionButton.new()
-	time_trial_start.add_item("Staande start")
-	time_trial_start.add_item("Vliegende start · 1 aanloopronde")
+	time_trial_start.add_item("RACE_MENU_STANDING_START")
+	time_trial_start.add_item("MENU_FLYING_START_1_LEAD_IN_LAP")
 	time_trial_settings.add_child(time_trial_start)
-	time_trial_settings.add_child(label("Afstand", 22))
+	time_trial_settings.add_child(label("RECORDS_PAGE_DISTANCE", 22))
 	time_trial_distance = OptionButton.new()
-	time_trial_distance.add_item("500 meter · 2 ronden", 500)
-	time_trial_distance.add_item("1 kilometer · 4 ronden", 1000)
+	time_trial_distance.add_item("MENU_500_METRES_2_LAPS", 500)
+	time_trial_distance.add_item("MENU_1_KILOMETRE_4_LAPS", 1000)
 	time_trial_distance.select(1)
 	time_trial_settings.add_child(time_trial_distance)
-	time_trial_settings.add_child(label("Vergelijken met", 22))
+	time_trial_settings.add_child(label("RACE_MENU_COMPARE_WITH", 22))
 	time_trial_reference = OptionButton.new()
-	for item in ["Laatste rit", "Recent PR · 60 dagen", "All-time PR", "Geen vergelijking"]:
+	for item in [String(TranslationServer.translate("RACE_MENU_LAST_RIDE")), String(TranslationServer.translate("MENU_RECENT_PB_60_DAYS")), String(TranslationServer.translate("MENU_ALL_TIME_PB")), String(TranslationServer.translate("RACE_MENU_NO_COMPARISON"))]:
 		time_trial_reference.add_item(item)
 	time_trial_settings.add_child(time_trial_reference)
 	demo_settings = VBoxContainer.new()
 	demo_settings.add_theme_constant_override("separation", 8)
 	options.add_child(demo_settings)
-	demo_power_input = _number(demo_settings, "Demo-startvermogen · zonder trainer (W)", 0, 900, 300)
+	demo_power_input = _number(demo_settings, String(TranslationServer.translate("MENU_DEMO_STARTING_POWER_WITHOUT_TRAINER_W")), 0, 900, 300)
 	demo_power_input.step = 25
 	var navigation := HBoxContainer.new()
 	navigation.add_theme_constant_override("separation", 14)
 	options.add_child(navigation)
 	back_button = Button.new()
-	back_button.text = "←  Spelvormen"
+	back_button.text = "MENU_RACE_MODES"
 	back_button.custom_minimum_size = Vector2(210, 60)
 	back_button.add_theme_font_size_override("font_size", 21)
 	back_button.pressed.connect(show_choices)
@@ -983,11 +984,11 @@ func show_choices() -> void:
 	if pursuit_flow != null: pursuit_flow.hide()
 	if page == 2 and selected in [0, 3, 5, 6, 8]: field_settings[selected] = [elimination_count_picker.get_selected_id() if selected == 5 else int(count_input.value), int(laps_input.value)]
 	page = 1
-	page_title.text = "Kies jouw wedstrijd"
+	page_title.text = "RACE_MENU_CHOOSE_YOUR_RACE"
 	choice_page.show()
 	settings_page.hide()
 	records_page.hide()
-	breadcrumb.text = "01  Spelvorm     /     02  Instellingen"
+	breadcrumb.text = "MENU_01_RACE_MODE_02_SETTINGS"
 	if not cards.is_empty():
 		cards[selected].grab_focus.call_deferred()
 
@@ -1004,10 +1005,10 @@ func select_mode(index: int) -> void:
 	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	page = 2
-	page_title.text = "Stel je wedstrijd in"
+	page_title.text = "RACE_MENU_CONFIGURE_YOUR_RACE"
 	choice_page.hide()
 	settings_page.show()
-	breadcrumb.text = "01  Spelvorm     /     02  Instellingen"
+	breadcrumb.text = "MENU_01_RACE_MODE_02_SETTINGS"
 	selected_title.text = MODES[selected]["title"]
 	selected_description.text = MODES[selected]["detail"]
 	selected_art.texture = previews[selected].get_texture()
@@ -1039,9 +1040,9 @@ func select_mode(index: int) -> void:
 	team_options.visible = selected == 2
 	team_scroll.visible = selected == 2
 	demo_settings.visible = selected in [0, 1, 2, 3, 5, 6, 7, 8] and not bridge_seen and not bridge_unavailable
-	status_label.text = "Klaar voor de start. Stel je wedstrijd in." if selected in [0, 1, 2, 3, 5, 6, 7, 8] else "Binnenkort speelbaar. Deze spelvorm is nog in ontwikkeling."
+	status_label.text = "MENU_READY_TO_START_CONFIGURE_YOUR_RACE" if selected in [0, 1, 2, 3, 5, 6, 7, 8] else "MENU_PLAYABLE_SOON_THIS_RACE_MODE_IS_STILL_IN_DEVELOPMENT"
 	start_button.disabled = selected not in [0, 1, 2, 3, 5, 6, 7, 8]
-	start_button.text = "Startlijst →" if selected in [0, 3, 5, 6, 8] else "Start wedstrijd →" if selected in [1, 2, 7] else "Binnenkort"
+	start_button.text = "RACE_OPEN_START_LIST" if selected in [0, 3, 5, 6, 8] else "RACE_MENU_START_RACE" if selected in [1, 2, 7] else "MENU_COMING_SOON_3"
 	if selected in [1, 2]:
 		(pursuit_options if selected == 1 else team_options).refresh_rides()
 	update_bridge_status(bridge_seen, bridge_live, bridge_unavailable)
@@ -1055,9 +1056,9 @@ func update_bridge_status(seen: bool, live: bool, unavailable: bool) -> void:
 	bridge_seen = seen
 	bridge_live = live
 	bridge_unavailable = unavailable
-	bridge_status_text = "●  Trainer verbonden" if live else ("Trainer gevonden · wacht op gegevens" if seen else "Demo beschikbaar · geen trainer")
+	bridge_status_text = String(TranslationServer.translate("MENU_TRAINER_CONNECTED")) if live else (String(TranslationServer.translate("MENU_TRAINER_FOUND_WAITING_FOR_DATA")) if seen else String(TranslationServer.translate("MENU_DEMO_AVAILABLE_NO_TRAINER")))
 	if unavailable:
-		bridge_status_text = "Verbinding bezet · sluit de andere spelinstantie"
+		bridge_status_text = String(TranslationServer.translate("MENU_CONNECTION_BUSY_CLOSE_THE_OTHER_GAME_INSTANCE"))
 	demo_settings.visible = selected in [0, 1, 2, 3, 5, 6, 7, 8] and not seen and not unavailable
 	start_button.disabled = unavailable or selected not in [0, 1, 2, 3, 5, 6, 7, 8]
 	if selected in [1, 2]:
@@ -1070,7 +1071,7 @@ func _pursuit_changed() -> void:
 		return
 	var current = pursuit_options if selected == 1 else team_options
 	start_button.disabled = bridge_unavailable or not current.can_start()
-	status_label.text = "Kies je afstand en tegenstander." if current.can_start() else "Nog geen opgeslagen rit op deze afstand. Rijd eerst tegen de AI en bewaar je rit."
+	status_label.text = "MENU_CHOOSE_YOUR_DISTANCE_AND_OPPONENT" if current.can_start() else "MENU_NO_SAVED_RIDE_AT_THIS_DISTANCE_YET_RACE_AGAINST_THE_AI_FIRST_AND_SAVE_"
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if keyboard_mapping == null or not keyboard_mapping.enabled: return
@@ -1133,8 +1134,8 @@ func show_records() -> void:
 	if startlist_page != null: startlist_page.hide()
 	if pursuit_flow != null: pursuit_flow.hide()
 	page = 3
-	page_title.text = "Records"
-	breadcrumb.text = "Jouw snelste tijden op de piste"
+	page_title.text = "MENU_RECORDS"
+	breadcrumb.text = "MENU_YOUR_FASTEST_TIMES_ON_THE_TRACK"
 	choice_page.hide(); settings_page.hide(); records_page.show()
 	records_page.open_records()
 	records_page.back_button.grab_focus.call_deferred()
@@ -1148,8 +1149,8 @@ func show_startlist() -> void:
 	pursuit_flow.hide()
 	records_page.hide()
 	footer_label.hide()
-	page_title.text = "Jouw startlijst"
-	breadcrumb.text = "01  Wedstrijdinstellingen     /     02  Startlijst"
+	page_title.text = "RACE_MENU_YOUR_START_LIST"
+	breadcrumb.text = "MENU_01_RACE_SETTINGS_02_START_LIST"
 	startlist_page.begin()
 
 func _save_difficulty(key: String, value: float) -> void:
@@ -1162,19 +1163,19 @@ func start_omnium_warmup() -> void:
 	show_piste_exercise("free_ride")
 	exercise_page.omnium_origin = String(tournament_page.manager.state.active.id)
 	exercise_page.begin()
-	exercise_page.back_button.text = "← Omnium"
+	exercise_page.back_button.text = "RACE_MENU_OMNIUM"
 
 func start_omnium_scratch() -> void:
-	_start_omnium_race(preload("res://omnium/omnium_scratch_controller.gd").new(), "Scratch")
+	_start_omnium_race(preload("res://omnium/omnium_scratch_controller.gd").new(), String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")))
 
 func start_omnium_tempo() -> void:
-	_start_omnium_race(preload("res://omnium/omnium_tempo_controller.gd").new(), "Temporace")
+	_start_omnium_race(preload("res://omnium/omnium_tempo_controller.gd").new(), String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")))
 
 func start_omnium_points() -> void:
-	_start_omnium_race(preload("res://omnium/omnium_points_controller.gd").new(), "Puntenkoers")
+	_start_omnium_race(preload("res://omnium/omnium_points_controller.gd").new(), String(TranslationServer.translate("RACE_MENU_POINTS_RACE")))
 
 func start_omnium_elimination() -> void:
-	_start_omnium_race(preload("res://omnium/omnium_elimination_controller.gd").new(), "Afvalling")
+	_start_omnium_race(preload("res://omnium/omnium_elimination_controller.gd").new(), String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE")))
 
 func _start_omnium_race(controller: RefCounted, caption: String) -> void:
 	var game: Node = self
@@ -1183,7 +1184,7 @@ func _start_omnium_race(controller: RefCounted, caption: String) -> void:
 	game.omnium_race = controller
 	if not controller.start(game, tournament_page.manager):
 		var dialog := AcceptDialog.new()
-		dialog.dialog_text = caption + " kon niet worden gestart. " + controller.error
+		dialog.dialog_text = caption + String(TranslationServer.translate("MENU_COULD_NOT_BE_STARTED")) + controller.error
 		dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free)
 		add_child(dialog); dialog.popup_centered()
 
@@ -1192,10 +1193,10 @@ func show_omnium_details() -> void:
 	tournament_page.archived_tournament = {}; tournament_page.archive_list = false
 	tournament_page.opened = true; tournament_page.editing = false
 	tournament_page.refresh()
-	_show_section(7, "Omnium", tournament_page)
+	_show_section(7, "MENU_OMNIUM", tournament_page)
 	tournament_back.grab_focus.call_deferred()
 
 func show_omnium_archive(tournament: Dictionary) -> void:
 	tournament_page.open_archive(tournament)
-	_show_section(7,"Omnium · Uitslag",tournament_page)
+	_show_section(7,"MENU_OMNIUM_RESULTS",tournament_page)
 	tournament_back.grab_focus.call_deferred()

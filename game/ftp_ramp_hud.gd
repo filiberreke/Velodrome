@@ -40,7 +40,7 @@ func _ready() -> void:
 	left_stack.offset_bottom = 780.0
 	power_panel.show()
 	var metrics_column: VBoxContainer = power_panel.get_child(0) as VBoxContainer
-	live_power_label = _metric(metrics_column, "VERMOGEN", "— W")
+	live_power_label = _metric(metrics_column, String(TranslationServer.translate("WORKOUT_POWER")), "— W")
 	# Standard top-left race panel supplies speed, heart rate, cadence, and gearing.
 	# The centre remains the unmodified race power meter with its red target arrow.
 	power_meter.show()
@@ -59,16 +59,16 @@ func _build_steps() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	step_panel.add_child(column)
-	column.add_child(text("VERMOGENSSTAPPEN", 20, ACCENT))
+	column.add_child(text(String(TranslationServer.translate("WORKOUT_POWER_STEPS")), 20, ACCENT))
 	var heading := HBoxContainer.new()
 	column.add_child(heading)
-	var target_label := text("Doel", 16, MUTED)
+	var target_label := text(String(TranslationServer.translate("FTP_RAMP_HUD_TARGET")), 16, MUTED)
 	target_label.custom_minimum_size.x = 115
 	heading.add_child(target_label)
 	var watt_label := text("Gem. W", 16, MUTED)
 	watt_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(watt_label)
-	heading.add_child(text("Gem. HR", 16, MUTED))
+	heading.add_child(text(String(TranslationServer.translate("FTP_RAMP_HUD_AVG_HR")), 16, MUTED))
 	step_scroll = ScrollContainer.new()
 	step_scroll.custom_minimum_size.y = 215
 	step_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -83,12 +83,12 @@ func _build_ftp() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 7)
 	ftp_panel.add_child(column)
-	column.add_child(text("VOORLOPIGE FTP", 18, ACCENT))
+	column.add_child(text(String(TranslationServer.translate("FTP_RAMP_HUD_ESTIMATED_FTP")), 18, ACCENT))
 	ftp_value = text("— W", 49)
 	column.add_child(ftp_value)
 	best_value = text("Beste 60 s: —", 19, MUTED)
 	column.add_child(best_value)
-	twenty_detail = text("75% van beste 60 seconden", 15, MUTED)
+	twenty_detail = text(String(TranslationServer.translate("FTP_RAMP_HUD_75_OF_BEST_60_SECONDS")), 15, MUTED)
 	column.add_child(twenty_detail)
 	phase_caption = text("", 19, ACCENT)
 	phase_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -99,14 +99,14 @@ func _build_profile() -> void:
 	graph_panel.add_theme_stylebox_override("panel", style(Color(0.9608, 0.9451, 0.9059, 0.78)))
 	var column := VBoxContainer.new()
 	graph_panel.add_child(column)
-	column.add_child(text("VERMOGENSPROFIEL · DOEL EN GELEVERD", 16, ACCENT))
+	column.add_child(text(String(TranslationServer.translate("FTP_RAMP_HUD_POWER_PROFILE_TARGET_AND_ACTUAL")), 16, ACCENT))
 	profile_graph = preload("res://ftp_ramp_profile_graph.gd").new()
 	profile_graph.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(profile_graph)
 
 func _build_stop() -> void:
 	stop_test = Button.new()
-	stop_test.text = "Stop test"
+	stop_test.text = "FTP_RAMP_HUD_STOP_TEST"
 	stop_test.custom_minimum_size = Vector2(260, 48)
 	stop_test.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	stop_test.offset_left = -310
@@ -117,13 +117,13 @@ func _build_stop() -> void:
 	add_child(stop_test)
 
 func _stop_ramp() -> void:
-	if ftp_page != null: ftp_page.finish("Handmatig gestopt")
+	if ftp_page != null: ftp_page.finish(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY")))
 
 func _make_step_row(key: int) -> Dictionary:
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 5)
 	step_rows.add_child(line)
-	var label := text("Opwarming" if key == -1 else "%d W" % (100+20*key), 17)
+	var label := text(String(TranslationServer.translate("WORKOUT_EDITOR_WARM_UP")) if key == -1 else "%d W" % (100+20*key), 17)
 	label.custom_minimum_size.x = 115
 	line.add_child(label)
 	var watts := text("—", 17)
@@ -138,7 +138,7 @@ func update_ftp(page) -> void:
 	ftp_page = page
 	if not page.test.running() and not page.twenty_warmup: return
 	ftp_panel.show()
-	stop_test.text = "Stop test"
+	stop_test.text = "FTP_RAMP_HUD_STOP_TEST"
 	var twenty: bool = page.twenty_mode
 	var now: float = page.now_s()
 	var clock: float = page.session_now(now)
@@ -167,26 +167,26 @@ func update_ftp(page) -> void:
 		ramp_dial.update_step(0,roundi(page.twenty_reference_w),left_s,"WARMUP20" if page.twenty_warmup else "TWENTY")
 	if twenty:
 		step_panel.hide()
-		twenty_detail.text = "95% van gemiddeld vermogen"
+		twenty_detail.text = "FTP_RAMP_HUD_95_OF_AVERAGE_POWER"
 		var avg: float = page.test.energy / page.test.covered if page.test.covered > 0.0 else 0.0
 		ftp_value.text = "%.0f W" % (avg*0.95) if page.test.covered > 0.0 else "— W"
-		best_value.text = "Gemiddeld %.0f W" % avg if page.test.covered > 0.0 else "Opwarming · geen FTP-meting"
+		best_value.text = "Gemiddeld %.0f W" % avg if page.test.covered > 0.0 else String(TranslationServer.translate("FTP_RAMP_HUD_WARM_UP_NO_FTP_MEASUREMENT"))
 		var remaining_t: int = ceili(maxf(0.0,RampProtocol.WARMUP_SECONDS-(clock-page.twenty_warmup_at))) if page.twenty_warmup else ceili(maxf(0.0,1200.0-(clock-page.test.start_at)))
-		phase_caption.text = "%s · nog %02d:%02d" % ["Opwarming" if page.twenty_warmup else "Vrije 20'-test",remaining_t/60,remaining_t%60]
+		phase_caption.text = String(TranslationServer.translate("FTP_RAMP_HUD_S_02D_02D_REMAINING")) % [String(TranslationServer.translate("WORKOUT_EDITOR_WARM_UP")) if page.twenty_warmup else "Vrije 20'-test",remaining_t/60,remaining_t%60]
 		return
 	step_panel.show()
-	twenty_detail.text = "75% van beste 60 seconden"
+	twenty_detail.text = "FTP_RAMP_HUD_75_OF_BEST_60_SECONDS"
 	ftp_value.text = "%.0f W" % page.test.ftp() if page.test.best_60 > 0 else "— W"
 	best_value.text = "Beste 60 s: %.1f W" % page.test.best_60 if page.test.best_60 > 0 else "Beste 60 s: —"
 	var step_key: int = -1 if page.test.phase == "WARMUP" else int(maxf(0.0,clock-ramp_at)/60.0) if ramp_at >= 0.0 else -2
 	if page.test.phase == "WARMUP":
 		var seconds: int = ceili(maxf(0.0,300.0-(clock-page.test.started_at)))
-		phase_caption.text = "Vrije opwarming · nog %d:%02d" % [seconds/60,seconds%60]
+		phase_caption.text = String(TranslationServer.translate("FTP_RAMP_HUD_FREE_WARM_UP_D_02D_REMAINING")) % [seconds/60,seconds%60]
 	elif page.test.phase == "CONNECTING":
-		phase_caption.text = "Wachten op ERG-bevestiging"
+		phase_caption.text = "FTP_RAMP_HUD_WAITING_FOR_ERG_CONFIRMATION"
 	else:
 		var left: int = ceili(maxf(0.0,60.0-fposmod(clock-ramp_at,60.0)))
-		phase_caption.text = "Doel %d W · nog %d s" % [page.test.target(clock),left]
+		phase_caption.text = String(TranslationServer.translate("FTP_RAMP_HUD_TARGET_D_W_D_S_REMAINING")) % [page.test.target(clock),left]
 	if step_key != current_step:
 		current_step = step_key
 		for child in step_rows.get_children():
@@ -211,7 +211,7 @@ func update_workout(page) -> void:
 	if not page.test.running(): return
 	ftp_panel.hide()
 	step_panel.hide()
-	stop_test.text = "Stop training"
+	stop_test.text = "FTP_RAMP_HUD_STOP_TRAINING"
 	var fresh: bool = page.live(page.now_s())
 	speed_label.text = "%.1f" % page.last_speed_kmh if fresh else "—"
 	live_power_label.text = "%.0f W" % page.measured if fresh else "— W"

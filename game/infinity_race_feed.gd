@@ -1,6 +1,6 @@
 extends RefCounted
 ## Read-only adapter. Classification, scoring and timing remain in race rules.
-const DISCIPLINES := {0: "SCRATCH", 1: "PUNTENKOERS", 2: "AFVALLING", 4: "ACHTERVOLGING", 5: "PLOEGENACHTERVOLGING", 7: "TIJDRIT"}
+const DISCIPLINES := {0: "RACE_SCRATCH", 1: "RACE_POINTS_RACE", 2: "RACE_ELIMINATION_RACE", 3: "RACE_KEIRIN", 4: "RACE_PURSUIT", 5: "RACE_TEAM_PURSUIT", 6: "RACE_MADISON", 7: "RACE_TIME_TRIAL"}
 
 func sample(game: Node3D) -> Dictionary:
 	var mode: int = game.race_mode
@@ -11,7 +11,7 @@ func sample(game: Node3D) -> Dictionary:
 	order.sort_custom(func(a: int, b: int) -> bool: return game._race_better(a, b))
 	var names: Array[String] = []
 	for i in game.rider_count: names.append(game._rider_name(i))
-	var data := {"mode": mode, "discipline": DISCIPLINES.get(mode, "VELODROME"),
+	var data := {"mode": mode, "discipline": String(TranslationServer.translate(DISCIPLINES.get(mode, "VELODROME"))),
 		"phase": game.start_state, "clock": game.clock, "laps": game.race_laps,
 		"length": game._race_length(), "lap_length": game.LAP, "positions": positions,
 		"names": names, "order": order, "finishes": finishes, "winner": game._winner_index(),
@@ -30,12 +30,12 @@ func sample(game: Node3D) -> Dictionary:
 		if not game.peloton_info.is_empty() and not positions.is_empty():
 			var leader: float = positions.max()
 			var gap: float = leader - float(game.peloton_info.front)
-			if gap > 12.0: data.breakaway = "ONTSNAPPING  +%.0f m" % gap
+			if gap > 12.0: data.breakaway = String(TranslationServer.translate("RACE_BREAKAWAY_GAP")) % gap
 	elif mode in [4, 5]:
 		if mode == 5:
 			data.positions = game.team_race.progress.duplicate()
 			data.finishes = game.team_race.times.duplicate()
-			data.names = ["JOUW PLOEG", "AI-PLOEG" if game.team_race.replay.is_empty() else str(game.team_race.replay.get("name", "TEGENPLOEG"))]
+			data.names = [String(TranslationServer.translate("ARENA_YOUR_TEAM")), "AI-PLOEG" if game.team_race.replay.is_empty() else str(game.team_race.replay.get("name", "TEGENPLOEG"))]
 			data.order = [0, 1] if game.team_race.better(0, 1) else [1, 0]
 			data.winner = -1
 			for team in data.order:

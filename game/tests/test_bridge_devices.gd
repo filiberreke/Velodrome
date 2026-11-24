@@ -10,14 +10,18 @@ func check(ok: bool, message: String) -> void:
 		failures += 1
 		push_error(message)
 func _initialize() -> void: call_deferred("run_test")
+func caption(control: Control) -> String:
+	return String(control.tr(control.get("text")))
+
 func run_test() -> void:
+	TranslationServer.set_locale("nl")
 	var game := Model.new()
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
 	var page = game.bridge_devices
 	check(not page.panel_root.visible, "No bridge: hub remains usable")
-	check(page.close_button.text == "Overslaan", "No connection uses Overslaan")
+	check(caption(page.close_button) == "Overslaan", "No connection uses Overslaan")
 	var preferences = game.get_node("GameSettings")
 	check(not page.open_button.get_global_rect().intersects(preferences.open_button.get_global_rect()), "Status/setup control does not overlap settings")
 	check(page.open_button.icon != null and page.open_button.text != "Apparaten", "Single status control includes setup icon instead of separate devices caption")
@@ -48,16 +52,16 @@ func run_test() -> void:
 	check(page.panel_root.visible and page.auto_shown, "Available bridge opens devices before menu interaction")
 	check(page.choices.trainer.item_count == 2 and page.choices.controller.item_count == 2, "Roles filter actual inventory")
 	check(page.mapping_link.visible, "Selected controller exposes button mapping link")
-	check(page.close_button.text == "Kies deze setup", "Connected devices use Kies deze setup")
+	check(caption(page.close_button) == "Kies deze setup", "Connected devices use Kies deze setup")
 	check(page.mapping_link.get_parent() == page.choices.controller.get_parent(), "Mapping belongs directly to controller section")
 	check(page.mapping_link.get_index() > page.choices.controller.get_index(), "Mapping follows selected controller")
-	check(page.mapping_link.flat and page.mapping_link.text == "Toetsenbord en controller instellen", "Mapping action describes keyboard and controller setup")
+	check(page.mapping_link.flat and caption(page.mapping_link) == "Toetsenbord en controller instellen", "Mapping action describes keyboard and controller setup")
 	page.snapshot.connected = {}
 	page._refresh()
-	check(page.close_button.text == "Overslaan" and page.controller_connection.text.contains("toetsenbord"), "Offline setup explains keyboard availability")
+	check(caption(page.close_button) == "Overslaan" and caption(page.controller_connection).contains("toetsenbord"), "Offline setup explains keyboard availability")
 	page.snapshot.connected = {"heart_rate": "hr-1"}
 	page._refresh()
-	check(page.close_button.text == "Kies deze setup", "Heart-rate-only connection also confirms setup")
+	check(caption(page.close_button) == "Kies deze setup", "Heart-rate-only connection also confirms setup")
 	page.snapshot.connected = {"trainer": "bike-1", "controller": "ride-1"}
 	page._refresh()
 	page.close_page()
@@ -105,8 +109,8 @@ func run_test() -> void:
 	check(page.choices.controller.get_item_text(page.choices.controller.selected).contains("niet beschikbaar"), "Missing saved device stays explicit")
 	page.last_response = -10.0
 	page._process(0.0)
-	check(page.choices.trainer.disabled and page.status.text.contains("niet bereikbaar"), "Bridge loss disables stale selection")
-	check(page.close_button.text == "Overslaan" and page.controller_connection.text.contains("toetsenbord") and page.connection_labels.trainer.text == "Niet verbonden", "Bridge loss clears device connections and explains keyboard availability")
+	check(page.choices.trainer.disabled and caption(page.status).contains("niet bereikbaar"), "Bridge loss disables stale selection")
+	check(caption(page.close_button) == "Overslaan" and caption(page.controller_connection).contains("toetsenbord") and caption(page.connection_labels.trainer) == "Niet verbonden", "Bridge loss clears device connections and explains keyboard availability")
 	if DisplayServer.get_name() != "headless":
 		page.last_response = Time.get_ticks_msec() / 1000.0
 		page.error = ""

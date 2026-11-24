@@ -89,7 +89,7 @@ func capture(game: Node3D, front: float, offsets: Array[float], lanes: Array[flo
 	camera.size = maxf(4.0, maxf(2.0 * horizontal / aspect, 2.0 * vertical) + 2.0)
 	game.finish_photo_taken = true
 	game.finish_photo_rider = 0
-	game.finish_photo_caption.text = "FINISHFOTO · JOUW PLOEG · EERSTE RENNER · %.2f s" % seconds
+	game.finish_photo_caption.text = String(TranslationServer.translate("TEAM_FINISH_PHOTO_CAPTION")) % seconds
 	game.finish_photo_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	if not game.finish_photo_capture_pending:
 		game.finish_photo_capture_pending = true

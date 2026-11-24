@@ -37,7 +37,7 @@ func _append(kind: String, attrs: Dictionary) -> bool:
 	var low := _number(attrs, "PowerLow", _number(attrs, "Power", 0.0))
 	var high := _number(attrs, "PowerHigh", _number(attrs, "Power", low))
 	if duration <= 0 or duration > 86400 or low < 0 or high < 0:
-		error = "Ongeldige duur of vermogenswaarde in " + kind
+		error = String(TranslationServer.translate("WORKOUT_INVALID_ZWO_BLOCK")) + kind
 		return false
 	blocks.append({"kind":kind, "duration":duration, "power_low":low, "power_high":high, "events":[],
 		"ftptest":attrs.get("ftptest", "0") == "1", "ramptest":attrs.get("ramptest", "0") == "1"})
@@ -51,7 +51,7 @@ func parse(xml: String) -> bool:
 	blocks.clear()
 	var parser := XMLParser.new()
 	if parser.open_buffer(xml.to_utf8_buffer()) != OK:
-		error = "XML kan niet geopend worden"
+		error = String(TranslationServer.translate("WORKOUT_ZWO_OPEN_FAILED"))
 		return false
 	var field := ""
 	var active := false
@@ -87,7 +87,7 @@ func parse(xml: String) -> bool:
 				if kind == field: field = ""
 				if kind in BLOCKS: active = false
 	if blocks.is_empty():
-		error = "Geen ondersteunde trainingsblokken gevonden"
+		error = String(TranslationServer.translate("WORKOUT_ZWO_NO_BLOCKS"))
 		return false
 	return true
 

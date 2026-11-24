@@ -9,6 +9,7 @@ func check(ok: bool, message: String) -> void:
 		failures += 1
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
+	TranslationServer.set_locale("nl")
 	# Exercise persisted settings without leaving changes in the player's files.
 	var saved_preferences: Dictionary = {}
 	for path in ["user://config/display_settings.cfg", "user://config/rider_profile.cfg", "user://config/player_appearance.cfg"]:
@@ -35,7 +36,7 @@ func run() -> void:
 		for i in range(120): game._physics_process(1.0 / 60.0)
 		check(game.clock == 0.0 and game.distances == before and not game.running, "Race advanced during intro")
 		intro.elapsed = 1.0; intro.advance(0.0)
-		check(intro.subtitle.text == "Welkom bij Velodrome!" and intro.caption_panel.visible, "Short welcome missing")
+		check(intro.subtitle.tr(intro.subtitle.text) == "Welkom bij Velodrome!" and intro.caption_panel.visible, "Short welcome missing")
 		check(intro.suite.voices[0].is_playing() and not intro.suite.voices[1].is_playing(), "Welcome mouth cue incorrect")
 		intro.elapsed = 3.0; intro.advance(0.0)
 		check(intro.subtitle.text.contains("wedstrijd:") and intro.suite.voices[1].is_playing(), "Continuation missing")

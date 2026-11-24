@@ -66,5 +66,5 @@ func step(game, dt: float) -> void:
 
 func notice(game) -> String:
 	if game.distances[0] >= game.LAP - 1.0 and game.speeds[0] < MIN_START_SPEED_MPS:
-		return "Geneutraliseerde ronde — versnel rustig voor de start"
-	return "Geneutraliseerde ronde — blijf bij het peloton · nog %.0f m" % maxf(0.0, game.LAP - game.distances[0])
+		return String(TranslationServer.translate("RACE_NEUTRAL_ACCELERATE"))
+	return String(TranslationServer.translate("RACE_NEUTRAL_STAY_IN_PACK")) % maxf(0.0, game.LAP - game.distances[0])

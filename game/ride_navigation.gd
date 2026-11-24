@@ -170,12 +170,12 @@ func open_keyboard(input: LineEdit) -> void:
 		key.pressed.connect(func():
 			if target.max_length == 0 or draft.text.length() < target.max_length: draft.text += letter)
 		grid.add_child(key)
-	for caption in ["Wissen", "Klaar", "Annuleren"]:
+	for caption in ["ONSCREEN_KEYBOARD_CLEAR", "ONSCREEN_KEYBOARD_DONE", "ONSCREEN_KEYBOARD_CANCEL"]:
 		var key := Button.new()
 		key.text = caption
 		key.pressed.connect(func():
-			if caption == "Wissen": draft.text = draft.text.left(-1)
-			else: close_keyboard(caption == "Klaar"))
+			if caption == "ONSCREEN_KEYBOARD_CLEAR": draft.text = draft.text.left(-1)
+			else: close_keyboard(caption == "ONSCREEN_KEYBOARD_DONE"))
 		box.add_child(key)
 	grid.get_child(0).grab_focus()
 

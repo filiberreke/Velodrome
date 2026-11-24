@@ -615,7 +615,7 @@ func _build_scoreboard() -> void:
 	board.font_size = 44
 	board.pixel_size = 0.009
 	board.modulate = Color.WHITE
-	board.text = "VELODROME 250\nRANGLIJST"
+	board.text = "ARENA_RANKINGS"
 	board.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	add_child(board)
 

@@ -80,7 +80,7 @@ func enter() -> void:
 	page.selected_activity = {}
 	_capture_sample(); _persist(false); hud.show(); _present(0)
 func leave() -> void:
-	_score_interrupted("Training verlaten tijdens de aflossing")
+	_score_interrupted(String(TranslationServer.translate("MADISON_LEFT_DURING_EXCHANGE")))
 	animation.clear(); input_sources.clear()
 	super.leave()
 	partner_present = false; bikes[1].hide(); exchange_zone.hide()
@@ -92,7 +92,7 @@ func grab_button(source: String, pressed: bool) -> void:
 	if pressed and not was_held and active and session.running() and partner_present and pending_trial and not madison.active:
 		var placement: Dictionary = madison.positioning(self)
 		var pace: Dictionary = madison.speed_guidance(self)
-		madison.miss_attempt(str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else "Te vroeg gedrukt — vóór de groene zone")
+		madison.miss_attempt(str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else String(TranslationServer.translate("MADISON_PRESSED_TOO_EARLY")))
 	else: madison.button(not input_sources.is_empty())
 func steer(direction: int) -> void:
 	if session.running(): player_lane_target = clampi(player_lane_target+direction,0,game.LANES.size()-1)
@@ -131,7 +131,7 @@ func _score(success: bool) -> void:
 	if not success and reason.is_empty():
 		var placement: Dictionary = madison.positioning(self)
 		var pace: Dictionary = madison.speed_guidance(self)
-		reason = str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else "Greep gemist — niet op tijd op A gedrukt"
+		reason = str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else String(TranslationServer.translate("MADISON_MISSED_GRAB"))
 	var score: int = clampi(roundi(madison.score_percent()),1,100) if success else 0
 	var role: String = "Uitgaand" if attempt_giver == 0 else "Inkomend"
 	exchange_results.append({"number":exchange_results.size()+1,"role":role,"player_role":"giver" if attempt_giver == 0 else "receiver","success":success,"reason":reason,"score":score,"momentum_percent":madison.efficiency*100.0 if success else 0.0})
@@ -170,7 +170,7 @@ func _step(dt: float, power: float) -> void:
 		if madison.active and madison.phase == madison.Phase.APPROACH:
 			var placement: Dictionary = madison.positioning(self)
 			var pace: Dictionary = madison.speed_guidance(self)
-			madison.cancel(str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else "Ploegmaat niet tijdig binnen handbereik")
+			madison.cancel(str(placement.reason) if not placement.valid else str(pace.reason) if not pace.valid else String(TranslationServer.translate("MADISON_TEAMMATE_OUT_OF_REACH")))
 		elif not madison.active:
 			_score(false)
 			_despawn_partner()
@@ -262,7 +262,7 @@ func _persist(final: bool) -> void:
 	if activity.is_empty(): return
 	activity.merge({"samples":samples,"duration_s":total_elapsed,"distance_m":total_distance,"reason":session.reason,"final":final,"attempts":page.progress.attempts,"successes":page.progress.successes,"target":page.progress.target,"completed":page.progress.complete(),"exchanges":exchange_results.duplicate(true),"peak_power_w":session.peak_w,"mean_power_w":session.energy_j/maxf(.001,session.elapsed)},true)
 	var ok: bool = store.save(activity)
-	save_status = "Training opgeslagen in het spel." if ok else "Opslaan mislukt: "+store.error
+	save_status = String(TranslationServer.translate("TRAINING_ACTIVITY_SAVED")) if ok else "Opslaan mislukt: "+store.error
 	if ok:
 		last_save = total_elapsed
 		if final: saved_final = true

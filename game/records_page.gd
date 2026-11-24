@@ -37,9 +37,9 @@ func _ready() -> void:
 	add_child(filters)
 	# Visible segmented buttons share the existing category IDs and filter state.
 	mode_choice = OptionButton.new()
-	mode_choice.add_item("Achtervolging", 4)
-	mode_choice.add_item("Ploegenachtervolging", 5)
-	mode_choice.add_item("Tijdrit", 7)
+	mode_choice.add_item("RACE_MENU_INDIVIDUAL_PURSUIT", 4)
+	mode_choice.add_item("RACE_MENU_TEAM_PURSUIT", 5)
+	mode_choice.add_item("RACE_MENU_TIME_TRIAL", 7)
 	add_child(mode_choice)
 	mode_choice.hide()
 	distance_choice = OptionButton.new()
@@ -57,7 +57,7 @@ func _ready() -> void:
 		filters.add_child(button)
 		mode_buttons.append(button)
 	filters.add_spacer(false)
-	distance_caption = _label("Afstand", 19, MenuStyle.MUTED)
+	distance_caption = _label("RECORDS_PAGE_DISTANCE", 19, MenuStyle.MUTED)
 	filters.add_child(distance_caption)
 	for i in range(2):
 		var button := Button.new()
@@ -69,18 +69,18 @@ func _ready() -> void:
 		filters.add_child(button)
 		distance_buttons.append(button)
 	start_choice = OptionButton.new()
-	start_choice.add_item("Staande start")
-	start_choice.add_item("Vliegende start")
+	start_choice.add_item("RACE_MENU_STANDING_START")
+	start_choice.add_item("RACE_MENU_FLYING_START")
 	start_choice.custom_minimum_size = Vector2(230, 54)
-	start_choice.tooltip_text = "Startwijze tijdrit"
+	start_choice.tooltip_text = "RECORDS_PAGE_TIME_TRIAL_START_TYPE"
 	filters.add_child(start_choice)
 	size_box = VBoxContainer.new()
 	filters.add_child(size_box)
 	size_choice = OptionButton.new()
 	size_choice.custom_minimum_size = Vector2(180, 54)
-	size_choice.add_item("3 renners", 3)
-	size_choice.add_item("4 renners", 4)
-	size_choice.tooltip_text = "Ploegomvang"
+	size_choice.add_item("RECORDS_PAGE_3_RIDERS", 3)
+	size_choice.add_item("RECORDS_PAGE_4_RIDERS", 4)
+	size_choice.tooltip_text = "RECORDS_PAGE_TEAM_SIZE"
 	size_box.add_child(size_choice)
 	for choice in [mode_choice, distance_choice, size_choice, start_choice]:
 		choice.item_selected.connect(func(_index: int) -> void: refresh())
@@ -97,9 +97,9 @@ func _ready() -> void:
 	var captions := HBoxContainer.new()
 	header.add_child(captions)
 	_cell(captions, "#", 1)
-	_cell(captions, "Speler", 5)
-	_cell(captions, "Datum / tijd", 5)
-	_cell(captions, "Eindtijd", 2, true)
+	_cell(captions, "OMNIUM_OMNIUM_PAGE_PLAYER", 5)
+	_cell(captions, "RECORDS_PAGE_DATE_TIME", 5)
+	_cell(captions, "RECORDS_PAGE_FINISH_TIME", 2, true)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -112,13 +112,13 @@ func _ready() -> void:
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(message)
 	back_button = Button.new()
-	back_button.text = "← Spelvormen"
+	back_button.text = "RECORDS_PAGE_RACE_MODES"
 	back_button.custom_minimum_size = Vector2(260, 52)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	add_child(back_button)
 	first_ride_button = Button.new()
-	first_ride_button.text = "Kies een wedstrijd →"
+	first_ride_button.text = "RECORDS_PAGE_CHOOSE_A_RACE"
 	first_ride_button.custom_minimum_size = Vector2(310, 54)
 	first_ride_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	MenuStyle.primary(first_ride_button)
@@ -156,6 +156,11 @@ func open_records() -> void:
 			_last_opened_time_trial_id = result_id
 	refresh(true)
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready() and is_visible_in_tree():
+		refresh()
+
+
 func refresh(import_old: bool = false) -> void:
 	if import_old: store.import_saved()
 	var import_error: String = store.last_error
@@ -174,17 +179,17 @@ func refresh(import_old: bool = false) -> void:
 		distance_buttons[i].button_pressed = distance_choice.selected == i
 		distance_buttons[i].visible = true
 	distance_caption.visible = true
-	category.text = "%s · %s" % [mode_choice.text, "500 m" if distance_choice.selected == 0 else "1 km"] if future else "%s · %s%s" % [mode_choice.text, distance_choice.text, " · " + size_choice.text if size_box.visible else ""]
+	category.text = "%s · %s" % [tr(mode_choice.text), "500 m" if distance_choice.selected == 0 else "1 km"] if future else "%s · %s%s" % [tr(mode_choice.text), tr(distance_choice.text), " · " + tr(size_choice.text) if size_box.visible else ""]
 	shown.clear()
 	if future:
 		var meters: int = 500 if distance_choice.selected == 0 else 1000
 		var start_type := "flying" if start_choice.selected == 1 else "standing"
-		category.text += " · " + start_choice.text
+		category.text += " · " + tr(start_choice.text)
 		var references := time_trials.references(meters, -1.0, start_type)
 		shown.assign(time_trials.all_rides().filter(func(r): return int(r["distance_m"]) == meters and str(r.get("start_type", "standing")) == start_type))
 		shown.sort_custom(func(a, b): return float(a["seconds"]) < float(b["seconds"]))
 		shown = shown.slice(0, 10)
-		message.text = "All-time: %s · Recent (60 dagen): %s · Laatste rit: %s" % [_record_time(references["alltime"]), _record_time(references["recent"]), _record_time(references["last"])]
+		message.text = String(TranslationServer.translate("RECORDS_PAGE_ALL_TIME_S_RECENT_60_DAYS_S_LAST_RIDE_S")) % [_record_time(references["alltime"]), _record_time(references["recent"]), _record_time(references["last"])]
 	else: shown = store.top(mode_choice.get_selected_id(), distance_choice.get_selected_id(), size_choice.get_selected_id() if size_box.visible else 0)
 	first_ride_button.visible = shown.is_empty()
 	for child in rows.get_children():
@@ -199,15 +204,15 @@ func refresh(import_old: bool = false) -> void:
 		row.custom_minimum_size.y = 26
 		shell.add_child(row)
 		_cell(row, str(index + 1), 1)
-		_cell(row, str(entry.get("player_name", "Jij")), 5)
+		_cell(row, str(entry.get("player_name", String(TranslationServer.translate("RECORDS_YOU")))), 5)
 		_cell(row, str(entry.get("finished_local", Time.get_datetime_string_from_unix_time(int(entry["finished_at"])))), 5)
 		_cell(row, time_text(float(entry["seconds"])), 2, true)
 	if not future: message.text = import_error if not import_error.is_empty() else store.last_error
 	if message.text.is_empty():
-		message.text = "Nog geen voltooide tijdrit op deze afstand." if future else "Nog geen prestaties in deze categorie. Voltooi een rit om automatisch je tijd te registreren." if shown.is_empty() else "Snelste 10 voltooide prestaties · automatisch bewaard · beste tijd bovenaan"
+		message.text = "RECORDS_PAGE_NO_COMPLETED_TIME_TRIAL_AT_THIS_DISTANCE_YET" if future else "RECORDS_PAGE_NO_PERFORMANCES_IN_THIS_CATEGORY_YET_COMPLETE_A_RIDE_TO_RECORD_YOUR_TI" if shown.is_empty() else "RECORDS_PAGE_FASTEST_10_COMPLETED_PERFORMANCES_SAVED_AUTOMATICALLY_BEST_TIME_FIRST"
 		for entry in shown:
 			if bool(entry.get("legacy", false)):
-				message.text += "\nOude rit: spelernaam was niet opgeslagen; de datum is het toenmalige opslagmoment (UTC)."
+				message.text += String(TranslationServer.translate("RECORDS_OLD_RIDE_PLAYER_NAME_WAS_NOT_SAVED_THE_DATE_IS_THE_ORIGINAL_SAVE_TIME_"))
 				break
 
 static func _record_time(ride: Dictionary) -> String:

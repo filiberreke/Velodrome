@@ -84,7 +84,7 @@ func text(value: String, font_size: int, color: Color = INK) -> Label:
 	node.text = value
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	node.add_theme_font_size_override("font_size", font_size)
-	if value in ["Rondom jou", "RONDETIJDEN", "HALVE-RONDETIJDEN · 125 M", "TUSSENSTAND · PUNTEN"]:
+	if value in ["RACE_HUD_AROUND_YOU", "HUD_LAP_TIMES", "HUD_HALF_LAP_TIMES_125_M", "RACE_HUD_STANDINGS_POINTS"]:
 		node.add_theme_font_override("font", MenuStyle.heading())
 	node.add_theme_color_override("font_color", color)
 	return node
@@ -169,28 +169,28 @@ func _build_power() -> void:
 	power_panel.add_child(column)
 	var heading := HBoxContainer.new()
 	column.add_child(heading)
-	var title := text("SNELHEID", 16, MUTED)
+	var title := text("HUD_SPEED", 16, MUTED)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
 	var speed_row := HBoxContainer.new()
 	column.add_child(speed_row)
 	speed_label = text("0.0", 40)
 	speed_row.add_child(speed_label)
-	var speed_unit := text("km/u", 21, ACCENT)
+	var speed_unit := text("COMMON_SPEED_UNIT", 21, ACCENT)
 	speed_unit.size_flags_vertical = Control.SIZE_SHRINK_END
 	speed_row.add_child(speed_unit)
-	heart_label = _metric(column, "HARTSLAG", "— bpm")
-	cadence_label = _metric(column, "CADANS", "— rpm")
-	heart_label.tooltip_text = "Hartslag is voorlopig een placeholder"
-	gear_label = _metric(column, "VERSNELLING", "—")
+	heart_label = _metric(column, String(TranslationServer.translate("HUD_HEART_RATE")), "— bpm")
+	cadence_label = _metric(column, String(TranslationServer.translate("HUD_CADENCE")), "— rpm")
+	heart_label.tooltip_text = "RACE_HUD_HEART_RATE_IS_CURRENTLY_A_PLACEHOLDER"
+	gear_label = _metric(column, String(TranslationServer.translate("HUD_GEAR")), "—")
 	gear_label.custom_minimum_size.x = 100
 	gear_label.clip_text = true
 	gear_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	gear_label.tooltip_text = "Gekozen versnelling uit de trainerbridge, wanneer beschikbaar"
+	gear_label.tooltip_text = "RACE_HUD_SELECTED_GEAR_FROM_THE_TRAINER_BRIDGE_WHEN_AVAILABLE"
 	_build_energy(column)
 	slipstream_heading = HBoxContainer.new()
 	column.add_child(slipstream_heading)
-	var slipstream_caption := text("SLIPSTREAM", 16, MUTED)
+	var slipstream_caption := text("HUD_SLIPSTREAM", 16, MUTED)
 	slipstream_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slipstream_heading.add_child(slipstream_caption)
 	slipstream_label = text("0%", 18, ACCENT)
@@ -216,7 +216,7 @@ func _build_energy(column: VBoxContainer) -> void:
 	column.add_child(energy_panel)
 	var heading := HBoxContainer.new()
 	energy_panel.add_child(heading)
-	var caption := text("W′-ENERGIE", 16, MUTED)
+	var caption := text("HUD_ENERGY_RESERVE", 16, MUTED)
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(caption)
 	energy_label = text("—", 18, ACCENT)
@@ -235,7 +235,7 @@ func _build_energy(column: VBoxContainer) -> void:
 	energy_bar.add_theme_stylebox_override("background", track)
 	energy_bar.add_theme_stylebox_override("fill", fill)
 	energy_panel.add_child(energy_bar)
-	energy_panel.tooltip_text = "Beschikbare W′-reserve · herstelt bij rustig rijden"
+	energy_panel.tooltip_text = "RACE_HUD_AVAILABLE_W_RESERVE_RECOVERS_AT_LOW_INTENSITY"
 	energy_panel.hide()
 
 func _update_energy(data: Dictionary) -> void:
@@ -282,7 +282,7 @@ func _build_nearby() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
 	nearby_panel.add_child(column)
-	column.add_child(text("Rondom jou", 22, INK))
+	column.add_child(text("RACE_HUD_AROUND_YOU", 22, INK))
 	peloton_label = text("", 17, ACCENT)
 	peloton_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(peloton_label)
@@ -319,7 +319,7 @@ func _build_eliminated() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	eliminated_panel.add_child(column)
-	column.add_child(text("KLASSEMENT · AFGEVALLEN", 18, ACCENT))
+	column.add_child(text("RACE_HUD_STANDINGS_ELIMINATED", 18, ACCENT))
 	eliminated_scroll = ScrollContainer.new()
 	eliminated_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(eliminated_scroll)
@@ -351,8 +351,8 @@ func _build_team_laps() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	team_laps_panel.add_child(column)
-	column.add_child(text("HALVE-RONDETIJDEN · 125 M", 16, MUTED))
-	column.add_child(text("Afstand     Tijd (verschil)", 16, MUTED))
+	column.add_child(text("HUD_HALF_LAP_TIMES_125_M", 16, MUTED))
+	column.add_child(text("RACE_HUD_DISTANCE_TIME_GAP", 16, MUTED))
 	team_laps_scroll = ScrollContainer.new()
 	team_laps_scroll.custom_minimum_size.y = 330
 	team_laps_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -375,7 +375,7 @@ func _build_team_laps() -> void:
 		row.add_child(value)
 		team_lap_rows.append({"row": row, "distance": lap, "value": value})
 		row.hide()
-	team_laps_panel.tooltip_text = "Tijd per 125 m · cumulatief verschil op hetzelfde afstandspunt: + voor, − achter. (…) wacht op de tegenploeg."
+	team_laps_panel.tooltip_text = "HUD_TIME_PER_125_M_CUMULATIVE_GAP_AT_THE_SAME_DISTANCE_AHEAD_BEHIND_WAITIN"
 	team_laps_panel.hide()
 
 static func team_half_summary(own: Array, opponent: Array) -> Array[Dictionary]:
@@ -423,20 +423,20 @@ func _build_bottom() -> void:
 	row.add_child(center)
 	var time := VBoxContainer.new()
 	center.add_child(time)
-	time.add_child(text("TIJD", 16, MUTED))
+	time.add_child(text("HUD_TIME", 16, MUTED))
 	time_label = text("00:00.0", 40)
 	time.add_child(time_label)
 	var leader := VBoxContainer.new()
 	center.add_child(leader)
-	gap_caption = text("KOPPOSITIE", 16, MUTED)
+	gap_caption = text("HUD_LEAD_POSITION", 16, MUTED)
 	leader.add_child(gap_caption)
-	gap_label = text("Aan kop", 28, ACCENT)
+	gap_label = text("RACE_HUD_LEADING", 28, ACCENT)
 	leader.add_child(gap_label)
 	_build_pursuit_bar(row)
 	var position := VBoxContainer.new()
 	position.custom_minimum_size.x = 230
 	row.add_child(position)
-	var caption := text("POSITIE", 16, MUTED)
+	var caption := text("HUD_POSITION", 16, MUTED)
 	right_caption = caption
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	position.add_child(caption)
@@ -452,13 +452,13 @@ func _build_bottom() -> void:
 	solo_bottom.alignment = BoxContainer.ALIGNMENT_CENTER
 	solo_bottom.add_theme_constant_override("separation", 120)
 	row.add_child(solo_bottom)
-	for title in ["GEREDEN TIJD", "GESCHATTE EINDTIJD"]:
+	for title in ["RACE_HUD_ELAPSED_TIME", "RACE_HUD_ESTIMATED_FINISH_TIME"]:
 		var column := VBoxContainer.new()
 		solo_bottom.add_child(column)
 		column.add_child(text(title, 16, MUTED))
 		var value := text("—", 40)
 		column.add_child(value)
-		if title == "GEREDEN TIJD": solo_elapsed_label = value
+		if title == "RACE_HUD_ELAPSED_TIME": solo_elapsed_label = value
 		else: solo_estimate_label = value
 	solo_bottom.hide()
 	var help := VBoxContainer.new()
@@ -466,21 +466,21 @@ func _build_bottom() -> void:
 	help.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	help.add_theme_constant_override("separation", 8)
 	row.add_child(help)
-	pause_hint = text("ESC · Pauze", 17, MUTED)
-	settings_hint = text("F10 - Instellingen", 17, MUTED)
+	pause_hint = text("RACE_HUD_ESC_PAUSE", 17, MUTED)
+	settings_hint = text("RACE_HUD_F10_SETTINGS", 17, MUTED)
 	help.add_child(pause_hint)
 	help.add_child(settings_hint)
 
 func set_keyboard_hints(mapping: RefCounted, profile: String) -> void:
-	pause_hint.text = mapping.caption(profile, "pause") + " · Pauze"
-	settings_hint.text = mapping.caption("global", "settings") + " - Instellingen"
+	pause_hint.text = mapping.caption(profile, "pause") + String(TranslationServer.translate("HUD_PAUSE"))
+	settings_hint.text = mapping.caption("global", "settings") + String(TranslationServer.translate("HUD_SETTINGS"))
 
 func _build_solo_checkpoints() -> void:
 	solo_panel = panel(left_stack, Control.PRESET_TOP_LEFT, 0, 0, 0, 0)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	solo_panel.add_child(column)
-	column.add_child(text("HALVE-RONDETIJDEN · 125 M", 16, MUTED))
+	column.add_child(text("HUD_HALF_LAP_TIMES_125_M", 16, MUTED))
 	solo_reference_label = text("", 16, MUTED)
 	column.add_child(solo_reference_label)
 	for i in range(8):
@@ -498,7 +498,7 @@ func _build_solo_checkpoints() -> void:
 		delta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(delta)
 		solo_rows.append({"row": row, "distance": distance, "elapsed": elapsed, "delta": delta})
-	solo_panel.tooltip_text = "Tijd per afzonderlijke 125 meter · negatief/groen = sneller, positief/rood = langzamer dan de referentie."
+	solo_panel.tooltip_text = "HUD_TIME_FOR_EACH_125_METRE_SEGMENT_NEGATIVE_GREEN_FASTER_POSITIVE_RED_SLO"
 	solo_panel.hide()
 
 static func solo_clock(seconds: float) -> String:
@@ -530,8 +530,8 @@ func _update_solo(data: Dictionary) -> void:
 	var reference: Dictionary = data.get("solo_reference", {})
 	var kind := str(data.get("solo_reference_kind", "none"))
 	var reference_splits: Array = reference.get("splits", []) if kind != "none" else []
-	var titles := {"last": "Laatste rit", "recent": "Recent PR · 60 dagen", "alltime": "All-time PR"}
-	solo_reference_label.text = "Aanloopronde · klok start bij GO!" if data.get("run_up", false) else ("Tijd per 125 m" if reference_splits.is_empty() else str(titles.get(kind, "Referentie")))
+	var titles := {"last": String(TranslationServer.translate("RACE_MENU_LAST_RIDE")), "recent": String(TranslationServer.translate("MENU_RECENT_PB_60_DAYS")), "alltime": String(TranslationServer.translate("MENU_ALL_TIME_PB"))}
+	solo_reference_label.text = String(TranslationServer.translate("HUD_LEAD_IN_LAP_CLOCK_STARTS_AT_GO")) if data.get("run_up", false) else (String(TranslationServer.translate("RACE_HUD_TIME_PER_125_M")) if reference_splits.is_empty() else str(titles.get(kind, String(TranslationServer.translate("HUD_REFERENCE")))))
 	var crossings: Array = data.get("solo_crossings", [])
 	var count := int(data.get("solo_distance_m", 500)) / 125
 	var completed: int = mini(crossings.size(), count)
@@ -611,7 +611,7 @@ func _update_pursuit_bar(data: Dictionary) -> void:
 	pursuit_center.visible = active
 	position_label.visible = not active
 	pursuit_time_label.visible = active
-	right_caption.text = "TOTALE TIJD" if active else "POSITIE"
+	right_caption.text = "RACE_HUD_TOTAL_TIME" if active else "HUD_POSITION"
 	if not active:
 		return
 	pursuit_time_label.text = precise_clock(float(data["seconds"]))
@@ -622,7 +622,7 @@ func _update_pursuit_bar(data: Dictionary) -> void:
 	for i in range(2):
 		pursuit_laps[i].text = "%.2f s" % float(times[i]) if float(times[i]) >= 0.0 else ""
 		var stats: Dictionary = data.get("pursuit_stats", [{}, {}])[i]
-		pursuit_stats[i].text = "%.1f km/u · %.0f W" % [float(stats["kmh"]), float(stats["watts"])] if float(times[i]) >= 0.0 and not stats.is_empty() else ""
+		pursuit_stats[i].text = String(TranslationServer.translate("HUD_1F_KM_H_0F_W")) % [float(stats["kmh"]), float(stats["watts"])] if float(times[i]) >= 0.0 and not stats.is_empty() else ""
 	var live: Variant = data.get("pursuit_live_gap", null)
 	pursuit_gap_label.text = ""
 	if live != null:
@@ -648,11 +648,11 @@ func _build_developer() -> void:
 	developer_panel.add_child(column)
 	var heading := HBoxContainer.new()
 	column.add_child(heading)
-	var title := text("DEVELOPER HUD", 24, ACCENT)
+	var title := text("HUD_DEVELOPER_HUD", 24, ACCENT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
 	var close := Button.new()
-	close.text = "X  ·  Sluiten"
+	close.text = "HUD_X_CLOSE"
 	close.custom_minimum_size = Vector2(150, 42)
 	close.pressed.connect(toggle_developer)
 	heading.add_child(close)
@@ -714,7 +714,7 @@ func update_race(data: Dictionary) -> void:
 	var out: bool = bool(data.get("team_out", false))
 	var role := ""
 	if active:
-		role = "UITBOLLEN · automatisch aansluiten achteraan" if out else ("EERSTE KOPBEURT · stuur rechts om te wisselen" if target < 0.0 else ("Op kop · stuur rechts om te wisselen" if bool(data.get("team_leading", false)) else "Positie %d/%d" % [int(data.get("team_rank", 1)), int(data.get("team_count", 3))]))
+		role = String(TranslationServer.translate("HUD_COAST_AUTOMATICALLY_REJOIN_AT_THE_BACK")) if out else (String(TranslationServer.translate("HUD_FIRST_TURN_ON_THE_FRONT_STEER_RIGHT_TO_CHANGE_OVER")) if target < 0.0 else (String(TranslationServer.translate("HUD_LEADING_STEER_RIGHT_TO_CHANGE_OVER")) if bool(data.get("team_leading", false)) else "Positie %d/%d" % [int(data.get("team_rank", 1)), int(data.get("team_count", 3))]))
 	var following: bool = not bool(data.get("team_leading", false))
 	var pc_control := bool(data.get("pc_control", false))
 	var ceiling: float = float(data.get("pc_power_limit_watts", -1.0)) if pc_control else -1.0
@@ -730,7 +730,7 @@ func update_race(data: Dictionary) -> void:
 	slipstream_bar.max_value = maximum
 	slipstream_bar.value = reduction
 	slipstream_label.text = "%d%%" % roundi(reduction)
-	slipstream_bar.tooltip_text = "%.0f%% minder luchtweerstand · maximaal %.0f%%" % [reduction, maximum]
+	slipstream_bar.tooltip_text = String(TranslationServer.translate("HUD_0F_LESS_AIR_RESISTANCE_MAXIMUM_0F")) % [reduction, maximum]
 	var bpm: Variant = data.get("heart_rate_bpm", null)
 	heart_label.text = "%d bpm" % int(bpm) if (bpm is int or bpm is float) and int(bpm) > 0 else "— bpm"
 	var rpm: Variant = data.get("cadence_rpm", null)
@@ -742,13 +742,13 @@ func update_race(data: Dictionary) -> void:
 	if erg_active:
 		erg_active = is_finite(float(erg_watts)) and float(erg_watts) >= 0.0
 	gear_label.text = "ERG %.0f W" % float(erg_watts) if erg_active else str(data["gear"])
-	gear_label.get_parent().get_child(0).text = "WEERSTAND" if erg_active else "VERSNELLING"
+	gear_label.get_parent().get_child(0).text = "HUD_RESISTANCE" if erg_active else "HUD_GEAR"
 	var lap_suffix: int = int(data.get("lap_credit", 0))
-	lap_label.text = "NEUTRAAL" if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
+	lap_label.text = String(TranslationServer.translate("HUD_NEUTRAL")) if data.get("neutralised", false) else ("%d/%d %+d" % [data["lap"], data["laps"], lap_suffix] if lap_suffix != 0 else "%d/%d" % [data["lap"], data["laps"]])
 	time_label.text = clock_text(data["seconds"])
 	position_label.text = "%d/%d" % [data["position"], data["count"]]
 	gap_label.text = data["leader_gap"]
-	gap_caption.text = "TOT LAATSTE" if bool(data.get("elimination", false)) else ("PELOTON" if not str(data.get("peloton_gap", "")).is_empty() else "KOPPOSITIE")
+	gap_caption.text = String(TranslationServer.translate("RACE_HUD_TO_LAST")) if bool(data.get("elimination", false)) else (String(TranslationServer.translate("HUD_PELOTON")) if not str(data.get("peloton_gap", "")).is_empty() else String(TranslationServer.translate("HUD_LEAD_POSITION")))
 	status_label.text = data.get("notice", "")
 	status_panel.visible = not status_label.text.is_empty() and signals.countdown_label.text.is_empty()
 	map.set_progress(data["distances"])
@@ -765,7 +765,7 @@ func update_race(data: Dictionary) -> void:
 	var positions: Array = data.get("race_positions", [])
 	if positions.size() == order.size(): ids = closest_race_ids(order, positions)
 	var hidden_count: int = order.size() - ids.size()
-	nearby_others.text = "+ %d anderen" % hidden_count
+	nearby_others.text = String(TranslationServer.translate("RACE_HUD_D_OTHERS")) % hidden_count
 	nearby_others.visible = hidden_count > 0
 	for index in range(rider_rows.size()):
 		var row: Dictionary = rider_rows[index]

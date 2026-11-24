@@ -12,6 +12,7 @@ func _initialize() -> void:
 	call_deferred("run_test")
 
 func run_test() -> void:
+	TranslationServer.set_locale("nl")
 	var game = Game.new()
 	root.add_child(game)
 	game.set_physics_process(false)
@@ -26,7 +27,7 @@ func run_test() -> void:
 	check(menu.cards.size() == 10 and menu.previews.size() == 10, "Nine disciplines plus Records tile")
 	var expected := ["Scratch", "Achtervolging", "Ploegenachtervolging", "Puntenkoers", "Ploegkoers", "Afvalling", "Keirin"]
 	for i in range(7):
-		check(menu.MODES[i]["title"] == expected[i], "Requested card order")
+		check(TranslationServer.translate(menu.MODES[i]["title"]) == expected[i], "Requested card order")
 		check(menu.previews[i].own_world_3d, "Preview isolated from stadium and racing world")
 		var bounds: Rect2 = menu.cards[i].get_global_rect()
 		check(bounds.size.x > 270 and bounds.size.y >= 282, "Card has room for illustration and text")

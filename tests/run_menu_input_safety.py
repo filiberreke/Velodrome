@@ -20,7 +20,7 @@ SUITES = [
     "test_exit_pause", "test_result_navigation", "test_ride_pursuit_navigation",
     "test_ride_mapping_routing", "test_bridge_devices", "test_player_appearance",
     "test_v02_bugs", "test_elimination_positioning", "test_keirin_player_traffic",
-    "test_strava_metadata",
+    "test_strava_metadata", "test_localization",
 ]
 # These engine/environment diagnostics also occur on unchanged main. Never
 # suppress SCRIPT ERROR, assertions, missing resources, or parse failures.
@@ -46,12 +46,13 @@ def main():
         # Runtime GLB assets are authoritative for these tests. Excluding Blender
         # sources avoids requiring an editor-specific Blender installation.
         shutil.copytree(ROOT / "game", project, ignore=shutil.ignore_patterns(
-            ".godot", "*.blend", "*.blend.import", "*.csv", "*.csv.import", "override.cfg"))
+            ".godot", "*.blend", "*.blend.import", "override.cfg"))
 
         def run(name, arguments, timeout=300):
             env = dict(os.environ, APPDATA=str(work / name / "appdata"),
-                       LOCALAPPDATA=str(work / name / "local"))
-            for key in ("APPDATA", "LOCALAPPDATA"):
+                       LOCALAPPDATA=str(work / name / "local"),
+                       XDG_DATA_HOME=str(work / name / "xdg"))
+            for key in ("APPDATA", "LOCALAPPDATA", "XDG_DATA_HOME"):
                 Path(env[key]).mkdir(parents=True, exist_ok=True)
             log = output / (name + ".log")
             command = [engine, "--headless", "--path", str(project),

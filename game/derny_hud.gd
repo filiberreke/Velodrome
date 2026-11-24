@@ -36,7 +36,7 @@ func _ready() -> void:
 	controls.offset_top = 150
 	controls.add_theme_constant_override("separation",8)
 	add_child(controls)
-	for caption in ["Stop training", "← Pistetraining"]:
+	for caption in [String(TranslationServer.translate("FTP_RAMP_HUD_STOP_TRAINING")), String(TranslationServer.translate("TRAINING_HISTORY_TRACK_TRAINING"))]:
 		var button := Button.new()
 		button.text = caption
 		button.custom_minimum_size.y = 46
@@ -53,20 +53,20 @@ func _ready() -> void:
 func update_training(scene) -> void:
 	var power: float = scene.demo_power if scene.demo else scene.game.setup_panel.ftp_page.measured
 	power_meter.set_power(power)
-	power_meter.tooltip_text = "Geleverd vermogen"
+	power_meter.tooltip_text = "DERNY_ACTUAL_POWER"
 	speed_label.text = "%.1f" % (scene.player_speed * 3.6)
 	var heart: Variant = scene.game.trainer_heart_rate_bpm if not scene.demo else null
 	heart_label.text = "%d bpm" % int(heart) if heart is float or heart is int else "— bpm"
 	cadence_label.text = "%.0f rpm" % scene.game.cadence if not scene.demo and scene.game.setup_panel.ftp_page.live(scene.game._now_s()) and scene.game.cadence >= 0 else "— rpm"
 	gear_label.text = str(scene.game.trainer_gear) if not scene.demo else "PC-proefrit"
-	gear_label.get_parent().get_child(0).text = "VERSNELLING" if not scene.demo else "BEDIENING"
+	gear_label.get_parent().get_child(0).text = "HUD_GEAR" if not scene.demo else "DERNY_CONTROLS"
 	slipstream_bar.max_value = scene.session.MAX_DRAFT * 100
 	slipstream_bar.value = scene.reduction * 100
 	slipstream_label.text = "%d%%" % roundi(scene.reduction*100)
 	var approach: bool = scene.session.phase == "RUNUP"
 	var progress: float = scene.session.runup_distance/250 if approach else scene.session.step_elapsed/60
 	dial.update_dial(scene.motor.speed_mps*3.6,progress,int(ceil(60-scene.session.step_elapsed)),approach,not scene.session.automatic_pacing)
-	phase_label.text = "Te dicht - snelheid begrensd"
+	phase_label.text = "DERNY_TOO_CLOSE_SPEED_LIMITED"
 	var status: String = scene.game.setup_panel.ftp_page.signal_state.status(scene.game._now_s()) if not scene.demo else ""
 	status_panel.visible = scene.too_close or not status.is_empty()
 	if not status.is_empty(): phase_label.text = status

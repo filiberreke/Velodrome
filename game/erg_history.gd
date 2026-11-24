@@ -19,7 +19,7 @@ func _ready() -> void:
 	listing.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(listing)
 	var caption := Label.new()
-	caption.text = "GEREDEN ERG-TRAININGEN EN FTP-TESTS"
+	caption.text = "ERG_COMPLETED_ERG_SESSIONS_AND_FTP_TESTS"
 	caption.add_theme_font_size_override("font_size", 25)
 	caption.add_theme_color_override("font_color", Palette.BLUE)
 	listing.add_child(caption)
@@ -31,7 +31,7 @@ func _ready() -> void:
 	entries.add_theme_constant_override("separation", 9)
 	scroll.add_child(entries)
 	back_button = Button.new()
-	back_button.text = "← ERG-training"
+	back_button.text = "WORKOUT_EDITOR_ERG_TRAINING"
 	back_button.custom_minimum_size.y = 48
 	back_button.pressed.connect(func(): menu.show_training())
 	listing.add_child(back_button)
@@ -51,7 +51,7 @@ func _ready() -> void:
 	detail_graph.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail.add_child(detail_graph)
 	detail_back = Button.new()
-	detail_back.text = "← Overzicht"
+	detail_back.text = "ERG_OVERVIEW"
 	detail_back.custom_minimum_size.y = 48
 	detail_back.pressed.connect(func(): detail.hide(); listing.show(); back_button.grab_focus.call_deferred())
 	detail.add_child(detail_back)
@@ -95,7 +95,7 @@ func refresh() -> void:
 	workouts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("started_unix",0)) > int(b.get("started_unix",0)))
 	if workouts.is_empty():
 		var empty := Label.new()
-		empty.text = "Nog geen geregistreerde ERG-trainingen of FTP-tests.\nNa een rit verschijnen hier de gemeten waarden en de trainingsgrafiek."
+		empty.text = "ERG_NO_RECORDED_ERG_SESSIONS_OR_FTP_TESTS_YET_AFTER_A_RIDE_THE_MEASURED_VA"
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_font_size_override("font_size", 22)
 		entries.add_child(empty)
@@ -131,14 +131,14 @@ func _show_activity(activity: Dictionary) -> void:
 	detail.show()
 	var date_text: String = str(activity.get("started_local",""))
 	if date_text.is_empty(): date_text = Time.get_datetime_string_from_unix_time(int(activity.get("started_unix",0))).replace("T"," ")
-	details_title.text = str(activity.get("title","Training")) + " · " + date_text
+	details_title.text = str(activity.get("title",String(TranslationServer.translate("ERG_TRAINING")))) + " · " + date_text
 	var seconds: int = int(activity.get("duration_s",0))
 	var watts: float = mean_power(activity)
-	var description: String = "Gereden tijd %d:%02d · gemiddeld %.0f W · %.2f km" % [seconds/60,seconds%60,watts,float(activity.get("distance_m",0.0))/1000.0]
+	var description: String = String(TranslationServer.translate("ERG_ELAPSED_TIME_D_02D_AVERAGE_0F_W_2F_KM")) % [seconds/60,seconds%60,watts,float(activity.get("distance_m",0.0))/1000.0]
 	var hr: float = mean_metric(activity,"heart_rate_bpm")
 	var rpm: float = mean_metric(activity,"cadence_rpm")
-	description += " · gem. HR %s · gem. cadans %s" % ["%.0f bpm" % hr if hr > 0.0 else "—", "%.0f rpm" % rpm if rpm > 0.0 else "—"]
-	if activity.has("ftp_w"): description += " · berekende FTP %.0f W" % float(activity.ftp_w)
+	description += String(TranslationServer.translate("ERG_AVG_HR_S_AVG_CADENCE_S")) % ["%.0f bpm" % hr if hr > 0.0 else "—", "%.0f rpm" % rpm if rpm > 0.0 else "—"]
+	if activity.has("ftp_w"): description += String(TranslationServer.translate("ERG_CALCULATED_FTP_0F_W")) % float(activity.ftp_w)
 	description += "\n" + str(activity.get("reason",""))
 	details_text.text = description
 	detail_graph.set_samples(activity.get("samples",[]))

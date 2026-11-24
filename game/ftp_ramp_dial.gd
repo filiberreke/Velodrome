@@ -43,7 +43,7 @@ func _draw() -> void:
 	var current_text := "VRIJ" if phase in ["WARMUP","WARMUP20","TWENTY"] else ("%d W" % current_w if phase == "RAMP" else "ERG")
 	if phase == "WORKOUT": current_text = "%d W" % current_w if current_w > 0 else "VRIJ"
 	draw_string(font, Vector2(center.x - 100, center.y + 10), current_text, HORIZONTAL_ALIGNMENT_CENTER, 200, 37, Palette.INK)
-	var caption := "20 min vrije test" if phase == "TWENTY" else ("Opwarming" if phase in ["WARMUP","WARMUP20"] else ("Bevestigen..." if phase == "CONNECTING" else "Huidig doel"))
+	var caption := "20 min vrije test" if phase == "TWENTY" else (String(TranslationServer.translate("WORKOUT_EDITOR_WARM_UP")) if phase in ["WARMUP","WARMUP20"] else ("Bevestigen..." if phase == "CONNECTING" else "Huidig doel"))
 	draw_string(font, Vector2(center.x - 95, center.y + 35), caption, HORIZONTAL_ALIGNMENT_CENTER, 190, 17, Palette.MUTED)
 	var display_seconds := ceili(seconds_left)
 	var upcoming := "Nog %02d:%02d · richtlijn %.0f W" % [display_seconds / 60, display_seconds % 60, float(next_w)] if phase == "TWENTY" else "Volgende stap %d W over %02d:%02d" % [next_w, display_seconds / 60, display_seconds % 60]
@@ -52,5 +52,5 @@ func _draw() -> void:
 		upcoming = "Training klaar over %02d:%02d" % [display_seconds/60,display_seconds%60] if last_block else "Volgende stap %s over %02d:%02d" % ["%d W" % next_w if next_w > 0 else "VRIJ",display_seconds/60,display_seconds%60]
 		var message := connection_status if not connection_status.is_empty() else instruction
 		draw_string(font,Vector2(12,size.y-55),message,HORIZONTAL_ALIGNMENT_CENTER,size.x-24,16,Palette.MUTED)
-	if phase == "CONNECTING": upcoming = "Wachten op ERG-bevestiging"
+	if phase == "CONNECTING": upcoming = String(TranslationServer.translate("FTP_RAMP_HUD_WAITING_FOR_ERG_CONFIRMATION"))
 	draw_string(font, Vector2(12, size.y - 25), upcoming, HORIZONTAL_ALIGNMENT_CENTER, size.x - 24, 18, Palette.INK)

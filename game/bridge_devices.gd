@@ -2,7 +2,7 @@ extends CanvasLayer
 ## Separate discovery socket: never claims or refreshes the trainer lease.
 const Style := preload("res://menu_theme.gd")
 const ROLES := ["trainer", "controller", "heart_rate"]
-const LABELS := ["Trainer / rollen", "Besturing", "Hartslagmeter"]
+const LABELS := ["DEVICES_TRAINER_ROLLERS", "DEVICES_CONTROLS", "DEVICES_HEART_RATE_MONITOR"]
 var socket := PacketPeerUDP.new()
 var port := 51725
 var session := "devices-%d" % Time.get_ticks_usec()
@@ -43,7 +43,7 @@ func _ready() -> void:
 	open_button.add_theme_color_override("font_color", Style.MUTED)
 	open_button.add_theme_constant_override("h_separation", 16)
 	open_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	open_button.tooltip_text = "Bridge-apparaten instellen"
+	open_button.tooltip_text = "DEVICES_CONFIGURE_BRIDGE_DEVICES"
 	open_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	open_button.offset_left = -785
 	open_button.offset_right = -310
@@ -67,14 +67,14 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 22)
 	panel.add_child(box)
 	var title := Label.new()
-	title.text = "Apparaten"
+	title.text = "DEVICES_DEVICES"
 	title.add_theme_font_override("font", Style.heading())
 	title.add_theme_font_size_override("font_size", 32)
 	var page_header := HBoxContainer.new()
 	page_header.add_theme_constant_override("separation", 20)
 	box.add_child(page_header)
 	var back := Button.new()
-	back.text = "← Terug"
+	back.text = "DISPLAY_SETTINGS_BACK"
 	back.custom_minimum_size = Vector2(190, 48)
 	Style.primary(back)
 	back.pressed.connect(close_page)
@@ -99,7 +99,7 @@ func _ready() -> void:
 		header.add_child(label)
 		if ROLES[i] == "controller":
 			controller_connection = Label.new()
-			controller_connection.text = "Verbonden"
+			controller_connection.text = "DEVICES_CONNECTED"
 			controller_connection.add_theme_font_size_override("font_size", 16)
 			controller_connection.add_theme_color_override("font_color", Color("008b38"))
 			controller_connection.add_theme_stylebox_override("normal", Style.panel(Color("d9f5e3"), Color.TRANSPARENT, 6, 12))
@@ -117,7 +117,7 @@ func _ready() -> void:
 		option.item_selected.connect(func(index: int): _select(ROLES[i], index))
 		if ROLES[i] == "controller":
 			keyboard_check = CheckButton.new()
-			keyboard_check.text = "Toetsenbordbediening gebruiken"
+			keyboard_check.text = "DEVICES_USE_KEYBOARD_CONTROLS"
 			keyboard_check.button_pressed = get_parent().keyboard_mapping.enabled
 			keyboard_check.toggled.connect(func(value):
 				var mapping = get_parent().keyboard_mapping
@@ -126,14 +126,14 @@ func _ready() -> void:
 				if mapping.save() != OK:
 					mapping.enabled = before
 					keyboard_check.set_pressed_no_signal(before)
-					error = "Toetsenbordkeuze kon niet worden opgeslagen."
+					error = String(TranslationServer.translate("DEVICES_KEYBOARD_SELECTION_COULD_NOT_BE_SAVED"))
 				get_parent()._clear_look_back())
 			section.add_child(keyboard_check)
 			mapping_separator = HSeparator.new()
 			section.add_child(mapping_separator)
 			mapping_link = Button.new()
-			mapping_link.text = "Toetsenbord en controller instellen"
-			mapping_link.tooltip_text = "Alle toetsen aanpassen; toetsenbord werkt ook zonder Zwift Ride"
+			mapping_link.text = "DEVICES_CONFIGURE_KEYBOARD_AND_CONTROLLER"
+			mapping_link.tooltip_text = "DEVICES_CUSTOMISE_ALL_KEYS_KEYBOARD_WORKS_WITHOUT_ZWIFT_RIDE_TOO"
 			mapping_link.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			mapping_link.flat = true
 			mapping_link.custom_minimum_size.y = 40
@@ -157,7 +157,7 @@ func _ready() -> void:
 			mapping_link.pressed.connect(open_mapping)
 			section.add_child(mapping_link)
 	close_button = Button.new()
-	close_button.text = "Overslaan"
+	close_button.text = "DEVICES_SKIP"
 	Style.primary(close_button)
 	close_button.pressed.connect(close_page)
 	box.add_child(close_button)
@@ -189,16 +189,16 @@ func _process(_delta: float) -> void:
 		if packet is Dictionary: handle_response(packet, now)
 	if not pending.is_empty() and now - pending_at > 4.0:
 		pending = ""
-		error = "Geen bevestiging ontvangen. Controleer de bridge; de lijst wordt opnieuw opgehaald."
+		error = String(TranslationServer.translate("DEVICES_NO_CONFIRMATION_RECEIVED_CHECK_THE_BRIDGE_THE_LIST_WILL_BE_RETRIEVED_A"))
 	var settings = get_parent().get_node_or_null("GameSettings")
 	open_button.text = get_parent().setup_panel.bridge_status_text
-	open_button.tooltip_text = open_button.text + "\nBridge-apparaten instellen"
+	open_button.tooltip_text = open_button.text + String(TranslationServer.translate("DEVICES_CONFIGURE_BRIDGE_DEVICES_2"))
 	open_button.visible = not panel_root.visible and (settings == null or not settings.panel_root.visible)
 	if not auto_shown and now - last_response < 3.0 and get_parent().get("start_state") == "SETUP":
 		auto_shown = true
 		open_page()
 	if now - last_response > 3.0:
-		status.text = "Bridge niet bereikbaar. Start de bridge of ga verder met Overslaan."
+		status.text = "DEVICES_BRIDGE_UNREACHABLE_START_THE_BRIDGE_OR_CONTINUE_WITH_SKIP"
 		for option in choices.values(): option.disabled = true
 		_update_connection_action(false)
 
@@ -210,7 +210,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 	var selection_reply := id == pending
 	if selection_reply: pending = ""
 	if packet.get("ok") != true:
-		if selection_reply or snapshot.is_empty(): error = "Deze bridge ondersteunt apparaatselectie niet. Werk de bridge bij." if packet.get("code") in ["unknown_command", "unsupported"] else str(packet.get("message", "Apparaatselectie mislukt."))
+		if selection_reply or snapshot.is_empty(): error = String(TranslationServer.translate("DEVICES_THIS_BRIDGE_DOES_NOT_SUPPORT_DEVICE_SELECTION_UPDATE_THE_BRIDGE")) if packet.get("code") in ["unknown_command", "unsupported"] else str(packet.get("message", String(TranslationServer.translate("DEVICES_DEVICE_SELECTION_FAILED"))))
 	elif packet.get("state") is Dictionary and packet.state.get("device_selection_v") == 1:
 		var response_sequence := id.trim_prefix(session + "-").to_int()
 		if response_sequence >= newest_snapshot:
@@ -223,7 +223,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 	_refresh()
 
 func _refresh() -> void:
-	status.text = error if not error.is_empty() else "Kies uit gevonden apparaten. Keuzes worden door de bridge onthouden; verbinden kan even duren."
+	status.text = error if not error.is_empty() else String(TranslationServer.translate("DEVICES_CHOOSE_FROM_DETECTED_DEVICES_THE_BRIDGE_REMEMBERS_YOUR_CHOICES_CONNECT"))
 	if not str(snapshot.get("scan_error", "")).is_empty(): status.text += "\nScan: " + str(snapshot.scan_error)
 	var selected: Dictionary = snapshot.get("selected", {})
 	var connected: Dictionary = snapshot.get("connected", {})
@@ -232,14 +232,14 @@ func _refresh() -> void:
 		# Avoid rebuilding an open mouse/keyboard popup during periodic polling.
 		if option.get_popup().visible: continue
 		option.clear()
-		option.add_item("Geen / overslaan")
+		option.add_item("DEVICES_NONE_SKIP")
 		option.set_item_metadata(0, "")
 		var address := str(selected.get(role, "")) if selected.get(role) != null else str(connected.get(role, ""))
 		var found := false
 		for device in snapshot.get("devices", []):
 			if role not in device.get("roles", []): continue
-			var suffix := " · verbonden" if connected.get(role) == device.address else ""
-			if not device.get("available", false): suffix = " · niet beschikbaar"
+			var suffix := String(TranslationServer.translate("DEVICES_CONNECTED_2")) if connected.get(role) == device.address else ""
+			if not device.get("available", false): suffix = String(TranslationServer.translate("DEVICES_UNAVAILABLE"))
 			option.add_item("%s · %s%s" % [device.name, device.address, suffix])
 			var index := option.item_count - 1
 			option.set_item_metadata(index, device.address)
@@ -248,7 +248,7 @@ func _refresh() -> void:
 				option.select(index)
 				found = true
 		if not address.is_empty() and not found:
-			option.add_item(address + " · niet beschikbaar")
+			option.add_item(address + String(TranslationServer.translate("DEVICES_UNAVAILABLE")))
 			option.set_item_metadata(option.item_count - 1, address)
 			option.set_item_disabled(option.item_count - 1, true)
 			option.select(option.item_count - 1)
@@ -264,14 +264,14 @@ func _update_connection_action(online: bool) -> void:
 		if online and not str(connected.get(role, "")).is_empty(): any_connected = true
 		var live: bool = online and not str(connected.get(role, "")).is_empty()
 		var badge: Label = connection_labels[role]
-		badge.text = "Verbonden" if live else "Niet verbonden"
+		badge.text = "DEVICES_CONNECTED" if live else "DEVICES_DISCONNECTED"
 		badge.add_theme_color_override("font_color", Color("008b38") if live else Style.MUTED)
 		badge.add_theme_stylebox_override("normal", Style.panel(Color("d9f5e3") if live else Style.PALE, Color.TRANSPARENT, 6, 8))
-	close_button.text = "Kies deze setup" if any_connected else "Overslaan"
+	close_button.text = "DEVICES_USE_THIS_SETUP" if any_connected else "DEVICES_SKIP"
 	keyboard_check.set_pressed_no_signal(get_parent().keyboard_mapping.enabled)
 	controller_connection.visible = true
 	var ride_online := online and not str(connected.get("controller", "")).is_empty()
-	controller_connection.text = "Ride verbonden" if ride_online else "Geen Ride: toetsenbord beschikbaar"
+	controller_connection.text = "DEVICES_RIDE_CONNECTED" if ride_online else "DEVICES_NO_RIDE_KEYBOARD_AVAILABLE"
 	controller_connection.add_theme_color_override("font_color", Color("008b38") if ride_online else Style.MUTED)
 
 func _select(role: String, index: int) -> void:

@@ -21,11 +21,11 @@ static func results(game: Node) -> void:
 	var player_rank := 0; var total := 0
 	for row in rows:
 		if row.rider.get("is_player",false): player_rank = int(row.rank); total = int(row.total)
-	game.finish_heading.text = "Omnium · Puntenkoers · Eindklassement" if game.omnium_race.committed else "Omnium · Puntenkoers · Uitslag"
-	game.finish_subtitle.text = "KLIK OP EEN RENNER VOOR PLAATSEN EN PUNTEN PER SPRINT"
+	game.finish_heading.text = "Omnium · Puntenkoers · Eindklassement" if game.omnium_race.committed else String(TranslationServer.translate("OMNIUM_OMNIUM_RESULT_PAGE_OMNIUM_POINTS_RACE_RESULTS"))
+	game.finish_subtitle.text = "POINTS_RESULTS_HINT"
 	game.finish_badge.text = "#%d / %d" % [player_rank, game.rider_count]
 	game.pursuit_save_box.hide()
-	game.finish_results.text = "PUNTENKOERS  %+d punten · OMNIUMTOTAAL  %d\n%s" % [game.points_rules.points[0],total,"Definitief · omnium opgeslagen in gereden toernooien" if game.omnium_race.committed else "Voorlopig · resterende uitslag wordt versneld berekend"]
+	game.finish_results.text = String(TranslationServer.translate("OMNIUM_POINTS_TOTAL")) % [game.points_rules.points[0],total,String(TranslationServer.translate("OMNIUM_SAVED_TO_ARCHIVE")) if game.omnium_race.committed else String(TranslationServer.translate("OMNIUM_RESULTS_PENDING"))]
 	if not game.omnium_race.error.is_empty(): game.finish_results.text += "\n" + game.omnium_race.error
 	populate(game.finish_table, context.riders, context.results, result)
 static func populate(table: GridContainer, riders: Array, history: Array, result: Dictionary) -> void:
@@ -37,7 +37,7 @@ static func populate(table: GridContainer, riders: Array, history: Array, result
 	var before := Scores.totals(riders,history)
 	var widths := [40,230,75,75,95,85,90]
 	var header := HBoxContainer.new(); table.add_child(header)
-	var titles := ["PL.","RENNER","VOORAF","SPRINT","RONDEPT","KOERSPT","OMNIUM"]
+	var titles := ["PL.",String(TranslationServer.translate("SETTINGS_RIDER")),"VOORAF","SPRINT","RONDEPT","KOERSPT","OMNIUM"]
 	for i in range(titles.size()): add_label(header,String(titles[i]),int(widths[i]),16)
 	for row_data in ranking(riders,history,result):
 		var rider: Dictionary = row_data.rider; var id := String(rider.id)
@@ -46,7 +46,7 @@ static func populate(table: GridContainer, riders: Array, history: Array, result
 			var place: int = sprint.order.find(id)
 			var award: int = int(sprint.awards[place]) if place >= 0 else 0
 			sprint_total += award
-			detail += "Ronde %d%s · %s · %d punten\n" % [sprint.lap," · FINISH ×2" if sprint.lap == result.get("laps",0) else "",("plaats %d" % (place+1)) if place >= 0 else "Nog niet gepasseerd",award]
+			detail += String(TranslationServer.translate("OMNIUM_POINTS_LAP_DETAIL")) % [sprint.lap," · FINISH ×2" if sprint.lap == result.get("laps",0) else "",("plaats %d" % (place+1)) if place >= 0 else String(TranslationServer.translate("POINTS_NOT_CROSSED")),award]
 		var earned := int(result.points.get(id,0))
 		var lap_points := earned-sprint_total
 		var row := Button.new(); row.name = "OmniumResult_" + id; row.toggle_mode = true

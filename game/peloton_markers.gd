@@ -18,7 +18,7 @@ func _ready() -> void:
 		strip.layers = 2
 		add_child(strip); strips.append(strip)
 		var caption := Label3D.new()
-		caption.text = "KOP PELOTON" if i == 0 else "STAART PELOTON"
+		caption.text = "PELOTON_FRONT" if i == 0 else "PELOTON_REAR"
 		caption.modulate = COLOURS[i]
 		caption.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		caption.no_depth_test = true

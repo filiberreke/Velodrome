@@ -7,12 +7,12 @@ const PURSUIT_DURATION := 28.0
 const SIMPLE_DURATION := 2.5
 const OPPONENT_START := 8.0
 const OPPONENT_END := 10.0
-const WELCOME := "Welkom bij Velodrome!"
-const DISCIPLINES := {0: "scratch", 2: "afvalling", 1: "puntenkoers", 3: "keirin", 4: "achtervolging", 5: "ploegenachtervolging", 6: "ploegkoers", 8: "temporace"}
+const WELCOME := "INTRO_WELCOME"
+const DISCIPLINES := {0: "RACE_MENU_SCRATCH_RACE", 2: "RACE_MENU_ELIMINATION_RACE", 1: "RACE_MENU_POINTS_RACE", 3: "MENU_KEIRIN", 4: "RACE_MENU_INDIVIDUAL_PURSUIT", 5: "RACE_MENU_TEAM_PURSUIT", 6: "RACE_MENU_MADISON", 7: "RACE_MENU_TIME_TRIAL", 8: "RACE_MENU_TEMPO_RACE"}
 
 static func welcome_for_mode(mode: int) -> String:
-	if not DISCIPLINES.has(mode): return WELCOME
-	return "Welkom bij de volgende wedstrijd: de %s!" % DISCIPLINES[mode]
+	if not DISCIPLINES.has(mode): return String(TranslationServer.translate("INTRO_WELCOME"))
+	return TranslationServer.translate("INTRO_NEXT_RACE") % TranslationServer.translate(DISCIPLINES[mode])
 
 # Lifetime is one game process/session, deliberately not cleared by cancel/reset.
 var shown_this_session := false
@@ -64,7 +64,7 @@ func setup(owner_game: Node3D) -> void:
 	subtitle.add_theme_color_override("font_color", Color.WHITE)
 	caption_panel.add_child(subtitle)
 	var skip := Button.new()
-	skip.text = "Intro overslaan  ·  Enter / Spatie"
+	skip.text = "INTRO_SKIP"
 	screen.add_child(skip)
 	skip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	skip.offset_left = -330

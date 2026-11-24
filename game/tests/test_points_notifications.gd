@@ -6,6 +6,7 @@ func check(ok: bool, message: String) -> void:
 	if not ok: failures += 1; push_error(message)
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
+	TranslationServer.set_locale("nl")
 	var jury = preload("res://points_race_rules.gd").new()
 	var notices = preload("res://points_notifications.gd").new()
 	jury.reset(4, 40)

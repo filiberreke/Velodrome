@@ -10,23 +10,23 @@ func _ready() -> void:
 	var title := _label("AI-ploegmaats")
 	add_child(title); move_child(title, 0)
 	teammates = _choice()
-	teammates.add_item("2 ploegmaats · 3 renners", 3)
-	teammates.add_item("3 ploegmaats · 4 renners", 4)
+	teammates.add_item("PURSUIT_2_TEAMMATES_3_RIDERS", 3)
+	teammates.add_item("PURSUIT_3_TEAMMATES_4_RIDERS", 4)
 	add_child(teammates); move_child(teammates, 1)
 	teammates.item_selected.connect(func(_index: int) -> void:
 		library.configure_team(team_size())
 		refresh_rides())
 	opponent_choice.set_item_text(0, "AI-ploeg")
-	opponent_choice.set_item_text(1, "Een vorige ploegprestatie")
-	cp_box.get_child(2).text = "CP tegenploeg · kopvermogen (W)"
+	opponent_choice.set_item_text(1, String(TranslationServer.translate("PURSUIT_A_PREVIOUS_TEAM_PERFORMANCE")))
+	cp_box.get_child(2).text = "PURSUIT_OPPOSING_TEAM_CP_LEADING_POWER_W"
 	var resistance_row := HBoxContainer.new()
 	resistance_row.add_theme_constant_override("separation", 12)
-	var resistance_title := _label("Weerstand")
+	var resistance_title := _label("PURSUIT_RESISTANCE")
 	resistance_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	resistance_row.add_child(resistance_title)
 	resistance_choice = _choice()
 	resistance_choice.custom_minimum_size.x = 260
-	resistance_choice.add_item("Manueel", 0)
+	resistance_choice.add_item("PURSUIT_MANUAL", 0)
 	resistance_choice.add_item("ERG", 1)
 	resistance_row.add_child(resistance_choice)
 	add_child(resistance_row)
@@ -38,10 +38,10 @@ func _ready() -> void:
 		_refresh_resistance_hint()
 		changed.emit())
 	_refresh_resistance_hint()
-	add_child(_label("Vermogen in het wiel (% van je laatste kopbeurt)"))
+	add_child(_label("PURSUIT_DRAFTING_POWER_OF_YOUR_LAST_TURN_ON_THE_FRONT"))
 	for rank in range(1, 4):
 		var line := HBoxContainer.new()
-		var rank_label := _label("%de positie" % (rank + 1))
+		var rank_label := _label(String(TranslationServer.translate("PURSUIT_POSITION_D")) % (rank + 1))
 		rank_label.custom_minimum_size.x = 190
 		line.add_child(rank_label)
 		var input := SpinBox.new()
@@ -74,14 +74,14 @@ func resistance_mode() -> String:
 	return "ERG" if resistance_choice != null and resistance_choice.get_selected_id() == 1 else "MANUAL"
 
 func _refresh_resistance_hint() -> void:
-	resistance_hint.text = "ERG in het wiel; op kop en tijdens afzakken vrij trappen." if resistance_mode() == "ERG" else "Trap zelf het aangegeven doelvermogen."
+	resistance_hint.text = "PURSUIT_ERG_WHILE_DRAFTING_PEDAL_FREELY_WHILE_LEADING_AND_DROPPING_BACK" if resistance_mode() == "ERG" else "PURSUIT_PEDAL_AT_THE_INDICATED_TARGET_POWER_YOURSELF"
 
 
 func team_size() -> int:
 	return teammates.get_selected_id() if teammates != null else 3
 
 func ai_choice_label() -> String:
-	return "Kies land tegenploeg"
+	return String(TranslationServer.translate("PURSUIT_CHOOSE_OPPOSING_TEAM_COUNTRY"))
 
 func available_ai_entries() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []

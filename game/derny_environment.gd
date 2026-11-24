@@ -55,7 +55,7 @@ func _setup_session() -> void:
 	session.gesture_requested.connect(pilot.gesture)
 	hud = preload("res://derny_hud.gd").new()
 	game.setup_panel.add_child(hud)
-	hud.stop_button.pressed.connect(func(): finish_session("Handmatig gestopt"))
+	hud.stop_button.pressed.connect(func(): finish_session(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY"))))
 	hud.leave_button.pressed.connect(page.leave)
 	hud.hide()
 func enter() -> void:
@@ -82,7 +82,7 @@ func enter() -> void:
 	tempo_requests.clear()
 	call_elapsed = 0
 	var stamp := Time.get_datetime_string_from_system().replace(":", "-")
-	activity = {"version":1, "id":stamp + "-%08x" % randi(), "kind":"derny", "title":"Dernytraining", "started_unix":int(Time.get_unix_time_from_system()), "started_local":Time.get_datetime_string_from_system(false,true), "demo":demo}
+	activity = {"version":1, "id":stamp + "-%08x" % randi(), "kind":"derny", "title":String(TranslationServer.translate("TRAINING_HISTORY_DERNY_TRAINING")), "started_unix":int(Time.get_unix_time_from_system()), "started_local":Time.get_datetime_string_from_system(false,true), "demo":demo}
 	session.start(start_distance,page.start_speed.value)
 	activity["start_speed_kmh"] = session.start_speed_kmh
 	player_speed = session.target_kmh/3.6
@@ -97,7 +97,7 @@ func enter() -> void:
 	hud.show()
 	page.selected_activity = {}
 func leave() -> void:
-	if session.running(): session.stop("Training verlaten")
+	if session.running(): session.stop(String(TranslationServer.translate("MAIN_LEAVE_TRAINING")))
 	if not activity.is_empty() and not saved_final:
 		_capture_sample()
 		_persist(true)
@@ -151,7 +151,7 @@ func advance(dt: float) -> void:
 	var live: bool = game.setup_panel.ftp_page.fresh(now)
 	var source = game.setup_panel.ftp_page
 	var paused: bool = not demo and not live
-	if session.running() and demo and game.trainer_seen: session.stop("Trainer verbonden · start opnieuw met trainer")
+	if session.running() and demo and game.trainer_seen: session.stop(String(TranslationServer.translate("DERNY_RESTART_WITH_TRAINER")))
 	if session.running() and not paused:
 		# Small fixed-size steps keep the force model stable at slow frame rates.
 		var remaining := minf(maxf(dt, 0), .25)
@@ -163,7 +163,7 @@ func advance(dt: float) -> void:
 	var enabled: bool = session.running() and not demo and live
 	_drive_trainer(source,session.running() and not demo,live,now)
 	if enabled and source.live(now) and not source.resume_pending(game.trainer_control) and (not game.trainer_control.error.is_empty() or (now - control_started > 8 and game.trainer_control.last_response < control_started)):
-		session.stop("Trainerbediening niet beschikbaar")
+		session.stop(String(TranslationServer.translate("DERNY_CONTROL_UNAVAILABLE")))
 		release_trainer()
 	if not session.running():
 		finish_session(session.reason)
@@ -251,7 +251,7 @@ func _persist(final: bool) -> void:
 	if activity.is_empty(): return
 	activity.merge({"samples":samples,"duration_s":total_elapsed,"distance_m":total_distance,"assisted_seconds":assisted_seconds,"completed_kmh":session.completed_kmh,"reason":session.reason,"final":final},true)
 	var saved: bool = store.save(activity)
-	save_status = "Training opgeslagen in het spel." if saved else "Opslaan mislukt: " + store.error
+	save_status = String(TranslationServer.translate("PISTE_EXERCISE_PAGE_TRAINING_SAVED_IN_THE_GAME")) if saved else "Opslaan mislukt: " + store.error
 	if saved:
 		last_save = total_elapsed
 		if final: saved_final = true
@@ -268,5 +268,5 @@ func finish_session(reason: String, show_result: bool = true) -> void:
 		game.setup_panel.show_derny(false)
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE and not saved_final and not activity.is_empty():
-		session.stop("Spel gesloten")
+		session.stop(String(TranslationServer.translate("MAIN_GAME_CLOSED")))
 		_persist(true)

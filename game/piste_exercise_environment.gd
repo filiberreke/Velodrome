@@ -17,7 +17,7 @@ func _setup_session() -> void:
 	store = game.setup_panel.training_store
 	popup = preload("res://race_popup.gd").new(); game.setup_panel.add_child(popup)
 	hud = preload("res://piste_exercise_hud.gd").new(); game.setup_panel.add_child(hud)
-	hud.stop_button.pressed.connect(func(): finish_session("Handmatig gestopt"))
+	hud.stop_button.pressed.connect(func(): finish_session(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY"))))
 	hud.leave_button.pressed.connect(page.leave); hud.hide()
 	pack_markers = preload("res://peloton_markers.gd").new(); add_child(pack_markers)
 	line_marker = Label3D.new(); line_marker.text = "START · ACHTERVOLGINGSLIJN"; line_marker.font_size = 48; line_marker.pixel_size = .008; line_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED; add_child(line_marker)
@@ -145,7 +145,7 @@ func _persist(final: bool) -> void:
 	activity.merge(session.result(),true)
 	activity.merge({"samples":samples,"duration_s":total_elapsed,"distance_m":total_distance,"assisted_seconds":0,"reason":session.reason,"final":final},true)
 	var saved_ok: bool = store.save(activity)
-	save_status = "Training opgeslagen in het spel." if saved_ok else "Opslaan mislukt: "+store.error
+	save_status = String(TranslationServer.translate("PISTE_EXERCISE_PAGE_TRAINING_SAVED_IN_THE_GAME")) if saved_ok else "Opslaan mislukt: "+store.error
 	if saved_ok:
 		last_save = total_elapsed
 		if final: saved_final = true

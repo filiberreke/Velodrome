@@ -24,8 +24,8 @@ var heavy_motor_button: Button
 func _ready() -> void:
 	add_theme_constant_override("separation", 14)
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
-	title = _label("Dernytraining", 34)
-	detail = _label("Kies je startsnelheid. Tijdens de aanloopronde word je automatisch meegenomen. De gekozen snelheid is een rondegemiddelde, elke minuut +1 km/u.\nDe derny rijdt met vast vermogen: trager bergop, sneller bergaf. Hij begint onderaan en gaat bij elke extra 5 km/u één rijlijn hoger. Jij volgt automatisch.\nIn het wiel remt het spel onbedoeld inhalen af; stuur bewust twee rijlijnen opzij om te passeren.\nTempo vragen: → sneller (+1 km/u), ← trager (−1 km/u), op trainer en simulator. Zodra je sneller of trager vraagt, stopt het automatisch versnellen en bepaal je zelf het tempo voor de rest van de training.\nMeer dan 15 meter achterstand gedurende 5 seconden beëindigt de training.\nElke training wordt lokaal bewaard. Na afloop kun je naar Strava uploaden.",22)
+	title = _label("TRAINING_HISTORY_DERNY_TRAINING", 34)
+	detail = _label("DERNY_CHOOSE_YOUR_STARTING_SPEED_YOU_ARE_AUTOMATICALLY_PACED_DURING_THE_LEAD",22)
 	motor_picker = VBoxContainer.new()
 	motor_picker.add_theme_constant_override("separation", 10)
 	add_child(motor_picker)
@@ -45,19 +45,19 @@ func _ready() -> void:
 	derny_art.texture = preload("res://motor_choice_art.gd").derny(self)
 	derny_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	derny_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_motor_tile(derny_motor_button, "Derny", derny_art, "Tot 60% aerovoordeel\n0–65 km/u", true)
-	derny_motor_button.tooltip_text = "Geselecteerde gangmaker. Tot 60% aerovoordeel in het wiel, afhankelijk van afstand en zijwaartse positie."
+	_motor_tile(derny_motor_button, "Derny", derny_art, String(TranslationServer.translate("DERNY_UP_TO_60_AERODYNAMIC_BENEFIT_0_65_KM_H")), true)
+	derny_motor_button.tooltip_text = "DERNY_SELECTED_PACER_UP_TO_60_AERODYNAMIC_BENEFIT_WHILE_DRAFTING_DEPENDING_O"
 	heavy_motor_button = Button.new()
 	heavy_motor_button.disabled = true
-	heavy_motor_button.tooltip_text = "Nog niet beschikbaar. Deze motor zal meer aerodynamische beschutting bieden dan de huidige derny."
+	heavy_motor_button.tooltip_text = "DERNY_NOT_YET_AVAILABLE_THIS_MOTORBIKE_WILL_OFFER_MORE_AERODYNAMIC_SHELTER_T"
 	heavy_motor_button.custom_minimum_size = Vector2(270, 250)
 	motor_row.add_child(heavy_motor_button)
-	_motor_tile(heavy_motor_button, "Zware motor", preload("res://motor_choice_art.gd").Heavy.new(), "Meer aerovoordeel\nBinnenkort", false)
+	_motor_tile(heavy_motor_button, String(TranslationServer.translate("DERNY_HEAVY_MOTORBIKE")), preload("res://motor_choice_art.gd").Heavy.new(), String(TranslationServer.translate("DERNY_MORE_AERODYNAMIC_BENEFIT_COMING_SOON")), false)
 	start_speed_row = HBoxContainer.new()
 	start_speed_row.add_theme_constant_override("separation",16)
 	add_child(start_speed_row)
 	var speed_label := Label.new()
-	speed_label.text = "Startsnelheid (rondegemiddelde)"
+	speed_label.text = "DERNY_START_SPEED_AVERAGE"
 	speed_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	start_speed_row.add_child(speed_label)
 	start_speed = SpinBox.new()
@@ -65,17 +65,17 @@ func _ready() -> void:
 	start_speed.max_value = Session.MAX_START_KMH
 	start_speed.step = 1
 	start_speed.value = Session.DEFAULT_START_KMH
-	start_speed.suffix = "km/u"
+	start_speed.suffix = String(TranslationServer.translate("COMMON_SPEED_UNIT"))
 	start_speed.custom_minimum_size.x = 180
 	start_speed_row.add_child(start_speed)
 	result = _label("", 24)
-	start_button = _button("Start dernytraining", begin)
+	start_button = _button("DERNY_START_DERNY_TRAINING", begin)
 	result_graph = preload("res://training_graph.gd").new()
 	result_graph.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(result_graph)
-	upload_button = _button("Opslaan op Strava",func(): upload_requested.emit(selected_activity))
-	stop_button = _button("Stop training", func(): finish("Handmatig gestopt"))
-	back_button = _button("← Pistetraining", leave)
+	upload_button = _button("PISTE_EXERCISE_PAGE_SAVE_TO_STRAVA",func(): upload_requested.emit(selected_activity))
+	stop_button = _button("FTP_RAMP_HUD_STOP_TRAINING", func(): finish(String(TranslationServer.translate("MAIN_STOPPED_MANUALLY"))))
+	back_button = _button("TRAINING_HISTORY_TRACK_TRAINING", leave)
 	_refresh()
 func _label(text: String, font_size: int) -> Label:
 	var node := Label.new()
@@ -140,15 +140,15 @@ func finish(reason: String) -> void:
 	_refresh()
 func set_history_origin(from_history: bool) -> void:
 	return_to_history = from_history
-	back_button.text = "← Opgeslagen trainingen" if from_history else "← Pistetraining"
+	back_button.text = "DERNY_SAVED_TRAINING_SESSIONS" if from_history else "TRAINING_HISTORY_TRACK_TRAINING"
 
 func leave() -> void:
-	if session.running(): finish("Training verlaten")
+	if session.running(): finish(String(TranslationServer.translate("MAIN_LEAVE_TRAINING")))
 	environment_requested.emit(false)
 	back_requested.emit()
-func show_activity(activity: Dictionary, message: String = "Training opgeslagen in het spel.") -> void:
+func show_activity(activity: Dictionary, message: String = "TRAINING_ACTIVITY_SAVED") -> void:
 	selected_activity = activity
-	upload_status = message
+	upload_status = String(tr(message))
 	result_graph.set_samples(activity.get("samples",[]))
 	_refresh()
 func _process(_dt: float) -> void: _refresh()
@@ -156,7 +156,7 @@ func _refresh() -> void:
 	if start_button == null: return
 	var running := session.running()
 	var has_result := not selected_activity.is_empty()
-	start_speed_row.get_child(0).text = "Startsnelheid volgende training" if has_result else "Startsnelheid (rondegemiddelde)"
+	start_speed_row.get_child(0).text = String(TranslationServer.translate("DERNY_STARTING_SPEED_FOR_NEXT_SESSION")) if has_result else String(TranslationServer.translate("DERNY_START_SPEED_AVERAGE"))
 	start_speed_row.visible = not running
 	start_speed.editable = not running
 	start_button.visible = not running
@@ -167,7 +167,7 @@ func _refresh() -> void:
 	upload_button.disabled = selected_activity.get("samples",[]).size() < 2
 	if has_result:
 		var duration: int = int(selected_activity.get("duration_s",0))
-		result.text = "%s · %d:%02d · %.2f km\nStartsnelheid: %d km/u · hoogste voltooide stap: %d km/u\n%s" % [selected_activity.get("reason","") if not str(selected_activity.get("reason","")).is_empty() else "Tussentijds bewaarde training",duration/60,duration%60,float(selected_activity.get("distance_m",0))/1000,int(selected_activity.get("start_speed_kmh",Session.DEFAULT_START_KMH)),int(selected_activity.get("completed_kmh",0)),upload_status]
-		if selected_activity.get("demo",false): result.text += "\nPC-proefrit · gesimuleerde activiteit"
+		result.text = String(TranslationServer.translate("DERNY_S_D_02D_2F_KM_STARTING_SPEED_D_KM_H_HIGHEST_COMPLETED_STEP_D_KM_H_S")) % [selected_activity.get("reason","") if not str(selected_activity.get("reason","")).is_empty() else String(TranslationServer.translate("DERNY_TRAINING_SAVED_BEFORE_COMPLETION")),duration/60,duration%60,float(selected_activity.get("distance_m",0))/1000,int(selected_activity.get("start_speed_kmh",Session.DEFAULT_START_KMH)),int(selected_activity.get("completed_kmh",0)),upload_status]
+		if selected_activity.get("demo",false): result.text += String(TranslationServer.translate("TRAINING_PC_TEST_RIDE_SIMULATED_ACTIVITY"))
 	elif session.phase == "RESULT": result.text = session.reason
-	else: result.text = "Zonder trainer kun je een PC-proefrit maken."
+	else: result.text = "DERNY_YOU_CAN_DO_A_PC_TEST_RIDE_WITHOUT_A_TRAINER"

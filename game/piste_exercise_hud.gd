@@ -25,7 +25,7 @@ func _ready() -> void:
 func update_training(scene) -> void:
 	var mapping = scene.game.keyboard_mapping
 	var profile: String = scene.game._keyboard_profile()
-	keyboard_hint.text = "%s/%s: rijlijn\n%s: camera · %s: achteruitkijken" % [mapping.caption(profile,"steer_left"),mapping.caption(profile,"steer_right"),mapping.caption(profile,"camera_next"),mapping.caption(profile,"look_back")]
+	keyboard_hint.text = String(TranslationServer.translate("TRACK_HUD_KEYBOARD")) % [mapping.caption(profile,"steer_left"),mapping.caption(profile,"steer_right"),mapping.caption(profile,"camera_next"),mapping.caption(profile,"look_back")]
 	var power: float = scene.demo_power if scene.demo else scene.game.setup_panel.ftp_page.measured
 	power_meter.set_power(power)
 	speed_label.text = "%.1f" % (scene.player_speed*3.6)
@@ -33,7 +33,7 @@ func update_training(scene) -> void:
 	heart_label.text = "%d bpm" % int(heart) if heart is float or heart is int else "— bpm"
 	cadence_label.text = "%.0f rpm" % scene.game.cadence if not scene.demo and scene.game.setup_panel.ftp_page.live(scene.game._now_s()) and scene.game.cadence >= 0 else "— rpm"
 	gear_label.text = str(scene.game.trainer_gear) if not scene.demo else "PC-proefrit"
-	gear_label.get_parent().get_child(0).text = "VERSNELLING" if not scene.demo else "BEDIENING"
+	gear_label.get_parent().get_child(0).text = "HUD_GEAR" if not scene.demo else "DERNY_CONTROLS"
 	slipstream_bar.max_value = 50; slipstream_bar.value = scene.reduction*100; slipstream_label.text = "%d%%" % roundi(scene.reduction*100)
 	var session = scene.session
 	mission_panel.visible = session.kind != "free_ride"
@@ -42,10 +42,10 @@ func update_training(scene) -> void:
 	mission_title.text = session.title(session.kind)
 	lap_label.text = "%d:%02d" % [int(session.elapsed)/60,int(session.elapsed)%60]
 	if session.kind == "flying_start":
-		mission_text.text = "Nog %.0f m tot de achtervolgingslijn\nGem. %.0f W · max. %.0f W\nHoogte op de piste: %.1f m" % [maxf(0,250-session.gained_m),session.energy_j/maxf(.001,session.elapsed),session.peak_w,scene.game._at(scene.distance,scene.player_lane_offset).y]
+		mission_text.text = String(TranslationServer.translate("TRACK_HUD_FLYING_START")) % [maxf(0,250-session.gained_m),session.energy_j/maxf(.001,session.elapsed),session.peak_w,scene.game._at(scene.distance,scene.player_lane_offset).y]
 	elif session.kind == "take_lap":
 		var remaining := maxi(0,ceili(session.time_limit-session.elapsed))
-		mission_text.text = "Peloton %.0f km/u\n%.1f / 250 m gewonnen\nNog %d:%02d" % [session.target_kmh,session.gained_m,remaining/60,remaining%60]
+		mission_text.text = String(TranslationServer.translate("TRACK_HUD_GAIN_LAP")) % [session.target_kmh,session.gained_m,remaining/60,remaining%60]
 	mission_bar.value = clampf(session.gained_m,0,250)
 	var connection_status: String = scene.game.setup_panel.ftp_page.signal_state.status(scene.game._now_s()) if not scene.demo else ""
 	status_panel.visible = not connection_status.is_empty()
@@ -84,7 +84,7 @@ func _build_lap_table() -> void:
 func _update_lap_table(scene) -> void:
 	var session = scene.session
 	totals_label.text = "%d:%02d · %.3f km" % [int(session.elapsed)/60,int(session.elapsed)%60,scene.total_distance/1000]
-	current_lap_label.text = "Ronde %d · %s" % [session.laps.size()+1,lap_time(session.elapsed-session.lap_started_s)]
+	current_lap_label.text = String(TranslationServer.translate("TRACK_HUD_CURRENT_LAP")) % [session.laps.size()+1,lap_time(session.elapsed-session.lap_started_s)]
 	if shown_laps == session.laps.size(): return
 	shown_laps = session.laps.size()
 	for child in lap_rows.get_children(): lap_rows.remove_child(child); child.queue_free()

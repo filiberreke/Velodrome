@@ -52,12 +52,12 @@ func tick(now: float, confirmed: bool) -> void:
 			phase = "RAMP"
 			ramp_at = now
 			last_at = -1.0
-		elif now - started_at > 8.0: stop("Trainer bevestigt ERG niet")
+		elif now - started_at > 8.0: stop(String(TranslationServer.translate("FTP_TRAINER_DOES_NOT_CONFIRM_ERG")))
 	elif phase == "WARMUP" and now - started_at >= WARMUP_SECONDS:
 		phase = "CONNECTING"
 		started_at = now
 	elif phase == "RAMP" and target(now) > MAX_W:
-		stop("Veiligheidslimiet van 1300 W bereikt")
+		stop(String(TranslationServer.translate("FTP_SAFETY_LIMIT_OF_1300_W_REACHED")))
 
 func stop(message: String) -> void:
 	if not running(): return
@@ -81,7 +81,7 @@ func interrupt_measurements() -> void:
 func sample(now: float, power: float, cadence: float = -1.0) -> void:
 	if phase != "RAMP": return
 	if not is_finite(power) or power < 0.0:
-		stop("Ongeldige vermogensmeting")
+		stop(String(TranslationServer.translate("FTP_INVALID_POWER_READING")))
 		return
 	if last_at >= 0.0:
 		var dt := now - last_at
@@ -112,6 +112,6 @@ func sample(now: float, power: float, cadence: float = -1.0) -> void:
 			low_seconds = low_seconds + dt if power < current_target * 0.85 else 0.0
 			stall_seconds = stall_seconds + dt if cadence >= 0.0 and cadence < 40.0 and power < current_target * 0.90 else 0.0
 			if low_seconds >= 10.0 or stall_seconds >= 5.0:
-				stop("Doelvermogen niet meer vol te houden")
+				stop(String(TranslationServer.translate("FTP_TARGET_POWER_CAN_NO_LONGER_BE_SUSTAINED")))
 	last_at = now
 	last_power = power

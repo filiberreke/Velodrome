@@ -3,16 +3,16 @@ extends VBoxContainer
 const Mapping := preload("res://ride_mapping.gd")
 const MenuStyle := preload("res://menu_theme.gd")
 const BUTTONS := [
-    ["UP", "Menu omhoog / vorige camera"], ["DOWN", "Menu omlaag / volgende camera"],
-    ["LEFT", "Menu links"], ["RIGHT", "Menu rechts"],
-    ["A", "Bevestigen"], ["B", "Terug / vasthouden: achteruitkijken"],
-    ["Y", "Naam / wattage / energie (V)"], ["Z", "Pauze / instellingen / test verlaten"],
-    ["SHIFT_UP_LEFT", "Afschakelen (lichter)"],
-    ["SHIFT_DOWN_LEFT", "Afschakelen (lichter)"],
-    ["SHIFT_UP_RIGHT", "Opschakelen (zwaarder)"],
-    ["SHIFT_DOWN_RIGHT", "Opschakelen (zwaarder)"],
-    ["POWER_LEFT", "Gereserveerd voor arcade"], ["POWER_RIGHT", "Gereserveerd voor arcade"],
-    ["ONOFF_LEFT", "Nog geen spelactie"], ["ONOFF_RIGHT", "Nog geen spelactie"],
+    ["UP", "CONTROLLER_SETTINGS_MENU_UP_PREVIOUS_CAMERA"], ["DOWN", "CONTROLLER_SETTINGS_MENU_DOWN_NEXT_CAMERA"],
+    ["LEFT", "CONTROLLER_SETTINGS_MENU_LEFT"], ["RIGHT", "CONTROLLER_SETTINGS_MENU_RIGHT"],
+    ["A", "CONTROLLER_SETTINGS_CONFIRM"], ["B", "CONTROLLER_SETTINGS_BACK_HOLD_LOOK_BEHIND"],
+    ["Y", "CONTROLLER_SETTINGS_NAME_POWER_ENERGY_V"], ["Z", "CONTROLLER_SETTINGS_PAUSE_SETTINGS_EXIT_TEST"],
+    ["SHIFT_UP_LEFT", "INPUT_SHIFT_DOWN"],
+    ["SHIFT_DOWN_LEFT", "INPUT_SHIFT_DOWN"],
+    ["SHIFT_UP_RIGHT", "INPUT_SHIFT_UP"],
+    ["SHIFT_DOWN_RIGHT", "INPUT_SHIFT_UP"],
+    ["POWER_LEFT", "CONTROL_RESERVED_FOR_ARCADE"], ["POWER_RIGHT", "CONTROL_RESERVED_FOR_ARCADE"],
+    ["ONOFF_LEFT", "CONTROL_NO_GAME_ACTION_YET"], ["ONOFF_RIGHT", "CONTROL_NO_GAME_ACTION_YET"],
 ]
 var active := false
 var connected := false
@@ -36,11 +36,11 @@ var confirm_button: Button
 func _ready() -> void:
     add_theme_constant_override("separation", 12)
     var title := Label.new()
-    title.text = "ZWIFT RIDE  /  CONTROLLERTEST"
+    title.text = "CONTROL_ZWIFT_RIDE_CONTROLLER_TEST"
     title.add_theme_color_override("font_color", MenuStyle.BLUE)
     add_child(title)
     var help := Label.new()
-    help.text = "Veilige knoptest. Z verlaat de test (behalve tijdens knop wijzigen). SHIFT blijft schakelen in de bridge; analoge paddles blijven sturen."
+    help.text = "CONTROL_SAFE_BUTTON_TEST_Z_EXITS_THE_TEST_EXCEPT_WHILE_CHANGING_A_BUTTON_SHIFT"
     help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     add_child(help)
     var owner_node: Node = get_parent()
@@ -51,7 +51,7 @@ func _ready() -> void:
         owner_node = owner_node.get_parent()
     _build_editor()
     status_label = Label.new()
-    status_label.text = "Verbinding: wacht op een Ride-signaal"
+    status_label.text = "CONTROL_CONNECTION_WAITING_FOR_A_RIDE_SIGNAL"
     add_child(status_label)
     var scroll := ScrollContainer.new()
     scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -90,7 +90,7 @@ func _ready() -> void:
         row.add_child(action)
         indicators[str(entry[0])] = panel
     steering_label = Label.new()
-    steering_label.text = "Analoge paddles / stuurwaarde: 0"
+    steering_label.text = "CONTROL_ANALOGUE_PADDLES_STEERING_VALUE_0"
     add_child(steering_label)
     steering_bar = ProgressBar.new()
     steering_bar.min_value = -100
@@ -100,7 +100,7 @@ func _ready() -> void:
     steering_bar.custom_minimum_size.y = 12
     add_child(steering_bar)
     last_label = Label.new()
-    last_label.text = "Laatste invoer: —"
+    last_label.text = "CONTROL_LAST_INPUT"
     add_child(last_label)
     _refresh_mapping()
 
@@ -112,7 +112,7 @@ func set_testing(value: bool) -> void:
         _refresh_indicators()
         if steering_bar != null:
             steering_bar.value = 0
-            steering_label.text = "Analoge paddles / stuurwaarde: 0"
+            steering_label.text = "CONTROL_ANALOGUE_PADDLES_STEERING_VALUE_0"
 
 func receive_packet(packet: Dictionary) -> void:
     if not active:
@@ -120,7 +120,7 @@ func receive_packet(packet: Dictionary) -> void:
     var kind := str(packet.get("type", ""))
     if kind == "controller_connection":
         connected = bool(packet.get("connected", false))
-        status_label.text = "Ride: verbonden" if connected else "Ride: verbinding verbroken"
+        status_label.text = "CONTROL_RIDE_CONNECTED" if connected else "CONTROL_RIDE_DISCONNECTED"
         if not connected:
             cancel_capture()
             pressed_buttons.clear()
@@ -135,21 +135,21 @@ func receive_packet(packet: Dictionary) -> void:
             candidate = key
             capturing = false
             confirm_button.disabled = false
-            mapping_status.text = "%s → %s. Bevestig om op te slaan." % [Mapping.display(key), Mapping.ACTIONS[_context()][_action()]]
+            mapping_status.text = String(TranslationServer.translate("CONTROL_S_S_CONFIRM_TO_SAVE")) % [Mapping.display(key), tr(Mapping.ACTIONS[_context()][_action()])]
         if pressed:
             pressed_buttons[key] = true
         else:
             pressed_buttons.erase(key)
-        last_label.text = "Laatste invoer: %s %s" % [key, "ingedrukt" if pressed else "losgelaten"]
-        status_label.text = "Ride: knopdata ontvangen"
+        last_label.text = String(TranslationServer.translate("CONTROL_LAST_INPUT_S_S")) % [key, "ingedrukt" if pressed else "losgelaten"]
+        status_label.text = "CONTROL_RIDE_BUTTON_DATA_RECEIVED"
         _refresh_indicators()
     elif kind == "steering":
         var value: Variant = packet.get("value", 0)
         if typeof(value) not in [TYPE_INT, TYPE_FLOAT]:
             return
         steering_bar.value = clampf(float(value), -100.0, 100.0)
-        steering_label.text = "Analoge paddles / stuurwaarde: %d" % roundi(float(value))
-        last_label.text = "Laatste invoer: stuurwaarde %d" % roundi(float(value))
+        steering_label.text = String(TranslationServer.translate("CONTROL_ANALOGUE_PADDLES_STEERING_VALUE_D")) % roundi(float(value))
+        last_label.text = String(TranslationServer.translate("CONTROL_LAST_INPUT_STEERING_VALUE_D")) % roundi(float(value))
 
 func _refresh_indicators() -> void:
     for key in indicators:
@@ -168,17 +168,17 @@ func _action() -> String:
 
 func _build_editor() -> void:
     var heading := Label.new()
-    heading.text = "Knoptoewijzing"
+    heading.text = "CONTROL_BUTTON_ASSIGNMENT"
     add_child(heading)
     var row := HBoxContainer.new()
     add_child(row)
     context_choice = OptionButton.new()
-    for caption in ["Menu", "Wedstrijd", "Arcade (toekomstig)"]: context_choice.add_item(caption)
+    for caption in ["CONTROL_MENU", "CONTROL_RACE", "CONTROL_ARCADE_COMING_SOON"]: context_choice.add_item(caption)
     row.add_child(context_choice)
     action_choice = OptionButton.new()
     row.add_child(action_choice)
     trigger_choice = OptionButton.new()
-    for caption in ["Bij indrukken", "Bij loslaten", "Vasthouden"]: trigger_choice.add_item(caption)
+    for caption in ["CONTROL_ON_PRESS", "CONTROL_ON_RELEASE", "CONTROL_HOLD"]: trigger_choice.add_item(caption)
     row.add_child(trigger_choice)
     context_choice.item_selected.connect(func(_index):
         cancel_capture()
@@ -189,13 +189,13 @@ func _build_editor() -> void:
         _refresh_trigger())
     var buttons := HBoxContainer.new()
     add_child(buttons)
-    _editor_button(buttons, "Knop wijzigen", begin_capture)
-    confirm_button = _editor_button(buttons, "Bevestigen", confirm_mapping)
+    _editor_button(buttons, "CONTROL_CHANGE_BUTTON", begin_capture)
+    confirm_button = _editor_button(buttons, "CONTROLLER_SETTINGS_CONFIRM", confirm_mapping)
     confirm_button.disabled = true
-    _editor_button(buttons, "Annuleren", cancel_capture)
-    _editor_button(buttons, "Vrijmaken", func(): _persist_binding(""))
-    _editor_button(buttons, "Herstel context", func(): _restore(false))
-    _editor_button(buttons, "Herstel alles", func(): _restore(true))
+    _editor_button(buttons, "WORKOUT_EDITOR_CANCEL", cancel_capture)
+    _editor_button(buttons, "KEYBOARD_SETTINGS_UNASSIGN", func(): _persist_binding(""))
+    _editor_button(buttons, "CONTROL_RESET_CONTEXT", func(): _restore(false))
+    _editor_button(buttons, "CONTROL_RESET_ALL", func(): _restore(true))
     mapping_status = Label.new()
     mapping_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     add_child(mapping_status)
@@ -224,7 +224,7 @@ func _refresh_trigger() -> void:
 func begin_capture() -> void:
     cancel_capture()
     capturing = true
-    mapping_status.text = "Druk de gewenste fysieke knop in (laat een ingedrukte knop eerst los)."
+    mapping_status.text = "CONTROL_PRESS_THE_DESIRED_PHYSICAL_BUTTON_RELEASE_ANY_HELD_BUTTON_FIRST"
 
 func cancel_capture() -> void:
     capturing = false
@@ -241,15 +241,15 @@ func _persist_binding(button: String) -> void:
     var was_custom: bool = mapping.customized
     var error: String = mapping.assign(_context(), _action(), button, ["press", "release", "hold"][trigger_choice.selected])
     if not error.is_empty():
-        mapping_status.text = error + ". Maak de andere actie eerst vrij."
+        mapping_status.text = error + String(TranslationServer.translate("CONTROL_UNASSIGN_THE_OTHER_ACTION_FIRST"))
         return
     if mapping.save() != OK:
         mapping.profiles = before
         mapping.customized = was_custom
-        mapping_status.text = "Opslaan mislukt; vorige mapping blijft actief."
+        mapping_status.text = "CONTROL_FAILED_TO_SAVE_PREVIOUS_MAPPING_REMAINS_ACTIVE"
         return
     cancel_capture()
-    mapping_status.text = "Mapping opgeslagen. Test de knop hier; spelacties werken buiten de test."
+    mapping_status.text = "CONTROL_MAPPING_SAVED_TEST_THE_BUTTON_HERE_GAME_ACTIONS_WORK_OUTSIDE_THE_TEST"
     _refresh_mapping()
 
 func _restore(all_contexts: bool) -> void:
@@ -259,22 +259,27 @@ func _restore(all_contexts: bool) -> void:
     if mapping.save() != OK:
         mapping.profiles = before
         mapping.customized = was_custom
-        mapping_status.text = "Opslaan mislukt; vorige mapping blijft actief."
+        mapping_status.text = "CONTROL_FAILED_TO_SAVE_PREVIOUS_MAPPING_REMAINS_ACTIVE"
         return
     cancel_capture()
-    mapping_status.text = "Standaardinstellingen opgeslagen."
+    mapping_status.text = "CONTROL_DEFAULT_SETTINGS_SAVED"
     _refresh_mapping()
     _refresh_trigger()
+
+func _notification(what: int) -> void:
+    if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+        _refresh_mapping()
+
 
 func _refresh_mapping() -> void:
     for button in binding_labels:
         var action: String = mapping.action_for(_context(), button)
-        var caption := "Vrij / geen spelactie"
+        var caption := String(TranslationServer.translate("CONTROL_UNASSIGNED_NO_GAME_ACTION"))
         if not action.is_empty():
             var binding: Dictionary = mapping.profiles[_context()][action]
-            caption = "%s (%s)" % [Mapping.ACTIONS[_context()][action], {"press":"indrukken", "release":"loslaten", "hold":"vasthouden"}[binding.trigger]]
+            caption = "%s (%s)" % [tr(Mapping.ACTIONS[_context()][action]), tr({"press":"INPUT_PRESS", "release":"INPUT_RELEASE", "hold":"INPUT_HOLD"}.get(binding.trigger, ""))]
         if _context() == "race" and button == "A":
-            var madison := "Madison-aflossing: indrukken = grijpen. Easy: automatisch slingeren en loslaten. Advanced: vasthouden = slingeren, loslaten = aflossen."
+            var madison := String(TranslationServer.translate("CONTROL_MADISON_EXCHANGE_PRESS_TO_GRAB_EASY_AUTOMATIC_HAND_SLING_AND_RELEASE_A"))
             caption = madison if action.is_empty() else caption + "\n" + madison
-        if button.begins_with("SHIFT_"): caption += " · schakelen in bridge"
+        if button.begins_with("SHIFT_"): caption += String(TranslationServer.translate("CONTROL_GEAR_SHIFTING_IN_BRIDGE"))
         binding_labels[button].text = caption

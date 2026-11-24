@@ -22,10 +22,10 @@ func update_standings(data: Array[Dictionary], race_title: String = "") -> void:
 	offset_left = -272 if standalone else (-356 if show_race_points else (-354 if show_bonus else -312))
 	last_key = key
 	for child in rows.get_children(): rows.remove_child(child); child.queue_free()
-	var title := Label.new(); title.text = race_title if standalone else "VIRTUEEL OMNIUM"; title.add_theme_font_size_override("font_size", 17); rows.add_child(title)
+	var title := Label.new(); title.text = race_title if standalone else String(TranslationServer.translate("OMNIUM_VIRTUAL_OMNIUM")); title.add_theme_font_size_override("font_size", 17); rows.add_child(title)
 	if show_race_points:
 		var headings := HBoxContainer.new(); headings.add_theme_constant_override("separation", 5); rows.add_child(headings)
-		for column in [["", 102], ["RONDEN", 85], ["TEMPO", 44], ["OMNIUM", 52]]:
+		for column in [["", 102], [String(TranslationServer.translate("OMNIUM_LAPS")), 85], ["TEMPO", 44], ["OMNIUM", 52]]:
 			var heading := Label.new(); heading.text = String(column[0]); heading.custom_minimum_size.x = int(column[1])
 			heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			heading.add_theme_font_size_override("font_size", 11); headings.add_child(heading)
@@ -59,7 +59,7 @@ func update_standings(data: Array[Dictionary], race_title: String = "") -> void:
 		row.add_child(name_label)
 		if not standalone or not show_bonus:
 			var laps := Label.new(); var lap_count: int = int(rider.get("laps", 0))
-			laps.text = "%+d ronde%s" % [lap_count, "" if absi(lap_count) == 1 else "n"] if lap_count != 0 else ""
+			laps.text = String(TranslationServer.translate("OMNIUM_D_LAP_S")) % [lap_count, "" if absi(lap_count) == 1 else "n"] if lap_count != 0 else ""
 			laps.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			laps.custom_minimum_size.x = 85; laps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			laps.add_theme_font_size_override("font_size", 16); row.add_child(laps)

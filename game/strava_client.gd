@@ -27,7 +27,7 @@ func _http(method: int, url: String, headers: PackedStringArray, payload: Packed
 	var err: Error = req.request_raw(url, headers, method, payload)
 	if err != OK:
 		req.queue_free()
-		return {"ok": false, "message": "Netwerkverzoek mislukt (%d)" % err}
+		return {"ok": false, "message": String(TranslationServer.translate("STRAVA_CLIENT_NETWORK_REQUEST_FAILED_D")) % err}
 	var response: Array = await req.request_completed
 	req.queue_free()
 	var http_status: int = int(response[1])
@@ -46,16 +46,16 @@ func _ready() -> void:
 func begin_export(path: String, title: String = "Velodrome", description: String = "") -> void:
 	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
 	if working:
-		_emit("Een upload is al bezig.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_AN_UPLOAD_IS_ALREADY_IN_PROGRESS")))
 		return
 	upload_path = path
 	upload_name = title.strip_edges() if not title.strip_edges().is_empty() else "Velodrome"
 	upload_description = description
 	if not FileAccess.file_exists(path):
-		_emit("FIT-bestand ontbreekt. Exporteer eerst de rit.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_FIT_FILE_MISSING_EXPORT_THE_RIDE_FIRST")))
 		return
 	if _config_value("client_id").is_empty() or _config_value("client_secret").is_empty():
-		_emit("Vul eerst client_id en client_secret in config/strava_config.cfg in.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_ENTER_CLIENT_ID_AND_CLIENT_SECRET_IN_CONFIG_STRAVA_CONFIG_CFG_FIRST")))
 		return
 	var refresh: String = str(tokens.get_value("tokens", "refresh_token", ""))
 	if refresh.is_empty():
@@ -69,10 +69,10 @@ func begin_export(path: String, title: String = "Velodrome", description: String
 func reconnect() -> void:
 	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
 	if working:
-		_emit("Wacht tot de huidige Strava-aanvraag is afgerond.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_WAIT_FOR_THE_CURRENT_STRAVA_REQUEST_TO_FINISH")))
 		return
 	if _config_value("client_id").is_empty() or _config_value("client_secret").is_empty():
-		_emit("Vul eerst client_id en client_secret in config/strava_config.cfg in.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_ENTER_CLIENT_ID_AND_CLIENT_SECRET_IN_CONFIG_STRAVA_CONFIG_CFG_FIRST")))
 		return
 	# No tokens are transmitted or shared here. A fresh OAuth approval replaces them.
 	_show_authorize()
@@ -85,7 +85,7 @@ func _show_authorize() -> void:
 	# Reload config so edits made while the game is running are picked up.
 	var client_id: String = _config_value("client_id")
 	if not client_id.is_valid_int() or int(client_id) <= 0:
-		_emit("Strava Client ID ontbreekt of is ongeldig. Vul het numerieke client_id in config/strava_config.cfg in.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_CLIENT_ID_IS_MISSING_OR_INVALID_ENTER_THE_NUMERIC_CLIENT_ID_IN_")))
 		return
 	var params := PackedStringArray([
 		"client_id=" + client_id.uri_encode(),
@@ -97,7 +97,7 @@ func _show_authorize() -> void:
 	var url: String = "https://www.strava.com/oauth/authorize?" + "&".join(params)
 	var open_result: Error = OS.shell_open(url)
 	if open_result != OK:
-		_emit("Kan Strava niet openen in de browser. Controleer je standaardbrowser.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_CANNOT_OPEN_STRAVA_IN_THE_BROWSER_CHECK_YOUR_DEFAULT_BROWSER")))
 		return
 	var dialog := _build_authorization_dialog()
 	dialog.popup_centered(Vector2i(800, 400))
@@ -105,18 +105,18 @@ func _show_authorize() -> void:
 func _build_authorization_dialog() -> ConfirmationDialog:
 	pending_dialog = ConfirmationDialog.new()
 	pending_dialog.theme = MenuStyle.create()
-	pending_dialog.title = "Strava koppelen"
+	pending_dialog.title = String(TranslationServer.translate("STRAVA_CLIENT_CONNECT_STRAVA"))
 	var body := VBoxContainer.new()
 	body.custom_minimum_size = Vector2(650, 320)
 	body.add_theme_constant_override("separation", 20)
 	pending_dialog.add_child(body)
 	var instructions := Label.new()
-	instructions.text = "1. Kopieer config/strava_config.example.cfg\n   naar config/strava_config.cfg en vul je gegevens in.\n   Client ID en Client Secret: strava.com/settings/api\n   redirect_uri: http://localhost · callbackdomein: localhost\n2. Geef Strava toestemming om activiteiten te uploaden.\n3. Kopieer de volledige localhost-URL uit je browser.\n4. Plak die hieronder en kies Koppel en upload.\n\nEen onbereikbare localhost-pagina is normaal\nbij deze handmatige koppeling."
+	instructions.text = "STRAVA_1_COPY_CONFIG_STRAVA_CONFIG_EXAMPLE_CFG_TO_CONFIG_STRAVA_CONFIG_CFG_AN"
 	body.add_child(instructions)
-	pending_dialog.ok_button_text = "Koppel en upload"
-	pending_dialog.cancel_button_text = "Annuleren"
+	pending_dialog.ok_button_text = "STRAVA_CLIENT_CONNECT_AND_UPLOAD"
+	pending_dialog.cancel_button_text = "WORKOUT_EDITOR_CANCEL"
 	var input := LineEdit.new()
-	input.placeholder_text = "Autorisatiecode of volledige callback-URL"
+	input.placeholder_text = "STRAVA_CLIENT_AUTHORISATION_CODE_OR_FULL_CALLBACK_URL"
 	input.custom_minimum_size = Vector2(650, 48)
 	body.add_child(input)
 	add_child(pending_dialog)
@@ -125,11 +125,11 @@ func _build_authorization_dialog() -> ConfirmationDialog:
 		if code.contains("code="):
 			code = code.get_slice("code=", 1).get_slice("&", 0).uri_decode()
 		if code.is_empty():
-			_emit("Geen autorisatiecode opgegeven.")
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_NO_AUTHORISATION_CODE_SUPPLIED")))
 		elif input.text.contains("error="):
-			_emit("Strava-toestemming werd geweigerd. Probeer opnieuw te koppelen.")
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_PERMISSION_WAS_DENIED_TRY_RECONNECTING")))
 		elif input.text.contains("scope=") and not input.text.uri_decode().contains("activity:write"):
-			_emit("Strava gaf geen activity:write toestemming. Koppel opnieuw en keur uploads goed.")
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_DID_NOT_GRANT_ACTIVITY_WRITE_PERMISSION_RECONNECT_AND_APPROVE_U")))
 		else:
 			_exchange_code(code)
 	)
@@ -156,11 +156,11 @@ func _form(data: Dictionary) -> PackedByteArray:
 
 func _exchange_code(code: String) -> void:
 	working = true
-	_emit("Strava: account koppelen...")
+	_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_CONNECTING_ACCOUNT")))
 	var result: Dictionary = await _http(HTTPClient.METHOD_POST, TOKEN_URL, PackedStringArray(["Content-Type: application/x-www-form-urlencoded"]), _form({"client_id": _config_value("client_id"), "client_secret": _config_value("client_secret"), "code": code, "grant_type": "authorization_code"}))
 	if not result["ok"]:
 		working = false
-		_emit("Strava-koppeling mislukt (HTTP %d): %s" % [result.get("code", 0), result["message"]])
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_CONNECTION_FAILED_HTTP_D_S")) % [result.get("code", 0), result["message"]])
 		return
 	_save_tokens(result["data"])
 	working = false
@@ -168,17 +168,17 @@ func _exchange_code(code: String) -> void:
 
 func _upload_with_refresh(refresh: String) -> void:
 	working = true
-	_emit("Strava: toegangstoken vernieuwen...")
+	_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_REFRESHING_ACCESS_TOKEN")))
 	var result: Dictionary = await _http(HTTPClient.METHOD_POST, TOKEN_URL, PackedStringArray(["Content-Type: application/x-www-form-urlencoded"]), _form({"client_id": _config_value("client_id"), "client_secret": _config_value("client_secret"), "refresh_token": refresh, "grant_type": "refresh_token"}))
 	if not result["ok"]:
 		working = false
-		_emit("Strava-token geweigerd (HTTP %d): %s" % [result.get("code", 0), result["message"]])
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_TOKEN_REJECTED_HTTP_D_S")) % [result.get("code", 0), result["message"]])
 		return
 	_save_tokens(result["data"])
 	var token: String = str(result["data"].get("access_token", ""))
 	if token.is_empty():
 		working = false
-		_emit("Geen toegangstoken ontvangen.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_NO_ACCESS_TOKEN_RECEIVED")))
 		return
 	await _send_fit(token)
 	working = false
@@ -186,7 +186,7 @@ func _upload_with_refresh(refresh: String) -> void:
 func _send_fit(access_token: String) -> void:
 	var file := FileAccess.open(upload_path, FileAccess.READ)
 	if file == null:
-		_emit("Kan FIT-bestand niet openen.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_CANNOT_OPEN_FIT_FILE")))
 		return
 	var bytes: PackedByteArray = file.get_buffer(file.get_length())
 	file.close()
@@ -198,24 +198,24 @@ func _send_fit(access_token: String) -> void:
 	body.append_array(("--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"velodrome250.fit\"\r\nContent-Type: application/octet-stream\r\n\r\n" % boundary).to_utf8_buffer())
 	body.append_array(bytes)
 	body.append_array(("\r\n--%s--\r\n" % boundary).to_utf8_buffer())
-	_emit("Strava: FIT uploaden...")
+	_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_UPLOADING_FIT_FILE")))
 	var result: Dictionary = await _http(HTTPClient.METHOD_POST, UPLOAD_URL, PackedStringArray(["Authorization: Bearer " + access_token, "Content-Type: multipart/form-data; boundary=" + boundary]), body)
 	if not result["ok"]:
 		if int(result.get("code", 0)) in [401, 403] and "activity:write_permission" in str(result["message"]):
-			_emit("Strava mist activity:write. Klik op 'STRAVA OPNIEUW KOPPELEN' onder de uitslag.")
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_LACKS_ACTIVITY_WRITE_PERMISSION_CLICK_RECONNECT_STRAVA_BELOW_TH")))
 		else:
-			_emit("Strava-upload afgewezen (HTTP %d): %s" % [result.get("code", 0), result["message"]])
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_UPLOAD_REJECTED_HTTP_D_S")) % [result.get("code", 0), result["message"]])
 		return
 	var upload_id: int = int(result["data"].get("id", 0))
 	if upload_id == 0:
-		_emit("Upload ontvangen, maar Strava gaf geen upload-ID terug.")
+		_emit(String(TranslationServer.translate("STRAVA_CLIENT_UPLOAD_RECEIVED_BUT_STRAVA_DID_NOT_RETURN_AN_UPLOAD_ID")))
 		return
-	_emit("Upload ontvangen; Strava verwerkt de activiteit...")
+	_emit(String(TranslationServer.translate("STRAVA_CLIENT_UPLOAD_RECEIVED_STRAVA_IS_PROCESSING_THE_ACTIVITY")))
 	for attempt in range(8):
 		await get_tree().create_timer(2.0).timeout
 		var state: Dictionary = await _http(HTTPClient.METHOD_GET, UPLOAD_URL + "/" + str(upload_id), PackedStringArray(["Authorization: Bearer " + access_token]), PackedByteArray())
 		if not state["ok"]:
-			_emit("Statuscontrole mislukt (HTTP %d)" % state.get("code", 0))
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STATUS_CHECK_FAILED_HTTP_D")) % state.get("code", 0))
 			return
 		var data: Dictionary = state["data"]
 		# Strava returns activity_id: null while the upload is processing.
@@ -223,11 +223,11 @@ func _send_fit(access_token: String) -> void:
 		var activity_value: Variant = data.get("activity_id")
 		if (activity_value is int or activity_value is float) and activity_value > 0:
 			var activity_id: String = str(int(activity_value))
-			_emit("Strava-activiteit geplaatst! ID: " + activity_id)
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_ACTIVITY_POSTED_ID")) + activity_id)
 			activity_created.emit(activity_id)
 			return
 		var upload_error: Variant = data.get("error")
 		if upload_error != null and not str(upload_error).is_empty():
-			_emit("Strava kon de rit niet verwerken: " + str(upload_error))
+			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_COULD_NOT_PROCESS_THE_RIDE")) + str(upload_error))
 			return
-	_emit("Strava verwerkt nog. Controleer je activiteitenlijst later.")
+	_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_IS_STILL_PROCESSING_CHECK_YOUR_ACTIVITY_LIST_LATER")))

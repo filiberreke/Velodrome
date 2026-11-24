@@ -55,7 +55,7 @@ func _ready() -> void:
 	camp.add_child(roof)
 	_box(camp, Vector3(0, 2.34, 2.1), Vector3(4.4, 0.32, 0.08), colour)
 	var sign := Label3D.new()
-	sign.text = "EIGEN PLOEG · TRAINING"
+	sign.text = "TRAINING_OWN_TEAM"
 	sign.position = Vector3(0, 2.35, 2.16)
 	sign.pixel_size = 0.004
 	sign.font_size = 45

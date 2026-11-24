@@ -121,9 +121,9 @@ func _interpolate(previous: Array[float], current: Array[float], seconds: float,
 	return result
 
 func notice(leader_distance: float) -> String:
-	if complete(): return "Temporace afgelopen · jouw score: %d punten" % points[0]
+	if complete(): return String(TranslationServer.translate("TEMPO_RACE_FINISHED")) % points[0]
 	if finish_clock >= 0.0: return "Finish · uitslag wordt aangevuld · %d punten" % points[0]
 	var next: int = next_sprint_lap()
 	var remaining: float = maxf(0.0, next * LAP - leader_distance)
 	var title: String = "FINISH" if next == laps else "RONDEPUNT"
-	return "%d punten · %s over %.0f m (ronde %d)" % [points[0], title, remaining, next]
+	return String(TranslationServer.translate("POINTS_LAP_STATUS")) % [points[0], title, remaining, next]

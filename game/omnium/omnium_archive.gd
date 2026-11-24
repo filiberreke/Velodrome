@@ -5,18 +5,18 @@ const Style := preload("res://menu_theme.gd")
 var sort_column := 5
 var descending := true
 func render_list(page: Node) -> void:
-	page.body.add_child(page.menu.label("Gereden toernooien",32))
-	if page.manager.state.archive.is_empty(): page.body.add_child(page.menu.label("Nog geen gereden toernooien",20))
+	page.body.add_child(page.menu.label("OMNIUM_PAST_TOURNAMENTS",32))
+	if page.manager.state.archive.is_empty(): page.body.add_child(page.menu.label("OMNIUM_NO_PAST_TOURNAMENTS_YET",20))
 	var tournaments: Array = page.manager.state.archive.duplicate(); tournaments.reverse()
 	for tournament in tournaments:
 		var date := Time.get_date_string_from_unix_time(int(tournament.get("ended",0)))
-		var status: String = {"completed":"Voltooid","stopped":"Gestopt","expired":"Verlopen"}.get(String(tournament.status),String(tournament.status))
-		page.button("%s · %s · %d deelnemers · %d/4 wedstrijden" % [date,status,tournament.riders.size(),tournament.results.size()], page.open_archive.bind(tournament))
+		var status: String = {"completed":String(TranslationServer.translate("OMNIUM_COMPLETED")),"stopped":String(TranslationServer.translate("OMNIUM_STOPPED")),"expired":String(TranslationServer.translate("OMNIUM_EXPIRED"))}.get(String(tournament.status),String(tournament.status))
+		page.button(String(TranslationServer.translate("OMNIUM_S_S_D_RIDERS_D_4_RACES")) % [date,status,tournament.riders.size(),tournament.results.size()], page.open_archive.bind(tournament))
 func render(page: Node) -> void:
 	var tournament: Dictionary = page.archived_tournament
 	var complete: bool = tournament.status == "completed"
-	page.body.add_child(page.menu.label("Omnium · Eindklassement" if complete else "Omnium · Tussenklassement",32))
-	page.body.add_child(page.menu.label("Voltooid" if complete else "Omnium gestopt of verlopen · geen definitieve winnaar · hervatten niet mogelijk",19,Style.MUTED))
+	page.body.add_child(page.menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_FINAL_STANDINGS")) if complete else String(TranslationServer.translate("OMNIUM_OMNIUM_INTERIM_STANDINGS")),32))
+	page.body.add_child(page.menu.label(String(TranslationServer.translate("OMNIUM_COMPLETED")) if complete else String(TranslationServer.translate("OMNIUM_OMNIUM_STOPPED_OR_EXPIRED_NO_FINAL_WINNER_CANNOT_RESUME")),19,Style.MUTED))
 	var totals := Scores.totals(tournament.riders,tournament.results)
 	var riders: Array = tournament.riders.duplicate()
 	riders.sort_custom(func(a,b):
@@ -26,7 +26,7 @@ func render(page: Node) -> void:
 		return first > second if descending else first < second)
 	var table := GridContainer.new(); table.name = "OmniumArchiveMatrix"; table.columns = 6
 	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL; page.body.add_child(table)
-	var titles := ["Renner","Scratch","Temporace","Afvalling","Puntenkoers","Totaal"]
+	var titles := [String(TranslationServer.translate("OMNIUM_RIDER")),String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")),String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")),String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE")),String(TranslationServer.translate("RACE_MENU_POINTS_RACE")),String(TranslationServer.translate("OMNIUM_TOTAL"))]
 	for i in range(titles.size()):
 		var button: Button = page.button(titles[i], change_sort.bind(page,i),table)
 		button.custom_minimum_size.x = 270 if i == 0 else 125
@@ -37,7 +37,7 @@ func render(page: Node) -> void:
 		name_box.add_child(page.menu.label(String(rider.name),20))
 		for i in range(4): View.cell(page,table,str(value(tournament,String(rider.id),i)) if i < tournament.results.size() else "—",Style.PAPER)
 		View.cell(page,table,str(totals[rider.id]),Style.PALE)
-	for i in range(tournament.results.size()): page.button("Bekijk uitslag · " + titles[i+1], page.open_result.bind(i))
+	for i in range(tournament.results.size()): page.button(String(TranslationServer.translate("OMNIUM_VIEW_RESULTS")) + titles[i+1], page.open_result.bind(i))
 func value(tournament: Dictionary, id: String, index: int) -> int:
 	if index >= tournament.results.size(): return 0
 	var result: Dictionary = tournament.results[index]

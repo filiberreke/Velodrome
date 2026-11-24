@@ -42,7 +42,7 @@ func _draw() -> void:
 		var y := origin.y + height * .5
 		draw_style_box(Style.panel(Style.PAPER,Color.TRANSPARENT,0,6),Rect2(origin.x,y-30,width,54))
 		draw_string(font,Vector2(origin.x+(width-font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x)/2,y),label,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size,Style.INK)
-		var hint := "Zonder ERG-doel"
+		var hint := String(TranslationServer.translate("WORKOUT_NO_ERG_TARGET"))
 		draw_string(font,Vector2(origin.x+(width-font.get_string_size(hint,HORIZONTAL_ALIGNMENT_LEFT,-1,12).x)/2,y+19),hint,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Style.MUTED)
 		return
 	var sections := chart_sections(blocks)

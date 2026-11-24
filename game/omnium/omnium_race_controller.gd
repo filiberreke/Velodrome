@@ -29,7 +29,7 @@ func start(game: Node, owner_manager) -> bool:
 	var now := now_unix()
 	if not owner_manager.check_deadline(now) or owner_manager.state.active.is_empty(): return false
 	if owner_manager.state.active.results.size() != stage():
-		error = "Deze discipline is nog niet aan de beurt."; return false
+		error = String(TranslationServer.translate("OMNIUM_WRONG_DISCIPLINE")); return false
 	if not game._piste_start_blocker().is_empty():
 		error = game._piste_start_blocker(); return false
 	game._reset()
@@ -75,7 +75,7 @@ func sample(game: Node) -> void:
 	if not manager.state.active.is_empty() and manager.deadline() > 0 and now > manager.deadline():
 		manager.check_deadline(now)
 	if manager.state.active.is_empty():
-		error = "Het omnium is verlopen. Deze wedstrijd telt niet mee."
+		error = String(TranslationServer.translate("OMNIUM_EXPIRED_RACE_EXCLUDED"))
 		return
 	for i in range(1, game.rider_count):
 		var id := String(game.rider_identities[i].id)
@@ -86,7 +86,7 @@ func sample(game: Node) -> void:
 	if committed: error = ""
 	if not committed:
 		error = manager.error
-		if manager.state.active.is_empty(): error = "Het omnium is verlopen. Deze wedstrijd telt niet mee."
+		if manager.state.active.is_empty(): error = String(TranslationServer.translate("OMNIUM_EXPIRED_RACE_EXCLUDED"))
 
 func standings(game: Node) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
@@ -108,7 +108,7 @@ func may_leave(game: Node) -> bool:
 	if not enabled(): return true
 	sample(game)
 	if game.finish_times[0] >= 0.0 and not committed and not manager.state.active.is_empty():
-		error = "De uitslag wordt nog aangevuld." if not game._all_riders_finished() else "Opslaan mislukt: " + manager.error
+		error = String(TranslationServer.translate("OMNIUM_WAITING_FOR_RESULTS")) if not game._all_riders_finished() else "Opslaan mislukt: " + manager.error
 		return false
 	if not committed and not manager.state.active.is_empty():
 		if not manager.abort_attempt(): error = manager.error; return false

@@ -40,7 +40,7 @@ func deadline() -> int:
 
 func check_deadline(now: int) -> bool:
 	if state.active.is_empty(): return true
-	if now < int(state.active.last_seen): clock_warning = "De systeemklok is achteruit versprongen."
+	if now < int(state.active.last_seen): clock_warning = String(TranslationServer.translate("OMNIUM_CLOCK_MOVED_BACK"))
 	if deadline() > 0 and now > deadline(): return archive("expired", deadline())
 	return true
 

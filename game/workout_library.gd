@@ -6,16 +6,16 @@ func _path(id: String) -> String:
 	return folder.path_join(id+".json") if not id.is_empty() and id == id.validate_filename() and not id.contains("..") else ""
 func save_workout(id: String, title: String, blocks: Array) -> String:
 	error = ""
-	if blocks.is_empty(): error = "Voeg minstens één blok toe."; return ""
+	if blocks.is_empty(): error = String(TranslationServer.translate("WORKOUT_LIBRARY_ADD_AT_LEAST_ONE_BLOCK")); return ""
 	if id.is_empty(): id = "workout-%d-%08x" % [Time.get_ticks_usec(),randi()]
 	var path := _path(id)
-	if path.is_empty(): error = "Ongeldige workout."; return ""
+	if path.is_empty(): error = String(TranslationServer.translate("WORKOUT_LIBRARY_INVALID_WORKOUT")); return ""
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(folder))
 	var file := FileAccess.open(path+".tmp",FileAccess.WRITE)
-	if file == null: error = "Workout kon niet worden opgeslagen."; return ""
-	file.store_string(JSON.stringify({"version":1,"id":id,"name":title.strip_edges() if not title.strip_edges().is_empty() else "Naamloze workout","blocks":blocks,"updated":Time.get_unix_time_from_system()}))
+	if file == null: error = String(TranslationServer.translate("WORKOUT_LIBRARY_WORKOUT_COULD_NOT_BE_SAVED")); return ""
+	file.store_string(JSON.stringify({"version":1,"id":id,"name":title.strip_edges() if not title.strip_edges().is_empty() else String(TranslationServer.translate("WORKOUT_LIBRARY_UNTITLED_WORKOUT")),"blocks":blocks,"updated":Time.get_unix_time_from_system()}))
 	file.close()
-	if DirAccess.rename_absolute(ProjectSettings.globalize_path(path+".tmp"),ProjectSettings.globalize_path(path)) != OK: error = "Opslaan mislukt."; return ""
+	if DirAccess.rename_absolute(ProjectSettings.globalize_path(path+".tmp"),ProjectSettings.globalize_path(path)) != OK: error = String(TranslationServer.translate("WORKOUT_LIBRARY_FAILED_TO_SAVE")); return ""
 	return id
 func get_workout(id: String) -> Dictionary:
 	var path := _path(id)
@@ -26,10 +26,10 @@ func delete_workout(id: String) -> bool:
 	error = ""
 	var path := _path(id)
 	if path.is_empty() or get_workout(id).is_empty():
-		error = "Workout niet gevonden."
+		error = String(TranslationServer.translate("WORKOUT_LIBRARY_WORKOUT_NOT_FOUND"))
 		return false
 	if DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) != OK:
-		error = "Workout kon niet worden verwijderd."
+		error = String(TranslationServer.translate("WORKOUT_LIBRARY_WORKOUT_COULD_NOT_BE_DELETED"))
 		return false
 	return true
 func all_workouts() -> Array[Dictionary]:

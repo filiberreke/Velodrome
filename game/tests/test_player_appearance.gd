@@ -6,7 +6,7 @@ var failures := 0
 class SettingsUnderTest extends "res://display_settings.gd":
 	func _apply_display() -> void: pass
 	func _load_settings() -> void: pass
-	func _save_settings() -> void: pass
+	func _save_settings() -> Error: return OK
 	func _load_rider_profile() -> void: pass
 	func _save_rider_profile() -> void: pass
 

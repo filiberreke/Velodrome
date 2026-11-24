@@ -34,15 +34,15 @@ func update_state(value: Dictionary) -> void:
 	var role: String = state.get("role","")
 	var grab_key: String = state.get("grab_key","A")
 	if waiting:
-		hint.text = state.message + " · " + str(state.get("steer_keys","← →")) + " sturen"
+		hint.text = state.message + " · " + str(state.get("steer_keys","← →")) + String(TranslationServer.translate("MADISON_STEER"))
 	elif approaching:
-		hint.text = role + "\n" + str(state.get("instruction","Volg de gele lijn"))
+		hint.text = role + "\n" + str(state.get("instruction",String(TranslationServer.translate("MADISON_FOLLOW_THE_YELLOW_LINE"))))
 		if not positioned:
-			hint.text += "\nAflossen niet mogelijk wegens slechte positionering\n" + str(state.get("position_reason",""))
-		elif not pace_ok: hint.text += "\nAflossen niet mogelijk wegens je snelheid\n" + str(state.get("speed_reason",""))
-		else: hint.text += "\n" + grab_key + ": grijpen" if state.can_grab else "\nWacht tot je ploegmaat binnen handbereik is"
+			hint.text += String(TranslationServer.translate("MADISON_EXCHANGE_UNAVAILABLE_DUE_TO_POOR_POSITIONING")) + str(state.get("position_reason",""))
+		elif not pace_ok: hint.text += String(TranslationServer.translate("MADISON_EXCHANGE_UNAVAILABLE_DUE_TO_YOUR_SPEED")) + str(state.get("speed_reason",""))
+		else: hint.text += "\n" + grab_key + String(TranslationServer.translate("MADISON_GRAB")) if state.can_grab else String(TranslationServer.translate("MADISON_WAIT_UNTIL_YOUR_TEAMMATE_IS_WITHIN_REACH"))
 	elif state.phase in ["GRAB","SLING"]:
-		hint.text = role + "\n" + ("%s loslaten: score %d/100" % [grab_key,roundi(state.get("score",0.0))] if state.advanced else "Automatische slinger · momentum maximaal 70%")
+		hint.text = role + "\n" + (String(TranslationServer.translate("MADISON_RELEASE_S_SCORE_D_100")) % [grab_key,roundi(state.get("score",0.0))] if state.advanced else String(TranslationServer.translate("MADISON_AUTOMATIC_SLING_MAXIMUM_MOMENTUM_70")))
 	else: hint.text = role + "\n" + state.message
 	feedback_label.text = state.get("feedback","")
 	feedback_label.position.y = 190 if show_slider else 190 if approaching and (not positioned or not pace_ok) and not waiting else 115

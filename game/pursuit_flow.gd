@@ -71,46 +71,46 @@ func _ready()->void:
 	match_title=menu.label("",36);match_title.add_theme_font_override("font",MenuStyle.heading());information.add_child(match_title)
 	match_description=menu.label("",22,MenuStyle.MUTED);match_description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;information.add_child(match_description)
 	distance_options=VBoxContainer.new();distance_options.custom_minimum_size.x=570;distance_options.add_theme_constant_override("separation",14);match_row.add_child(distance_options)
-	distance_options.add_child(menu.label("Jouw wedstrijd",30))
-	distance_options.add_child(menu.label("Afstand",22))
+	distance_options.add_child(menu.label("RACE_MENU_YOUR_RACE",30))
+	distance_options.add_child(menu.label("RECORDS_PAGE_DISTANCE",22))
 	var distance_row:=center_row(distance_options)
 	for value in [1000,4000]:
-		var choice:=button("1 km\n4 ronden"if value==1000 else"4 km\n16 ronden",265)
+		var choice:=button(String(TranslationServer.translate("PURSUIT_1_KM_4_LAPS"))if value==1000 else String(TranslationServer.translate("PURSUIT_4_KM_16_LAPS")),265)
 		choice.custom_minimum_size.y=72;choice.toggle_mode=true;distance_row.add_child(choice);distance_buttons.append(choice)
 		choice.pressed.connect(func():select_distance(value))
 	var squad_row:=center_row(distance_options);squad_row.name="SquadSize"
 	for value in [3,4]:
-		var choice:=button("%d renners"%value,240);choice.toggle_mode=true;squad_row.add_child(choice);size_buttons.append(choice)
+		var choice:=button(String(TranslationServer.translate("PURSUIT_D_RIDERS"))%value,240);choice.toggle_mode=true;squad_row.add_child(choice);size_buttons.append(choice)
 		choice.pressed.connect(func():select_size(value))
-	advanced_toggle=CheckButton.new();advanced_toggle.text="Ploeginstellingen";advanced_toggle.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;distance_options.add_child(advanced_toggle)
+	advanced_toggle=CheckButton.new();advanced_toggle.text="PURSUIT_TEAM_SETTINGS";advanced_toggle.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;distance_options.add_child(advanced_toggle)
 	advanced=VBoxContainer.new();advanced.add_theme_constant_override("separation",8);distance_options.add_child(advanced);advanced.hide()
 	advanced_toggle.toggled.connect(func(value):advanced.visible=value and team)
-	var line:=center_row(advanced);line.add_child(text("Weerstand",18));resistance=OptionButton.new();resistance.add_item("Manueel",0);resistance.add_item("ERG",1);line.add_child(resistance)
+	var line:=center_row(advanced);line.add_child(text("PURSUIT_RESISTANCE",18));resistance=OptionButton.new();resistance.add_item("PURSUIT_MANUAL",0);resistance.add_item("ERG",1);line.add_child(resistance)
 	resistance.item_selected.connect(func(index):if options!=null:options.resistance_choice.select(index);options.resistance_choice.item_selected.emit(index))
 	for rank in range(3):
-		var row:=center_row(advanced);row.add_child(text("%de positie · vermogen in het wiel"%(rank+2),18));var input:=SpinBox.new();input.min_value=10;input.max_value=100;input.step=5;input.suffix="%";input.custom_minimum_size=Vector2(130,38);row.add_child(input)
+		var row:=center_row(advanced);row.add_child(text(String(TranslationServer.translate("PURSUIT_POSITION_D_DRAFTING_POWER"))%(rank+2),18));var input:=SpinBox.new();input.min_value=10;input.max_value=100;input.step=5;input.suffix="%";input.custom_minimum_size=Vector2(130,38);row.add_child(input)
 		advanced_rows.append(row);factor_controls.append(input)
 		input.value_changed.connect(func(value):if team and options!=null:options.factor_inputs[rank].value=value)
 	opponent_page=VBoxContainer.new();opponent_page.add_theme_constant_override("separation",6);opponent_page.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_child(opponent_page)
 	summary_label=text("",18,MenuStyle.MUTED);opponent_page.add_child(summary_label)
-	var tabs:=center_row(opponent_page);ai_tab=button("AI-renners",260);replay_tab=button("Eigen prestaties",260);ai_tab.toggle_mode=true;replay_tab.toggle_mode=true;tabs.add_child(ai_tab);tabs.add_child(replay_tab)
+	var tabs:=center_row(opponent_page);ai_tab=button("PURSUIT_AI_RIDERS",260);replay_tab=button("PURSUIT_PERSONAL_PERFORMANCES",260);ai_tab.toggle_mode=true;replay_tab.toggle_mode=true;tabs.add_child(ai_tab);tabs.add_child(replay_tab)
 	ai_tab.pressed.connect(func():select_kind(0));replay_tab.pressed.connect(func():select_kind(1))
 	var carousel:=center_row(opponent_page);carousel.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	left_arrow=button("‹",70);left_arrow.custom_minimum_size.y=90;left_arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(left_arrow);left_arrow.pressed.connect(func():cycle(-1))
 	card_holder=CenterContainer.new();card_holder.custom_minimum_size=Vector2(500,390);carousel.add_child(card_holder)
 	right_arrow=button("›",70);right_arrow.custom_minimum_size.y=90;right_arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(right_arrow);right_arrow.pressed.connect(func():cycle(1))
 	counter=text("",17,MenuStyle.MUTED);opponent_page.add_child(counter)
-	var strength_row:=center_row(opponent_page);strength_row.add_child(text("Sterkte tegenstander",20))
+	var strength_row:=center_row(opponent_page);strength_row.add_child(text("PURSUIT_OPPONENT_STRENGTH",20))
 	strength_slider=HSlider.new();strength_slider.min_value=40;strength_slider.max_value=120;strength_slider.step=5;strength_slider.custom_minimum_size=Vector2(320,36);strength_row.add_child(strength_slider)
 	strength_input=SpinBox.new();strength_input.min_value=40;strength_input.max_value=120;strength_input.step=5;strength_input.suffix="%";strength_input.custom_minimum_size=Vector2(115,40);strength_row.add_child(strength_input)
 	strength_slider.value_changed.connect(_strength_changed);strength_input.value_changed.connect(_strength_changed)
 	strength_hint=text("",16,MenuStyle.MUTED);opponent_page.add_child(strength_hint)
-	demo_row=center_row(distance_options);demo_row.add_child(text("Demo-startvermogen",16));demo_input=SpinBox.new();demo_input.min_value=0;demo_input.max_value=900;demo_input.step=25;demo_input.suffix="W";demo_input.custom_minimum_size=Vector2(130,36);demo_row.add_child(demo_input)
+	demo_row=center_row(distance_options);demo_row.add_child(text("PURSUIT_DEMO_POWER",16));demo_input=SpinBox.new();demo_input.min_value=0;demo_input.max_value=900;demo_input.step=25;demo_input.suffix="W";demo_input.custom_minimum_size=Vector2(130,36);demo_row.add_child(demo_input)
 	demo_input.value_changed.connect(func(value):if menu!=null:menu.demo_power_input.value=value)
 	status=text("",17,MenuStyle.INK);add_child(status)
 	match_navigation=center_row(distance_options)
 	opponent_navigation=center_row(self)
-	previous_button=button("← Spelvormen",210);proceed_button=button("Kies tegenstander →",310);match_navigation.add_child(previous_button);match_navigation.add_child(proceed_button)
+	previous_button=button("RECORDS_PAGE_RACE_MODES",210);proceed_button=button("PURSUIT_CHOOSE_OPPONENT",310);match_navigation.add_child(previous_button);match_navigation.add_child(proceed_button)
 	proceed_button.add_theme_stylebox_override("normal",menu.panel_style(MenuStyle.BLUE));proceed_button.add_theme_color_override("font_color",Color.WHITE)
 	MenuStyle.primary(proceed_button)
 	menu.place_back(previous_button, self)
@@ -127,7 +127,7 @@ func begin(is_team:bool)->void:
 	preferences.clear();preferences.load(preferences_path)
 	step=1;kind=0;current=0;advanced_toggle.button_pressed=false
 	distance_options.get_node("SquadSize").visible=team;advanced_toggle.visible=team;advanced.hide()
-	ai_tab.text="AI-ploegen"if team else"AI-renners"
+	ai_tab.text = "PURSUIT_AI_TEAMS" if team else "PURSUIT_AI_RIDERS"
 	var distance:=int(preferences.get_value("team"if team else"individual","distance",options.distance_m()))
 	if distance not in [1000,4000]:distance=1000
 	select_distance(distance)
@@ -170,12 +170,12 @@ func _show_step()->void:
 	if proceed_button.get_parent()!=navigation:
 		proceed_button.reparent(navigation)
 	match_navigation.visible=step==1;opponent_navigation.visible=step==2
-	previous_button.text="← Wedstrijd"if step==2 else"← Spelvormen"
-	proceed_button.text="Start wedstrijd →"if step==2 else"Kies tegenstander →"
-	menu.page_title.text="Kies je tegenstander"if step==2 else"Stel je wedstrijd in"
+	previous_button.text="PURSUIT_RACE"if step==2 else "RECORDS_PAGE_RACE_MODES"
+	proceed_button.text="RACE_MENU_START_RACE"if step==2 else "PURSUIT_CHOOSE_OPPONENT"
+	menu.page_title.text="PURSUIT_CHOOSE_YOUR_OPPONENT"if step==2 else "RACE_MENU_CONFIGURE_YOUR_RACE"
 	menu.page_title.add_theme_font_size_override("font_size",36)
-	menu.breadcrumb.text="01  Afstand     /     02  Tegenstander"
-	if step==2:summary_label.text="%s  ·  %d km%s"%["Ploegenachtervolging"if team else"Achtervolging",options.distance_m()/1000,"  ·  %d renners"%options.team_size()if team else""]
+	menu.breadcrumb.text="PURSUIT_01_DISTANCE_02_OPPONENT"
+	if step==2:summary_label.text="%s  ·  %d km%s"%[String(TranslationServer.translate("RACE_MENU_TEAM_PURSUIT"))if team else String(TranslationServer.translate("RACE_MENU_INDIVIDUAL_PURSUIT")),options.distance_m()/1000,String(TranslationServer.translate("PURSUIT_D_RIDERS_2"))%options.team_size()if team else""]
 	update_bridge();_bridge_default_focus.call_deferred()
 
 func select_kind(value:int)->void:
@@ -215,8 +215,8 @@ func _draw_card()->void:
 	ai_tab.button_pressed=kind==0;replay_tab.button_pressed=kind==1
 	left_arrow.disabled=candidates.size()<2;right_arrow.disabled=candidates.size()<2
 	if candidates.is_empty():
-		var empty:=text("Nog geen eigen prestaties voor deze wedstrijd.\nRijd en bewaar eerst een rit, of kies een AI-tegenstander.",22);empty.custom_minimum_size=Vector2(480,320);empty.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;card_holder.add_child(empty);current_card=empty
-		counter.text="Geen prestaties beschikbaar"
+		var empty:=text("PURSUIT_NO_PERSONAL_PERFORMANCES_FOR_THIS_RACE_YET_RIDE_AND_SAVE_A_RIDE_FIRST_",22);empty.custom_minimum_size=Vector2(480,320);empty.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;card_holder.add_child(empty);current_card=empty
+		counter.text="PURSUIT_NO_PERFORMANCES_AVAILABLE"
 	else:
 		var entry:Dictionary=candidates[current]
 		if not team and kind==0:
@@ -227,7 +227,7 @@ func _draw_card()->void:
 			if kind==0:card.data["name"]="Team "+String(entry.name);card.data["cp_w"]=options.configured_cp()
 			card_holder.add_child(card);current_card=card
 		counter.text="%d / %d"%[current+1,candidates.size()]
-	strength_hint.text="100% = volledige capaciteit van het AI-profiel"if kind==0 else"100% = exacte eigen prestatie · hoger percentage = sneller tempo"
+	strength_hint.text="PURSUIT_100_FULL_CAPACITY_OF_THE_AI_PROFILE"if kind==0 else "PURSUIT_100_EXACT_PERSONAL_PERFORMANCE_HIGHER_PERCENTAGE_FASTER_PACE"
 	update_bridge()
 
 func _strength_changed(value:float)->void:
@@ -246,7 +246,7 @@ func update_bridge()->void:
 	demo_row.visible=not menu.bridge_seen and not menu.bridge_unavailable
 	demo_input.value=menu.demo_power_input.value
 	proceed_button.disabled=menu.bridge_unavailable or(step==2 and not can_start())
-	status.text="Bridge niet beschikbaar: sluit andere spelinstanties."if menu.bridge_unavailable else("Kies een tegenstander om te starten."if step==2 and candidates.is_empty()else"")
+	status.text=String(TranslationServer.translate("PURSUIT_BRIDGE_UNAVAILABLE_CLOSE_OTHER_GAME_INSTANCES"))if menu.bridge_unavailable else(String(TranslationServer.translate("PURSUIT_CHOOSE_AN_OPPONENT_TO_START"))if step==2 and candidates.is_empty()else"")
 	status.visible=not status.text.is_empty()
 	_sync_horizontal_focus()
 

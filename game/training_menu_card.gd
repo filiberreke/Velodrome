@@ -40,9 +40,9 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 	help_toggle.toggle_mode = true
 	help_toggle.flat = true
 	help_toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	help_toggle.text = "Uitleg en bediening"
+	help_toggle.text = "TRAINING_MENU_CARD_INSTRUCTIONS_AND_CONTROLS"
 	help_toggle.icon = Style.icon('<path d="m7 5 5 5 5-5M7 12l5 5 5-5"/>', Style.BLUE)
-	help_toggle.tooltip_text = "Uitleg tonen"
+	help_toggle.tooltip_text = "TRAINING_MENU_CARD_SHOW_INSTRUCTIONS"
 	help_toggle.add_theme_stylebox_override("pressed", Style.panel(Style.PALE, Style.LINE, 12, 9))
 	help_toggle.add_theme_color_override("font_pressed_color", Style.INK)
 	information.add_child(help_toggle)
@@ -59,13 +59,13 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 	help_toggle.toggled.connect(func(expanded):
 		help.visible = expanded
 		help_toggle.icon = Style.icon('<path d="m7 12 5-5 5 5M7 19l5-5 5 5"/>' if expanded else '<path d="m7 5 5 5 5-5M7 12l5 5 5-5"/>', Style.BLUE)
-		help_toggle.tooltip_text = "Uitleg verbergen" if expanded else "Uitleg tonen")
+		help_toggle.tooltip_text = String(TranslationServer.translate("TRAINING_MENU_CARD_HIDE_INSTRUCTIONS")) if expanded else String(TranslationServer.translate("TRAINING_MENU_CARD_SHOW_INSTRUCTIONS")))
 	var options := VBoxContainer.new()
 	options.custom_minimum_size.x = 570
 	options.add_theme_constant_override("separation", 16)
 	columns.add_child(options)
 	var heading := Label.new()
-	heading.text = "Jouw training"
+	heading.text = "TRAINING_MENU_CARD_YOUR_TRAINING"
 	heading.add_theme_font_override("font", Style.heading())
 	heading.add_theme_font_size_override("font_size", 30)
 	options.add_child(heading)
@@ -81,7 +81,7 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 	var upload: Button = page.get("upload_button")
 	if upload != null:
 		upload.reparent(actions)
-		upload.text = "Uploaden naar Strava"
+		upload.text = "TRAINING_MENU_CARD_UPLOAD_TO_STRAVA"
 	actions.add_spacer(false)
 	var edit: Button = page.get("edit_button")
 	if edit != null: edit.reparent(actions)
@@ -103,7 +103,7 @@ func _refresh() -> void:
 	var model = page.get("session") if page.get("session") != null else page.get("test")
 	var activity = page.get("selected_activity")
 	var has_result: bool = activity is Dictionary and not activity.is_empty()
-	if has_result and page.is_visible_in_tree(): host.page_title.text = page.title.text + " · Resultaat"
+	if has_result and page.is_visible_in_tree(): host.page_title.text = String(tr(page.title.text)) + tr("TRAINING_MENU_CARD_RESULT")
 	if has_result != result_presentation:
 		result_presentation = has_result
 		if has_result:
@@ -115,12 +115,12 @@ func _refresh() -> void:
 			page.result.add_theme_font_size_override("font_size", 22)
 			page.result.add_theme_color_override("font_color", Style.MUTED)
 	visible = not model.running() and not has_result and model.phase != "RESULT"
-	summary.text = str(page.detail.text).get_slice("\n", 0)
+	summary.text = String(tr(page.detail.text)).get_slice("\n", 0)
 	page.title.hide()
 	if preview is TextureRect and not exercise_previews.is_empty():
 		preview.texture = exercise_previews.get(page.get("kind"), preview.texture)
 		overview.visible = page.get("kind") != "take_lap"
-		overview.text = "Duur\nVrij, zonder tijdslimiet\n\nPacers\n30 · 35 · 40 · 45 km/u\n\nRegistratie\nTijd, afstand, rondetijden en vermogen" if page.get("kind") == "free_ride" else "Start\n30 km/u onderaan de piste\n\nVoorbereiding\nEén ronde\n\nDoel\nHoogste snelheid op de startlijn"
+		overview.text = "TRAINING_DURATION_FREE_WITHOUT_A_TIME_LIMIT_PACERS_30_35_40_45_KM_H_RECORDING_T" if page.get("kind") == "free_ride" else "TRAINING_START_30_KM_H_AT_THE_BOTTOM_OF_THE_TRACK_PREPARATION_ONE_LAP_GOAL_HIGH"
 
 static func chart(blocks: Array = []) -> Control:
 	var node := preload("res://training_tile_art.gd").new()

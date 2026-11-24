@@ -4,20 +4,20 @@ var error := ""
 func save_state(state: Dictionary) -> bool:
 	error = ""
 	if DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(folder)) != OK:
-		error = "Omniummap niet beschikbaar"; return false
+		error = String(TranslationServer.translate("OMNIUM_FOLDER_UNAVAILABLE")); return false
 	var path := folder.path_join("state.json")
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
-	if file == null: error = "Omnium kon niet worden opgeslagen"; return false
+	if file == null: error = String(TranslationServer.translate("OMNIUM_SAVE_FAILED")); return false
 	file.store_string(JSON.stringify(state)); file.flush()
 	var result := file.get_error()
 	file.close()
-	if result != OK: error = "Schrijven van omnium mislukt"; return false
+	if result != OK: error = String(TranslationServer.translate("OMNIUM_WRITE_FAILED")); return false
 	# Keep the last complete snapshot for recovery from a damaged primary file.
 	if FileAccess.file_exists(path):
 		if DirAccess.copy_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(path + ".bak")) != OK:
 			error = "Omniumreservekopie mislukt"; return false
 	if DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path)) != OK:
-		error = "Omnium kon niet worden bijgewerkt"; return false
+		error = String(TranslationServer.translate("OMNIUM_UPDATE_FAILED")); return false
 	return true
 
 func load_state() -> Dictionary:

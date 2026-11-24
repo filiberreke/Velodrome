@@ -31,29 +31,29 @@ func _ready() -> void:
 	add_child(column)
 	var header := HBoxContainer.new()
 	column.add_child(header)
-	var title := label("Kies je tegenstander", 34)
+	var title := label("PURSUIT_CHOOSE_YOUR_OPPONENT", 34)
 	title.add_theme_font_override("font", MenuStyle.heading())
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var close := Button.new()
-	close.text = "← Terug"
+	close.text = "DISPLAY_SETTINGS_BACK"
 	close.custom_minimum_size = Vector2(150, 48)
 	close.pressed.connect(func(): layer.queue_free())
 	header.add_child(close)
 	header.move_child(close, 0)
 	header.add_theme_constant_override("separation", 20)
 	MenuStyle.primary(close)
-	column.add_child(label("Vaste kwaliteiten · afgeronde basiswaarden · dagvorm 97,5–102,5%", 18))
+	column.add_child(label("RIDER_FIXED_ATTRIBUTES_ROUNDED_BASE_VALUES_DAILY_FORM_97_5_102_5", 18))
 	var filters := HBoxContainer.new()
 	filters.add_theme_constant_override("separation", 16)
 	column.add_child(filters)
 	search = LineEdit.new()
-	search.placeholder_text = "Zoek een renner"
+	search.placeholder_text = "RIDER_SEARCH_FOR_A_RIDER"
 	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	search.custom_minimum_size.y = 46
 	filters.add_child(search)
 	country_filter = OptionButton.new()
-	country_filter.add_item("Alle landen")
+	country_filter.add_item("RIDER_ALL_COUNTRIES")
 	country_filter.set_item_metadata(0, "")
 	var countries: Array[String] = []
 	for entry in entries:
@@ -64,7 +64,7 @@ func _ready() -> void:
 		country_filter.set_item_metadata(country_filter.item_count - 1, country)
 	filters.add_child(country_filter)
 	type_filter = OptionButton.new()
-	type_filter.add_item("Alle specialiteiten", 0)
+	type_filter.add_item("RIDER_ALL_SPECIALITIES", 0)
 	for i in range(1,4): type_filter.add_item(Catalog.TYPES[i], i)
 	filters.add_child(type_filter)
 	count_label = label("")
@@ -89,7 +89,7 @@ func _ready() -> void:
 	search.grab_focus.call_deferred()
 
 static func country_name(id: String) -> String:
-	return "België" if id == "belgium" else String(Appearance.COUNTRY_NAMES.get(id, id.capitalize()))
+	return String(TranslationServer.translate("RIDER_BELGIUM")) if id == "belgium" else String(TranslationServer.translate(Appearance.COUNTRY_NAMES.get(id, id.capitalize())))
 
 func _resize_grid() -> void:
 	if grid != null: grid.columns = 4 if size.x >= 1550 else (3 if size.x >= 1150 else (2 if size.x >= 760 else 1))
@@ -110,27 +110,27 @@ func apply_filter() -> void:
 		var matches: bool = (search.text.is_empty() or String(e.name).to_lower().contains(search.text.to_lower())) and (country.is_empty() or e.country == country) and (type_filter.get_selected_id() == 0 or e.profile == type_filter.get_selected_id())
 		cards[i].visible = matches
 		if matches: total += 1
-	count_label.text = "%d renner%s" % [total, "" if total == 1 else "s"]
+	count_label.text = String(TranslationServer.translate("RIDER_D_RIDER_S")) % [total, "" if total == 1 else "s"]
 
 func show_records(entry: Dictionary) -> void:
 	var dialog := AcceptDialog.new()
 	dialog.theme = MenuStyle.create()
 	dialog.borderless = true
 	dialog.title = entry.name + " · " + country_name(entry.country)
-	var details := "OPGEGEVEN RECORDS"
+	var details := String(TranslationServer.translate("RIDER_LISTED_RECORDS"))
 	for distance in [250, 1000, 4000]:
 		var seconds := float(entry.records.get("record_%dm_s" % distance, 0.0))
-		details += "\n%d m: %s" % [distance, "%d s" % roundi(seconds) if seconds > 0 else "nog geen record"]
+		details += "\n%d m: %s" % [distance, "%d s" % roundi(seconds) if seconds > 0 else String(TranslationServer.translate("RIDER_NO_RECORD_YET"))]
 	for duration in [5,15,60]:
 		var watts := float(entry.records.get("best_%ds_w" % duration, 0.0))
-		details += "\n%d s: %s" % [duration, "%d W" % roundi(watts) if watts > 0 else "nog geen record"]
+		details += "\n%d s: %s" % [duration, "%d W" % roundi(watts) if watts > 0 else String(TranslationServer.translate("RIDER_NO_RECORD_YET"))]
 	var saved := preload("res://rider_records.gd").new().personal(entry.id)
-	details += "\n\nBEHAALDE SPELRECORDS\nPer discipline, afstand en AI-sterkte"
-	if saved.is_empty(): details += "\nNog geen voltooide prestatie."
+	details += String(TranslationServer.translate("RIDER_ACHIEVED_GAME_RECORDS_BY_DISCIPLINE_DISTANCE_AND_AI_STRENGTH"))
+	if saved.is_empty(): details += String(TranslationServer.translate("RIDER_NO_COMPLETED_PERFORMANCE_YET"))
 	for key in saved:
 		var record: Dictionary = saved[key]
-		details += "\n%s · %d m · AI %d%%: %d s · piek %d W" % ["Achtervolging" if int(record.mode) == 4 else ("Puntenkoers" if int(record.mode) == 1 else "Scratch"), int(record.distance_m), roundi(record.ai_percent), roundi(record.time_s), roundi(record.peak_w)]
-		if not record.get("parameters",{}).is_empty(): details += " · CP %d W" % roundi(record.parameters.cp_w)
+		details += String(TranslationServer.translate("RIDER_S_D_M_AI_D_D_S_PEAK_D_W")) % [String(TranslationServer.translate("RACE_MENU_INDIVIDUAL_PURSUIT")) if int(record.mode) == 4 else (String(TranslationServer.translate("RACE_MENU_POINTS_RACE")) if int(record.mode) == 1 else String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE"))), int(record.distance_m), roundi(record.ai_percent), roundi(record.time_s), roundi(record.peak_w)]
+		if not record.get("parameters",{}).is_empty(): details += String(TranslationServer.translate("RIDER_CP_D_W")) % roundi(record.parameters.cp_w)
 	var content := VBoxContainer.new()
 	content.custom_minimum_size = Vector2(620, 440)
 	content.add_theme_constant_override("separation", 16)
@@ -139,7 +139,7 @@ func show_records(entry: Dictionary) -> void:
 	heading.add_theme_constant_override("separation", 16)
 	content.add_child(heading)
 	var back := Button.new()
-	back.text = "← Terug"
+	back.text = "DISPLAY_SETTINGS_BACK"
 	MenuStyle.primary(back)
 	back.pressed.connect(dialog.queue_free)
 	heading.add_child(back)
@@ -151,7 +151,7 @@ func show_records(entry: Dictionary) -> void:
 	qualities.add_theme_constant_override("h_separation", 32)
 	qualities.add_theme_constant_override("v_separation", 12)
 	content.add_child(qualities)
-	for stat in [["Duurvermogen", "%d W" % roundi(entry.cp_w)], ["Sprintvermogen", "%d W" % roundi(entry.max_power_w)], ["W′-reserve", "%d J" % roundi(entry.w_prime_j)]]:
+	for stat in [[String(TranslationServer.translate("RIDER_ENDURANCE_POWER")), "%d W" % roundi(entry.cp_w)], [String(TranslationServer.translate("RIDER_SPRINT_POWER")), "%d W" % roundi(entry.max_power_w)], ["W′-reserve", "%d J" % roundi(entry.w_prime_j)]]:
 		var caption := label(stat[0], 20)
 		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		qualities.add_child(caption)

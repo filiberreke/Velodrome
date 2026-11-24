@@ -3,6 +3,8 @@ const MenuStyle := preload("res://menu_theme.gd")
 # Local display preferences; no trainer or gameplay dependencies.
 const OPTIONS := [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440)]
 const SETTINGS_PATH := "user://config/display_settings.cfg"
+const LANGUAGES := ["en", "nl"]
+var language_choice: OptionButton
 var resolution := Vector2i(1920, 1080)
 var render_scale := 0.85
 var fullscreen := true
@@ -50,6 +52,14 @@ var appearance_preview
 var appearance_status: Label
 const RIDER_PATH := "user://config/rider_profile.cfg"
 
+static func restore_language() -> void:
+	var cfg := ConfigFile.new()
+	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") == OK:
+		var language := str(cfg.get_value("interface", "language", ""))
+		if LANGUAGES.has(language):
+			TranslationServer.set_locale(language)
+
+
 func _ready() -> void:
 	layer = 110
 	appearance = get_parent().get("player_appearance")
@@ -96,8 +106,9 @@ func _apply_display() -> void:
 		var pos := usable.position + (usable.size - resolution) / 2
 		DisplayServer.window_set_position(pos)
 
-func _save_settings() -> void:
+func _save_settings() -> Error:
 	var cfg := ConfigFile.new()
+	cfg.set_value("interface", "language", LANGUAGES[language_choice.selected])
 	cfg.set_value("display", "width", resolution.x)
 	cfg.set_value("display", "height", resolution.y)
 	cfg.set_value("display", "render_scale", render_scale)
@@ -110,7 +121,8 @@ func _save_settings() -> void:
 	cfg.set_value("presentation", "always_show_intro", always_show_intro)
 	var err := cfg.save(preload("res://config_paths.gd").user_path("display_settings.cfg"))
 	if err != OK:
-		push_warning("Beeldinstellingen niet opgeslagen: %d" % err)
+		push_warning(String(TranslationServer.translate("SETTINGS_DISPLAY_SETTINGS_NOT_SAVED_D")) % err)
+	return err
 
 func _load_rider_profile() -> void:
 	var cfg := ConfigFile.new()
@@ -139,7 +151,7 @@ func _build_menu() -> void:
 	toolbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toolbar)
 	open_button = Button.new()
-	open_button.text = "Instellingen  ·  F10"
+	open_button.text = "COMMON_SETTINGS"
 	open_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	open_button.offset_left = -295
 	open_button.offset_right = -64
@@ -173,7 +185,7 @@ func _build_menu() -> void:
 	outer.add_theme_constant_override("separation", 12)
 	panel.add_child(outer)
 	var title := Label.new()
-	title.text = "Instellingen"
+	title.text = "COMMON_SETTINGS"
 	title.add_theme_font_override("font", MenuStyle.heading())
 	title.add_theme_font_size_override("font_size", 36)
 	title.add_theme_color_override("font_color", MenuStyle.INK)
@@ -190,7 +202,7 @@ func _build_menu() -> void:
 	ride_tabs.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	ride_tabs.add_theme_font_size_override("font_size", 17)
 	ride_tabs.add_theme_color_override("font_color", MenuStyle.MUTED)
-	ride_tabs.text = "Tab kiezen: links / rechts  ·  omlaag: opties  ·  B/Z: sluiten"
+	ride_tabs.text = "SETTINGS_SELECT_TAB_LEFT_RIGHT_DOWN_OPTIONS_B_Z_CLOSE"
 	outer.move_child(appearance_tabs, outer.get_child_count() - 1)
 	outer.add_child(ride_tabs)
 	outer.move_child(ride_tabs, appearance_tabs.get_index())
@@ -204,19 +216,31 @@ func _build_menu() -> void:
 	box.add_theme_constant_override("separation", 10)
 	player_tab.add_child(box)
 	var player_heading := Label.new()
-	player_heading.text = "RENNE R  /  SPELERSPROFIEL".replace("RENNE R", "RENNER")
+	player_heading.text = "SETTINGS_RIDER_PLAYER_PROFILE"
 	player_heading.add_theme_color_override("font_color", MenuStyle.BLUE)
-	box.add_child(player_heading)
+	var profile_header := HBoxContainer.new()
+	profile_header.add_theme_constant_override("separation", 12)
+	box.add_child(profile_header)
+	player_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	profile_header.add_child(player_heading)
+	var language_label := Label.new()
+	language_label.text = "SETTINGS_LANGUAGE"
+	profile_header.add_child(language_label)
+	language_choice = OptionButton.new()
+	language_choice.add_item("English")
+	language_choice.add_item("Nederlands")
+	language_choice.select(maxi(0, LANGUAGES.find(TranslationServer.get_locale())))
+	profile_header.add_child(language_choice)
 	var name_label := Label.new()
-	name_label.text = "Naam van speler"
+	name_label.text = "DISPLAY_SETTINGS_PLAYER_NAME"
 	box.add_child(name_label)
 	rider_name_input = LineEdit.new()
 	rider_name_input.text = str(get_parent().get("player_display_name"))
 	rider_name_input.max_length = 22
 	box.add_child(rider_name_input)
 	var weight_label := Label.new()
-	weight_label.text = "Gewicht renner (kg)"
-	weight_label.tooltip_text = "Profielinstelling; verandert de racefysica niet."
+	weight_label.text = "DISPLAY_SETTINGS_RIDER_WEIGHT_KG"
+	weight_label.tooltip_text = "DISPLAY_SETTINGS_PROFILE_SETTING_DOES_NOT_CHANGE_RACE_PHYSICS"
 	box.add_child(weight_label)
 	rider_weight_input = SpinBox.new()
 	rider_weight_input.min_value = 35
@@ -243,11 +267,11 @@ func _build_menu() -> void:
 	box.add_theme_constant_override("separation", 10)
 	display_tab.add_child(box)
 	var display_heading := Label.new()
-	display_heading.text = "BEELDINSTELLINGEN"
+	display_heading.text = "DISPLAY_SETTINGS_DISPLAY_SETTINGS"
 	display_heading.add_theme_color_override("font_color", MenuStyle.BLUE)
 	box.add_child(display_heading)
 	var res_label := Label.new()
-	res_label.text = "Vensterresolutie (in volledig scherm geldt de schermresolutie)"
+	res_label.text = "SETTINGS_WINDOW_RESOLUTION_FULL_SCREEN_USES_THE_DISPLAY_RESOLUTION"
 	box.add_child(res_label)
 	resolution_choice = OptionButton.new()
 	for r in OPTIONS:
@@ -257,7 +281,7 @@ func _build_menu() -> void:
 	var scale_header := HBoxContainer.new()
 	box.add_child(scale_header)
 	var label := Label.new()
-	label.text = "Interne 3D-resolutie"
+	label.text = "SETTINGS_INTERNAL_RESOLUTION"
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scale_header.add_child(label)
 	scale_label = Label.new()
@@ -274,7 +298,7 @@ func _build_menu() -> void:
 	var crowd_header := HBoxContainer.new()
 	box.add_child(crowd_header)
 	var crowd_heading := Label.new()
-	crowd_heading.text = "PUBLIEK OP TRIBUNES EN MIDDENPLEIN (na herstart)"
+	crowd_heading.text = "SETTINGS_CROWD_IN_STANDS_AND_INFIELD_AFTER_RESTART"
 	crowd_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	crowd_header.add_child(crowd_heading)
 	crowd_label = Label.new()
@@ -289,13 +313,13 @@ func _build_menu() -> void:
 	crowd_label.text = "%d%%" % roundi(crowd_density * 100.0)
 	var preset_button := Button.new()
 	preset_button.name = "OudereComputer"
-	preset_button.text = "Instellingen voor een oudere computer"
+	preset_button.text = "DISPLAY_SETTINGS_SETTINGS_FOR_AN_OLDER_COMPUTER"
 	preset_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	preset_button.tooltip_text = "3D-resolutie 60%, geen publiek, eenvoudige graphics, trainingsverlichting en maximaal 60 beelden per seconde."
+	preset_button.tooltip_text = "SETTINGS_3D_RESOLUTION_60_NO_CROWD_SIMPLIFIED_GRAPHICS_TRAINING_LIGHTING_AND_A_"
 	preset_button.pressed.connect(apply_older_computer_preset)
 	box.add_child(preset_button)
 	preset_hint = Label.new()
-	preset_hint.text = "Voorstel ingevuld. Kies Toepassen en bewaren; publiek en eenvoudige graphics werken na een herstart."
+	preset_hint.text = "SETTINGS_SUGGESTED_SETTINGS_SELECTED_CHOOSE_APPLY_AND_SAVE_CROWD_AND_SIMPLIFIED"
 	preset_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	preset_hint.custom_minimum_size.x = 480
 	preset_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
@@ -307,38 +331,38 @@ func _build_menu() -> void:
 	display_tab.add_child(box)
 	simple_infield_check = CheckButton.new()
 	simple_infield_check.name = "EenvoudigMiddenplein"
-	simple_infield_check.text = "Eenvoudige graphics (na herstart)"
+	simple_infield_check.text = "DISPLAY_SETTINGS_SIMPLIFIED_GRAPHICS_AFTER_RESTART"
 	simple_infield_check.button_pressed = simple_infield
-	simple_infield_check.tooltip_text = "Eenvoudig publiek op de tribunes, eenvoudige tenten en supporters op het middenplein. Zonder mediazone of commentaarcabine. Intro van 2,5 seconden bij de renners. Rennersboxen, jury en wedstrijdcommissaris blijven behouden."
+	simple_infield_check.tooltip_text = "SETTINGS_SIMPLIFIED_CROWD_IN_THE_STANDS_SIMPLIFIED_TENTS_AND_SUPPORTERS_IN_THE_"
 	box.add_child(simple_infield_check)
 	fullscreen_check = CheckButton.new()
-	fullscreen_check.text = "Volledig scherm"
+	fullscreen_check.text = "DISPLAY_SETTINGS_FULL_SCREEN"
 	fullscreen_check.button_pressed = fullscreen
 	box.add_child(fullscreen_check)
 	race_lighting_check = CheckButton.new()
-	race_lighting_check.text = "Wedstrijdverlichting"
+	race_lighting_check.text = "SETTINGS_RACE_LIGHTING"
 	race_lighting_check.button_pressed = race_lighting
-	race_lighting_check.tooltip_text = "Uit: gebruik tijdens wedstrijden dezelfde verlichting als bij trainingen."
+	race_lighting_check.tooltip_text = "SETTINGS_OFF_USE_THE_SAME_LIGHTING_FOR_RACES_AS_FOR_TRAINING"
 	box.add_child(race_lighting_check)
 	intro_check = CheckButton.new()
-	intro_check.text = "Intro bij elke wedstrijd tonen"
+	intro_check.text = "DISPLAY_SETTINGS_SHOW_INTRO_BEFORE_EVERY_RACE"
 	intro_check.button_pressed = always_show_intro
-	intro_check.tooltip_text = "Uit: alleen bij de eerste wedstrijd van deze sessie. Aan: bij elke wedstrijd."
+	intro_check.tooltip_text = "SETTINGS_OFF_ONLY_BEFORE_THE_FIRST_RACE_OF_THIS_SESSION_ON_BEFORE_EVERY_RACE"
 	box.add_child(intro_check)
 	var intro_hint := Label.new()
-	intro_hint.text = "Uit: alleen de eerste wedstrijd van de sessie. Aan: elke wedstrijd."
+	intro_hint.text = "SETTINGS_OFF_FIRST_RACE_OF_THE_SESSION_ONLY_ON_EVERY_RACE"
 	intro_hint.add_theme_color_override("font_color", MenuStyle.MUTED)
 	intro_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro_hint.custom_minimum_size.x = 480
 	box.add_child(intro_hint)
 	fps_check = CheckButton.new()
 	fps_check.name = "ToonFPS"
-	fps_check.text = "Toon FPS"
+	fps_check.text = "DISPLAY_SETTINGS_SHOW_FPS"
 	fps_check.button_pressed = show_fps
-	fps_check.tooltip_text = "Toont klein bovenaan het scherm hoeveel beelden per seconde het spel haalt."
+	fps_check.tooltip_text = "SETTINGS_SHOWS_A_SMALL_FRAMES_PER_SECOND_COUNTER_AT_THE_TOP_OF_THE_SCREEN"
 	box.add_child(fps_check)
 	var fps_limit_label := Label.new()
-	fps_limit_label.text = "Maximum beelden per seconde"
+	fps_limit_label.text = "DISPLAY_SETTINGS_MAXIMUM_FRAMES_PER_SECOND"
 	box.add_child(fps_limit_label)
 	fps_choice = OptionButton.new()
 	fps_choice.name = "MaxFPS"
@@ -349,7 +373,7 @@ func _build_menu() -> void:
 	fps_choice.custom_minimum_size.x = 160
 	box.add_child(fps_choice)
 	var info := Label.new()
-	info.text = "Een lagere 3D-resolutie verbetert de prestaties.\nMenu’s en uitslagen blijven scherp.\nStel je sneltoetsen in op het tabblad Toetsenbord."
+	info.text = "SETTINGS_A_LOWER_3D_RESOLUTION_IMPROVES_PERFORMANCE_MENUS_AND_RESULTS_REMAIN_SH"
 	info.add_theme_color_override("font_color", MenuStyle.MUTED)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.custom_minimum_size.x = 480
@@ -367,16 +391,16 @@ func _build_menu() -> void:
 	var has_account := false
 	if client != null:
 		has_account = not str(client.tokens.get_value("tokens", "refresh_token", "")).is_empty() or not str(client.config.get_value("strava", "refresh_token", "")).is_empty()
-	account_status.text = "Account gekoppeld" if has_account else "Nog geen account gekoppeld"
+	account_status.text = "DISPLAY_SETTINGS_ACCOUNT_CONNECTED" if has_account else "DISPLAY_SETTINGS_NO_ACCOUNT_CONNECTED_YET"
 	account_status.add_theme_font_size_override("font_size", 26)
 	box.add_child(account_status)
 	var account_help := Label.new()
-	account_help.text = "1. Kopieer config/strava_config.example.cfg naar config/strava_config.cfg.\n2. Vul client_id en client_secret in via strava.com/settings/api.\n3. Gebruik redirect_uri = http://localhost en callbackdomein localhost.\n4. Kies hieronder Koppel je Strava-account en geef toestemming.\n5. Upload na een wedstrijd of pistetraining je activiteit naar Strava.\n\nJe trainingen en resultaten blijven ook lokaal beschikbaar."
+	account_help.text = "SETTINGS_1_COPY_CONFIG_STRAVA_CONFIG_EXAMPLE_CFG_TO_CONFIG_STRAVA_CONFIG_CFG_2_"
 	account_help.add_theme_font_size_override("font_size", 19)
 	account_help.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(account_help)
 	var reconnect_button := Button.new()
-	reconnect_button.text = "Strava opnieuw koppelen" if has_account else "Koppel je Strava-account"
+	reconnect_button.text = "DISPLAY_SETTINGS_RECONNECT_STRAVA" if has_account else "DISPLAY_SETTINGS_CONNECT_YOUR_STRAVA_ACCOUNT"
 	reconnect_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	MenuStyle.primary(reconnect_button)
 	reconnect_button.pressed.connect(func(): get_parent().get("strava_client").call("reconnect"))
@@ -392,24 +416,28 @@ func _build_menu() -> void:
 	actions.add_theme_constant_override("separation", 12)
 	outer.add_child(actions)
 	var apply_button := Button.new()
-	apply_button.text = "Toepassen en bewaren"
+	apply_button.text = "DISPLAY_SETTINGS_APPLY_AND_SAVE"
 	MenuStyle.primary(apply_button)
 	apply_button.custom_minimum_size = Vector2(310, 52)
 	apply_button.pressed.connect(_on_apply)
 	actions.add_child(apply_button)
 	close_button = Button.new()
-	close_button.text = "Sluiten"
+	close_button.text = "SETTINGS_CLOSE"
 	close_button.pressed.connect(_close_settings)
 	actions.add_child(close_button)
 	close_button.reparent(header)
 	header.move_child(close_button, 0)
-	close_button.text = "← Terug"
+	close_button.text = "DISPLAY_SETTINGS_BACK"
 	close_button.custom_minimum_size = Vector2(210, 48)
 	MenuStyle.primary(close_button)
+	appearance_tabs.set_tab_title(0, "SETTINGS_PLAYER_TAB")
+	appearance_tabs.set_tab_title(1, "SETTINGS_DISPLAY")
+	appearance_tabs.set_tab_title(3, "DEVICES_CONTROLS")
+	appearance_tabs.set_tab_title(4, "SETTINGS_KEYBOARD")
 	appearance_tabs.tab_changed.connect(_on_settings_tab_changed)
 
 func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -> void:
-	for entry in [["Truitje / wielerpak", appearance.suit_options], ["Helm", appearance.helmet_options]]:
+	for entry in [["DISPLAY_SETTINGS_JERSEY_SKINSUIT", appearance.suit_options], ["SETTINGS_HELMET", appearance.helmet_options]]:
 		var label := Label.new()
 		label.text = entry[0]
 		box.add_child(label)
@@ -422,16 +450,16 @@ func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -
 		if suit_choice == null: suit_choice = choice
 		else: helmet_choice = choice
 	var visor_label := Label.new()
-	visor_label.text = "Vizier"
+	visor_label.text = "SETTINGS_VISOR"
 	box.add_child(visor_label)
 	visor_choice = OptionButton.new()
 	for id in ["donker", "doorzichtig"]:
-		visor_choice.add_item(id.capitalize())
+		visor_choice.add_item("APPEARANCE_DARK_VISOR" if id == "donker" else "APPEARANCE_CLEAR_VISOR")
 		visor_choice.set_item_metadata(visor_choice.item_count - 1, id)
 	visor_choice.item_selected.connect(_on_appearance_draft)
 	box.add_child(visor_choice)
 	var hint := Label.new()
-	hint.text = "Het wielerpak omvat ook de broek.\nJe keuze geldt alleen voor jouw renner.\nBewaar om je keuze in de wedstrijd te gebruiken."
+	hint.text = "SETTINGS_THE_SKINSUIT_INCLUDES_THE_SHORTS_YOUR_SELECTION_APPLIES_ONLY_TO_YOUR_R"
 	hint.add_theme_color_override("font_color", MenuStyle.MUTED)
 	box.add_child(hint)
 	appearance_status = Label.new()
@@ -441,7 +469,7 @@ func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -
 	var preview_box := VBoxContainer.new()
 	player_tab.add_child(preview_box)
 	var heading := Label.new()
-	heading.text = "JOUW RENNER"
+	heading.text = "DISPLAY_SETTINGS_YOUR_RIDER"
 	preview_box.add_child(heading)
 	appearance_preview = preload("res://player_appearance_preview.gd").new()
 	appearance_preview.custom_minimum_size = Vector2(400, 480)
@@ -451,7 +479,7 @@ func _build_appearance_controls(box: VBoxContainer, player_tab: HBoxContainer) -
 	var group := ButtonGroup.new()
 	for back in [false, true]:
 		var button := Button.new()
-		button.text = "Achterkant" if back else "Voorkant"
+		button.text = "SETTINGS_REAR" if back else "SETTINGS_FRONT"
 		button.toggle_mode = true
 		MenuStyle.toggle_focus(button)
 		button.button_group = group
@@ -507,7 +535,7 @@ func receive_controller_packet(packet: Dictionary) -> void:
 func open_device_mapping() -> void:
 	if not panel_root.visible: toggle_menu()
 	return_to_devices = true
-	close_button.text = "Terug naar apparaten"
+	close_button.text = "DISPLAY_SETTINGS_BACK_TO_DEVICES"
 	keyboard_settings.context_choice.select(get_parent().keyboard_mapping.CONTEXTS.find(get_parent()._keyboard_profile()))
 	keyboard_settings.refresh()
 	appearance_tabs.current_tab = keyboard_settings.get_index()
@@ -524,7 +552,7 @@ func _close_settings() -> void:
 		game.exit_menu.backdrop.show()
 	resume_race_on_close = false
 	restore_pause_menu = false
-	close_button.text = "← Terug"
+	close_button.text = "DISPLAY_SETTINGS_BACK"
 	appearance_preview.set_active(false)
 	if controller_test != null:
 		controller_test.call("set_testing", false)
@@ -538,7 +566,7 @@ func _on_apply() -> void:
 	var error: Error = appearance.save_choices(_choice_id(suit_choice), _choice_id(helmet_choice), _choice_id(visor_choice))
 	if error != OK:
 		appearance_tabs.current_tab = 0
-		appearance_status.text = "Je keuze kon niet worden bewaard. Probeer opnieuw."
+		appearance_status.text = "DISPLAY_SETTINGS_YOUR_SELECTION_COULD_NOT_BE_SAVED_PLEASE_TRY_AGAIN"
 		return
 	resolution = OPTIONS[resolution_choice.selected]
 	render_scale = float(scale_slider.value)
@@ -551,7 +579,11 @@ func _on_apply() -> void:
 	max_fps = FPS_LIMITS[maxi(0, fps_choice.selected)]
 	preset_hint.visible = false
 	_apply_display()
-	_save_settings()
+	if _save_settings() != OK:
+		appearance_tabs.current_tab = 0
+		appearance_status.text = "DISPLAY_SETTINGS_YOUR_SELECTION_COULD_NOT_BE_SAVED_PLEASE_TRY_AGAIN"
+		return
+	TranslationServer.set_locale(LANGUAGES[language_choice.selected])
 	_save_rider_profile()
 	get_parent().call("apply_player_appearance")
 	_close_settings()
@@ -603,6 +635,7 @@ func toggle_menu() -> void:
 		game.exit_menu.backdrop.hide()
 		resume_race_on_close = not game.race_paused and game.start_state not in ["SETUP", "INTRO"] and not game.finished
 		if resume_race_on_close: game.call("_pause_race", false)
+		language_choice.select(maxi(0, LANGUAGES.find(TranslationServer.get_locale())))
 		_sync_appearance_controls()
 		intro_check.button_pressed = always_show_intro
 		race_lighting_check.button_pressed = race_lighting
@@ -636,7 +669,7 @@ func bridge_action(button: String, from_keyboard: bool = false) -> void:
 
 func _process(delta: float) -> void:
 	_update_fps_label(delta)
-	open_button.text = "Instellingen: " + get_parent().keyboard_mapping.caption("global", "settings")
-	ride_tabs.text = "Tab: links/rechts · Controller: B/Z sluiten · Toetsenbord: " + get_parent().keyboard_mapping.caption("menu","back") + " sluiten"
+	open_button.text = String(TranslationServer.translate("SETTINGS_SHORTCUT")) % get_parent().keyboard_mapping.caption("global", "settings")
+	ride_tabs.text = String(TranslationServer.translate("SETTINGS_TAB_LEFT_RIGHT_CONTROLLER_B_Z_TO_CLOSE_KEYBOARD")) + get_parent().keyboard_mapping.caption("menu","back") + String(TranslationServer.translate("SETTINGS_TO_CLOSE"))
 	if open_button != null:
 		open_button.visible = not panel_root.visible and (get_parent().get("bridge_devices") == null or not get_parent().bridge_devices.panel_root.visible)

@@ -4,9 +4,9 @@ const PATH := "user://ride_button_mapping.json"
 const VERSION := 1
 const BUTTONS := ["UP", "DOWN", "LEFT", "RIGHT", "A", "B", "Y", "Z", "SHIFT_UP_LEFT", "SHIFT_DOWN_LEFT", "SHIFT_UP_RIGHT", "SHIFT_DOWN_RIGHT", "POWER_LEFT", "POWER_RIGHT", "ONOFF_LEFT", "ONOFF_RIGHT"]
 const ACTIONS := {
-	"menu": {"up":"Omhoog", "down":"Omlaag", "left":"Links", "right":"Rechts", "accept":"Bevestigen", "back":"Terug", "settings":"Instellingen / sluiten"},
-	"race": {"camera_previous":"Vorige camera", "camera_next":"Volgende camera", "look_back":"Achteruitkijken", "rider_info":"Naam / wattage / energie", "pause":"Pauze"},
-	"arcade": {"special_left":"Speciale actie links (toekomstig)", "special_right":"Speciale actie rechts (toekomstig)"}
+	"menu": {"up":"INPUT_UP", "down":"INPUT_DOWN", "left":"INPUT_LEFT", "right":"INPUT_RIGHT", "accept":"CONTROLLER_SETTINGS_CONFIRM", "back":"COMMON_BACK", "settings":"INPUT_SETTINGS_CLOSE"},
+	"race": {"camera_previous":"INPUT_PREVIOUS_CAMERA", "camera_next":"INPUT_NEXT_CAMERA", "look_back":"INPUT_LOOK_BACK", "rider_info":"INPUT_RIDER_INFO", "pause":"INPUT_PAUSE"},
+	"arcade": {"special_left":"INPUT_SPECIAL_LEFT", "special_right":"INPUT_SPECIAL_RIGHT"}
 }
 const KEYS := {"up":"UP", "down":"DOWN", "left":"LEFT", "right":"RIGHT", "accept":"A", "back":"B", "settings":"Z", "camera_previous":"UP", "camera_next":"DOWN", "look_back":"B", "rider_info":"Y", "pause":"Z"}
 var profiles: Dictionary = defaults()
@@ -38,7 +38,7 @@ func validate(data: Variant) -> String:
 			var trigger: Variant = binding.get("trigger")
 			if not button is String or (button != "" and button not in BUTTONS): return "Onbekende fysieke knop"
 			if trigger not in ["press", "release", "hold"] or (trigger == "hold") != (action == "look_back"): return "Ongeldig drukgedrag"
-			if button != "" and used.has(button): return "Conflict: %s is al toegewezen aan %s" % [display(button), ACTIONS[context][used[button]]]
+			if button != "" and used.has(button): return "Conflict: %s is al toegewezen aan %s" % [display(button), TranslationServer.translate(ACTIONS[context][used[button]])]
 			used[button] = action
 	return ""
 

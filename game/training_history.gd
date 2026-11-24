@@ -19,7 +19,7 @@ func _ready() -> void:
 	header.add_theme_stylebox_override("panel",header_skin)
 	add_child(header)
 	var headings := _row(header)
-	var captions := ["DATUM / TIJD ↓", "PISTETRAINING", "DUUR", "RESULTAAT", ""]
+	var captions := [String(TranslationServer.translate("TRAINING_HISTORY_DATE_TIME")), String(TranslationServer.translate("HISTORY_TRACK_TRAINING")), String(TranslationServer.translate("HISTORY_DURATION")), String(TranslationServer.translate("HISTORY_RESULT")), ""]
 	for i in range(captions.size()): _cell(headings,captions[i],COLUMN_WIDTHS[i],15,Color.WHITE)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -33,7 +33,7 @@ func _ready() -> void:
 	rows.add_theme_constant_override("separation",8)
 	scroll.add_child(rows)
 	back_button = Button.new()
-	back_button.text = "← Pistetraining"
+	back_button.text = "TRAINING_HISTORY_TRACK_TRAINING"
 	back_button.custom_minimum_size.y = 48
 	back_button.pressed.connect(menu.show_piste_training)
 	add_child(back_button)
@@ -61,26 +61,26 @@ func _date(activity: Dictionary) -> String:
 	var date := str(activity.get("started_local","")).replace("T"," ")
 	if date.is_empty() and int(activity.get("started_unix",0)) > 0:
 		date = Time.get_datetime_string_from_unix_time(int(activity.started_unix)).replace("T"," ")
-	if date.length() < 16: return "Datum onbekend"
+	if date.length() < 16: return String(TranslationServer.translate("TRAINING_HISTORY_DATE_UNKNOWN"))
 	return "%s/%s/%s\n%s" % [date.substr(8,2),date.substr(5,2),date.substr(0,4),date.substr(11,5)]
 
 func _result(activity: Dictionary) -> String:
 	var kind := str(activity.get("kind","derny"))
-	var result := str(activity.get("reason","Training bewaard"))
+	var result := str(activity.get("reason",String(TranslationServer.translate("TRAINING_HISTORY_TRAINING_SAVED"))))
 	if kind == "derny":
-		result = "Start %d km/u · beste %d km/u" % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0))]
+		result = String(TranslationServer.translate("TRAINING_HISTORY_START_D_KM_H_BEST_D_KM_H")) % [int(activity.get("start_speed_kmh",30)),int(activity.get("completed_kmh",0))]
 	elif kind == "flying_start" and activity.get("exercise_success",false):
-		result = "%.1f km/u · piek %.0f W" % [float(activity.get("entry_speed_kmh",0)),float(activity.get("peak_power_w",0))]
-	if not activity.get("final",false): result += "\nTussentijds bewaard"
+		result = String(TranslationServer.translate("TRAINING_HISTORY_1F_KM_H_PEAK_0F_W")) % [float(activity.get("entry_speed_kmh",0)),float(activity.get("peak_power_w",0))]
+	if not activity.get("final",false): result += String(TranslationServer.translate("HISTORY_SAVED_BEFORE_COMPLETION"))
 	return result
 
 func refresh() -> void:
 	for child in rows.get_children(): rows.remove_child(child); child.queue_free()
 	var activities: Array[Dictionary] = menu.training_store.recent(0,PISTE_KINDS)
-	summary.text = "%d opgeslagen pistetraining%s · nieuwste eerst" % [activities.size(),"" if activities.size() == 1 else "en"]
+	summary.text = String(TranslationServer.translate("HISTORY_D_SAVED_TRACK_TRAINING_SESSION_S_NEWEST_FIRST")) % [activities.size(),"" if activities.size() == 1 else "en"]
 	if activities.is_empty():
 		var empty := Label.new()
-		empty.text = "Je pistetrainingen verschijnen hier\n\nRijd een pistetraining en bekijk daarna de resultaten en grafiek in dit overzicht."
+		empty.text = "HISTORY_YOUR_TRACK_TRAINING_SESSIONS_APPEAR_HERE_COMPLETE_A_TRACK_TRAINING_SES"
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_font_size_override("font_size",22)
 		empty.add_theme_color_override("font_color",Style.MUTED)
@@ -96,7 +96,7 @@ func refresh() -> void:
 		button.add_theme_stylebox_override("pressed",Style.panel(Style.PALE,Style.BLUE,16,10))
 		button.add_theme_stylebox_override("focus",Style.focus_ring(10))
 		button.set_meta("activity_id",str(activity.get("id","")))
-		var title := str(activity.get("title","Dernytraining"))
+		var title := str(activity.get("title",String(TranslationServer.translate("TRAINING_HISTORY_DERNY_TRAINING"))))
 		var result := _result(activity)
 		button.tooltip_text = "%s · %s\n%s" % [title,_date(activity).replace("\n"," "),result]
 		rows.add_child(button)

@@ -64,7 +64,7 @@ func run() -> void:
 	check(model.state == Model.FINISH and model.pending.is_empty() and model.view().badge.contains("VOORLOPIG"), "Finish wins event priority")
 	f.winner = 4; f.all_finished = true
 	model.update(f, .1)
-	check(model.view().headline == "Elin" and model.view().badge == "WINNAAR", "Late jury standings update provisional winner")
+	check(model.view().headline == "Elin" and model.view().winner_confirmed, "Late jury standings update provisional winner")
 	check(cues.count("finish") == 1, "Victory cue does not repeat")
 	check(cues.count("winner_confirmed") == 1 and model.age < .01, "Confirmed jury winner receives its own victory cue")
 	model.update(f, 16.)

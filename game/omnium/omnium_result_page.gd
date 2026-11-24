@@ -8,20 +8,20 @@ const Results := preload("res://omnium/omnium_results.gd")
 static func render(page: Node, tournament: Dictionary, index: int) -> void:
 	var result: Dictionary = tournament.results[index]
 	if index == 3:
-		page.body.add_child(page.menu.label("Omnium · Puntenkoers · Uitslag",32))
+		page.body.add_child(page.menu.label("OMNIUM_OMNIUM_RESULT_PAGE_OMNIUM_POINTS_RACE_RESULTS",32))
 		var table := GridContainer.new(); table.name = "OmniumSavedResultTable"; page.body.add_child(table)
 		preload("res://omnium/omnium_points_presentation.gd").populate(table,tournament.riders,tournament.results.slice(0,3),result)
 		return
-	var title: String = ["Scratch", "Temporace", "Afvalling", "Puntenkoers"][index]
-	page.body.add_child(page.menu.label("Omnium · %s · Uitslag" % title, 32))
-	page.body.add_child(page.menu.label("OFFICIËLE WEDSTRIJDRESULTATEN · %d deelnemers" % result.order.size(), 17, Style.MUTED))
+	var title: String = [String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")), String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")), String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE")), String(TranslationServer.translate("RACE_MENU_POINTS_RACE"))][index]
+	page.body.add_child(page.menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_RESULT_PAGE_OMNIUM_S_RESULTS")) % title, 32))
+	page.body.add_child(page.menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_RESULT_PAGE_OFFICIAL_RACE_RESULTS_D_RIDERS")) % result.order.size(), 17, Style.MUTED))
 	var totals := Scores.totals(tournament.riders, tournament.results.slice(0, index + 1))
 	var riders := {}
 	for rider in tournament.riders:
 		riders[String(rider.id)] = rider
 		if rider.get("is_player", false):
 			var place: int = result.order.find(String(rider.id)) + 1
-			page.body.add_child(page.menu.label("JOUW PLAATS  %d / %d   ·   OMNIUM  %+d punten · totaal %d" % [place, result.order.size(), points(result, index, place, String(rider.id)), totals[rider.id]], 21, Style.BLUE))
+			page.body.add_child(page.menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_RESULT_PAGE_YOUR_PLACE_D_D_OMNIUM_D_POINTS_TOTAL_D")) % [place, result.order.size(), points(result, index, place, String(rider.id)), totals[rider.id]], 21, Style.BLUE))
 	var shell := PanelContainer.new()
 	shell.add_theme_stylebox_override("panel", Style.panel(Style.PAPER, Style.LINE, 18, 12))
 	page.body.add_child(shell)
@@ -32,8 +32,8 @@ static func render(page: Node, tournament: Dictionary, index: int) -> void:
 	table.add_theme_constant_override("h_separation", 0)
 	table.add_theme_constant_override("v_separation", 0)
 	shell.add_child(table)
-	var headers := ["PL.", "RENNER", "KOERSPUNTEN", "TIJD / ACHTERSTAND", "OMNIUMPUNTEN"] if index == 1 else ["PL.", "RENNER", "TIJD / ACHTERSTAND", "OMNIUMPUNTEN"]
-	if index == 3: headers[2] = "KOERSPUNTEN"
+	var headers := ["PL.", String(TranslationServer.translate("SETTINGS_RIDER")), String(TranslationServer.translate("OMNIUM_RACE_POINTS")), String(TranslationServer.translate("OMNIUM_OMNIUM_RESULT_PAGE_TIME_GAP")), String(TranslationServer.translate("OMNIUM_OMNIUM_POINTS"))] if index == 1 else ["PL.", String(TranslationServer.translate("SETTINGS_RIDER")), String(TranslationServer.translate("OMNIUM_OMNIUM_RESULT_PAGE_TIME_GAP")), String(TranslationServer.translate("OMNIUM_OMNIUM_POINTS"))]
+	if index == 3: headers[2] = String(TranslationServer.translate("OMNIUM_RACE_POINTS"))
 	for text in headers: cell(page, table, text, Style.PALE)
 	for i in range(result.order.size()):
 		var id := String(result.order[i])
@@ -56,7 +56,7 @@ static func render(page: Node, tournament: Dictionary, index: int) -> void:
 		cell(page, table, str(int(result.get("points", {}).get(id, 0))) if index == 3 else time_text(result, id), fill)
 		cell(page, table, str(points(result, index, i + 1, id)), fill)
 	if index == 0 and not result.has("lap_credits"):
-		page.body.add_child(page.menu.label("Bij deze eerder opgeslagen uitslag zijn rondeverschillen niet bewaard.", 17, Style.MUTED))
+		page.body.add_child(page.menu.label("OMNIUM_OMNIUM_RESULT_PAGE_LAP_GAPS_WERE_NOT_SAVED_FOR_THESE_PREVIOUSLY_STORED_RESULTS", 17, Style.MUTED))
 
 static func points(result: Dictionary, index: int, place: int, id: String) -> int:
 	return int(result.get("points", {}).get(id, 0)) if index == 3 else Scores.place_points(place)
@@ -69,7 +69,7 @@ static func time_text(result: Dictionary, id: String) -> String:
 	var credits: Dictionary = result.get("lap_credits", {})
 	if credits.has(winner) and credits.has(id):
 		var gap := int(credits[winner]) - int(credits[id])
-		if gap != 0: return "%+d ronde%s" % [gap, "" if absi(gap) == 1 else "n"]
+		if gap != 0: return String(TranslationServer.translate("OMNIUM_D_LAP_S")) % [gap, "" if absi(gap) == 1 else "n"]
 	if float(times.get(winner, -1)) < 0: return "—"
 	return "+" + Results.clock(float(times[id]) - float(times[winner]))
 

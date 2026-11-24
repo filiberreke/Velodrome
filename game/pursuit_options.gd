@@ -32,15 +32,15 @@ func _choice() -> OptionButton:
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 10)
-	add_child(_label("Afstand"))
+	add_child(_label("RECORDS_PAGE_DISTANCE"))
 	distance_choice = _choice()
-	distance_choice.add_item("1 km · 4 ronden", 1000)
-	distance_choice.add_item("4 km · 16 ronden", 4000)
+	distance_choice.add_item("PURSUIT_1_KM_4_LAPS_2", 1000)
+	distance_choice.add_item("PURSUIT_4_KM_16_LAPS_2", 4000)
 	add_child(distance_choice)
-	add_child(_label("Tegenstander"))
+	add_child(_label("PURSUIT_OPPONENT"))
 	opponent_choice = _choice()
 	opponent_choice.add_item("AI-tegenstander")
-	opponent_choice.add_item("Een vorige rit")
+	opponent_choice.add_item("PURSUIT_A_PREVIOUS_RIDE")
 	add_child(opponent_choice)
 	cp_box = VBoxContainer.new()
 	cp_box.add_child(_label(ai_choice_label()))
@@ -48,7 +48,7 @@ func _ready() -> void:
 	cp_box.add_child(ai_choice)
 	refresh_ai_choices()
 	ai_choice.item_selected.connect(func(_index: int) -> void: _ai_selected())
-	cp_box.add_child(_label("CP tegenstander (W)"))
+	cp_box.add_child(_label("PURSUIT_OPPONENT_CP_W"))
 	cp_input = SpinBox.new()
 	cp_input.min_value = 50
 	cp_input.max_value = 800
@@ -59,14 +59,14 @@ func _ready() -> void:
 	cp_box.add_child(cp_input)
 	if uses_rider_picker():
 		picker_button = Button.new()
-		picker_button.text = "Bekijk alle rennerpaspoorten →"
+		picker_button.text = "PURSUIT_VIEW_ALL_RIDER_PROFILES"
 		picker_button.custom_minimum_size.y = 44
 		cp_box.add_child(picker_button)
 		picker_button.pressed.connect(open_picker)
 		_ai_selected()
 	add_child(cp_box)
 	ride_box = VBoxContainer.new()
-	ride_box.add_child(_label("Opgeslagen rit"))
+	ride_box.add_child(_label("PURSUIT_SAVED_RIDE"))
 	ride_choice = _choice()
 	ride_box.add_child(ride_choice)
 	add_child(ride_box)
@@ -98,7 +98,7 @@ func refresh_rides() -> void:
 		if ride["id"] == previous:
 			ride_choice.select(index)
 	if rides.is_empty():
-		ride_choice.add_item("Nog geen rit van deze afstand opgeslagen")
+		ride_choice.add_item("PURSUIT_NO_RIDE_SAVED_AT_THIS_DISTANCE_YET")
 		ride_choice.disabled = true
 	else:
 		ride_choice.disabled = false
@@ -110,7 +110,7 @@ func refresh_state() -> void:
 	changed.emit()
 
 func ai_choice_label() -> String:
-	return "Kies AI-renner"
+	return String(TranslationServer.translate("PURSUIT_CHOOSE_AI_RIDER"))
 
 func available_ai_entries() -> Array[Dictionary]:
 	var ancestor: Node = get_parent()
