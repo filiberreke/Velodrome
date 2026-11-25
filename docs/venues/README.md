@@ -8,13 +8,13 @@ Branch: `feature/multiple-venues`, gebaseerd op `v0.4` / `13c952320324317b72b7b6
 - Het spel, de pistegeometrie en de huidige arena lezen deze standaardconfiguratie. De bestaande maten, kleurwaarden, tribunes, verlichting en aankleding blijven behouden.
 - Iedere spelinstantie krijgt een eigen kopie van de configuratie, inclusief geneste tabellen.
 - Het geometriescript accepteert een profiel en bouwt ook voor een kortere, niet op 5 cm afgeronde baanlengte een gesloten piste. Een synthetisch profiel controleert dit; dit is geen goedgekeurde reconstructie van Gent.
-- **Gent is een ontwerpvoorstel**, zie [ontwerp en bouwbrief](gent/ontwerp.md), [referenties](gent/referenties.md), [technische taken](taken.md) en [validatie](validatie.md).
+- **Gent heeft nu een interactieve Godot-ontwerpweergave**, zie [openen en inrichting](gent/GODOT.md). De oorspronkelijke analyse staat in [ontwerp en bouwbrief](gent/ontwerp.md), [referenties](gent/referenties.md), [technische taken](taken.md) en [validatie](validatie.md).
 
 Gent wordt pas als speelbare locatie geregistreerd nadat de ontwerpkeuze is goedgekeurd, de eigen inrichting is gebouwd en alle wedstrijdsystemen de gekozen baanlengte gebruiken. De catalogus geeft voor een onbekend id `null`; zo kan een ontbrekende locatie nooit onbedoeld de aankleding van Vélodrome krijgen.
 
 ## Grenzen van deze eerste implementatie
 
-Dit is de standaardconfiguratie en de voorbereiding van meerdere locaties. Er is nog geen stadionkeuzescherm of persistent opgeslagen stadionkeuze. Gent is nog niet speelbaar. Onder meer wedstrijdregels, minimap, trainingsomgevingen, records en cameratrajecten bevatten nog aannames over de huidige baan. Die worden concreet behandeld in de takenlijst, niet stilzwijgend als opgelost beschouwd.
+Dit is de standaardconfiguratie en de voorbereiding van meerdere locaties. Er is nog geen stadionkeuze voor wedstrijden of persistent opgeslagen wedstrijdlocatie. Gent kan als ontwerpweergave vanuit het hoofdmenu worden bekeken; wedstrijden op Gent zijn nog niet ingeschakeld. Onder meer wedstrijdregels, minimap, trainingsomgevingen, records en cameratrajecten bevatten nog aannames over de huidige baan. Die worden concreet behandeld in de takenlijst, niet stilzwijgend als opgelost beschouwd.
 
 ## Structuur
 
@@ -26,13 +26,13 @@ Dit is de standaardconfiguratie en de voorbereiding van meerdere locaties. Er is
 | `track_geometry.gd` | Gemeenschappelijke parametrische referentielijn; stapgrootte sluit exact op een halve ronde |
 | `arena.gd` | Bestaande locatiebouwer; leest tribunes, kleuren, licht en expliciete infield-bouwer |
 
-`scenery` en `shared_actors` zijn een expliciet eigendomsmanifest, geen generieke automatische loader. De bestaande official- en tv-box-bouwers blijven in deze fase intact. Bij Gent worden die afzonderlijk aangesloten; de bestaande infield-bouwer wordt niet als fallback gebruikt.
+`scenery` en `shared_actors` zijn een expliciet eigendomsmanifest, geen generieke automatische loader. De official is nu als gedeelde controller uit de infield-bouwer gehaald; Gent sluit hem afzonderlijk aan. De tv-box behoudt zijn GLB en controller, met een eigen Gent-plaatsing. De bestaande Vélodrome-infield-bouwer wordt niet als fallback gebruikt.
 
 ## Vervolgorde
 
-1. Ontwerp Gent beoordelen en goedkeuren.
+1. Ontwerp Gent goedgekeurd; Godot-inrichting beoordelen via de ontwerpweergave.
 2. Kortebaan-geometrie en plaatsingspunten als grijs model controleren.
 3. Wedstrijdregels en registratie locatiebewust maken.
-4. Eigen Gent-hal en aankleding bouwen; gedeelde acteurs aansluiten.
+4. Gebouwde Gent-hal en aankleding bijsturen op basis van de screenshots; gedeelde acteurs zijn aangesloten.
 5. Menu, persistentie, omnium en trainingsmodi aansluiten.
 6. Regressies, prestaties en visuele controle afronden; daarna Gent registreren.

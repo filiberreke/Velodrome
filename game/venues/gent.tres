@@ -1,0 +1,29 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://venues/venue_definition.gd" id="1"]
+[resource]
+resource_name = "Gent"
+script = ExtResource("1")
+id = "gent"
+display_name = "Gent"
+lap_length_m = 166.66666666666667
+bend_radius_m = 12.0
+transition_m = 24.0
+apron_width_m = 0.65
+track_outer_offset_m = 7.65
+apron_bank_deg = 12.0
+straight_bank_deg = 12.0
+corner_bank_deg = 52.0
+finish_straight_clearance_m = 2.0
+arena_path = "res://venues/gent/gent_arena.gd"
+infield_path = "res://venues/gent/gent_infield.gd"
+stand_rim_offset_m = 7.8
+seat_spacing_m = 0.78
+palette = {"navy": "243b55", "navy_dark": "172539", "navy_mid": "324c65", "turquoise": "3f88bc", "gold": "d4a63d", "orange": "d82632", "concrete": "d8d1c4"}
+race_ambient_energy = 0.46
+training_ambient_energy = 0.7
+track_light_energy = 1.4
+track_light_range_m = 36.0
+track_light_attenuation = 0.8
+track_light_specular = 0.12
+scenery = PackedStringArray("gent_yellow_stands", "gent_flat_hall", "gent_curtained_rider_cabins", "gent_technical_zone", "gent_infield_crowd", "gent_red_walkway", "gent_bar", "gent_rectangular_scoreboard")
+shared_actors = {"race_official": "res://assets/crowd/velodrome_official.glb", "race_official_fallback": "res://assets/crowd/flag_official.glb", "broadcast_suite": "res://assets/broadcast/euromax_cycling_box.glb"}

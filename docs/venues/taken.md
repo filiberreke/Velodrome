@@ -12,12 +12,12 @@
 - [x] Bepalen welke objecten gedeeld zijn en welke niet automatisch meekomen.
 - [x] Afweging Godot/Blender en overdraagbare bouwbrief uitschrijven.
 
-De technische vervolgwerkzaamheden hieronder horen bij hetzelfde issue. De bouw van Gent volgt na akkoord op het ontwerp.
+De technische vervolgwerkzaamheden hieronder horen bij hetzelfde issue. Het ontwerp is goedgekeurd en de eerste Godot-ontwerpweergave is gebouwd; zie [Gent in Godot](gent/GODOT.md).
 
 ## 1. Piste en plaatsingspunten
 
 - [ ] Eén actieve, gevalideerde venue-instantie vóór geometrie/raceregels initialiseren. Alleen wisselen buiten een actieve wedstrijd; arena en afhankelijke modules opnieuw opbouwen.
-- [ ] Definitieve Gent-lengteprecisie beslissen: bronwaarde 166,66 m versus een nominale 1000/6 m in de spelconfiguratie. Deze twee waarden niet door elkaar gebruiken.
+- [x] Definitieve Gent-lengteprecisie beslissen (**1000/6 m goedgekeurd**): bronwaarde 166,66 m versus een nominale 1000/6 m in de spelconfiguratie. Deze twee waarden niet door elkaar gebruiken.
 - [ ] Radius, breedte, bochtovergangen, rechte-bankings en vlakke binnenruimte uit een proportionele blockout vastleggen. De bron bevestigt 52° in de bochten, geen volledig opgemeten baanprofiel.
 - [ ] De 11 bestaande spelerbanen en de zes startbanen aan de effectieve breedte aanpassen; fiets, official en tv-box op ware grootte houden.
 - [ ] Markeringen, meetlijn, achtervolgingsstart, tegengestelde start, neutrale vertrekplaats en aantal rondes uit hetzelfde profiel afleiden.
@@ -55,7 +55,7 @@ Voorstel: punten- en afvallingsintervallen in **ronden** opslaan en daarnaast de
 
 ## 4. Hergebruik en Gent-inrichting
 
-- [ ] Official-controller uit `infield_details.gd` losmaken, inclusief vier animaties, props, fallback en reset bij volgende wedstrijd.
+- [x] Official-controller uit `infield_details.gd` losmaken, inclusief vier animaties, props, fallback en reset bij volgende wedstrijd.
 - [ ] `commentary_box.gd` losmaken van `TIERS[1]` en offset 27,83; een expliciet tv-box-plaatsingspunt gebruiken. Model en twee presentatoren behouden.
 - [ ] Gent gebruikt een eigen infield-bouwer. Geen volledige `infield_details.gd`, `tour_spectator_details.gd`, `north_infield.gd`, kiosken of rennersboxen importeren om alleen de official te krijgen.
 - [ ] Zitplaatsen en publiek in Gent opnieuw verdelen; generieke mensmeshes mogen later uit de gedeelde kit komen, bestaande supporterpersonages/plaatsingen/banners niet.

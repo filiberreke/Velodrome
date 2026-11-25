@@ -1,6 +1,6 @@
 # Gent — ontwerpvoorstel en bouwbrief
 
-**Status:** ter goedkeuring, geen opdracht om het definitieve model al te bouwen.
+**Status:** goedgekeurd op 26 november 2026; eerste Godot-uitwerking beschikbaar. Zie [de gebouwde scène](GODOT.md). De onderstaande analyse blijft als oorspronkelijke bouwbrief bewaard.
 **Project:** Vélodrome, GitHub [issue #59](https://github.com/filiberreke/Velodrome/issues/59), branch `feature/multiple-venues`.
 **Onderzocht:** 25 november 2026. Referentie-editie: Zesdaagse van 17–22 november 2026.
 **Naam in het spel:** **Gent**; technisch id `gent`.

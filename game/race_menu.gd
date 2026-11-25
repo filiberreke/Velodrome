@@ -381,6 +381,12 @@ func _build_hub(layout: VBoxContainer) -> void:
 			artwork.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			for preview in artwork.get_children():
 				preview.custom_minimum_size = Vector2(280, 200)
+	var gent_design := Button.new()
+	gent_design.name = "GentVenuePreview"
+	gent_design.text = "GENT_OPEN_PREVIEW"
+	gent_design.custom_minimum_size.y = 40
+	gent_design.pressed.connect(func(): get_tree().change_scene_to_file("res://venues/gent/gent_preview.tscn"))
+	hub_page.add_child(gent_design)
 	races_back = _hub_button(choice_page, "RACE_MENU_MAIN_MENU", show_hub)
 	races_back.reparent(page_header)
 	page_header.move_child(races_back, 0)

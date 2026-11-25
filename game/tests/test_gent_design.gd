@@ -1,0 +1,41 @@
+extends SceneTree
+var failures:=0
+func check(ok:bool,message:String)->void:
+	if not ok:failures+=1;push_error(message)
+func _initialize()->void:call_deferred("run")
+func run()->void:
+	var default_game=preload("res://main.gd").new()
+	var shared_track=preload("res://venues/venue_track.gd").new(default_game.venue)
+	for i in 500:
+		for lane in [0.0,1.18,7.18]:
+			check(shared_track.at(float(i)*.5,lane).distance_to(default_game._at(float(i)*.5,lane))<.0001,"Design track matches production coordinate transform")
+	default_game.free()
+	var v=preload("res://venues/gent.tres")
+	check(v.validation_errors().is_empty(),"Gent profile validates")
+	check(absf(v.lap_length_m*6-1000)<1e-9,"Exactly six laps per kilometre")
+	var track=preload("res://venues/venue_track.gd").new(v)
+	var max_bank:=0.0
+	for i in 1000:
+		var s:float=v.lap_length_m*float(i)/1000
+		check(track.at(s,1.1).distance_to(track.at(s+v.lap_length_m,1.1))<.0001,"Closed Gent lap")
+		check(absf(track.at(s,v.apron_width_m).distance_to(track.at(s,v.track_outer_offset_m))-7.0)<.0001,"Seven metre banked surface")
+		max_bank=maxf(max_bank,rad_to_deg(track.bank(s)))
+	check(absf(max_bank-52)<.0001,"52 degree turns")
+	var scene=preload("res://venues/gent/gent_preview.gd").new();scene.show_riders=false
+	root.add_child(scene);scene.set_process(false);await process_frame
+	check(scene.arena.infield.cabins.size()==12,"Twelve own sober cabins")
+	for cabin in scene.arena.infield.cabins:
+		check(cabin.position.x>0,"Cabins on finish-side half, unlike Vélodrome")
+		check(cabin.has_node("LowCabinBack") and cabin.has_node("RestBench") and cabin.has_node("CurtainRod"),"Simple cabin structure retained")
+	check(scene.arena.official.official_clips.size()==4,"Shared official carries all four animations")
+	check(absf(scene.arena.official.official_lap_m-v.lap_length_m)<.0001,"Official uses Gent lap length")
+	check(scene.arena.suite.voices.size()==2,"Both original presenters retained")
+	check(scene.arena.has_node("GentFlatCeiling"),"Flat hall ceiling")
+	check(not scene.arena.has_node("InfinityScreen") and scene.find_child("Rennersboxen",true,false)==null,"No automatic Vélodrome decor import")
+	check(scene.arena.seat_count>2000 and scene.arena.spectator_count>1000,"Own Gent terraces and crowd")
+	for i in 4:
+		scene.set_view(i)
+		check(scene.camera.position.y<16.0 and scene.camera.position.y>0,"Camera inside the hall")
+	scene.free();await process_frame
+	print("GENT_DESIGN_OK" if failures==0 else "GENT_DESIGN_FAILED %d"%failures)
+	quit(0 if failures==0 else 1)
