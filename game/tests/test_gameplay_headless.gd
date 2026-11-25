@@ -4,6 +4,9 @@ extends SceneTree
 class TestRace extends "res://main.gd":
 	func _ready() -> void:
 		set_physics_process(false)
+		# The production input handler now refreshes controller focus.
+		ride_navigation = preload("res://ride_navigation.gd").new()
+		add_child(ride_navigation)
 	func _spawn_peloton() -> void:
 		pass
 	func _take_finish_photo(_winner: int) -> void:

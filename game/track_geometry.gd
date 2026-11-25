@@ -1,19 +1,28 @@
 extends RefCounted
 ## Smooth, periodic oval. Curvature and banking share four transition curves.
 ## Offsets on the wood measure distance ON the surface, not its projection.
-const LAP := 250.0
-const RADIUS := 18.0
-const STRAIGHT := (LAP - TAU * RADIUS) * 0.5
-const TRANSITION := 36.0
+const DefaultVenue := preload("res://venues/velodrome.tres")
 const STEP := 0.05
-const HALF_SAMPLES := 2500
+var LAP: float
+var RADIUS: float
+var STRAIGHT: float
+var TRANSITION: float
+var HALF_SAMPLES: int
+var sample_step: float
 var points := PackedVector2Array()
 
-func _init() -> void:
+func _init(venue = DefaultVenue) -> void:
+	assert(venue.validation_errors().is_empty(), "Invalid venue geometry")
+	LAP = venue.lap_length_m
+	RADIUS = venue.bend_radius_m
+	STRAIGHT = (LAP - TAU * RADIUS) * 0.5
+	TRANSITION = venue.transition_m
+	HALF_SAMPLES = ceili(LAP * 0.5 / STEP)
+	sample_step = LAP * 0.5 / float(HALF_SAMPLES)
 	points.append(Vector2.ZERO)
 	for i in range(HALF_SAMPLES):
-		var angle := heading((float(i) + 0.5) * STEP)
-		points.append(points[-1] + Vector2(-sin(angle), cos(angle)) * STEP)
+		var angle := heading((float(i) + 0.5) * sample_step)
+		points.append(points[-1] + Vector2(-sin(angle), cos(angle)) * sample_step)
 	var center := points[HALF_SAMPLES] * 0.5
 	for i in range(HALF_SAMPLES + 1):
 		points[i] -= center
@@ -57,13 +66,13 @@ func position(s: float) -> Vector2:
 	var d := fposmod(s, LAP)
 	var sign_value := 1.0 if d < LAP * 0.5 else -1.0
 	d = fposmod(d, LAP * 0.5)
-	var index := mini(int(d / STEP), HALF_SAMPLES - 1)
-	var t := (d - float(index) * STEP) / STEP
-	var a := heading(float(index) * STEP)
-	var b := heading(float(index + 1) * STEP)
+	var index := mini(int(d / sample_step), HALF_SAMPLES - 1)
+	var t := (d - float(index) * sample_step) / sample_step
+	var a := heading(float(index) * sample_step)
+	var b := heading(float(index + 1) * sample_step)
 	# Hermite interpolation keeps the tangent continuous between lookup samples.
-	var m0 := Vector2(-sin(a), cos(a)) * STEP
-	var m1 := Vector2(-sin(b), cos(b)) * STEP
+	var m0 := Vector2(-sin(a), cos(a)) * sample_step
+	var m1 := Vector2(-sin(b), cos(b)) * sample_step
 	var t2 := t * t
 	var t3 := t2 * t
 	return sign_value * ((2.0*t3-3.0*t2+1.0)*points[index] + (t3-2.0*t2+t)*m0 + (-2.0*t3+3.0*t2)*points[index+1] + (t3-t2)*m1)

@@ -25,7 +25,7 @@ func check_scene(game, simple: bool) -> void:
 	if not simple and tour_details != null:
 		check(tour_details.has_node("ChihuahuaLasagne"), "Standard mode retains lasagne-eating dog")
 		check(tour_details.has_node("WoutSupporter/WoutSpandoekTekst") and tour_details.get_node("WoutSupporter").get_meta("supporter_count") == 2, "Standard mode retains both WOUT supporters and banner")
-	check(field.get_node("Rennersboxen").boxes.size() == 6 and field.get_node("Rennersboxen").crews.size() == 6, "Rider boxes and crews retained")
+	check(field.get_node("Rennersboxen").boxes.size() == 9 and field.get_node("Rennersboxen").crews.size() == 9, "Rider boxes and crews retained")
 	check(field.has_node("Keldertrap"), "Central stairs retained")
 	var stair := field.get_node("Keldertrap")
 	var steps := 0
@@ -36,7 +36,7 @@ func check_scene(game, simple: bool) -> void:
 	check(field.find_child("officials_table", true, false) != null and field.find_child("tv_camera", true, false) != null, "Jury and finish camera retained")
 	check(field.has_node("Podium"), "Results podium retained")
 	check(field.has_node("WielerpraatMixedZone") != simple and field.has_node("Lichtslingers") != simple, "Full media zone and decoration remain optional")
-	check(field.supporter_count == (400 if simple else 2000), "Expected supporter count")
+	check(field.supporter_count == roundi((400.0 if simple else 2000.0) * field.crowd_density), "Expected supporter count")
 	var near := 0
 	var far := 0
 	for node in arena.get_children():

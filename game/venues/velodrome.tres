@@ -1,0 +1,33 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://venues/venue_definition.gd" id="1"]
+
+[resource]
+resource_name = "Vélodrome"
+script = ExtResource("1")
+id = "velodrome"
+display_name = "Vélodrome"
+lap_length_m = 250.0
+bend_radius_m = 18.0
+transition_m = 36.0
+apron_width_m = 0.78
+track_outer_offset_m = 9.03
+apron_bank_deg = 12.0
+straight_bank_deg = 12.0
+corner_bank_deg = 42.0
+finish_straight_clearance_m = 2.0
+arena_path = "res://arena.gd"
+infield_path = "res://infield_details.gd"
+spectator_details_path = "res://tour_spectator_details.gd"
+stand_rim_offset_m = 9.1
+stand_tiers = Array[Dictionary]([{"start": 10.65, "rows": 7, "depth": 1.10, "rise": 0.40, "base": 0.88}, {"start": 20.25, "rows": 8, "depth": 1.17, "rise": 0.47, "base": 5.15}])
+seat_spacing_m = 0.94
+palette = {"navy": "142a43", "navy_dark": "0b1a2d", "navy_mid": "244968", "turquoise": "4ed6d9", "gold": "f2c05e", "orange": "ef8736", "concrete": "c9c5b6"}
+race_ambient_energy = 0.25
+training_ambient_energy = 0.7
+track_light_energy = 2.7
+track_light_range_m = 62.326
+track_light_attenuation = 0.7
+track_light_specular = 0.15
+scenery = PackedStringArray("stand_crowd", "infield_crowd", "tour_spectators", "rider_boxes", "tents", "hospitality", "central_stairs", "podium", "radial_roof", "infinity_screen", "boarding_sponsors", "track_branding")
+shared_actors = {"race_official": "res://assets/crowd/velodrome_official.glb", "race_official_fallback": "res://assets/crowd/flag_official.glb", "broadcast_suite": "res://assets/broadcast/euromax_cycling_box.glb"}

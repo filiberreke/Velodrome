@@ -4,27 +4,23 @@ extends Node3D
 # No changes to the track geometry, race physics, bike rig or Strava integration.
 # The first version deliberately uses static spectators: excellent detail / GPU cost.
 
-const LAP := 250.0
-const STAND_RIM := 9.1
+var venue = preload("res://venues/velodrome.tres")
+var LAP: float = venue.lap_length_m
+var STAND_RIM: float = venue.stand_rim_offset_m
 var crowd_density := 0.60
 var simple_infield := false
 const RING_STEPS := 300
-const SEAT_SPACING := 0.94
+var SEAT_SPACING: float = venue.seat_spacing_m
 
-const NAVY := "142a43"
-const NAVY_DARK := "0b1a2d"
-const NAVY_MID := "244968"
-const TURQUOISE := "4ed6d9"
-const GOLD := "f2c05e"
-const ORANGE := "ef8736"
-const CONCRETE := "c9c5b6"
+var NAVY: String = venue.palette["navy"]
+var NAVY_DARK: String = venue.palette["navy_dark"]
+var NAVY_MID: String = venue.palette["navy_mid"]
+var TURQUOISE: String = venue.palette["turquoise"]
+var GOLD: String = venue.palette["gold"]
+var ORANGE: String = venue.palette["orange"]
+var CONCRETE: String = venue.palette["concrete"]
 
-const TIERS := [
-	# inner row start, row count, row depth, row rise, relative deck height
-	{"start": 10.65, "rows": 7, "depth": 1.10, "rise": 0.40, "base": 0.88},
-	{"start": 20.25, "rows": 8, "depth": 1.17, "rise": 0.47, "base": 5.15}
-]
-
+var TIERS: Array[Dictionary] = venue.stand_tiers.duplicate(true)
 var main: Node3D
 var board: Label3D
 var stand_lights: Array[OmniLight3D] = []
@@ -41,6 +37,15 @@ const CROWD_NEAR_M := 32.0          # closer than this: detailed figures, furthe
 
 func _ready() -> void:
 	main = get_parent()
+	venue = main.venue
+	LAP = venue.lap_length_m
+	STAND_RIM = venue.stand_rim_offset_m
+	SEAT_SPACING = venue.seat_spacing_m
+	TIERS = venue.stand_tiers.duplicate(true)
+	for key in venue.palette:
+		set(String(key).to_upper(), String(venue.palette[key]))
+	set_meta("venue_id", venue.id)
+	set_meta("venue_name", venue.display_name)
 	crowd = CrowdKit.new()
 	var cfg := ConfigFile.new()
 	if preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg") == OK:
@@ -54,7 +59,7 @@ func _ready() -> void:
 	_emit_stand_crowd()
 	_build_aisles()
 	if not simple_infield:
-		load("res://tour_spectator_details.gd").new().build(self)
+		load(venue.spectator_details_path).new().build(self)
 	_build_facades_and_railings()
 	_build_roof()
 	preload("res://arena_flags.gd").new().build(self)
@@ -63,7 +68,7 @@ func _ready() -> void:
 	add_child(show)
 	_build_track_banner()
 	_build_infield()
-	var infield_scene: Node3D = preload("res://infield_details.gd").new()
+	var infield_scene: Node3D = load(venue.infield_path).new()
 	infield_scene.name = "LevendigMiddenterrein"
 	infield_scene.set("crowd", crowd)
 	add_child(infield_scene)
@@ -402,10 +407,10 @@ func _build_roof() -> void:
 		lamp.name = "Pisteverlichting %d" % (i + 1)
 		lamp.position = _point(s, 4.5) + Vector3.UP * 8.0
 		lamp.light_color = Color("f4f5ff")
-		lamp.light_energy = 2.7
-		lamp.omni_range = 62.326
-		lamp.omni_attenuation = 0.7
-		lamp.light_specular = 0.15
+		lamp.light_energy = venue.track_light_energy
+		lamp.omni_range = venue.track_light_range_m
+		lamp.omni_attenuation = venue.track_light_attenuation
+		lamp.light_specular = venue.track_light_specular
 		lamp.shadow_enabled = false
 		add_child(lamp)
 		track_lights.append(lamp)

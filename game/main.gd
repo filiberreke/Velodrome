@@ -1,4 +1,6 @@
 extends Node3D
+const VenueCatalog := preload("res://venues/venue_catalog.gd")
+var venue = VenueCatalog.default_venue()
 var omnium_race = preload("res://omnium/omnium_scratch_controller.gd").new()
 const MenuSkin := preload("res://menu_theme.gd")
 signal infield_riders_changed
@@ -14,7 +16,7 @@ var madison_training_environment
 var exercise_training_environment
 var stadium_environment: Environment
 var stadium_sun: DirectionalLight3D
-const RACE_AMBIENT_LIGHT_ENERGY := 0.25
+var RACE_AMBIENT_LIGHT_ENERGY: float = venue.race_ambient_energy
 var stadium_training_lighting := false
 var trainer_road_grade := 0.0
 const HUD_INTERVAL_S := 0.1
@@ -24,7 +26,7 @@ var trainer_grade_filter := TrainerControl.RouteGradeFilter.new()
 var trainer_telemetry_resume := false
 var trainer_control_was_active := false
 const HUD_POINTS_AWARD_SECONDS := 5.0
-const LAP := 250.0
+var LAP: float = venue.lap_length_m
 const ScratchRules := preload("res://scratch_lap_rules.gd")
 var scratch_rules = ScratchRules.new()
 const XScratchAI := preload("res://x_scratch_ai.gd")
@@ -101,20 +103,20 @@ var finish_subtitle: Label
 # UV values run along the banked 250 m oval; no change to _at() or race physics.
 const WOOD_TEXTURE: Texture2D = preload("res://assets/textures/velodrome_wood_pine.png")
 const BLUE_APRON_TEXTURE: Texture2D = preload("res://assets/textures/velodrome_cote_azur.png")
-const TRACK_EDGE := 0.78
-const TRACK_OUTER_EDGE := 9.03
+var TRACK_EDGE: float = venue.apron_width_m
+var TRACK_OUTER_EDGE: float = venue.track_outer_offset_m
 # The race distance measures the FRONT EDGE of the front wheel, not the rider pivot.
 # GLB front hub at +0.79 m, external tire radius 0.374 m. The extra 2 cm
 # holds the tyre just behind the line at the stationary start.
 const FRONT_WHEEL_TIP_M := 1.110
-const RADIUS := 18.0
-const STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
+var RADIUS: float = venue.bend_radius_m
+var STRAIGHT := (LAP - 2.0 * PI * RADIUS) / 2.0
 # Finish is on the final straight, 2 m before the smooth bend entry.
-const FINISH_STRAIGHT_CLEARANCE_M := 2.0
-const FINISH_REFERENCE_S := preload("res://track_geometry.gd").TRANSITION * 0.5 + FINISH_STRAIGHT_CLEARANCE_M
-const PURSUIT_START_M := LAP + FINISH_REFERENCE_S - STRAIGHT * 0.5
-const NEUTRAL_DEPARTURE_M := FINISH_REFERENCE_S - STRAIGHT * 0.5
-const OPPOSITE_STRAIGHT_GATE_M := fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
+var FINISH_STRAIGHT_CLEARANCE_M: float = venue.finish_straight_clearance_m
+var FINISH_REFERENCE_S: float = venue.transition_m * 0.5 + FINISH_STRAIGHT_CLEARANCE_M
+var PURSUIT_START_M := LAP + FINISH_REFERENCE_S - STRAIGHT * 0.5
+var NEUTRAL_DEPARTURE_M := FINISH_REFERENCE_S - STRAIGHT * 0.5
+var OPPOSITE_STRAIGHT_GATE_M := fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 const UDP_PORT := 51723
 # Player selection is finer than AI corridors; physical track geometry is unchanged.
 const PLAYER_LANE_STEP_M := 0.60
@@ -141,11 +143,11 @@ const DRAFT_MIN_SPEED_MPS := 4.5
 var draft_strengths: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var draft_leaders: Array[int] = [-1, -1, -1, -1]
 # The cote d'azur has a fixed cross-slope; only the wooden track banks up in bends.
-const BLUE_APRON_BANK_DEG := 12.0
-const STRAIGHT_BANK_DEG := 12.0
-const CORNER_BANK_DEG := 42.0
-const BANK_TRANSITION_M := 36.0
-var track_geometry := preload("res://track_geometry.gd").new()
+var BLUE_APRON_BANK_DEG: float = venue.apron_bank_deg
+var STRAIGHT_BANK_DEG: float = venue.straight_bank_deg
+var CORNER_BANK_DEG: float = venue.corner_bank_deg
+var BANK_TRANSITION_M: float = venue.transition_m
+var track_geometry := preload("res://track_geometry.gd").new(venue)
 const LANE_CHANGE_MPS := 1.15
 var lane_offsets: Array[float] = [1.18, 2.38, 3.58, 4.78]
 var ai_lane_targets: Array[float] = [1.18, 2.38, 3.58, 4.78]
@@ -660,7 +662,7 @@ func _ready() -> void:
 	strava_client.status_changed.connect(_on_strava_status)
 	strava_client.activity_created.connect(_on_strava_activity_created)
 	_build_world()
-	arena = load("res://arena.gd").new()
+	arena = load(venue.arena_path).new()
 	add_child(arena)
 	_set_stadium_training_lighting(true) # Menu background uses the brighter training profile.
 	_build_hud()
@@ -2335,7 +2337,7 @@ func _race_lighting_enabled() -> bool:
 func _set_stadium_training_lighting(training: bool) -> void:
 	stadium_training_lighting = training
 	if stadium_environment != null:
-		stadium_environment.ambient_light_energy = 0.7 if training else RACE_AMBIENT_LIGHT_ENERGY
+		stadium_environment.ambient_light_energy = venue.training_ambient_energy if training else RACE_AMBIENT_LIGHT_ENERGY
 	if stadium_sun != null:
 		stadium_sun.light_energy = 0.2 if training else 0.0
 	if arena != null:

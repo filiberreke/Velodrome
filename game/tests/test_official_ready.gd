@@ -6,6 +6,7 @@ class Race:
 	var finished := false
 	var distances := [0.0, 0.0]
 	var finish_times := [-1.0, -1.0]
+	var race_mode := 1 # Points: animation fixture uses individual lead/tail distances.
 	var race_laps := 4
 	var countdown := 1.0
 	func _at(s: float, offset: float) -> Vector3:
