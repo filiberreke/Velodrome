@@ -4,6 +4,7 @@ const MAX_OPPONENTS := 23
 var riders: Array[Dictionary] = []
 var format_id := "short"
 var strength := 80.0
+var venue_id := "velodrome"
 var catalog = preload("res://omnium/omnium_catalog.gd").new()
 
 func replace(slot: int, entry: Dictionary) -> bool:
@@ -47,3 +48,4 @@ func copy_from(tournament: Dictionary, player: Dictionary) -> void:
 		riders.append(rider.duplicate(true))
 	strength = clampf(float(tournament.get("strength", 80)), 40, 120)
 	format_id = String(tournament.get("format", "short"))
+	venue_id = String(tournament.get("venue_id", "velodrome"))

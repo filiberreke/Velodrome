@@ -2,7 +2,7 @@ extends Control
 # Deliberately small: race progress only; no lane markings.
 var progress: Array[float] = [0.0, 0.0, 0.0, 0.0]
 const COLORS := [Color("ffdc46"), Color("54d39b"), Color("52b5fa"), Color("ff7676")]
-const TRACK_LENGTH := 250.0
+var TRACK_LENGTH := 250.0
 var rider_colours: Array[Color] = []
 var peloton: Dictionary = {}
 var leader_id := -1

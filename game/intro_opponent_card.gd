@@ -60,6 +60,7 @@ func prepare() -> void:
 		profile["max_power_w"] = game.pursuit_pacer.max_power_w
 		profile["riders"] = [game.rider_names[1]]
 		passport = preload("res://rider_passport.gd").new()
+		passport.venue_id = game.venue.id
 		passport.entry = profile
 		passport.interactive = false
 		add_theme_stylebox_override("panel", StyleBoxEmpty.new())

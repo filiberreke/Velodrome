@@ -49,8 +49,11 @@ func sample(rear_positions: Array[float], start_time_s: float, dt: float) -> Dic
         # Fast riders can pass a later jury line while the tail is still
         # completing this one. Keep those real interpolated crossings; they
         # must not be lost when next_line_m advances after a late decision.
-        var line: float = maxf(next_line_m, (floorf(previous[i] / interval_m) + 1.0) * interval_m)
-        while line <= rear_positions[i] and line <= (active.size() - 2) * interval_m:
+        # Count jury lines as integers. Repeated addition of 1000/3 m can put
+        # the final line above its own distance limit and stall a short-track race.
+        var line_index: int = maxi(roundi(next_line_m / interval_m), floori((previous[i] + 0.00000001) / interval_m) + 1)
+        var line: float = float(line_index) * interval_m
+        while line <= rear_positions[i] + 0.00000001 and line_index <= active.size() - 2:
             var time_s: float = start_time_s + (line - previous[i]) / step * dt
             if is_equal_approx(line, next_line_m):
                 crossing_s[i] = time_s
@@ -58,7 +61,8 @@ func sample(rear_positions: Array[float], start_time_s: float, dt: float) -> Dic
                 var key := roundi(line)
                 if not future_crossings.has(key): future_crossings[key] = {}
                 future_crossings[key][i] = time_s
-            line += interval_m
+            line_index += 1
+            line = float(line_index) * interval_m
     if crossing_s.size() < remaining_count():
         return {}
     var ordering: Array[int] = []
@@ -85,7 +89,7 @@ func sample(rear_positions: Array[float], start_time_s: float, dt: float) -> Dic
     eliminated.append(last_id)
     event["eliminated_id"] = last_id
     event["remaining"] = remaining_count()
-    next_line_m += interval_m
+    next_line_m = float(roundi(next_line_m / interval_m) + 1) * interval_m
     crossing_s = future_crossings.get(roundi(next_line_m), {}).duplicate()
     future_crossings.erase(roundi(next_line_m))
     for id in crossing_s.keys():

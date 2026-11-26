@@ -1,16 +1,18 @@
 extends RefCounted
 ## Complete history for solo 500 m / 1000 m time trials.
 ## No top-10 trimming: recent and last ride must survive all-time record changes.
+const Venues := preload("res://venues/venue_catalog.gd")
 const PATH := "user://time_trial_history.json"
 const WINDOW_SECONDS := 60 * 24 * 60 * 60
 
 static func valid(ride: Dictionary) -> bool:
+	if not Venues.compatible(ride, String(ride.get("venue_id", "velodrome"))): return false
 	if str(ride.get("start_type", "standing")) not in ["standing", "flying"]: return false
 	if int(ride.get("distance_m", 0)) not in [500, 1000]: return false
 	if float(ride.get("seconds", 0.0)) <= 0.0: return false
 	if float(ride.get("finished_at", 0.0)) <= 0.0: return false
 	var splits: Array = ride.get("splits", [])
-	if splits.size() != int(ride["distance_m"]) / 125: return false
+	if splits.size() != roundi(float(ride["distance_m"]) / (float(ride.get("lap_length_m", 250.0)) * .5)): return false
 	var previous := 0.0
 	for value in splits:
 		if not (value is float or value is int): return false
@@ -30,8 +32,9 @@ func all_rides() -> Array:
 		if ride is Dictionary and valid(ride): result.append(ride)
 	return result
 
-func add(distance_m: int, seconds: float, crossings: Array, start_type: String = "standing") -> bool:
+func add(distance_m: int, seconds: float, crossings: Array, start_type: String = "standing", venue_id: String = "velodrome") -> bool:
 	var record := {"id": Crypto.new().generate_random_bytes(12).hex_encode(), "distance_m": distance_m, "start_type": start_type, "seconds": seconds, "finished_at": Time.get_unix_time_from_system(), "splits": crossings.duplicate()}
+	record.merge(Venues.metadata(venue_id))
 	if not valid(record): return false
 	var rides := all_rides()
 	rides.append(record)
@@ -46,9 +49,9 @@ func add(distance_m: int, seconds: float, crossings: Array, start_type: String =
 	if not ok: return false
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(PATH + ".tmp"), ProjectSettings.globalize_path(PATH)) == OK
 
-func references(distance_m: int, now: float = -1.0, start_type: String = "standing") -> Dictionary:
+func references(distance_m: int, now: float = -1.0, start_type: String = "standing", venue_id: String = "velodrome") -> Dictionary:
 	if now < 0.0: now = Time.get_unix_time_from_system()
-	var rides: Array = all_rides().filter(func(r): return int(r["distance_m"]) == distance_m and str(r.get("start_type", "standing")) == start_type and float(r["finished_at"]) <= now)
+	var rides: Array = all_rides().filter(func(r): return Venues.compatible(r, venue_id) and int(r["distance_m"]) == distance_m and str(r.get("start_type", "standing")) == start_type and float(r["finished_at"]) <= now)
 	rides.sort_custom(func(a, b): return float(a["finished_at"]) > float(b["finished_at"]))
 	var result := {"last": {}, "alltime": {}, "recent": {}}
 	if rides.is_empty(): return result

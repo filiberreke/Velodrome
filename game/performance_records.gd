@@ -1,10 +1,13 @@
 extends RefCounted
 ## Compact persistent personal Top 10s; independent of optional replay storage.
 const Replays := preload("res://pursuit_records.gd")
+var venue_id := "velodrome"
+const Venues := preload("res://venues/venue_catalog.gd")
 var path := "user://personal_records.json"
 var last_error := ""
 
 static func valid(entry: Dictionary) -> bool:
+	if not Venues.compatible(entry, String(entry.get("venue_id", "velodrome"))): return false
 	for field in ["mode", "distance_m", "team_size"]:
 		if not Replays._number(entry.get(field)) or float(entry[field]) != float(int(entry[field])): return false
 	if int(entry["mode"]) not in [4, 5] or int(entry["distance_m"]) not in [1000, 4000]: return false
@@ -17,7 +20,7 @@ static func valid(entry: Dictionary) -> bool:
 	return true
 
 static func bucket(entry: Dictionary) -> String:
-	return "%d_%d_%d" % [int(entry["mode"]), int(entry["distance_m"]), int(entry.get("team_size", 0))]
+	return ("" if String(entry.get("venue_id", "velodrome")) == "velodrome" else String(entry.venue_id) + "_") + "%d_%d_%d" % [int(entry["mode"]), int(entry["distance_m"]), int(entry.get("team_size", 0))]
 
 func _read_file(filename: String) -> Variant:
 	if not FileAccess.file_exists(filename): return null
@@ -27,7 +30,7 @@ func _read_file(filename: String) -> Variant:
 	if parser.parse(file.get_as_text()) != OK: return null
 	var value = parser.data
 	if not value is Dictionary or value.get("version", 0) != 1 or not value.get("entries") is Array: return null
-	if value["entries"].size() > 60: return null
+	if value["entries"].size() > 120: return null
 	for item in value["entries"]:
 		if not item is Dictionary or not valid(item): return null
 	return value["entries"]
@@ -97,7 +100,7 @@ func add(entry: Dictionary) -> bool:
 func top(mode: int, distance: int, count: int = 0) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for entry in _trim(_read()):
-		if int(entry["mode"]) == mode and int(entry["distance_m"]) == distance and int(entry.get("team_size", 0)) == count:
+		if Venues.compatible(entry, venue_id) and int(entry["mode"]) == mode and int(entry["distance_m"]) == distance and int(entry.get("team_size", 0)) == count:
 			result.append(entry)
 	return result
 
@@ -117,6 +120,7 @@ func import_saved(libraries: Array = []) -> void:
 				if not Replays._number(stamp) or stamp <= 0.0: continue
 				var legacy: bool = not ride.has("player_name")
 				var entry := {"id": str(ride.get("performance_id", "legacy_" + str(ride["id"]))), "mode": 5 if source.event_kind == "team" else 4, "distance_m": distance, "team_size": source.squad_size, "seconds": float(ride["time_s"]), "player_name": str(ride.get("player_name", "Onbekende speler")), "finished_at": stamp, "finished_local": str(ride.get("finished_local", Time.get_datetime_string_from_unix_time(int(stamp)).replace("T", " ") + " UTC")), "legacy": legacy}
+				entry.merge(Venues.metadata(String(ride.get("venue_id", "velodrome"))))
 				if valid(entry): entries.append(entry)
 	entries = _trim(entries)
 	if JSON.stringify(entries) != before: _write(entries)

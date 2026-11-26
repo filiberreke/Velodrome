@@ -6,6 +6,7 @@ const Flags := preload("res://national_flags.gd")
 var page
 var menu
 var active: Dictionary
+var lap_length_m := 250.0
 
 func render(owner_page: Node) -> void:
 	page = owner_page; menu = page.menu; active = page.manager.state.active
@@ -14,6 +15,8 @@ func render(owner_page: Node) -> void:
 	heading.add_child(menu.label("OMNIUM_OMNIUM_DETAILS_YOUR_OMNIUM", 32))
 	heading.add_spacer(false)
 	heading.add_child(menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_D_RIDERS")) % active.riders.size(), 20, Style.MUTED))
+	lap_length_m = float(active.get("lap_length_m", 250.0))
+	page.body.add_child(menu.label(preload("res://venues/venue_catalog.gd").resolved(String(active.get("venue_id", "velodrome"))).display_name, 22, Style.BLUE))
 	render_settings()
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 24)
@@ -29,13 +32,13 @@ func render(owner_page: Node) -> void:
 	sidebar.add_theme_constant_override("separation", 16)
 	columns.add_child(sidebar)
 	var settings := Formats.settings(active.format)
-	var elimination_laps: int = Formats.race_laps(String(active.format), "elimination", active.riders.size())
+	var elimination_laps: int = Formats.race_laps(String(active.format), "elimination", active.riders.size(), lap_length_m)
 	var specs := [
 		[String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_WARM_UP_RIDE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_WARM_UP_GENTLY_ON_THE_TRACK")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_UNLIMITED_DURATION")), 0],
-		[String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_CHOOSE_YOUR_MOMENT_THE_FINISH_DETERMINES_YOUR_PLACE")), distance_and_duration(int(settings.scratch)), 0],
-		[String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_COLLECT_POINTS_AT_THE_LINE")), distance_and_duration(int(settings.tempo)), 8],
+		[String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_CHOOSE_YOUR_MOMENT_THE_FINISH_DETERMINES_YOUR_PLACE")), distance_and_duration(Formats.race_laps(active.format, "scratch", active.riders.size(), lap_length_m)), 0],
+		[String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_COLLECT_POINTS_AT_THE_LINE")), distance_and_duration(Formats.race_laps(active.format, "tempo", active.riders.size(), lap_length_m)), 8],
 		[String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_STAY_OUT_OF_DANGER_ONE_RIDER_ELIMINATED_EVERY_D_LAP_S")) % settings.elimination_interval, distance_and_duration(elimination_laps), 5],
-		[String(TranslationServer.translate("RACE_MENU_POINTS_RACE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_SPRINT_POINTS_AND_LAPS_GAINED_DETERMINE_THE_FINAL_STANDINGS")), distance_and_duration(int(settings.points)), 3]
+		[String(TranslationServer.translate("RACE_MENU_POINTS_RACE")), String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_SPRINT_POINTS_AND_LAPS_GAINED_DETERMINE_THE_FINAL_STANDINGS")), distance_and_duration(Formats.race_laps(active.format, "points", active.riders.size(), lap_length_m)), 3]
 	]
 	for i in range(specs.size()): race_card(races, specs[i], i - 1)
 	var participants := panel(sidebar)
@@ -68,7 +71,7 @@ func distance_and_duration(laps: int) -> String:
 
 func duration(laps: int) -> String:
 	# Estimate at 40 km/h on a 250 m track; never affects race timing.
-	return "± %d min" % maxi(1, roundi(laps * 0.375))
+	return "± %d min" % maxi(1, roundi(laps * lap_length_m / (40000.0 / 60.0)))
 
 func date_text(timestamp: int) -> String:
 	var date := Time.get_datetime_dict_from_unix_time(timestamp)
@@ -217,6 +220,19 @@ func render_settings() -> void:
 	strength.editable = not locked
 	strength.value_changed.connect(change_strength)
 	row.add_child(strength)
+	var venue_picker := preload("res://venues/venue_selector.gd").new()
+	venue_picker.tile_size = Vector2(360, 244)
+	venue_picker.selected_id = String(active.get("venue_id", "velodrome"))
+	venue_picker.locked = locked
+	box.add_child(venue_picker)
+	venue_picker.selected.connect(change_venue)
+
+func change_venue(id: String) -> void:
+	if int(active.started) != 0: return
+	if page.manager.update_setup(active.riders, String(active.format), float(active.strength), int(Time.get_unix_time_from_system()), id):
+		active = page.manager.state.active
+		page.refresh.call_deferred()
+	else: settings_error()
 
 func change_format(index: int) -> void:
 	if int(active.started) != 0: return

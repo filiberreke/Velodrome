@@ -2,6 +2,7 @@ extends RefCounted
 const Formats := preload("res://omnium/omnium_formats.gd")
 const Recovery := preload("res://omnium/energy_recovery.gd")
 const Store := preload("res://omnium/omnium_store.gd")
+const Venues := preload("res://venues/venue_catalog.gd")
 const DAY := 86400
 var store = Store.new()
 var state := {"version":1, "active":{}, "archive":[]}
@@ -18,7 +19,8 @@ func _commit(candidate: Dictionary) -> bool:
 	error = ""
 	return true
 
-func create(riders: Array, format_id: String, strength: float, now: int) -> bool:
+func create(riders: Array, format_id: String, strength: float, now: int, venue_id: String = "velodrome") -> bool:
+	if Venues.find(venue_id) == null: return false
 	if not state.active.is_empty() or not Formats.FORMATS.has(format_id): return false
 	if riders.size() < 8 or riders.size() > 24 or strength < 40 or strength > 120: return false
 	var ids := {}; var countries := {}; var players := 0
@@ -30,6 +32,7 @@ func create(riders: Array, format_id: String, strength: float, now: int) -> bool
 	if players != 1: return false
 	var next := state.duplicate(true)
 	next.active = {"id":str(now) + "_" + str(Time.get_ticks_usec()), "status":"active", "riders":riders.duplicate(true), "format":format_id, "strength":strength, "started":0, "last_finish":0, "last_seen":now, "results":[], "energy":{}, "attempt":{}}
+	next.active.merge(Venues.metadata(venue_id))
 	return _commit(next)
 
 func deadline() -> int:
@@ -96,8 +99,10 @@ func archive(reason: String, now: int) -> bool:
 	return _commit(next)
 
 # Validate an editable setup using the same rules as initial creation.
-func update_setup(riders: Array, format_id: String, strength: float, now: int) -> bool:
+func update_setup(riders: Array, format_id: String, strength: float, now: int, venue_id: String = "") -> bool:
 	if state.active.is_empty() or int(state.active.started) != 0: return false
+	if venue_id.is_empty(): venue_id = String(state.active.get("venue_id", "velodrome"))
+	if Venues.find(venue_id) == null: return false
 	# No disk write during validation.
 	if riders.size() < 8 or riders.size() > 24 or not Formats.FORMATS.has(format_id) or strength < 40 or strength > 120: return false
 	var ids := {}; var countries := {}; var players := 0
@@ -110,4 +115,5 @@ func update_setup(riders: Array, format_id: String, strength: float, now: int) -
 	var next := state.duplicate(true)
 	next.active.riders = riders.duplicate(true); next.active.format = format_id
 	next.active.strength = strength; next.active.last_seen = now
+	next.active.merge(Venues.metadata(venue_id))
 	return _commit(next)

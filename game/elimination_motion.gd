@@ -5,8 +5,8 @@ const MIN_GAP := 2.0
 const LATERAL_CLEARANCE := 0.55 # Adjacent 0.60 m lines remain separate.
 const MERGE_GAP := MIN_GAP + 0.05
 
-static func signed_gap(a: float, b: float) -> float:
-	return fposmod(b-a+LAP*0.5,LAP)-LAP*0.5
+static func signed_gap(a: float, b: float, lap_length: float = 250.0) -> float:
+	return fposmod(b-a+lap_length*0.5,lap_length)-lap_length*0.5
 
 static func leaves_safely(gap: float, relative_speed: float, duration: float) -> bool:
 	var future := gap+relative_speed*duration
@@ -21,7 +21,7 @@ static func moving_apart(a: float, a_next: float, b: float, b_next: float) -> bo
 	var first := a-b; var last := a_next-b_next
 	return absf(first)<LATERAL_CLEARANCE and first*last>=0.0 and absf(last)>absf(first)+0.000001
 
-static func constrain_lanes(distances: Array[float], speeds: Array[float], previous: Array[float], requested: Array[float], done: Array[float], metrics: Array[float], dt: float) -> Array[float]:
+static func constrain_lanes(distances: Array[float], speeds: Array[float], previous: Array[float], requested: Array[float], done: Array[float], metrics: Array[float], dt: float, lap_length: float = 250.0) -> Array[float]:
 	var result: Array[float] = requested.duplicate()
 	for iteration in range(3):
 		for a in range(previous.size()):
@@ -29,7 +29,7 @@ static func constrain_lanes(distances: Array[float], speeds: Array[float], previ
 			for b in range(a+1,previous.size()):
 				if done[b]>=0.0 or laterally_separate(previous[a],result[a],previous[b],result[b]): continue
 				if moving_apart(previous[a],result[a],previous[b],result[b]): continue
-				var gap := signed_gap(distances[a],distances[b])
+				var gap := signed_gap(distances[a],distances[b],lap_length)
 				var relative := speeds[b]/metrics[b]-speeds[a]/metrics[a]
 				var future := gap+relative*dt
 				if gap*future>0.0 and minf(absf(gap),absf(future))>=MERGE_GAP: continue
@@ -44,24 +44,24 @@ static func constrain_lanes(distances: Array[float], speeds: Array[float], previ
 				result[b]=lerpf(previous[b],result[b],fraction)
 	return result
 
-static func physical_order(distances: Array[float], active: Array[int]) -> Dictionary:
+static func physical_order(distances: Array[float], active: Array[int], lap_length: float = 250.0) -> Dictionary:
 	# Unwrap at the largest empty piece of track, including lapped traffic.
 	var order: Array[int]=active.duplicate()
 	order.sort_custom(func(a: int,b: int)->bool:
-		var pa:=fposmod(distances[a],LAP);var pb:=fposmod(distances[b],LAP)
+		var pa:=fposmod(distances[a],lap_length);var pb:=fposmod(distances[b],lap_length)
 		return a>b if absf(pa-pb)<0.000000001 else pa<pb)
 	var front:=0;var biggest:=-1.0
 	for index in range(order.size()):
 		var next: int=order[(index+1)%order.size()]
-		var gap: float=fposmod(distances[next],LAP)-fposmod(distances[order[index]],LAP)
-		if index==order.size()-1: gap+=LAP
+		var gap: float=fposmod(distances[next],lap_length)-fposmod(distances[order[index]],lap_length)
+		if index==order.size()-1: gap+=lap_length
 		gap=maxf(0.0,gap)
 		if gap>biggest: biggest=gap;front=index
 	var sorted: Array[int]=[];var coordinates: Dictionary={};var previous:=0.0
 	for k in range(order.size()):
 		var rider: int=order[posmod(front-k,order.size())]
-		var coordinate:=fposmod(distances[rider],LAP)
+		var coordinate:=fposmod(distances[rider],lap_length)
 		if k>0:
-			while coordinate>previous+0.00001: coordinate-=LAP
+			while coordinate>previous+0.00001: coordinate-=lap_length
 		coordinates[rider]=coordinate;previous=coordinate;sorted.append(rider)
 	return {"order":sorted,"coordinates":coordinates}

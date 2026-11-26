@@ -38,8 +38,8 @@ func update_bunch(game, bunch: Dictionary, active: bool) -> void:
 		mesh.clear_surfaces()
 		mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 		for lane in range(8):
-			var inner: float = 0.9+lane*1.0
-			var outer: float = inner+1.0
+			var inner: float = lerpf(game.TRACK_EDGE + .12, game.TRACK_OUTER_EDGE - .13, float(lane) / 8.0)
+			var outer: float = lerpf(game.TRACK_EDGE + .12, game.TRACK_OUTER_EDGE - .13, float(lane + 1) / 8.0)
 			var a: Vector3 = game._at(distance-0.18,inner)+Vector3.UP*0.12
 			var b: Vector3 = game._at(distance+0.18,inner)+Vector3.UP*0.12
 			var c: Vector3 = game._at(distance+0.18,outer)+Vector3.UP*0.12

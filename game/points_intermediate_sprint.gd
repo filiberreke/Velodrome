@@ -3,7 +3,7 @@ extends RefCounted
 ## Forecasts are heuristic. This class requests watts; it never spends Wprime
 ## or changes actual speed, position, lanes, CP, Wmax or peak power.
 const SharedAI := preload("res://x_scratch_ai.gd")
-const LAP := 250.0
+var LAP := 250.0
 const REWARDS := [5.0, 3.0, 2.0, 1.0]
 var attempting: Array[bool] = []
 var aborts: Array[int] = []

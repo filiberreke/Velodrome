@@ -145,6 +145,7 @@ func open_records() -> void:
 	# Keep deliberate filter changes when reopening without a newer result.
 	var latest: Dictionary = {}
 	for ride in time_trials.all_rides():
+		if not preload("res://venues/venue_catalog.gd").compatible(ride, store.venue_id): continue
 		if latest.is_empty() or float(ride["finished_at"]) > float(latest["finished_at"]):
 			latest = ride
 	if not latest.is_empty():
@@ -185,12 +186,13 @@ func refresh(import_old: bool = false) -> void:
 		var meters: int = 500 if distance_choice.selected == 0 else 1000
 		var start_type := "flying" if start_choice.selected == 1 else "standing"
 		category.text += " · " + tr(start_choice.text)
-		var references := time_trials.references(meters, -1.0, start_type)
-		shown.assign(time_trials.all_rides().filter(func(r): return int(r["distance_m"]) == meters and str(r.get("start_type", "standing")) == start_type))
+		var references := time_trials.references(meters, -1.0, start_type, store.venue_id)
+		shown.assign(time_trials.all_rides().filter(func(r): return preload("res://venues/venue_catalog.gd").compatible(r, store.venue_id) and int(r["distance_m"]) == meters and str(r.get("start_type", "standing")) == start_type))
 		shown.sort_custom(func(a, b): return float(a["seconds"]) < float(b["seconds"]))
 		shown = shown.slice(0, 10)
 		message.text = String(TranslationServer.translate("RECORDS_PAGE_ALL_TIME_S_RECENT_60_DAYS_S_LAST_RIDE_S")) % [_record_time(references["alltime"]), _record_time(references["recent"]), _record_time(references["last"])]
 	else: shown = store.top(mode_choice.get_selected_id(), distance_choice.get_selected_id(), size_choice.get_selected_id() if size_box.visible else 0)
+	category.text += " · " + preload("res://venues/venue_catalog.gd").resolved(store.venue_id).display_name
 	first_ride_button.visible = shown.is_empty()
 	for child in rows.get_children():
 		rows.remove_child(child)

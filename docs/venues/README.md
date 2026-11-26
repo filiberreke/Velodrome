@@ -1,39 +1,33 @@
-# Meerdere velodrooms — issue #59
+# Meerdere stadions — issue #59
 
-Branch: `feature/multiple-venues`, gebaseerd op `v0.4` / `13c952320324317b72b7b680860dce386f828532`.
+Branch: `feature/multiple-venues`.
 
-## Wat deze branch oplevert
+## Wedstrijden starten
 
-- De bestaande speelbare locatie heet **Vélodrome** en staat expliciet in `game/venues/velodrome.tres`.
-- Het spel, de pistegeometrie en de huidige arena lezen deze standaardconfiguratie. De bestaande maten, kleurwaarden, tribunes, verlichting en aankleding blijven behouden.
-- Iedere spelinstantie krijgt een eigen kopie van de configuratie, inclusief geneste tabellen.
-- Het geometriescript accepteert een profiel en bouwt ook voor een kortere, niet op 5 cm afgeronde baanlengte een gesloten piste. Een synthetisch profiel controleert dit; dit is geen goedgekeurde reconstructie van Gent.
-- **Gent heeft nu een interactieve Godot-ontwerpweergave**, zie [openen en inrichting](gent/GODOT.md). De oorspronkelijke analyse staat in [ontwerp en bouwbrief](gent/ontwerp.md), [referenties](gent/referenties.md), [technische taken](taken.md) en [validatie](validatie.md).
-- De [gerenderde FPS-vergelijking](PERFORMANCE.md) bevat een herhaalbaar protocol, ruwe metingen en gecontroleerde camerabeelden van beide stadions; de beschikbare meetmachine gebruikt software-rendering.
+Kies een wedstrijdvorm en daarna bij **Locatie** de tegel **Vélodrome** of **Gent**. Iedere tegel toont een echt overzichtsbeeld van de piste en de naam. De actieve tegel is in kleur; de andere afbeelding en tegel zijn grijs. Bij individuele en ploegenachtervolging staat de keuze bij de tegenstander en sterkte. De keuze wordt bewaard als menuvoorkeur. De bestaande ontwerpweergave van Gent blijft beschikbaar om de inrichting te bekijken.
 
-Gent wordt pas als speelbare locatie geregistreerd nadat de ontwerpkeuze is goedgekeurd, de eigen inrichting is gebouwd en alle wedstrijdsystemen de gekozen baanlengte gebruiken. De catalogus geeft voor een onbekend id `null`; zo kan een ontbrekende locatie nooit onbedoeld de aankleding van Vélodrome krijgen.
+Een nieuw omnium heeft dezelfde tegels bij de spelinstellingen. De locatie blijft instelbaar totdat de eerste discipline begint. Daarna is ze vastgelegd voor het hele toernooi, inclusief hervatten, afbreken/opnieuw proberen en archiveren.
 
-## Grenzen van deze eerste implementatie
+## Werkelijke baanlengte
 
-Dit is de standaardconfiguratie en de voorbereiding van meerdere locaties. Er is nog geen stadionkeuze voor wedstrijden of persistent opgeslagen wedstrijdlocatie. Gent kan als ontwerpweergave vanuit het hoofdmenu worden bekeken; wedstrijden op Gent zijn nog niet ingeschakeld. Onder meer wedstrijdregels, minimap, trainingsomgevingen, records en cameratrajecten bevatten nog aannames over de huidige baan. Die worden concreet behandeld in de takenlijst, niet stilzwijgend als opgelost beschouwd.
+| Locatie | Ronde | 500 m | 1 km | 4 km |
+|---|---:|---:|---:|---:|
+| Vélodrome | 250 m | 2 ronden | 4 ronden | 16 ronden |
+| Gent | 1000/6 m | 3 ronden | 6 ronden | 24 ronden |
 
-## Structuur
+Vrij ingestelde wedstrijden gebruiken het gekozen aantal ronden. Puntenkoers en temporace behouden hun sprintmomenten in ronden. Keirin telt drie ronden achter de derny en drie vrije ronden; afvalling gebruikt twee ronden per afvalling. Een verkort omnium gebruikt één ronde per afvalling en twee slotronden voor het laatste tweetal. De overige omniumafstanden blijven in meters gelijk aan het gekozen format: bijvoorbeeld 5 km scratch = 20 ronden op Vélodrome en 30 op Gent.
 
-| Bestand | Verantwoordelijkheid |
-|---|---|
-| `venue_definition.gd` | Configuratieschema met maten, bankings, arena/infield-bouwers, kleuren, licht en eigendom van aankleding |
-| `velodrome.tres` | Huidige locatie, standaard-id `velodrome`, zichtbare naam `Vélodrome` |
-| `venue_catalog.gd` | Alleen goedgekeurde speelbare locaties; huidige standaard en onafhankelijke kopieën |
-| `track_geometry.gd` | Gemeenschappelijke parametrische referentielijn; stapgrootte sluit exact op een halve ronde |
-| `arena.gd` | Bestaande locatiebouwer; leest tribunes, kleuren, licht en expliciete infield-bouwer |
+## Techniek en opgeslagen gegevens
 
-`scenery` en `shared_actors` zijn een expliciet eigendomsmanifest, geen generieke automatische loader. De official is nu als gedeelde controller uit de infield-bouwer gehaald; Gent sluit hem afzonderlijk aan. De tv-box behoudt zijn GLB en controller, met een eigen Gent-plaatsing. De bestaande Vélodrome-infield-bouwer wordt niet als fallback gebruikt.
+`venue_runtime.gd` configureert geometrie, rondetelling, jury, AI, bel, minimap, half-rondesplits en camerareferenties voordat de renners voor een nieuwe wedstrijd worden geplaatst. Een stadion wisselen tijdens een actieve wedstrijd is niet toegestaan. Bij een volgende wedstrijd wordt de vorige aankleding verwijderd en de eigen bouwer van de geselecteerde locatie gebruikt. Gent krijgt dus geen Vélodrome-tenten of supporters als neveneffect.
 
-## Vervolgorde
+Prestaties, tijdritreferenties, opgeslagen achtervolgingen en omnium bevatten `venue_id`, `lap_length_m` en `geometry_version`. Referentieritten en records worden op de gekozen locatie gefilterd. Oudere gegevens zonder locatie blijven Vélodrome; er is geen destructieve herschrijving. Trainervermogen en werkelijk afgelegde meters worden niet met de stadionmaten geschaald. De bestaande trainingsmenu's blijven Vélodrome gebruiken; de omniumopwarming volgt de toernooilocatie.
 
-1. Ontwerp Gent goedgekeurd; Godot-inrichting beoordelen via de ontwerpweergave.
-2. Kortebaan-geometrie en plaatsingspunten als grijs model controleren.
-3. Wedstrijdregels en registratie locatiebewust maken.
-4. Gebouwde Gent-hal en aankleding bijsturen op basis van de screenshots; gedeelde acteurs zijn aangesloten.
-5. Menu, persistentie, omnium en trainingsmodi aansluiten.
-6. Regressies, prestaties en visuele controle afronden; daarna Gent registreren.
+Gent gebruikt zijn eigen jury, rondenteller, tv-box, eigen introtraject en uitgang naar de rennerboxen. De uitslag gebruikt in Gent de finishcamera; er wordt geen bestaand Vélodrome-podium naar het volle Gent-middenplein gekopieerd.
+
+## Controle en ontwerp
+
+- [Integratie, tests en actuele screenshots](WEDSTRIJDEN.md).
+- [Gent: inrichting en ontwerpweergave](gent/GODOT.md).
+- [Oorspronkelijke analyse en bouwbrief](gent/ontwerp.md), [fotobronnen](gent/referenties.md), [historische uitvoeringstaken](taken.md).
+- [FPS-vergelijking](PERFORMANCE.md): meting vóór de wedstrijdintegratie op een software-renderer; geen voorspelling voor een laptop-GPU.

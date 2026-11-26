@@ -2,6 +2,8 @@ extends RefCounted
 ## Local named attempts. Names never become paths; only completed compatible rides load.
 const VERSION := 1
 const PHYSICS := "pursuit_v1"
+var venue_id := "velodrome"
+const Venues := preload("res://venues/venue_catalog.gd")
 var directory := "user://pursuit_rides"
 var event_kind := "individual"
 var squad_size := 0
@@ -12,6 +14,7 @@ func configure_team(count: int) -> void:
 	directory = "user://team_pursuit_%d_rides" % squad_size
 
 static func valid(record: Dictionary) -> bool:
+	if not preload("res://venues/venue_catalog.gd").compatible(record, String(record.get("venue_id", "velodrome"))): return false
 	if record.get("version", 0) != VERSION or record.get("physics", "") != PHYSICS:
 		return false
 	# JSON restores numeric fields as floats; Array membership is type-sensitive.
@@ -49,6 +52,7 @@ func save(name: String, distance: int, seconds: float, samples: Array[Dictionary
 		return {"error": String(TranslationServer.translate("PURSUIT_RIDE_NAME_REQUIRED"))}
 	var id: String = Crypto.new().generate_random_bytes(12).hex_encode()
 	var record := {"version": VERSION, "physics": PHYSICS, "id": id, "name": title, "distance_m": distance, "time_s": seconds, "created_at": Time.get_unix_time_from_system(), "created_local": Time.get_datetime_string_from_system(false, true), "samples": samples.duplicate(true)}
+	record.merge(Venues.metadata(venue_id))
 	for key in ["performance_id", "player_name", "finished_at", "finished_local"]:
 		if metadata.has(key): record[key] = metadata[key]
 	if event_kind == "team":
@@ -83,7 +87,7 @@ func load_ride(id: String) -> Dictionary:
 	if file.get_length() > 12000000:
 		return {}
 	var value = JSON.parse_string(file.get_as_text())
-	if value is Dictionary and value.get("id", "") == id and valid(value):
+	if value is Dictionary and value.get("id", "") == id and valid(value) and Venues.compatible(value, venue_id):
 		if event_kind == "team":
 			if value.get("event", "") != "team" or int(value.get("team_size", 0)) != squad_size:
 				return {}

@@ -1,6 +1,6 @@
 extends RefCounted
 ## Exercise results use unwrapped reference distance, independent of camera or frame rate.
-const LAP := 250.0
+var LAP := 250.0
 const PACK_COUNT := 8
 const PACK_SPACING := 3.0
 const FOLLOW_GAP := 3.0

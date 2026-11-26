@@ -47,6 +47,9 @@ func _floor() -> void:
 	for i in 220:
 		var s: float=venue.lap_length_m*float(i)/220
 		if absf(s-37.0)<3:continue
+		# Race exit on the opposite straight, aligned with the sober rider cabins.
+		var point: Vector3 = track.at(s, -2.4)
+		if point.x < 0.0 and absf(point.z) < 1.5: continue
 		var p: Vector3=track.at(s,-2.4);p.y=0
 		var q: Vector3=track.at(s+venue.lap_length_m/220,-2.4);q.y=0
 		beam("GentInfieldHandrail",p+Vector3.UP*1.08,q+Vector3.UP*1.08,.055,mat("b7b0a1"))

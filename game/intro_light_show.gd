@@ -106,3 +106,9 @@ func stop() -> void:
 	saved_lights.clear()
 	running = false
 	hide()
+
+func configure_venue() -> void:
+	stop()
+	var compact: bool = game.venue.id == "gent"
+	for i in spots.size():
+		spots[i].position = Vector3((-18.0 if i % 2 == 0 else 18.0) if compact else (-24.0 if i % 2 == 0 else 24.0), 14.8 if compact else 21.0, (-28.0 if compact else -40.0) + float(i / 2) * (28.0 if compact else 40.0))

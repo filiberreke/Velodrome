@@ -3,7 +3,7 @@ const Rules := preload("res://elimination_race_rules.gd")
 const AI := preload("res://elimination_ai.gd")
 const Formats := preload("res://omnium/omnium_formats.gd")
 func _initialize() -> void:
-	for interval in [250.0, 500.0]:
+	for interval in [250.0, 500.0, 1000.0 / 6.0, 1000.0 / 3.0]:
 		for count in range(8,25):
 			var jury := Rules.new()
 			var positions: Array[float] = []; positions.resize(count); positions.fill(0)
@@ -15,7 +15,7 @@ func _initialize() -> void:
 				assert(not event.is_empty())
 				assert(event.line_m == line and jury.eliminated.size() == cut + 1)
 				assert(jury.remaining_count() == count - cut - 1)
-				assert(jury.next_line_m == line + interval)
+				assert(is_equal_approx(jury.next_line_m, line + interval))
 			assert(jury.remaining_count() == 2 and jury.eliminated.size() == count - 2)
 			assert(jury.sample(positions, 100.0, 1.0).is_empty())
 		# A leader's future crossing survives the current jury's delayed decision.
@@ -33,5 +33,5 @@ func _initialize() -> void:
 	assert(AI.cycle_urgency(99,250) == 0 and AI.cycle_urgency(150,250) == 1 and AI.cycle_urgency(250,250) == 0)
 	assert(Formats.race_laps("short","elimination",24) == 24)
 	assert(Formats.race_laps("women","elimination",24) == 46)
-	print("PASS elimination 250/500 m intervals, every field size 8–24, future crossings, final pair and AI urgency")
+	print("PASS elimination 166⅔/250/333⅓/500 m intervals, every field size 8–24, future crossings, final pair and AI urgency")
 	quit()

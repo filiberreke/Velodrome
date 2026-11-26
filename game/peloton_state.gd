@@ -1,11 +1,11 @@
 extends RefCounted
 ## Cumulative odometer distances stay intact. Race positions remove awarded laps.
-const LAP := 250.0
+var LAP := 250.0
 var previous_ids: Array[int] = []
 
-static func race_positions(progress: Array[float], credits: Array[int]) -> Array[float]:
+static func race_positions(progress: Array[float], credits: Array[int], lap_length: float = 250.0) -> Array[float]:
 	var result: Array[float] = []
-	for i in range(progress.size()): result.append(progress[i] - float(credits[i]) * LAP)
+	for i in range(progress.size()): result.append(progress[i] - float(credits[i]) * lap_length)
 	return result
 
 func reset() -> void: previous_ids.clear()
@@ -36,7 +36,7 @@ func sample(progress: Array[float], credits: Array[int], finished: Array[float])
 		if candidate.size() > group.size() or (candidate.size() == group.size() and overlap > continuity):
 			group = candidate; continuity = overlap
 	if group.size() < 3: return {}
-	var positions := race_positions(progress,credits)
+	var positions := race_positions(progress,credits,LAP)
 	var values: Array[float] = []
 	for i in group: values.append(positions[i])
 	values.sort()

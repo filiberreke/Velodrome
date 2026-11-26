@@ -15,8 +15,8 @@ func run() -> void:
 	var venue = Catalog.default_venue()
 	check(venue.id == "velodrome" and venue.display_name == "Vélodrome", "Named default venue")
 	check(venue.validation_errors().is_empty(), "Default venue validates")
-	check(Catalog.available_ids() == PackedStringArray(["velodrome"]), "Only approved playable venue is exposed")
-	check(Catalog.find("gent") == null and Catalog.find("missing") == null, "Unbuilt venues cannot silently load Vélodrome scenery")
+	check(Catalog.available_ids() == PackedStringArray(["velodrome", "gent"]), "Both approved playable venues are exposed")
+	check(Catalog.find("gent").id == "gent" and Catalog.find("missing") == null, "Gent has its own profile and missing venues do not alias Vélodrome")
 	venue.stand_tiers[0]["rows"] = 99
 	venue.palette["navy"] = "ffffff"
 	check(Catalog.default_venue().stand_tiers[0]["rows"] == 7 and Catalog.default_venue().palette["navy"] == "142a43", "Games do not share nested mutable venue data")
@@ -33,6 +33,7 @@ func run() -> void:
 	check(game.FINISH_REFERENCE_S == 20.0, "Existing finish reference retained")
 	check(game.track_geometry.LAP == game.LAP, "Race and geometry use same venue")
 	check_geometry(venue)
+	check_geometry(Catalog.find("gent"))
 	# A synthetic short profile tests the geometry machinery, not an approved
 	# reconstruction of Gent. Radius/width/transition need a separate art review.
 	var short = Catalog.default_venue()

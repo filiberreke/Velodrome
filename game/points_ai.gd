@@ -232,7 +232,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 		for j in range(count):
 			if i == j or finished[j] >= 0.0:
 				continue
-			var forward: float = physical_ahead(distances[i], distances[j])
+			var forward: float = physical_ahead(distances[i], distances[j], LAP)
 			if forward < 1.0 or forward > 30.0:
 				continue
 			var lateral_gap: float = absf(lanes[j] - lanes[i])
@@ -261,7 +261,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			elif sheltered_wheel >= 0:
 				wheel_i = sheltered_wheel
 			if wheel_i >= 0:
-				gap = physical_ahead(distances[i], distances[wheel_i])
+				gap = physical_ahead(distances[i], distances[wheel_i], LAP)
 			shelter_wheel[i] = wheel_i
 		else:
 			shelter_wheel[i] = -1

@@ -1,5 +1,7 @@
 # Validatie standaardlocatie Vélodrome
 
+Actuele aanvulling (26 november 2026): **Gent is aangesloten op wedstrijden en omnium**, met stadiumtegels, opslag per locatie en controles van beide baanlengtes. Zie [wedstrijdintegratie en validatie](WEDSTRIJDEN.md). De tekst hieronder bewaart de oorspronkelijke analyse en takenfase; openstaande oude vinkjes zijn geen actuele blokkadelijst.
+
 Uitgevoerd op 25 november 2026 met **Godot 4.7.2 stable**, Compatibility-project, headless uitvoering. Vergelijkingsbasis: `v0.4` / `13c952320324317b72b7b680860dce386f828532`.
 
 ## Resultaten

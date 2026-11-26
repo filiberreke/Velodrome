@@ -2,7 +2,7 @@ extends RefCounted
 ## X scratch AI port: calibrated CP/W', tactical pace, solo escapes, group turns,
 ## stable wheel pursuit, and individual FINAL_750 decisions. The player's power
 ## remains untouched and comes from the existing trainer/demo bridge.
-const LAP := 250.0
+var LAP := 250.0
 const AIR_RHO := 1.20
 const CDA := 0.334
 const DRIVETRAIN := 0.975
@@ -60,8 +60,8 @@ static func road_power(speed_mps: float, aero_factor: float) -> float:
 	var v: float = maxf(0.0, speed_mps)
 	return 0.5 * AIR_RHO * CDA * aero_factor * v * v * v + CRR * MASS * G * v
 
-static func physical_ahead(follower: float, leader: float) -> float:
-	return fposmod(leader - follower, LAP)
+static func physical_ahead(follower: float, leader: float, lap_length: float = 250.0) -> float:
+	return fposmod(leader - follower, lap_length)
 
 func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float]) -> void:
 	var count: int = profiles.size()
@@ -419,7 +419,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 		for j in range(count):
 			if i == j or finished[j] >= 0.0:
 				continue
-			var forward: float = physical_ahead(distances[i], distances[j])
+			var forward: float = physical_ahead(distances[i], distances[j], LAP)
 			if forward < 1.0 or forward > 30.0:
 				continue
 			var lateral_gap: float = absf(lanes[j] - lanes[i])
@@ -448,7 +448,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 			elif sheltered_wheel >= 0:
 				wheel_i = sheltered_wheel
 			if wheel_i >= 0:
-				gap = physical_ahead(distances[i], distances[wheel_i])
+				gap = physical_ahead(distances[i], distances[wheel_i], LAP)
 			shelter_wheel[i] = wheel_i
 		else:
 			shelter_wheel[i] = -1

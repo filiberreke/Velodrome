@@ -74,7 +74,7 @@ func run() -> void:
 	assert(page.manager.state.active.results.size() == 3 and page.manager.state.active.energy.size() == 7)
 	assert(game._strava_activity_title() == "Vélodrome - Omnium - Afvalling")
 	assert(game.finish_results.text.contains("OMNIUM") and game.finish_results.text.contains("106"))
-	var name_cell: Node = game.finish_table.get_child(6)
+	var name_cell: Node = game.finish_table.get_child(game.finish_table.columns + 1)
 	assert(name_cell.get_child(0).get_child(0) is TextureRect)
 	game._reset(); await process_frame
 	assert(menu.page == 7 and page.opened and page.manager.state.active.results.size() == 3)

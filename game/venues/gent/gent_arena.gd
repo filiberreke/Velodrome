@@ -7,9 +7,14 @@ var infield: Node3D
 var suite: Node3D
 var official: Node3D
 var simple := false
+var simple_infield: bool:
+	get: return simple
+var board: Label3D
+var host_game: Node3D
 var density := 0.72
 var lights: Array[OmniLight3D] = []
 func build(host: Node3D, profile: Resource, route: RefCounted) -> void:
+	host_game = host
 	venue=profile; track=route; name="GentArena"
 	crowd=Crowd.new()
 	_track()
@@ -137,5 +142,23 @@ func _scoreboard() -> void:
 	box("ScoreboardFrame",Vector3.ZERO,Vector3(8.0,3.2,.3),mat("121b29"),board)
 	label3("GENT",Vector3(0,.7,.18),.65,Color("f2ede2"),board)
 	label3("166,67 m    •    6 = 1 km",Vector3(0,-.05,.18),.33,Color("d4a63d"),board)
-	label3("01     24       02     18       03     12",Vector3(0,-.8,.18),.3,Color("f2ede2"),board)
+	self.board=label3("01     24       02     18       03     12",Vector3(0,-.8,.18),.3,Color("f2ede2"),board)
 	for x in [-3.4,3.4]:beam("ScoreboardSuspension",board.position+Vector3(x,1.6,0),Vector3(x,16,37.7),.055,mat("555d65"))
+
+func set_track_lighting_training(training: bool) -> void:
+	for light in lights:
+		light.light_energy = venue.track_light_energy * (.55 if training else 1.0)
+
+func set_ranking(distances: Array) -> void:
+	if board == null or not host_game.has_method("_rider_name"): return
+	var order: Array[int] = []
+	for i in distances.size(): order.append(i)
+	order.sort_custom(func(a: int, b: int): return host_game._race_better(a, b))
+	var text := ""
+	for rank in mini(3, order.size()):
+		text += "%d  %s    " % [rank + 1, host_game._rider_name(order[rank])]
+	board.text = text
+	var progress: float = host_game._last_lap_progress() if host_game.race_mode in [0, 8] else float(distances.max())
+	var remaining := clampi(host_game.race_laps - floori(progress / venue.lap_length_m), 0, host_game.race_laps)
+	for face in infield.lap_display.get_children():
+		if face is Label3D: face.text = str(remaining)

@@ -1,0 +1,202 @@
+{
+  "date": "2026-11-26",
+  "godot": "4.7.2 stable",
+  "baseline_commit": "443c833bfa01a27218a0173584555e9fd2bdde58",
+  "tests": [
+    {
+      "test": "test_venue_configuration",
+      "passed": true,
+      "note": "",
+      "last_line": "VENUE_CONFIGURATION_OK"
+    },
+    {
+      "test": "test_multiple_venue_rules",
+      "passed": true,
+      "note": "",
+      "last_line": "MULTIPLE_VENUE_RULES_OK"
+    },
+    {
+      "test": "test_multiple_venue_selection",
+      "passed": true,
+      "note": "",
+      "last_line": "MULTIPLE_VENUE_SELECTION_OK"
+    },
+    {
+      "test": "test_gent_omnium_races",
+      "passed": true,
+      "note": "",
+      "last_line": "GENT_OMNIUM_RACES_OK"
+    },
+    {
+      "test": "test_venue_records",
+      "passed": true,
+      "note": "",
+      "last_line": "VENUE_RECORDS_OK"
+    },
+    {
+      "test": "test_scratch_lap_rules",
+      "passed": true,
+      "note": "",
+      "last_line": "SCRATCH_LAP_RULES_OK"
+    },
+    {
+      "test": "test_scratch_finish",
+      "passed": true,
+      "note": "",
+      "last_line": "SCRATCH_FINISH failures=0"
+    },
+    {
+      "test": "test_points_race",
+      "passed": true,
+      "note": "",
+      "last_line": "POINTS_RACE_OK"
+    },
+    {
+      "test": "test_tempo_finish",
+      "passed": true,
+      "note": "",
+      "last_line": "TEMPO_FINISH failures=0"
+    },
+    {
+      "test": "test_elimination_rules",
+      "passed": true,
+      "note": "",
+      "last_line": "Elimination rules basic tests passed"
+    },
+    {
+      "test": "test_elimination_native_small",
+      "passed": true,
+      "note": "",
+      "last_line": "NATIVE_SMALL hard=0.13385826771654 sheltered=0.54068241469816 recovery_sheltered=0.63333333333333"
+    },
+    {
+      "test": "test_keirin --quick",
+      "passed": true,
+      "note": "",
+      "last_line": "KEIRIN_HEADLESS failures=0 output=user://keirin_headless.json"
+    },
+    {
+      "test": "test_pursuit",
+      "passed": true,
+      "note": "",
+      "last_line": "PURSUIT_OK"
+    },
+    {
+      "test": "test_team_pursuit",
+      "passed": true,
+      "note": "",
+      "last_line": "TEAM_PURSUIT_OK"
+    },
+    {
+      "test": "test_solo_time_trial_hud",
+      "passed": true,
+      "note": "",
+      "last_line": "SOLO HUD: 78 checks, 0 failures"
+    },
+    {
+      "test": "test_flying_time_trial",
+      "passed": true,
+      "note": "",
+      "last_line": "FLYING TIME TRIAL: 9169 checks, 0 failures"
+    },
+    {
+      "test": "test_time_trial_record_filters",
+      "passed": true,
+      "note": "",
+      "last_line": "TIME_TRIAL_RECORD_FILTERS: PASS"
+    },
+    {
+      "test": "test_omnium_core",
+      "passed": true,
+      "note": "",
+      "last_line": "PASS omnium core"
+    },
+    {
+      "test": "test_omnium_settings",
+      "passed": true,
+      "note": "",
+      "last_line": "PASS omnium settings signals, format distances and persisted settings"
+    },
+    {
+      "test": "test_omnium_elimination_intervals",
+      "passed": true,
+      "note": "",
+      "last_line": "PASS elimination 166⅔/250/333⅓/500 m intervals, every field size 8–24, future crossings, final pair and AI urgency"
+    },
+    {
+      "test": "test_omnium_scratch_flow",
+      "passed": true,
+      "note": "",
+      "last_line": "PASS omnium scratch flow: direct start, fixed settings/IDs, abort, return to details and retry"
+    },
+    {
+      "test": "test_omnium_tempo_flow",
+      "passed": true,
+      "note": "",
+      "last_line": "PASS Scratch to Tempo menu flow: fixed settings/IDs, abort/retry, live ranks/lap gain, separate live Tempo/Omnium points, positive/negative laps, compact HUD, flags and result persistence"
+    },
+    {
+      "test": "test_omnium_elimination_flow",
+      "passed": true,
+      "note": "",
+      "last_line": "PASS elimination menu: stage lock, one-hour Wprime recovery, player fresh, fixed eliminated rank, HUD, abort/retry, CPU completion, scoring, flags and return"
+    },
+    {
+      "test": "test_omnium_points_flow",
+      "passed": true,
+      "note": "",
+      "last_line": "PASS omnium points flow: all formats, 8/12/24 riders, sequence lock, abort/retry, Wprime, real-time bonuses, CPU completion, archive, sprint details, matrix and standalone isolation"
+    },
+    {
+      "test": "test_pursuit_flow",
+      "passed": true,
+      "note": "All assertions pass. Existing dummy-renderer material cleanup warnings also reproduced at parent commit 443c833.",
+      "last_line": "PURSUIT_FLOW failures=0"
+    },
+    {
+      "test": "test_menu_navigation",
+      "passed": true,
+      "note": "",
+      "last_line": "MENU_NAVIGATION failures=0"
+    }
+  ],
+  "full_races": {
+    "venues": [
+      "velodrome",
+      "gent"
+    ],
+    "modes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8
+    ],
+    "completed": 16
+  },
+  "gent_omnium": {
+    "format": "short",
+    "riders": 8,
+    "completed_disciplines": [
+      "scratch",
+      "tempo",
+      "elimination",
+      "points"
+    ],
+    "archived_with_venue": true
+  },
+  "rendered_screenshots": {
+    "count": 5,
+    "resolution": [
+      1600,
+      900
+    ],
+    "renderer": "OpenGL Compatibility / Mesa llvmpipe",
+    "errors": 0,
+    "unselected_photo_mean_chroma": 0.0,
+    "selected_photo_mean_chroma": 64.11385930071613
+  }
+}

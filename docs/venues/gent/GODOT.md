@@ -1,4 +1,4 @@
-# Gent in Godot — ontwerpweergave
+# Gent in Godot — stadion en ontwerpweergave
 
 De nominale lengte is **1000/6 m**: zes ronden zijn exact één kilometer. De scène gebruikt Godot, de gedeelde geometrieberekeningen en de bestaande renners, official en tv-box.
 
@@ -11,7 +11,7 @@ Kies in het hoofdmenu **Gent — bekijk het nieuwe stadion**, of voer `res://ven
 - `H`: bediening verbergen.
 - `Esc` of Terug: hoofdmenu.
 
-Dit is een ontwerpweergave met demonstratierenners. Wedstrijdformats zijn nog niet omgezet naar de korte baan; de speelbare standaardlocatie blijft Vélodrome.
+Gent is ook speelbaar in de wedstrijden: kies **Gent** bij **Locatie** in de wedstrijdinstellingen of bij het starten van een omnium. De geselecteerde tegel blijft in kleur, de andere wordt grijs. Vélodrome blijft de standaardlocatie. Zie [wedstrijdintegratie en tests](../WEDSTRIJDEN.md). De afzonderlijke ontwerpweergave hierboven behoudt demonstratierenners en de vier vaste inspectiecamera’s.
 
 ## Indeling volgens de aangeleverde overzichtsfoto
 
@@ -28,7 +28,7 @@ De correctie van 26 november 2026 volgt de foto en toelichting van de projecteig
 
 De Gent-boxen gebruiken nu de bestaande bed-/gordijnconstructie uit `rennersboxen/rider_box.gd`. De Gent-variant voegt een vast dak, een genummerde voorlijst en een fietsenrek boven het dak toe. De bedden hebben dezelfde matras van 2,00 × 0,85 m, kussens, gevouwen beddengoed en materiaalplanken als Vélodrome. De sober grijze panelen en effen geplooide gordijnen behouden de eigen Gent-afwerking. De ingang met gordijnen staat aan de pistezijde; de achterwand scheidt de box van techniek en publiek. De grote centrale bareilanden blijven verwijderd.
 
-In wereldcoördinaten ligt de finish op +X, de rennerzone op -X en de nabije bocht op -Z. De jurypositie en uitkragende rondenteller zijn afgeleid van de echte baanpositie van de finish, niet los op zicht geplaatst. De rondenteller toont in deze ontwerpweergave het voorbeeldcijfer 6.
+In wereldcoördinaten ligt de finish op +X, de rennerzone op -X en de nabije bocht op -Z. De jurypositie en uitkragende rondenteller zijn afgeleid van de echte baanpositie van de finish, niet los op zicht geplaatst. De rondenteller toont in deze ontwerpweergave het voorbeeldcijfer 6; in een echte wedstrijd volgt hij de ronden die nog te rijden zijn.
 
 ## Branding en overige bouw
 

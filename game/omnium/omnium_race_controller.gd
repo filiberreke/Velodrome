@@ -33,13 +33,14 @@ func start(game: Node, owner_manager) -> bool:
 	if not game._piste_start_blocker().is_empty():
 		error = game._piste_start_blocker(); return false
 	game._reset()
+	if not game._use_venue(String(owner_manager.state.active.get("venue_id", "velodrome"))): return false
 	manager = owner_manager
 	attempt = manager.begin_attempt(now)
 	if attempt.is_empty(): error = manager.error; return false
 	context = manager.state.active.duplicate(true)
 	committed = false; finish_energy.clear(); error = ""
 	game.race_mode = mode()
-	game.race_laps = Formats.race_laps(String(context.format), discipline(), context.riders.size())
+	game.race_laps = Formats.race_laps(String(context.format), discipline(), context.riders.size(), game.LAP)
 	game.rider_count = context.riders.size()
 	game.ai_difficulty = float(context.strength)
 	if not game.trainer_seen: game.demo_launch_watts = float(game.setup_panel.demo_power_input.value)
@@ -124,7 +125,7 @@ func result_data(game: Node) -> Dictionary:
 	for i in order(game):
 		var id := String(game.rider_identities[i].id)
 		ids.append(id); times[id] = game.finish_times[i]; credits[id] = laps[i]
-	return {"discipline":discipline(), "order":ids, "finish_times":times, "lap_credits":credits}
+	return {"discipline":discipline(), "order":ids, "finish_times":times, "lap_credits":credits, "venue_id": game.venue.id, "lap_length_m": game.LAP, "geometry_version": 1}
 
 func prepare_ai(game: Node) -> void:
 	tactics.configure(context, discipline())

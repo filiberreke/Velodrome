@@ -2,8 +2,8 @@ extends RefCounted
 ## Six riders, three paced laps and three free laps. Fixed 120 Hz physics.
 const Visual := preload("res://derny_visual.gd")
 const STEP := 1.0 / 120.0
-const EXIT_M := 750.0
-const FINISH_M := 1500.0
+var EXIT_M := 750.0
+var FINISH_M := 1500.0
 const SAFETY_LANE := -0.8
 
 var percent := 80.0
@@ -27,6 +27,7 @@ static func target_kmh(p: float) -> float:
 	return 45.0 + (clampf(p, 40.0, 120.0) - 70.0) / 6.0
 
 func configure(g) -> void:
+	EXIT_M = 3.0 * g.LAP; FINISH_M = 6.0 * g.LAP
 	phase = "READY"; time = 0.0; accumulator = 0.0; exit_time = -1.0
 	distance = 0.0; speed = 25.0/3.6; lane = 1.78; look_lap = 0; look_count = 0
 	events.clear(); order.clear(); rng.randomize()
@@ -91,7 +92,7 @@ func _tick(g, dt: float) -> void:
 		if g.player_samples.is_empty() or absf(g.player_samples[-1].x-g.distances[0])>=2.5:
 			g.player_samples.append(Vector2(maxf(0.0,g.distances[0]),measured_power))
 		if not g.trainer_seen: g._capture_demo_fit_sample()
-		var completed_lap := int(distance / 250.0)
+		var completed_lap := int(distance / g.LAP)
 		if completed_lap > look_lap:
 			look_lap = completed_lap; look_count += 1
 			if is_instance_valid(pilot): pilot.gesture("look_back")
@@ -105,7 +106,7 @@ func _tick(g, dt: float) -> void:
 		lane = move_toward(lane, SAFETY_LANE, 1.3*dt)
 		speed = move_toward(speed, 5.0, 0.6*dt)
 		distance += speed*dt/g._path_metric(distance,lane)
-		if distance-pilot_exit_start>250.0 and is_instance_valid(pilot): pilot.hide()
+		if distance-pilot_exit_start>g.LAP and is_instance_valid(pilot): pilot.hide()
 	time = next_time
 	g.clock = time
 
@@ -169,7 +170,7 @@ func update_finish_exit(g, i: int, dt: float) -> void:
 			var other: float = g.coast_distances[j] if g.finish_times[j]>=0.0 else g.distances[j]
 			if g.elimination_exit.has(j) and int(g.elimination_exit[j].stage)>0: continue
 			if g.lane_offsets[j] >= g.lane_offsets[i]-.05: continue
-			var gap: float = fposmod(other-before+125.0,250.0)-125.0
+			var gap: float = fposmod(other-before+g.LAP*0.5,g.LAP)-g.LAP*0.5
 			var other_speed: float = g.coast_speeds[j] if g.finish_times[j]>=0.0 else g.speeds[j]
 			var horizon: float = absf(g.lane_offsets[i]-SAFETY_LANE)/g.LANE_CHANGE_MPS+.5
 			var future: float = gap+(other_speed-previous)*horizon
@@ -178,7 +179,7 @@ func update_finish_exit(g, i: int, dt: float) -> void:
 			g.lane_offsets[i]=move_toward(g.lane_offsets[i],SAFETY_LANE,.65*dt)
 		g.coast_distances[i]+=(previous+g.coast_speeds[i])*.5*dt/g._path_metric(before,g.lane_offsets[i])
 		# Detect crossing, not a narrow proximity window that could be skipped.
-		var next_gate: float = before+fposmod(g.OPPOSITE_STRAIGHT_GATE_M-before,250.0)
+		var next_gate: float = before+fposmod(g.OPPOSITE_STRAIGHT_GATE_M-before,g.LAP)
 		if absf(g.lane_offsets[i]-SAFETY_LANE)<.01 and g.coast_distances[i]>=next_gate:
 			route.stage=1
 			route.position=g._at(next_gate-g.FRONT_WHEEL_TIP_M,SAFETY_LANE)
@@ -207,7 +208,7 @@ func _present_pilot(g) -> void:
 	# Same inward, speed-dependent corner lean as the riders. Fade out when
 	# the derny leaves the banked lane for the flat infield safety strip.
 	pilot.rotation.z = g._corner_lean(distance, speed) * clampf((lane - SAFETY_LANE) / (1.18 - SAFETY_LANE), 0.0, 1.0)
-	pilot.visible=g.start_state!="SETUP" and (phase in ["READY","PACED"] or (phase=="FREE" and distance-pilot_exit_start<=250.0))
+	pilot.visible=g.start_state!="SETUP" and (phase in ["READY","PACED"] or (phase=="FREE" and distance-pilot_exit_start<=g.LAP))
 
 func hide() -> void:
 	if is_instance_valid(pilot): pilot.hide()

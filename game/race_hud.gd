@@ -1,4 +1,5 @@
 extends Control
+var lap_length_m := 250.0
 ## Compact race presentation. Classification and physics remain owned by main.gd.
 const MiniMap := preload("res://minimap.gd")
 const MenuStyle := preload("res://menu_theme.gd")
@@ -84,7 +85,7 @@ func text(value: String, font_size: int, color: Color = INK) -> Label:
 	node.text = value
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	node.add_theme_font_size_override("font_size", font_size)
-	if value in ["RACE_HUD_AROUND_YOU", "HUD_LAP_TIMES", "HUD_HALF_LAP_TIMES_125_M", "RACE_HUD_STANDINGS_POINTS"]:
+	if value in ["RACE_HUD_AROUND_YOU", "HUD_LAP_TIMES", "HUD_HALF_LAP_TIMES", "RACE_HUD_STANDINGS_POINTS"]:
 		node.add_theme_font_override("font", MenuStyle.heading())
 	node.add_theme_color_override("font_color", color)
 	return node
@@ -351,7 +352,7 @@ func _build_team_laps() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	team_laps_panel.add_child(column)
-	column.add_child(text("HUD_HALF_LAP_TIMES_125_M", 16, MUTED))
+	column.add_child(text("HUD_HALF_LAP_TIMES", 16, MUTED))
 	column.add_child(text("RACE_HUD_DISTANCE_TIME_GAP", 16, MUTED))
 	team_laps_scroll = ScrollContainer.new()
 	team_laps_scroll.custom_minimum_size.y = 330
@@ -362,11 +363,11 @@ func _build_team_laps() -> void:
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rows.add_theme_constant_override("separation", 8)
 	team_laps_scroll.add_child(rows)
-	for i in range(32):
+	for i in range(48):
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		rows.add_child(row)
-		var lap := text("%d m" % ((i + 1) * 125), 19, MUTED)
+		var lap := text("%d m" % roundi((i + 1) * lap_length_m * .5), 19, MUTED)
 		lap.custom_minimum_size.x = 76
 		row.add_child(lap)
 		var value := text("", 20)
@@ -375,7 +376,7 @@ func _build_team_laps() -> void:
 		row.add_child(value)
 		team_lap_rows.append({"row": row, "distance": lap, "value": value})
 		row.hide()
-	team_laps_panel.tooltip_text = "HUD_TIME_PER_125_M_CUMULATIVE_GAP_AT_THE_SAME_DISTANCE_AHEAD_BEHIND_WAITIN"
+	team_laps_panel.tooltip_text = "HUD_HALF_LAP_TEAM_HELP"
 	team_laps_panel.hide()
 
 static func team_half_summary(own: Array, opponent: Array) -> Array[Dictionary]:
@@ -402,7 +403,7 @@ func _update_team_laps(data: Dictionary) -> void:
 		row["row"].visible = i < laps.size()
 		if i >= laps.size(): continue
 		var lap_index: int = laps.size() - 1 - i
-		row["distance"].text = "%d m" % ((lap_index + 1) * 125)
+		row["distance"].text = "%d m" % roundi((lap_index + 1) * lap_length_m * .5)
 		var delta: Variant = laps[lap_index]["delta"]
 		var gap := "…" if delta == null else ("0.00 s" if absf(float(delta)) < 0.005 else "%s%.2f s" % ["+" if float(delta) > 0.0 else "−", absf(float(delta))])
 		row["value"].text = "%.2f s (%s)" % [float(laps[lap_index]["seconds"]), gap]
@@ -480,14 +481,14 @@ func _build_solo_checkpoints() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	solo_panel.add_child(column)
-	column.add_child(text("HUD_HALF_LAP_TIMES_125_M", 16, MUTED))
+	column.add_child(text("HUD_HALF_LAP_TIMES", 16, MUTED))
 	solo_reference_label = text("", 16, MUTED)
 	column.add_child(solo_reference_label)
-	for i in range(8):
+	for i in range(12):
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		column.add_child(row)
-		var distance := text("%d m" % ((i + 1) * 125), 19, MUTED)
+		var distance := text("%d m" % roundi((i + 1) * lap_length_m * .5), 19, MUTED)
 		distance.custom_minimum_size.x = 72
 		row.add_child(distance)
 		var elapsed := text("—", 20)
@@ -498,7 +499,7 @@ func _build_solo_checkpoints() -> void:
 		delta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(delta)
 		solo_rows.append({"row": row, "distance": distance, "elapsed": elapsed, "delta": delta})
-	solo_panel.tooltip_text = "HUD_TIME_FOR_EACH_125_METRE_SEGMENT_NEGATIVE_GREEN_FASTER_POSITIVE_RED_SLO"
+	solo_panel.tooltip_text = "HUD_HALF_LAP_SOLO_HELP"
 	solo_panel.hide()
 
 static func solo_clock(seconds: float) -> String:
@@ -531,15 +532,15 @@ func _update_solo(data: Dictionary) -> void:
 	var kind := str(data.get("solo_reference_kind", "none"))
 	var reference_splits: Array = reference.get("splits", []) if kind != "none" else []
 	var titles := {"last": String(TranslationServer.translate("RACE_MENU_LAST_RIDE")), "recent": String(TranslationServer.translate("MENU_RECENT_PB_60_DAYS")), "alltime": String(TranslationServer.translate("MENU_ALL_TIME_PB"))}
-	solo_reference_label.text = String(TranslationServer.translate("HUD_LEAD_IN_LAP_CLOCK_STARTS_AT_GO")) if data.get("run_up", false) else (String(TranslationServer.translate("RACE_HUD_TIME_PER_125_M")) if reference_splits.is_empty() else str(titles.get(kind, String(TranslationServer.translate("HUD_REFERENCE")))))
+	solo_reference_label.text = String(TranslationServer.translate("HUD_LEAD_IN_LAP_CLOCK_STARTS_AT_GO")) if data.get("run_up", false) else (String(TranslationServer.translate("HUD_TIME_PER_HALF_LAP")) if reference_splits.is_empty() else str(titles.get(kind, String(TranslationServer.translate("HUD_REFERENCE")))))
 	var crossings: Array = data.get("solo_crossings", [])
-	var count := int(data.get("solo_distance_m", 500)) / 125
+	var count := roundi(float(data.get("solo_distance_m", 500)) / (lap_length_m * .5))
 	var completed: int = mini(crossings.size(), count)
 	for i in range(solo_rows.size()):
 		var row: Dictionary = solo_rows[i]
 		row.row.visible = i < count
 		var split_index: int = completed - 1 - i if i < completed else i
-		row.distance.text = "%d m" % ((split_index + 1) * 125)
+		row.distance.text = "%d m" % roundi((split_index + 1) * lap_length_m * .5)
 		var segment: float = float(crossings[split_index]) - (float(crossings[split_index - 1]) if split_index > 0 else 0.0) if split_index < completed else 0.0
 		row.elapsed.text = "%.3f" % segment if split_index < completed else "—"
 		row.delta.text = ""

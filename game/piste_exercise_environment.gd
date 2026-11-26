@@ -33,6 +33,7 @@ func enter() -> void:
 	pack_distance = line
 	start_distance = 0.0 if page.kind == "free_ride" else line if page.kind == "flying_start" else Exercise.pack_tail(pack_distance)-Exercise.FOLLOW_GAP
 	player_speed = 0.0 if page.kind == "free_ride" else Exercise.START_KMH/3.6 if page.kind == "flying_start" else page.tempo_input.value/3.6
+	session.LAP = game.LAP
 	session.start(page.kind,start_distance,page.tempo_input.value,0 if page.kind == "free_ride" else page.limit_input.value*60 if page.kind == "take_lap" else 600)
 	if page.kind == "free_ride":
 		var rng := RandomNumberGenerator.new(); rng.randomize(); pacers.reset(rng,start_distance)
@@ -86,7 +87,7 @@ func _draft_at(player: float) -> float:
 	for i in range(pack_state.distances.size()):
 		var lateral: float = absf(player_lane_offset-float(pack_state.lanes[i]))
 		if lateral >= 1: continue
-		var gap: float = fposmod(float(pack_state.distances[i])-player,Exercise.LAP)*game._path_metric(player,player_lane_offset)
+		var gap: float = fposmod(float(pack_state.distances[i])-player,session.LAP)*game._path_metric(player,player_lane_offset)
 		if gap > 1.5 and gap < 14:
 			best = maxf(best,.5*minf(1,(14-gap)/10)*pow(1-lateral,2))
 	return best
@@ -143,6 +144,7 @@ func _capture_sample() -> void:
 func _persist(final: bool) -> void:
 	if activity.is_empty(): return
 	activity.merge(session.result(),true)
+	activity.merge(preload("res://venues/venue_catalog.gd").metadata(game.venue.id))
 	activity.merge({"samples":samples,"duration_s":total_elapsed,"distance_m":total_distance,"assisted_seconds":0,"reason":session.reason,"final":final},true)
 	var saved_ok: bool = store.save(activity)
 	save_status = String(TranslationServer.translate("PISTE_EXERCISE_PAGE_TRAINING_SAVED_IN_THE_GAME")) if saved_ok else "Opslaan mislukt: "+store.error

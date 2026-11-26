@@ -29,6 +29,7 @@ func _ready() -> void:
 	back_button = Button.new(); back_button.text = "RACE_MENU_MAIN_MENU"
 	back_button.pressed.connect(go_back); add_child(back_button)
 	manager.load_session(int(Time.get_unix_time_from_system()))
+	draft.venue_id = menu.venue_id
 	refresh()
 
 func clear_body() -> void:
@@ -98,8 +99,9 @@ func copy_previous(tournament: Dictionary) -> void:
 	if roster_locked(): return
 	var chosen_format: String = draft.format_id
 	var chosen_strength: float = draft.strength
+	var chosen_venue: String = draft.venue_id
 	draft.copy_from(tournament, player())
-	draft.format_id = chosen_format; draft.strength = chosen_strength
+	draft.format_id = chosen_format; draft.strength = chosen_strength; draft.venue_id = chosen_venue
 	editing = true; refresh()
 
 func roster_locked() -> bool:
@@ -188,8 +190,8 @@ func open_picker(slot: int) -> void:
 func confirm_draft() -> void:
 	var now := int(Time.get_unix_time_from_system())
 	var success: bool
-	if manager.state.active.is_empty(): success = manager.create(draft.riders, draft.format_id, draft.strength, now)
-	else: success = manager.update_setup(draft.riders, draft.format_id, draft.strength, now)
+	if manager.state.active.is_empty(): success = manager.create(draft.riders, draft.format_id, draft.strength, now, draft.venue_id)
+	else: success = manager.update_setup(draft.riders, draft.format_id, draft.strength, now, draft.venue_id)
 	if success: editing = false; choosing_startlist = false; refresh()
 	else: message.text = manager.error if not manager.error.is_empty() else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_CHECK_RIDERS_COUNTRIES_AND_FORMAT"))
 
@@ -233,6 +235,11 @@ func render_setup() -> void:
 	strength.prefix = String(TranslationServer.translate("OMNIUM_AI_STRENGTH_PREFIX")); strength.suffix = "%"
 	strength.value_changed.connect(func(value): draft.strength = value); body.add_child(strength)
 
+	var venues := preload("res://venues/venue_selector.gd").new()
+	venues.tile_size = Vector2(360, 244)
+	venues.selected_id = draft.venue_id
+	body.add_child(venues)
+	venues.selected.connect(func(id): draft.venue_id = id)
 	button("OMNIUM_OMNIUM_PAGE_CONTINUE_CREATE_START_LIST", func(): choosing_startlist = true; refresh())
 
 func confirm_roster_change(action: Callable, clear_list: bool) -> void:

@@ -1,6 +1,8 @@
 extends Node3D
 const VenueCatalog := preload("res://venues/venue_catalog.gd")
 var venue = VenueCatalog.default_venue()
+var venue_world_nodes: Array[Node] = []
+const VenueRuntime := preload("res://venues/venue_runtime.gd")
 var omnium_race = preload("res://omnium/omnium_scratch_controller.gd").new()
 const MenuSkin := preload("res://menu_theme.gd")
 signal infield_riders_changed
@@ -294,6 +296,8 @@ func _configure_peloton() -> void:
 		x_ai = preload("res://keirin_ai.gd").new() if race_mode == 3 else (TempoAI.new() if race_mode == 8 else (PointsAI.new() if race_mode == 1 else (EliminationAI.new() if race_mode == 2 else XScratchAI.new())))
 		if race_mode == 1: x_ai.jury = points_rules
 		if race_mode == 8: x_ai.jury = tempo_rules
+		x_ai.LAP = LAP
+		if race_mode in [1, 8]: x_ai.intermediate_sprint.LAP = LAP
 		x_ai.reset(rider_profiles, rider_forms, lane_offsets)
 		x_ai.configure_riders(rider_identities, rider_forms)
 		x_ai.apply_ai_strength(ai_difficulty)
@@ -302,7 +306,7 @@ func _configure_peloton() -> void:
 		var rear_positions: Array[float] = []
 		_elimination_clock_ready = false; _elimination_accumulator = 0.0; _elimination_ticks = 0
 		for distance in distances: rear_positions.append(distance - REAR_TRAILING_EDGE_M)
-		elimination_rules.reset(count, rear_positions, omnium_race.elimination_interval_m() if omnium_race.enabled() else EliminationRules.ELIMINATION_INTERVAL_M)
+		elimination_rules.reset(count, rear_positions, omnium_race.elimination_interval_m() if omnium_race.enabled() else LAP * 2.0)
 	pursuit_start.clear()
 	for node in bikes: node.queue_free()
 	bikes.clear()
@@ -661,9 +665,8 @@ func _ready() -> void:
 	add_child(strava_client)
 	strava_client.status_changed.connect(_on_strava_status)
 	strava_client.activity_created.connect(_on_strava_activity_created)
-	_build_world()
-	arena = load(venue.arena_path).new()
-	add_child(arena)
+	VenueRuntime.configure(self, venue)
+	_build_stadium()
 	_set_stadium_training_lighting(true) # Menu background uses the brighter training profile.
 	_build_hud()
 	var preferences := preload("res://display_settings.gd").new()
@@ -680,6 +683,34 @@ func _ready() -> void:
 	setup_panel.show_hub()
 	bridge_devices = preload("res://bridge_devices.gd").new()
 	add_child(bridge_devices)
+
+func _build_stadium() -> void:
+	var existing := get_children()
+	if venue.id == "gent": VenueRuntime.build_gent(self)
+	else:
+		_build_world()
+		arena = load(venue.arena_path).new()
+		add_child(arena)
+	for child in get_children():
+		if not existing.has(child): venue_world_nodes.append(child)
+
+func _use_venue(venue_id: String) -> bool:
+	if start_state != "SETUP": return false
+	var profile = VenueCatalog.find(venue_id)
+	if profile == null or not profile.validation_errors().is_empty(): return false
+	if profile.id == venue.id and not venue_world_nodes.is_empty(): return true
+	if broadcast_intro != null: broadcast_intro.cancel()
+	results_podium.clear()
+	for node in venue_world_nodes:
+		if is_instance_valid(node): node.free()
+	venue_world_nodes.clear()
+	VenueRuntime.configure(self, profile)
+	_build_stadium()
+	_set_stadium_training_lighting(true)
+	if broadcast_intro != null:
+		broadcast_intro.suite = arena.get_node_or_null("EuroMaxCyclingCommentaryBox")
+		broadcast_intro.light_show.configure_venue()
+	return true
 
 func _bind_bridge(port: int = UDP_PORT) -> Error:
 	bridge_bind_error = udp.bind(port, "127.0.0.1")
@@ -841,7 +872,7 @@ func _finish_neutral_start() -> void:
 	if race_mode == 2:
 		var rear: Array[float] = []
 		for distance in distances: rear.append(distance - REAR_TRAILING_EDGE_M)
-		elimination_rules.reset(rider_count, rear, omnium_race.elimination_interval_m() if omnium_race.enabled() else EliminationRules.ELIMINATION_INTERVAL_M)
+		elimination_rules.reset(rider_count, rear, omnium_race.elimination_interval_m() if omnium_race.enabled() else LAP * 2.0)
 	points_notifications.reset()
 	peloton_state.reset()
 	peloton_info.clear()
@@ -883,7 +914,7 @@ func _update_countdown_display() -> void:
 		countdown_label.hide()
 	if race_overlay == null: return
 	race_overlay.signals.set_countdown(value)
-	race_overlay.signals.update_last_lap(start_state == "RACING", maxf(0.0, _race_length() - _last_lap_progress()), _race_length(), finished)
+	race_overlay.signals.update_last_lap(start_state == "RACING", maxf(0.0, _race_length() - _last_lap_progress()), _race_length(), finished, LAP)
 
 func _last_lap_progress() -> float:
 	# Match the peloton HUD: awarded laps do not advance the race clock.
@@ -1421,6 +1452,8 @@ func _reset(omnium_archive: Dictionary = {}) -> void:
 		omnium_race.clear()
 		selected_startlist.clear(); startlist_mode = -1
 	results_completion.cancel()
+	if RenderingServer.frame_post_draw.is_connected(_grab_finish_photo): RenderingServer.frame_post_draw.disconnect(_grab_finish_photo)
+	finish_photo_capture_pending = false
 	if piste_training != null and piste_training.active:
 		piste_training.finish_session(String(TranslationServer.translate("MAIN_LEAVE_TRAINING")),false)
 		piste_training.page.environment_requested.emit(false)
@@ -1485,6 +1518,7 @@ func _reset(omnium_archive: Dictionary = {}) -> void:
 		pursuit_save_box.hide()
 		pursuit_save_button.disabled = false
 		pursuit_save_status.text = ""
+	if _restarting_event: _use_venue(String(replay_setup.get("venue_id", VenueCatalog.DEFAULT_ID)))
 	_configure_peloton()
 	_tt_prepare_event()
 	ai_think_timer = 0.0
@@ -1800,7 +1834,7 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode == 2:
 		var metrics: Array[float] = []
 		for i in range(rider_count): metrics.append(_path_metric(distances[i], previous_lanes[i]))
-		lane_offsets = EliminationMotion.constrain_lanes(distances, speeds, previous_lanes, lane_offsets, finish_times, metrics, dt)
+		lane_offsets = EliminationMotion.constrain_lanes(distances, speeds, previous_lanes, lane_offsets, finish_times, metrics, dt, LAP)
 		for i in range(rider_count): heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lanes[i]).y
 	return heights
 
@@ -2164,7 +2198,9 @@ func _update_coasting(dt: float) -> void:
 func _place_results_camera() -> void:
 	if camera == null: return
 	var podium := find_child("Podium", true, false) as Node3D
-	if podium == null: return
+	if podium == null:
+		_place_finish_camera()
+		return
 	results_podium.update(self,podium)
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	camera.fov = 62.0
@@ -2203,8 +2239,8 @@ func _update_visuals(dt: float) -> void:
 		team_race.hide_badges()
 	if setup_panel != null and setup_panel.visible:
 		# Quiet architectural view, independent of riders and racing cameras.
-		camera.position = Vector3(46, 42, 66)
-		camera.look_at(Vector3(0, 1.0, 0))
+		camera.position = Vector3(10, 12, -40) if venue.id == "gent" else Vector3(46, 42, 66)
+		camera.look_at(Vector3(-4.5, 1.0, -7) if venue.id == "gent" else Vector3(0, 1.0, 0))
 		camera.fov = 68.0
 		camera.rotation.z = 0.0
 		return
@@ -2281,7 +2317,7 @@ func _follow_rider_camera(follow_distance: float, offset: float, dt: float, star
 	elif camera_mode == 3:
 		# Infield side camera to inspect rider posture and bike shape.
 		var inner_probe: Vector3 = _at(follow_distance, maxf(0.2, offset - 1.8))
-		var outer_probe: Vector3 = _at(follow_distance, minf(8.4, offset + 1.8))
+		var outer_probe: Vector3 = _at(follow_distance, minf(TRACK_OUTER_EDGE - .2, offset + 1.8))
 		# IMPORTANT: lateral track probe includes vertical banking height.
 		# Taking its 3D normal pulled the camera BELOW the infield floor in bends.
 		# Use a horizontal-only inward direction and independent camera height.
@@ -2581,6 +2617,8 @@ func _build_hud() -> void:
 	var developer_labels: Array[Label] = [hud, note, rankings]
 	race_overlay.set_developer_texts(developer_labels)
 	minimap = race_overlay.map
+	minimap.TRACK_LENGTH = LAP
+	race_overlay.lap_length_m = LAP
 	# Separate mode gallery and race configuration, above a quiet arena.
 	var menu = preload("res://race_menu.gd").new()
 	menu.keyboard_mapping = keyboard_mapping
@@ -2873,6 +2911,7 @@ func _set_menu_visible(is_visible: bool) -> void:
 
 func _training_environment_requested(active: bool) -> void:
 	if active:
+		if not _use_venue(VenueCatalog.DEFAULT_ID): return
 		if training_environment == null:
 			training_environment = preload("res://training_environment.gd").new()
 			InterpolationGuard.interpolate(training_environment)
@@ -2885,6 +2924,7 @@ func _training_environment_requested(active: bool) -> void:
 
 func _workout_environment_requested(active: bool) -> void:
 	if active:
+		if not _use_venue(VenueCatalog.DEFAULT_ID): return
 		if training_environment == null:
 			training_environment = preload("res://training_environment.gd").new()
 			InterpolationGuard.interpolate(training_environment)
@@ -2910,6 +2950,7 @@ func _piste_start_blocker() -> String:
 
 func _piste_environment_requested(active: bool) -> void:
 	if active:
+		if not _use_venue(VenueCatalog.DEFAULT_ID): return
 		var page = setup_panel.derny_page
 		var blocker := _piste_start_blocker()
 		if not blocker.is_empty():
@@ -2928,6 +2969,9 @@ func _piste_environment_requested(active: bool) -> void:
 
 func _exercise_environment_requested(active: bool) -> void:
 	if active:
+		var location := VenueCatalog.DEFAULT_ID
+		if not setup_panel.exercise_page.omnium_origin.is_empty(): location = String(setup_panel.tournament_page.manager.state.active.get("venue_id", VenueCatalog.DEFAULT_ID))
+		if not _use_venue(location): return
 		var blocker := _piste_start_blocker()
 		if not blocker.is_empty():
 			setup_panel.exercise_page.session.phase = "RESULT"
@@ -2945,6 +2989,7 @@ func _exercise_environment_requested(active: bool) -> void:
 
 func _madison_environment_requested(active: bool) -> void:
 	if active:
+		if not _use_venue(VenueCatalog.DEFAULT_ID): return
 		var blocker := _piste_start_blocker()
 		if not blocker.is_empty():
 			setup_panel.madison_page.session.phase = "RESULT"
@@ -2971,6 +3016,7 @@ func _confirm_start() -> void:
 	if choice not in [0, 1, 2, 3, 5, 6, 7, 8]:
 		return
 	if choice in [1,2] and setup_panel.page != 4: return
+	if not _use_venue(setup_panel.venue_id): return
 	var replay: Dictionary = {}
 	var options = null
 	if choice in [1, 2]:
@@ -2992,7 +3038,7 @@ func _confirm_start() -> void:
 		demo_launch_watts = float(setup_panel.get("demo_power_input").value)
 	race_mode = 8 if choice == 8 else 3 if choice == 6 else (7 if choice == 7 else (5 if choice == 2 else (4 if choice == 1 else (2 if choice == 5 else (1 if choice == 3 else 0)))))
 	if choice == 6: keirin_percent = setup_panel.keirin_derny.value
-	race_laps = int(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (int(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice in [3, 8] else clampi(int(laps_input.value), 1, 30))))
+	race_laps = roundi(setup_panel.time_trial_distance.get_selected_id() / LAP) if choice == 7 else (roundi(options.distance_m() / LAP) if choice in [1, 2] else ((2 * (int(setup_panel.elimination_count_picker.get_selected_id()) - 2) + 2) if choice == 5 else (clampi(int(laps_input.value) / 10, 1, 12) * 10 if choice in [3, 8] else clampi(int(laps_input.value), 1, 30))))
 	if choice == 6: race_laps = 6
 	if choice == 2:
 		team_size = options.team_size()
@@ -3015,7 +3061,7 @@ func _confirm_start() -> void:
 	if choice == 7:
 		time_trial_start_type = "flying" if setup_panel.time_trial_start.selected == 1 else "standing"
 		time_trial_reference_kind = ["last", "recent", "alltime", "none"][setup_panel.time_trial_reference.selected]
-		time_trial_reference = time_trial_records.references(int(_race_length()), -1.0, time_trial_start_type).get(time_trial_reference_kind, {})
+		time_trial_reference = time_trial_records.references(roundi(_race_length()), -1.0, time_trial_start_type, venue.id).get(time_trial_reference_kind, {})
 		_prepare_pursuit({}, 0.0)
 	elif choice in [1, 2]:
 		_prepare_pursuit(replay, options.configured_cp())
@@ -3025,6 +3071,7 @@ func _confirm_start() -> void:
 	else:
 		_tt_prepare_event()
 	replay_setup = {"riders": rider_identities.duplicate(true), "forms": rider_forms.duplicate(), "replay": replay.duplicate(true), "cp": options.configured_cp() if options != null else 0.0, "team_factors": team_race.ours.position_factors.duplicate()}
+	replay_setup["venue_id"] = venue.id
 	for key in ["race_mode", "race_laps", "rider_count", "ai_difficulty", "keirin_percent", "demo_launch_watts", "time_trial_start_type", "time_trial_reference_kind", "time_trial_reference", "team_size", "team_resistance_mode", "pursuit_opponent_percent", "pursuit_opponent_country", "pursuit_opponent_config"]:
 		replay_setup[key] = get(key)
 	trainer_control.arm()
@@ -3820,7 +3867,7 @@ func _update_pursuit(dt: float) -> void:
 		_take_finish_photo(_winner_index())
 	if finish_times[0] >= 0.0 and not finished:
 		if race_mode == 7:
-			time_trial_records.add(int(_race_length()), finish_times[0], pursuit_half_crossings[0], time_trial_start_type)
+			time_trial_records.add(roundi(_race_length()), finish_times[0], pursuit_half_crossings[0], time_trial_start_type, venue.id)
 		else:
 			_register_performance()
 		finished = true
@@ -4035,12 +4082,13 @@ func _start_strava_upload() -> void:
 func _register_performance() -> void:
 	if race_mode not in [4, 5] or performance_recorded or finish_times[0] < 0.0:
 		return
-	var proof := {"version": PursuitRecords.VERSION, "physics": PursuitRecords.PHYSICS, "name": String(TranslationServer.translate("RESULT_COMPLETED_PERFORMANCE")), "time_s": finish_times[0], "distance_m": int(_race_length()), "samples": pursuit_trace}
+	var proof := {"version": PursuitRecords.VERSION, "physics": PursuitRecords.PHYSICS, "name": String(TranslationServer.translate("RESULT_COMPLETED_PERFORMANCE")), "time_s": finish_times[0], "distance_m": roundi(_race_length()), "samples": pursuit_trace}
 	if not PursuitRecords.valid(proof): return
 	if performance_context.is_empty():
 		if performance_id.is_empty(): performance_id = Crypto.new().generate_random_bytes(12).hex_encode()
 		var player: String = player_display_name.strip_edges().left(64)
-		performance_context = {"id": performance_id, "mode": race_mode, "distance_m": int(_race_length()), "team_size": team_size if race_mode == 5 else 0, "seconds": finish_times[0], "player_name": player if not player.is_empty() else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_PLAYER")), "finished_at": Time.get_unix_time_from_system(), "finished_local": Time.get_datetime_string_from_system(false, true), "legacy": false}
+		performance_context = {"id": performance_id, "mode": race_mode, "distance_m": roundi(_race_length()), "team_size": team_size if race_mode == 5 else 0, "seconds": finish_times[0], "player_name": player if not player.is_empty() else String(TranslationServer.translate("OMNIUM_OMNIUM_PAGE_PLAYER")), "finished_at": Time.get_unix_time_from_system(), "finished_local": Time.get_datetime_string_from_system(false, true), "legacy": false}
+	performance_context.merge(VenueCatalog.metadata(venue.id))
 	performance_recorded = performance_records.add(performance_context)
 	if not performance_recorded and pursuit_save_status != null:
 		pursuit_save_status.text = performance_records.last_error
@@ -4050,7 +4098,7 @@ func _lap_credits() -> Array[int]:
 	return tempo_rules.credits if race_mode == 8 else (points_rules.credits if race_mode == 1 else scratch_rules.credits)
 
 func _race_positions() -> Array[float]:
-	return PelotonState.race_positions(distances, _lap_credits()) if race_mode in [0,1,8] else distances.duplicate()
+	return PelotonState.race_positions(distances, _lap_credits(), LAP) if race_mode in [0,1,8] else distances.duplicate()
 
 func _physical_order(positions: Array[float]) -> Array[int]:
 	var order: Array[int] = []
@@ -4200,6 +4248,7 @@ func _record_ai_performances() -> void:
 			ai_recorded[i] = true
 			var identity: Dictionary = rider_identities[i]
 			var parameters := {"cp_w":pursuit_pacer.cp_w if race_mode == 4 else float(identity.get("cp_w",0.0)), "max_power_w":float(identity.get("max_power_w",0.0)), "w_prime_j":float(identity.get("w_prime_j",0.0))}
+			parameters.merge(VenueCatalog.metadata(venue.id))
 			ai_personal_records.record(String(identity.get("id", "")), race_mode, roundi(_race_length()), ai_difficulty if race_mode in [0,1,3,8] else pursuit_opponent_percent, finish_times[i], ai_observed_peak[i], rider_forms[i], parameters)
 
 func _update_elimination_jury(dt: float) -> void:
@@ -4241,6 +4290,9 @@ func _take_elimination_photo(rider: int, line_m: float) -> void:
 		RenderingServer.frame_post_draw.connect(_grab_finish_photo, CONNECT_ONE_SHOT)
 
 func _elimination_box_target(rider: int) -> Vector3:
+	if venue.id == "gent" and is_instance_valid(arena):
+		var cabins: Array = arena.infield.cabins
+		if not cabins.is_empty(): return cabins[rider % cabins.size()].to_global(Vector3(0.0, .15, 2.1))
 	var row: Node = arena.find_child("Rennersboxen", true, false) if arena != null else null
 	var roster: Dictionary = RaceCountries.roster(self)
 	var countries: Array = roster.get("start_list", [])
@@ -4262,6 +4314,7 @@ func _elimination_box_target(rider: int) -> Vector3:
 	return center + Vector3(-0.35 * float(slot % 2), 0.0, 0.75 * float(slot / 2))
 
 func _elimination_exit_gate(target: Vector3) -> float:
+	if venue.id == "gent": return 0.0
 	var gates: Array = preload("res://infield_layout.gd").GATE_Z
 	var best: float = float(gates[0])
 	for z in gates:
@@ -4297,6 +4350,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var current: Vector3 = route["position"]
 		var gate_z: float = float(route["gate_z"])
 		var destination: Vector3 = Vector3(-9.6, 0.15, gate_z) if stage == 1 else (Vector3(-14.1, 0.15, gate_z) if stage == 2 else Vector3(route["target"]))
+		if venue.id == "gent": destination = Vector3(-10.9, .15, gate_z) if stage == 1 else (Vector3(-10.5, .15, route["target"].z) if stage == 2 else Vector3(route["target"]))
 		var vector: Vector3 = destination - current
 		vector.y = 0.0
 		var speed: float = minf(3.1, maxf(0.0, vector.length() * 1.5))

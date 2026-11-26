@@ -42,6 +42,7 @@ var demo_input:SpinBox
 var previous_button:Button
 var proceed_button:Button
 var status:Label
+var venue_picker: VBoxContainer
 var syncing:=false
 
 func text(value:String,size:int=20,color:Color=MenuStyle.INK)->Label:
@@ -99,6 +100,8 @@ func _ready()->void:
 	left_arrow=button("‹",70);left_arrow.custom_minimum_size.y=90;left_arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(left_arrow);left_arrow.pressed.connect(func():cycle(-1))
 	card_holder=CenterContainer.new();card_holder.custom_minimum_size=Vector2(500,390);carousel.add_child(card_holder)
 	right_arrow=button("›",70);right_arrow.custom_minimum_size.y=90;right_arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(right_arrow);right_arrow.pressed.connect(func():cycle(1))
+	venue_picker=preload("res://venues/venue_selector.gd").new();venue_picker.custom_minimum_size.x=540;venue_picker.size_flags_vertical=Control.SIZE_SHRINK_CENTER;carousel.add_child(venue_picker)
+	venue_picker.selected.connect(menu.select_venue)
 	counter=text("",17,MenuStyle.MUTED);opponent_page.add_child(counter)
 	var strength_row:=center_row(opponent_page);strength_row.add_child(text("PURSUIT_OPPONENT_STRENGTH",20))
 	strength_slider=HSlider.new();strength_slider.min_value=40;strength_slider.max_value=120;strength_slider.step=5;strength_slider.custom_minimum_size=Vector2(320,36);strength_row.add_child(strength_slider)
@@ -136,6 +139,7 @@ func begin(is_team:bool)->void:
 	match_art.texture=menu.previews[2 if team else 1].get_texture()
 	match_title.text=menu.MODES[2 if team else 1].title
 	match_description.text=menu.MODES[2 if team else 1].detail
+	venue_changed()
 	show();_show_step()
 
 func select_distance(distance:int)->void:
@@ -220,7 +224,7 @@ func _draw_card()->void:
 	else:
 		var entry:Dictionary=candidates[current]
 		if not team and kind==0:
-			var card=preload("res://rider_passport.gd").new();card.entry=entry;card.interactive=false;card.custom_minimum_size.x=470;card_holder.add_child(card);current_card=card
+			var card=preload("res://rider_passport.gd").new();card.entry=entry;card.venue_id=menu.venue_id;card.interactive=false;card.custom_minimum_size.x=470;card_holder.add_child(card);current_card=card
 		else:
 			var card=preload("res://pursuit_choice_card.gd").new();card.replay=kind==1;card.is_team=team;card.team_size=options.team_size()if team else 1;card.strength=strength_input.value
 			card.data=entry.duplicate(true)
@@ -272,6 +276,9 @@ func _bridge_rows()->Array:
 	else:
 		rows.append([ai_tab,replay_tab])
 		rows.append([left_arrow,right_arrow])
+		var stadiums: Array[Control] = []
+		for id in preload("res://venues/venue_catalog.gd").available_ids(): stadiums.append(venue_picker.tiles[id].button)
+		rows.append(stadiums)
 		rows.append([strength_slider,strength_input.get_line_edit()])
 	rows.append([previous_button,proceed_button])
 	var visible_rows:Array=[]
@@ -344,3 +351,13 @@ func bridge_action(value:String)->void:
 		# Keep native activation/toggle behavior, including mouse/keyboard fallback.
 		for pressed in [true,false]:
 			var event:=InputEventAction.new();event.action="ui_accept";event.pressed=pressed;get_viewport().push_input(event)
+
+func venue_changed()->void:
+	if not is_instance_valid(venue_picker): return
+	venue_picker.select(menu.venue_id, false)
+	if is_instance_valid(current_card) and current_card.has_method("set_venue"): current_card.set_venue(menu.venue_id)
+	for i in distance_buttons.size(): distance_buttons[i].text=menu.distance_caption(1000 if i==0 else 4000)
+	if options!=null:
+		options.library.venue_id=menu.venue_id
+		options.refresh_rides()
+		if visible and step==2 and kind==1: _load_candidates(true)

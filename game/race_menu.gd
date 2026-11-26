@@ -50,12 +50,14 @@ const PLAYABLE := [0, 1, 2, 3, 5, 6, 7, 8]
 const DISPLAY_ORDER := [0, 1, 2, 3, 5, 4, 6, 7, 8, 9]
 var gallery_grid: GridContainer
 var page := 1
+var venue_id := "velodrome"
+var venue_picker: VBoxContainer
 var selected := 0
 var field_settings := {0: [8, 10], 3: [16, 40], 5: [12, 22], 6: [6, 6], 8: [16, 40]}
 var cards: Array[Button] = []
 var previews: Array[SubViewport] = []
 var choice_page: VBoxContainer
-var settings_page: CenterContainer
+var settings_page: ScrollContainer
 var breadcrumb: Label
 var page_title: Label
 var page_header: HBoxContainer
@@ -844,13 +846,17 @@ func show_ftp_twenty() -> void:
 	_show_section(8, "MENU_20_MINUTE_FTP_TEST", ftp_page)
 
 func _build_settings(layout: VBoxContainer) -> void:
-	settings_page = CenterContainer.new()
+	settings_page = ScrollContainer.new()
+	settings_page.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	settings_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(settings_page)
 	var shell := PanelContainer.new()
 	shell.custom_minimum_size = Vector2(1260, 0)
 	shell.add_theme_stylebox_override("panel", MenuStyle.panel(MenuStyle.PAPER, MenuStyle.LINE, 22))
-	settings_page.add_child(shell)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings_page.add_child(center)
+	center.add_child(shell)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 48)
 	shell.add_child(row)
@@ -868,6 +874,9 @@ func _build_settings(layout: VBoxContainer) -> void:
 	selected_description = label("", 22, MUTED)
 	selected_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(selected_description)
+	venue_picker = preload("res://venues/venue_selector.gd").new()
+	info.add_child(venue_picker)
+	venue_picker.selected.connect(select_venue)
 	var options := VBoxContainer.new()
 	options.custom_minimum_size.x = 570
 	options.add_theme_constant_override("separation", 18)
@@ -965,6 +974,7 @@ func _build_settings(layout: VBoxContainer) -> void:
 			if selected in [0, 3, 5, 6, 8]: show_startlist()
 			else: start_requested.emit())
 	navigation.add_child(start_button)
+	select_venue(String(difficulty_preferences.get_value("race", "venue_id", "velodrome")))
 
 func _number(parent_node: VBoxContainer, title: String, minimum: int, maximum: int, initial: int) -> SpinBox:
 	var caption := label(title, 22)
@@ -1159,7 +1169,7 @@ func show_startlist() -> void:
 	breadcrumb.text = "MENU_01_RACE_SETTINGS_02_START_LIST"
 	startlist_page.begin()
 
-func _save_difficulty(key: String, value: float) -> void:
+func _save_difficulty(key: String, value: Variant) -> void:
 	difficulty_preferences.set_value("race", key, value)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(difficulty_preferences_path.get_base_dir()))
 	difficulty_preferences.save(difficulty_preferences_path)
@@ -1206,3 +1216,22 @@ func show_omnium_archive(tournament: Dictionary) -> void:
 	tournament_page.open_archive(tournament)
 	_show_section(7,"MENU_OMNIUM_RESULTS",tournament_page)
 	tournament_back.grab_focus.call_deferred()
+
+func distance_caption(metres: int) -> String:
+	var profile = preload("res://venues/venue_catalog.gd").resolved(venue_id)
+	var distance := "%d m" % metres if metres < 1000 else "%d km" % (metres / 1000)
+	return tr("VENUE_DISTANCE_LAPS") % [distance, roundi(float(metres) / profile.lap_length_m)]
+
+func select_venue(id: String) -> void:
+	venue_id = preload("res://venues/venue_catalog.gd").resolved(id).id
+	if is_instance_valid(venue_picker): venue_picker.select(venue_id, false)
+	library.venue_id = venue_id
+	records_store.venue_id = venue_id
+	if is_instance_valid(pursuit_options): pursuit_options.library.venue_id = venue_id
+	if is_instance_valid(team_options): team_options.library.venue_id = venue_id
+	if is_instance_valid(laps_input):
+		laps_input.get_meta("caption").text = tr("VENUE_LAPS_CAPTION") % ("166⅔" if venue_id == "gent" else "250")
+	if is_instance_valid(time_trial_distance):
+		for i in time_trial_distance.item_count: time_trial_distance.set_item_text(i, distance_caption(time_trial_distance.get_item_id(i)))
+	if is_instance_valid(pursuit_flow): pursuit_flow.venue_changed()
+	_save_difficulty("venue_id", venue_id)

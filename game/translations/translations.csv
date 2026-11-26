@@ -1427,3 +1427,10 @@ RONDE %s   •   SPLIT %s"
 "GENT_ZONE_PRESS","PRESS","PERS"
 "GENT_ZONE_MEDICAL","MEDICAL","MEDISCH"
 "GENT_ZONE_JURY","JURY","JURY"
+MENU_RACE_VENUE,Location,Locatie
+VENUE_DISTANCE_LAPS,%s · %d laps,%s · %d ronden
+VENUE_LAPS_CAPTION,Laps (%s metres per lap),Ronden (%s meter per ronde)
+HUD_HALF_LAP_TIMES,Half-lap times,Halverondetijden
+HUD_TIME_PER_HALF_LAP,Time per half lap,Tijd per halve ronde
+HUD_HALF_LAP_TEAM_HELP,Time per half lap; cumulative gap at the same distance.,Tijd per halve ronde; cumulatief verschil op dezelfde afstand.
+HUD_HALF_LAP_SOLO_HELP,Time per half lap. Green means faster than the reference; red means slower.,Tijd per halve ronde. Groen is sneller dan de referentie; rood is trager.

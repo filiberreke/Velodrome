@@ -1,7 +1,7 @@
 extends RefCounted
 ## Scratch classification and physical peloton lapping on a 250 m closed track.
 ## IMPORTANT: all distances are cumulative, NOT modulo distances.
-const LAP_M := 250.0
+var LAP_M := 250.0
 const CONTACT_BEHIND_M := 2.0
 const CLUSTER_GAP_M := 12.0
 var credits: Array[int] = []
@@ -16,10 +16,10 @@ func reset(count: int) -> void:
 	previous_progress.clear()
 	events.clear()
 
-static func ahead_gap(follower_m: float, leader_m: float) -> float:
+static func ahead_gap(follower_m: float, leader_m: float, lap_length: float = 250.0) -> float:
 	# Geometric gap from one wheel to the next, wrapping across the start line.
 	# Absolute lap advantage remains stored separately.
-	return fposmod(leader_m - follower_m, LAP_M)
+	return fposmod(leader_m - follower_m, lap_length)
 
 func examine(progress: Array[float], finished: Array[float], seconds: float) -> void:
 	if previous_progress.size() != progress.size():
@@ -52,7 +52,7 @@ func examine(progress: Array[float], finished: Array[float], seconds: float) -> 
 			var gap_now: float = progress[i] - progress[tail]
 			var gap_old: float = previous_progress[i] - previous_progress[tail]
 			# The escape passes to within two metres behind the reference tail.
-			if gap_old < LAP_M - CONTACT_BEHIND_M and gap_now >= LAP_M - CONTACT_BEHIND_M and gap_now <= LAP_M + 0.5 and progress[i] - progress[middle] >= 215.0:
+			if gap_old < LAP_M - CONTACT_BEHIND_M and gap_now >= LAP_M - CONTACT_BEHIND_M and gap_now <= LAP_M + 0.5 and progress[i] - progress[middle] >= LAP_M - 35.0:
 				credits[i] = 1
 				events.append({"rider": i, "kind": "gain", "time_s": seconds, "physical_gap_m": maxf(0.0, LAP_M - gap_now), "bunch_size": bunch.size()})
 		# A rider can also *lose* a lap when the reference bunch catches him.
@@ -62,7 +62,7 @@ func examine(progress: Array[float], finished: Array[float], seconds: float) -> 
 				continue
 			var loss_now: float = progress[tail] - progress[i]
 			var loss_old: float = previous_progress[tail] - previous_progress[i]
-			if loss_old < LAP_M - CONTACT_BEHIND_M and loss_now >= LAP_M - CONTACT_BEHIND_M and loss_now <= LAP_M + 0.5 and progress[middle] - progress[i] >= 215.0:
+			if loss_old < LAP_M - CONTACT_BEHIND_M and loss_now >= LAP_M - CONTACT_BEHIND_M and loss_now <= LAP_M + 0.5 and progress[middle] - progress[i] >= LAP_M - 35.0:
 				credits[i] = -1
 				events.append({"rider": i, "kind": "loss", "time_s": seconds, "physical_gap_m": maxf(0.0, LAP_M - loss_now), "bunch_size": bunch.size()})
 	previous_progress = progress.duplicate()

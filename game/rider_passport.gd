@@ -6,6 +6,8 @@ signal records_requested(entry: Dictionary)
 const Catalog := preload("res://rider_catalog.gd")
 const Appearance := preload("res://player_appearance.gd")
 var entry: Dictionary = {}
+var venue_id := "velodrome"
+var record_caption: Label
 var interactive := true
 var compact := false
 var accent := Color("53d4d1")
@@ -121,7 +123,8 @@ func _ready() -> void:
 	trophy.kind = "record";trophy.tint = accent;trophy.custom_minimum_size = Vector2(26,26)
 	record_row.add_child(trophy)
 	var record_s := best_1000m()
-	record_row.add_child(text("1 km  ·  %d s" % roundi(record_s) if record_s > 0 else String(TranslationServer.translate("RIDER_NO_1_KM_RECORD")),16,MenuStyle.MUTED))
+	record_caption = text("1 km  ·  %d s" % roundi(record_s) if record_s > 0 else String(TranslationServer.translate("RIDER_NO_1_KM_RECORD")),16,MenuStyle.MUTED)
+	record_row.add_child(record_caption)
 	if interactive:
 		var actions := HBoxContainer.new()
 		actions.add_theme_constant_override("separation",8)
@@ -213,12 +216,13 @@ func _build_compact() -> void:
 	column.add_child(change)
 
 func best_1000m() -> float:
-	var best := float(entry.records.get("record_1000m_s",0.0))
+	var best := float(entry.records.get("record_1000m_s",0.0)) if venue_id == "velodrome" else 0.0
 	var saved := preload("res://rider_records.gd").new().personal(entry.id)
 	for key in saved:
 		var record: Dictionary = saved[key]
 		if int(record.get("mode",-1)) != 4 or int(record.get("distance_m",0)) != 1000 or roundi(record.get("ai_percent",0.0)) != 80: continue
 		var parameters: Dictionary = record.get("parameters",{})
+		if String(parameters.get("venue_id", "velodrome")) != venue_id: continue
 		if not is_equal_approx(float(parameters.get("cp_w",0.0)),float(entry.cp_w)): continue
 		if not is_equal_approx(float(parameters.get("max_power_w",0.0)),float(entry.max_power_w)): continue
 		if not is_equal_approx(float(parameters.get("w_prime_j",0.0)),float(entry.w_prime_j)): continue
@@ -235,3 +239,9 @@ func _request_photo(url: String, portrait: TextureRect, fallback: Control) -> vo
 			if error == OK: portrait.texture = ImageTexture.create_from_image(picture);fallback.hide()
 		request.queue_free())
 	if request.request(url) != OK: request.queue_free()
+
+func set_venue(id: String) -> void:
+	venue_id = id
+	if is_instance_valid(record_caption):
+		var seconds := best_1000m()
+		record_caption.text = "1 km  ·  %d s" % roundi(seconds) if seconds > 0 else String(TranslationServer.translate("RIDER_NO_1_KM_RECORD"))

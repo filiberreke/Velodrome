@@ -166,10 +166,10 @@ func run_test() -> void:
 		if game.team_race.ours.order[0] == 0 and game.team_race.ours.turn_seconds >= 10.0: game.team_race.ours.request_exchange()
 		game.clock += 0.1; game._update_race(0.1)
 	game._refresh_fullscreen_results()
-	check(game.finish_table.get_child_count() == 15 and game.pursuit_save_box.visible and game.finish_heading.text.begins_with("PLOEGENACHTERVOLGING"), "Team-only result table and save prompt after finish")
+	check(game.finish_table.columns == 4 and game.finish_table.get_child_count() == 12 and game.pursuit_save_box.visible and game.finish_heading.text.begins_with("PLOEGENACHTERVOLGING"), "Team-only result table and save prompt after finish")
 	game.finish_overlay.show()
 	await process_frame; await process_frame
-	check(game.finish_table.get_global_rect().size.x < 1000.0, "Team result table wraps lap times within available width")
+	check((game.finish_table.get_child(-1).get_child(0) as Label).autowrap_mode == TextServer.AUTOWRAP_WORD_SMART and game.finish_table.get_global_rect().end.x <= 1920.1, "Team lap times wrap inside the results viewport")
 	var directory := "res://tests/tmp_team_ui_%d" % Time.get_ticks_usec()
 	game.team_library.directory = directory; options.library.directory = directory
 	game.pursuit_save_name.text = "Mijn viermansploeg"

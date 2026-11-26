@@ -68,7 +68,7 @@ func _lane_safe(i: int, candidate: float, active: Array[int], distances: Array[f
 		var other: float=float(reserved.get(j,lanes[j]))
 		if Motion.laterally_separate(lanes[i],candidate,lanes[j],other): continue
 		if Motion.moving_apart(lanes[i],candidate,lanes[j],other): continue
-		var gap: float=Motion.signed_gap(distances[i],distances[j])
+		var gap: float=Motion.signed_gap(distances[i],distances[j],LAP)
 		var relative: float=speeds[j]/_metric(j,other,lanes)-speeds[i]/_metric(i,candidate,lanes)
 		var departure: float=absf(candidate-lanes[i])/INSIDE_LANE_CHANGE_MPS+0.05
 		var existing_horizon: float=departure
@@ -172,7 +172,7 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 func _deliver_motion(active: Array[int], distances: Array[float], speeds: Array[float], lanes: Array[float], drafts: Array[float], dt: float, output: Array[float]) -> void:
 	planned_distances=distances.duplicate();planned_speeds=speeds.duplicate()
 	last_motion.clear()
-	var physical: Dictionary=Motion.physical_order(distances,active)
+	var physical: Dictionary=Motion.physical_order(distances,active,LAP)
 	var order: Array[int]=physical.order
 	var coordinates: Dictionary=physical.coordinates
 	var proposed: Dictionary={}

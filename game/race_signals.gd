@@ -60,12 +60,12 @@ func set_countdown(value: String) -> void:
 	countdown_label.add_theme_font_size_override("font_size", 190 if start_signal else 310)
 	countdown_label.add_theme_color_override("font_color", MenuStyle.GOLD if start_signal else MenuStyle.PAPER)
 
-func update_last_lap(active: bool, remaining_m: float, length_m: float, finished: bool) -> void:
+func update_last_lap(active: bool, remaining_m: float, length_m: float, finished: bool, lap_length: float = 250.0) -> void:
 	if finished or not active:
 		bell.hide()
 		bell_age = BELL_DURATION
 		return
-	if not last_lap_announced and length_m > 250.0 and remaining_m > 0.0 and remaining_m <= 250.0:
+	if not last_lap_announced and length_m > lap_length + 0.001 and remaining_m > 0.0 and remaining_m <= lap_length:
 		last_lap_announced = true
 		bell_age = 0.0
 		bell.modulate.a = 1.0

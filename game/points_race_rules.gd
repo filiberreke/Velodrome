@@ -1,6 +1,6 @@
 extends RefCounted
 ## Points jury: one leader clock, physical line passages and repeatable lap events.
-const LAP := 250.0
+var LAP := 250.0
 const INTERVAL := 10
 var points: Array[int] = []
 var credits: Array[int] = []
@@ -22,6 +22,7 @@ func reset(count: int, race_laps: int = 40) -> void:
 		values.resize(count)
 		values.fill(0)
 	sprints.clear(); events.clear(); main_ids.clear(); pending_gains.clear()
+	peloton.LAP = LAP
 	peloton.reset()
 	finish_clock = -1.0
 	last_sprint_clock = -1.0
@@ -54,7 +55,7 @@ func _judge_laps(distances: Array[float], seconds: float) -> void:
 	var bunch: Dictionary = peloton.sample(distances, credits, [])
 	if bunch.is_empty(): return
 	main_ids.assign(bunch.ids)
-	var positions: Array[float] = preload("res://peloton_state.gd").race_positions(distances, credits)
+	var positions: Array[float] = preload("res://peloton_state.gd").race_positions(distances, credits, LAP)
 	for i in range(distances.size()):
 		var change := 0
 		if positions[i] - float(bunch.tail) >= LAP - 0.00000001: change = 1

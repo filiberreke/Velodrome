@@ -279,6 +279,7 @@ func focus_keys() -> Array:
 	return keys
 
 func sample(time: float) -> Dictionary:
+	if game.venue.id == "gent": return _gent_sample(time)
 	if game.arena.simple_infield:
 		return chase_pose()
 	var close := _close_pose()
@@ -328,3 +329,20 @@ func apply_camera() -> bool:
 	return true
 
 
+
+func _gent_sample(time: float) -> Dictionary:
+	if game.arena.simple_infield: return chase_pose()
+	if time <= WELCOME_END: return _close_pose()
+	if game.race_mode in [4, 5] and time >= OPPONENT_START and time <= OPPONENT_END: return opponent_pose()
+	var chase := chase_pose()
+	var reveal := smooth_phase(clampf((time - (duration - 4.0)) / 4.0, 0.0, 1.0))
+	# Keep the tour over the timber, below the flat ceiling and clear of cabins.
+	var phase := fposmod(.72 + (time - WELCOME_END) / (duration - WELCOME_END) * .70, 1.0)
+	var eye: Vector3 = game._at(phase * game.LAP, 3.0)
+	eye.y = 9.0
+	var target: Vector3 = game._at(phase * game.LAP + 22.0, 1.8) + Vector3.UP * .8
+	var opening := smooth_phase(clampf((time - WELCOME_END) / 2.0, 0.0, 1.0))
+	var close := _close_pose()
+	eye = close.position.lerp(eye, opening).lerp(chase.position, reveal)
+	target = close.target.lerp(target, opening).lerp(chase.target, reveal)
+	return {"position": eye, "target": target, "fov": lerpf(68.0, chase.fov, reveal)}

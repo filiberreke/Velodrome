@@ -1,5 +1,7 @@
 # Uitvoeringstaken meerdere locaties
 
+Actuele aanvulling (26 november 2026): **Gent is aangesloten op wedstrijden en omnium**, met stadiumtegels, opslag per locatie en controles van beide baanlengtes. Zie [wedstrijdintegratie en validatie](WEDSTRIJDEN.md). De tekst hieronder bewaart de oorspronkelijke analyse en takenfase; openstaande oude vinkjes zijn geen actuele blokkadelijst.
+
 ## Afgerond op deze branch
 
 - [x] Branch `feature/multiple-venues` vanaf actuele `v0.4` maken.
