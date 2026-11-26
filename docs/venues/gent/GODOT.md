@@ -23,9 +23,13 @@ Deze weergave is bedoeld om de inrichting te beoordelen. Renners rijden een demo
 - **Twaalf sobere rennercabines op de aankomsthelft van het middenplein (+X).** De bestaande negen nationale huisjes op de overzijde van Vélodrome worden niet gebruikt.
 - Lage grijze wanden, open banken, flesplanken, nummerbordjes, gordijnroeden met opzijgeschoven gordijnen en losse stoelen. Fietsen zijn afzonderlijk geplaatste gedeelde fietsmeshes.
 - Een aparte technische zone met eenvoudig metalen raamwerk, werkbanken en rollers; een afgeschermde doorgang voor de renners scheidt die helft van het publiek.
-- Een eigen centrale bar en nieuw verdeeld middenpleinpubliek, geen automatisch overgenomen tenten, mascottes, nationale boxbemanning of specifieke supporters.
+- Twee lange centrale bareilanden met tapplaatsen en personeel, statafels in beide uiteinden en publiek over de volledige bruikbare ovale vloer. De technische zone bevat eigen medewerkers. Smalle doorgangen naar de cabines en een dwarsverbinding blijven vrij.
 - De bestaande official met vier animaties/attributen is losgemaakt naar `venues/race_official.gd`. Zowel Vélodrome als Gent gebruiken die controller. Gent stelt zijn eigen rondelengte in.
 - De bestaande tv-box met beide presentatoren staat op een eigen platform bij de aankomsttribune, op ware grootte.
+
+## Correctie middenplein — 26 november 2026
+
+De grote lege zone is vervangen door een verdeling over de volledige binnencontour. Bij de standaarddichtheid telt het middenplein 1.344 publiekspersonen; de eenvoudige uitvoering 596, op dezelfde beschikbare vloer. De plaatsing houdt rekening met counters, statafels, rennercabines, technische apparatuur en doorgangen. Publiek wordt per sector met afstandsafhankelijke detailniveaus getekend. De controle scant ook de voormalige lege uiteinden en de hoek aan de aankomstzijde.
 
 ## Wat is zeker en wat blijft een interpretatie?
 

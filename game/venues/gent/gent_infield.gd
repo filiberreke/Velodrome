@@ -5,12 +5,23 @@ var spectator_count := 0
 var cabins: Array[Node3D] = []
 var crowd: RefCounted
 var rng:=RandomNumberGenerator.new()
+var public_positions:Array[Vector3]=[]
+var public_boundary:=PackedVector2Array()
+var bar_footprints:Array[Rect2]=[]
+var table_positions:Array[Vector2]=[]
+const CABIN_FOOTPRINT:=Rect2(5.15,-24.6,3.3,33.1)
+const TECHNICAL_FOOTPRINT:=Rect2(0.0,8.6,5.25,12.8)
+const CREW_PASSAGE:=Rect2(3.9,-25.0,1.25,33.8)
+const CROSS_PASSAGE_Z:=5.0
+const CROSS_PASSAGE_HALF_WIDTH:=0.55
 func build(host: Node3D, profile: Resource, route: RefCounted, kit: RefCounted, simple: bool, density: float) -> void:
 	venue=profile;track=route;crowd=kit;rng.seed=20261121
 	_floor()
 	_cabins()
 	_technical_zone()
 	_bar()
+	_hospitality_tables()
+	_technical_staff()
 	_public(simple,density)
 	official=preload("res://venues/race_official.gd").new();official.name="GentRaceOfficial"
 	official.game=host;official.official_lap_m=venue.lap_length_m;add_child(official);official._build_flag_official()
@@ -71,8 +82,8 @@ func _cabins() -> void:
 	# Controlled crew passage between the public half and the cabins.
 	for z in range(-25,12,2):
 		if abs(z-5)<3:continue
-		beam("CrewRail",Vector3(2.2,1.0,z),Vector3(2.2,1.0,z+1.8),.04,mat("8d9693"))
-		beam("CrewRailPost",Vector3(2.2,0,z),Vector3(2.2,1.0,z),.04,mat("8d9693"))
+		beam("CrewRail",Vector3(3.9,1.0,z),Vector3(3.9,1.0,z+1.8),.04,mat("8d9693"))
+		beam("CrewRailPost",Vector3(3.9,0,z),Vector3(3.9,1.0,z),.04,mat("8d9693"))
 func _technical_zone() -> void:
 	var group:=Node3D.new();group.name="GentTechnicalZone";group.position=Vector3(2.6,0,15.0);add_child(group)
 	box("TechnicalFloor",Vector3(0,.01,0),Vector3(4.6,.035,12.0),mat("282d2c"),group)
@@ -90,25 +101,91 @@ func _technical_zone() -> void:
 		preload("res://venues/gent/parked_bike.gd").build(group,Vector3(.55,.18,-4.7+i*2.7),0.0)
 	var t:=label3("RENNERS",Vector3(0,2.65,-5.78),.4,Color("f2ede2"),group);t.rotation.y=PI
 func _bar() -> void:
-	var bar:=Node3D.new();bar.name="GentInfieldBar";bar.position=Vector3(-3.8,0,-2);add_child(bar)
-	box("PlainBarCounter",Vector3(0,.53,0),Vector3(3.1,1.06,9),mat("4e514b"),bar)
-	box("BarTop",Vector3(0,1.10,0),Vector3(3.4,.12,9.2),mat("b8ad91"),bar)
-	for z in [-3.,0.,3.]:
-		box("BarStation",Vector3(0,1.34,z),Vector3(.9,.3,.65),mat("929d9e"),bar)
-	for i in 15:
-		box("Cup",Vector3(1.23,1.28,-3.8+i*.5),Vector3(.10,.22,.10),mat("d9c9a4"),bar)
-func _public(simple: bool, density: float) -> void:
+	# Long, staffed counter islands occupy the middle rather than a tiny bar
+	# surrounded by unused floor. The transverse crossing remains open.
+	_bar_island("GentInfieldBar",Vector3(-3.7,0,-7.4),19.0)
+	_bar_island("GentNorthBar",Vector3(-3.7,0,11.5),10.6)
+
+func _bar_island(label:String,position:Vector3,length:float)->void:
+	var bar:=Node3D.new();bar.name=label;bar.position=position;add_child(bar)
+	bar_footprints.append(Rect2(position.x-1.95,position.z-length*.5-.25,3.9,length+.5))
+	box("BarWorkFloor",Vector3(0,.015,0),Vector3(3.5,.03,length),mat("282d2c"),bar)
+	for side in [-1.0,1.0]:
+		box("BarCounter",Vector3(side*1.4,.51,0),Vector3(.60,1.02,length),mat("4e514b"),bar)
+		box("BarRedFascia",Vector3(side*1.715,.52,0),Vector3(.035,.82,length-.08),mat("a72d35"),bar)
+		box("BarTop",Vector3(side*1.4,1.08,0),Vector3(.78,.12,length+.16),mat("b8ad91"),bar)
+	for end in [-1.0,1.0]:
+		box("BarEndCounter",Vector3(0,.51,end*(length*.5-.27)),Vector3(2.5,1.02,.54),mat("4e514b"),bar)
+		box("BarEndTop",Vector3(0,1.08,end*(length*.5-.27)),Vector3(2.82,.12,.72),mat("b8ad91"),bar)
 	var people:Dictionary={}
-	var count:=roundi((260 if simple else 680)*density)
-	var tries:=0
-	while spectator_count<count and tries<10000:
-		tries+=1
-		var p:=Vector3(rng.randf_range(-9,1.0),0,rng.randf_range(-25.5,26))
-		# Own zones: central public half, technical aisle and access kept free.
-		if absf(p.x+3.8)<2.0 and absf(p.z+2)<5.2:continue
-		if p.z>11.5 and p.x>0:continue
-		if absf(p.z-5.0)<1.25:continue
-		if Vector2(p.x,p.z).length()>29:continue
-		var basis:=Basis(Vector3.UP,rng.randf_range(-PI,PI))
-		Crowd.add_to_group(people,Crowd.STANDING[rng.randi()%Crowd.STANDING.size()],Transform3D(basis,p),crowd.random_look(rng));spectator_count+=1
-	crowd.emit_group(self,people,"GentOwnInfieldPublic",[[1,0.0,0.0]] if simple else [[0,0.0,0.0]])
+	for i in floori(length/2.6):
+		var z:float=-length*.5+1.3+float(i)*2.6
+		for side in [-1.0,1.0]:
+			box("TapBase",Vector3(side*1.4,1.19,z),Vector3(.35,.13,.48),mat("9aa6a5"),bar)
+			beam("TapStem",Vector3(side*1.4,1.22,z),Vector3(side*1.4,1.60,z),.045,mat("b8bdb9"),bar)
+			beam("TapSpout",Vector3(side*1.4,1.58,z),Vector3(side*1.23,1.58,z),.04,mat("b8bdb9"),bar)
+			for k in 3:box("Cup",Vector3(side*1.45,1.25,z+.5+k*.16),Vector3(.095,.22,.095),mat("d9c9a4"),bar)
+		box("BarStation",Vector3(0,.72,z),Vector3(1.65,.85,.85),mat("929d9e"),bar)
+		var p:=position+Vector3(0,0,z+.85)
+		var basis:=Basis(Vector3.UP,PI*.5 if i%2==0 else -PI*.5)
+		Crowd.add_to_group(people,"stand_f_relaxed" if i%2==0 else "stand_m_relaxed",Transform3D(basis,p),crowd.staff_look(rng,Color("845798"),.1))
+	crowd.emit_group(self,people,label+"Staff",[[0,0.0,0.0]])
+
+func _hospitality_tables()->void:
+	# Both curved ends and the former empty finish-side corner are used.
+	for p in [Vector2(-4,-26.3),Vector2(1,-29.2),Vector2(5.0,-27),Vector2(-7.9,20),Vector2(-5.0,26.1),Vector2(.0,27.8),Vector2(5.2,25.5),Vector2(8.2,17),Vector2(8.1,11.5),Vector2(-8.5,-18)]:
+		table_positions.append(p)
+		var table:=Node3D.new();table.name="GentStandingTable";table.position=Vector3(p.x,0,p.y);add_child(table)
+		var top:=MeshInstance3D.new();var mesh:=CylinderMesh.new();mesh.top_radius=.44;mesh.bottom_radius=.44;mesh.height=.07;mesh.radial_segments=16
+		top.mesh=mesh;top.position.y=1.12;top.material_override=mat("b8ad91");top.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;table.add_child(top)
+		beam("TableStem",Vector3(0,.04,0),Vector3(0,1.1,0),.075,mat("68736f"),table)
+		box("TableFoot",Vector3(0,.04,0),Vector3(.58,.07,.58),mat("68736f"),table)
+		for k in 3:box("TableCup",Vector3(-.18+k*.17,1.26,.08),Vector3(.09,.20,.09),mat("d9c9a4"),table)
+
+func _technical_staff()->void:
+	var people:Dictionary={}
+	for i in 8:
+		var p:=Vector3(.75+float(i%2)*2.7,0,10.5+float(i/2)*2.65)
+		Crowd.add_to_group(people,"stand_m_relaxed" if i%2==0 else "stand_f_relaxed",Transform3D(Basis(Vector3.UP,PI*.5),p),crowd.staff_look(rng,Color("436173"),.12))
+	crowd.emit_group(self,people,"GentTechnicalStaff",[[0,0.0,0.0]])
+
+func _public_floor_free(p:Vector2)->bool:
+	if not Geometry2D.is_point_in_polygon(p,public_boundary):return false
+	if CABIN_FOOTPRINT.has_point(p) or TECHNICAL_FOOTPRINT.has_point(p) or CREW_PASSAGE.has_point(p):return false
+	if absf(p.y-CROSS_PASSAGE_Z)<CROSS_PASSAGE_HALF_WIDTH:return false
+	# Keep the official's jury desk and the equipment passage accessible.
+	if Rect2(8.05,-12.1,2.0,4.2).has_point(p):return false
+	for bounds in bar_footprints:
+		if bounds.has_point(p):return false
+	for centre in table_positions:
+		if centre.distance_to(p)<.68:return false
+	return true
+
+func _public(simple: bool, density: float) -> void:
+	for i in 240:
+		var p:Vector3=track.at(venue.lap_length_m*float(i)/240.0,-2.95)
+		public_boundary.append(Vector2(p.x,p.z))
+	# Stratified placement fills the actual oval, including both ends and +X.
+	# Spacing prevents overlapping bodies; a grid of sectors keeps LOD local.
+	var groups:Dictionary={}
+	var spacing:=1.04 if simple else .69
+	var row:=0
+	var z:float=-34.0
+	while z<=34.0:
+		var x:float=-13.0+float(row%2)*spacing*.5
+		while x<=13.0:
+			var p:=Vector2(x+rng.randf_range(-.065,.065),z+rng.randf_range(-.065,.065))
+			if _public_floor_free(p) and rng.randf()<clampf(density,0.0,1.0):
+				var pos:=Vector3(p.x,0,p.y)
+				var key:=Vector2i(floori(p.x/8.0),floori(p.y/8.0))
+				if not groups.has(key):groups[key]={}
+				var yaw:=rng.randf_range(-PI,PI)
+				# People near a table/counter tend to face their group.
+				for centre in table_positions:
+					if centre.distance_to(p)<1.65:yaw=atan2(centre.x-p.x,centre.y-p.y)
+				Crowd.add_to_group(groups[key],Crowd.STANDING[rng.randi()%Crowd.STANDING.size()],Transform3D(Basis(Vector3.UP,yaw),pos),crowd.random_look(rng))
+				public_positions.append(pos);spectator_count+=1
+			x+=spacing
+		z+=spacing*.88;row+=1
+	for key in groups:
+		crowd.emit_group(self,groups[key],"GentOwnInfieldPublic%d_%d"%[key.x,key.y],[[1,0.0,0.0]] if simple else [[0,0.0,22.0],[1,22.0,0.0]])

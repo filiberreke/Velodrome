@@ -75,7 +75,7 @@ func set_view(index:int)->void:
 	match camera_index:
 		0:eye=Vector3(-24,13.0,34);target=Vector3(0,3.0,-3);fov=86.0
 		1:eye=Vector3(17,3.4,-18);target=Vector3(12,2.4,8);fov=86.0
-		2:eye=Vector3(3.2,2.2,-24.8);target=Vector3(7.0,1.15,-13);fov=78.0
+		2:eye=Vector3(4.45,2.2,-24.8);target=Vector3(7.0,1.15,-13);fov=78.0
 		_:eye=Vector3(22,10.9,-10);target=arena.suite.position+Vector3.UP*1.5;fov=70.0
 	camera.global_position=eye;camera.look_at(target);camera.fov=fov
 	if view_label!=null:view_label.text=tr(["GENT_VIEW_OVERVIEW","GENT_VIEW_TRACK","GENT_VIEW_CABINS","GENT_VIEW_BROADCAST"][camera_index])

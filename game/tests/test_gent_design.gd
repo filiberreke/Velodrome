@@ -27,6 +27,13 @@ func run()->void:
 	for cabin in scene.arena.infield.cabins:
 		check(cabin.position.x>0,"Cabins on finish-side half, unlike Vélodrome")
 		check(cabin.has_node("LowCabinBack") and cabin.has_node("RestBench") and cabin.has_node("CurtainRod"),"Simple cabin structure retained")
+	check_infield_coverage(scene.arena.infield,900)
+	var simple_field=preload("res://venues/gent/gent_infield.gd").new();root.add_child(simple_field)
+	simple_field.build(scene,v,track,scene.arena.crowd,true,.72)
+	check_infield_coverage(simple_field,350)
+	check(simple_field.spectator_count<scene.arena.infield.spectator_count,"Simple mode reduces public geometry")
+	print("GENT_INFIELD_COUNTS standard=%d simple=%d"%[scene.arena.infield.spectator_count,simple_field.spectator_count])
+	simple_field.free()
 	check(scene.arena.official.official_clips.size()==4,"Shared official carries all four animations")
 	check(absf(scene.arena.official.official_lap_m-v.lap_length_m)<.0001,"Official uses Gent lap length")
 	check(scene.arena.suite.voices.size()==2,"Both original presenters retained")
@@ -39,3 +46,21 @@ func run()->void:
 	scene.free();await process_frame
 	print("GENT_DESIGN_OK" if failures==0 else "GENT_DESIGN_FAILED %d"%failures)
 	quit(0 if failures==0 else 1)
+
+func check_infield_coverage(field,min_count:int)->void:
+	check(field.public_positions.size()>min_count,"Infield is populated across its usable oval")
+	for p in field.public_positions:
+		check(field._public_floor_free(Vector2(p.x,p.z)),"Crowd leaves counters, technical area and crossings clear")
+	var occupied_regions:=[0,0,0]
+	for p in field.public_positions:
+		if p.z>23.0:occupied_regions[0]+=1
+		if p.z< -25.0:occupied_regions[1]+=1
+		if p.x>5.25 and p.z>10.0:occupied_regions[2]+=1
+	for count in occupied_regions:check(count>12,"Formerly empty ends and finish-side corner are populated")
+	for x in range(-10,11,2):
+		for z in range(-30,31,2):
+			var probe:=Vector2(x,z)
+			if not field._public_floor_free(probe):continue
+			var nearest:=INF
+			for p in field.public_positions:nearest=minf(nearest,probe.distance_to(Vector2(p.x,p.z)))
+			check(nearest<2.1,"No broad unused patch remains on public floor")
