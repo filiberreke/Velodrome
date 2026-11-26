@@ -32,7 +32,22 @@ In wereldcoördinaten ligt de finish op +X, de rennerzone op -X en de nabije boc
 
 ## Branding en overige bouw
 
-De rode vlakken waarvoor de foto witte Lotto-reclame toont, gebruiken het **witte Vélodrome-logo op rood**. De bestaande transparante woordmerktextuur wordt via een gedeelde shader als witte inkt weergegeven, met behoud van de verhoudingen. Dit is toegepast op 28 buitenboardingpanelen, 24 middenpleinpanelen en vijf rode pistepanelen. De originele logo-assets blijven behouden. Andere zichtbare fotoreclame wordt niet gekopieerd.
+De rode sponsorvlakken gebruiken een aparte, vooraf uitgewerkte **PNG van het witte Vélodrome-logo op rood**: `game/assets/boarding/velodrome-boarding-rood.png` (2172 × 724). De oorspronkelijke meerkleurige 3D-woordmerktextuur wordt hiervoor niet meer tijdens het renderen ontleed. De PNG wordt verliesvrij geïmporteerd, met mipmaps en anisotrope filtering. Lettervormen behouden hun verhouding en antialiasing. De rode bannerachtergrond en de boarding gebruiken dezelfde materiaalwaarde **#D82632**, ruwheid en specular; de subtiele achtergrondvariatie van de PNG wordt niet overgenomen op de boarding.
+
+Alle twintig pistevakken bevatten nu onze eigen sponsorafbeeldingen. De hoofdkleur is gekozen op basis van de aangeleverde foto; dit is een kleurbenadering binnen de spelgeometrie, geen opgemeten kopie van de foto.
+
+| Kleurfamilie in de foto | Gekozen bestaande spelbanners | Aantal pistevakken |
+|---|---|---|
+| Rood met witte opdruk | Nieuwe witte Vélodrome-PNG | 6 |
+| Wit / licht / ivoor | Eerlijke Stef licht, Vélodrome licht, Sjampanje ivoor | 6 |
+| Geel met donkere opdruk | Tour d’Ambiance, Chasse Patate | 3 |
+| Groen met lichte opdruk | Sjampanje groen | 2 |
+| Blauw | PelotonPredictor, Wielerpraat | 2 |
+| Donker | Eerlijke Stef donker | 1 |
+
+De expliciete volgorde staat in `gent_sponsors.gd`. De afbeeldingen worden zonder uitrekken in de gebogen baanvlakken geplaatst. Op de buitenboarding blijven 28 witte Vélodrome-opdrukken staan, met leesbare opdruk aan beide zijden. De 24 opdrukken bij het middenplein liggen vlak op de rode/oranje binnenstrook, zoals op de foto. Er hangen geen reclamevlakken in de middenpleinomheining; daar blijven alleen de leuning en palen over. De vloeropdruk gebruikt hetzelfde oranje als de onderliggende strook, zodat de witte letters rechtstreeks geschilderd lijken. De overige sponsorassets zijn ongewijzigd hergebruikt.
+
+De zwevende zonebenamingen **Renners/techniek** en **Mixed zone** zijn verwijderd. Alleen tekst die zichtbaar op een fysiek paneel, bord of display hoort te staan, blijft behouden (zoals de boxnummers, pers-/jurybordjes, medische post en rondenteller).
 
 De baan blijft 166⅔ m met maximaal 52° banking en zeven meter houtoppervlak, een blauwe strook en een oranje binnenzone. De eigen gele tribunes, rechthoekige hal, vlak plafond en wanddecoratie blijven onderdeel van Gent. De bestaande official behoudt zijn vier animaties en attributen; de tv-box behoudt beide presentatoren op zijn eigen platform bij de aankomsttribune. Er worden geen Vélodrome-tenten of nationale rennerhuisjes overgenomen.
 

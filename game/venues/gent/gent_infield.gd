@@ -42,7 +42,7 @@ func _floor() -> void:
 		var b: Vector3=track.at(venue.lap_length_m*float(i+1)/600,0)
 		a.y=-.01;b.y=-.01;v.append_array(PackedVector3Array([Vector3(0,-.01,0),a,b]))
 	surface("GentOwnInfieldFloor",v,mat("393a38"))
-	ring("GentOrangeInnerWalkway",-2.25,-.05,mat("f25225"),0,-1,.015,true)
+	ring("GentOrangeInnerWalkway",-2.25,-.05,mat(venue.palette.orange),0,-1,.015,true)
 	# Infield rail in its own layout, with a controlled opening at the straight.
 	for i in 220:
 		var s: float=venue.lap_length_m*float(i)/220
@@ -51,7 +51,7 @@ func _floor() -> void:
 		var q: Vector3=track.at(s+venue.lap_length_m/220,-2.4);q.y=0
 		beam("GentInfieldHandrail",p+Vector3.UP*1.08,q+Vector3.UP*1.08,.055,mat("b7b0a1"))
 		if i%3==0:beam("GentRailPost",p,p+Vector3.UP*1.08,.055,mat("6c7477"))
-	branding_ring("GentWhiteLogoRedInfieldBoarding",-2.43,.08,.55,24,true)
+	branding_floor("GentWhiteLogoInnerWalkway",24)
 func _cabins() -> void:
 	for i in 12:
 		var cabin:=Node3D.new();cabin.name="GentRiderCabin%02d"%(i+1)
@@ -88,7 +88,6 @@ func _technical_zone() -> void:
 		box("RollerBase",Vector3(-.35,.08,z+1.8),Vector3(.8,.08,1.45),mat("43809b"),group)
 		for dz in [-.5,.4]:box("Roller",Vector3(-.35,.15,z+1.8+dz),Vector3(.74,.14,.14),mat("b8bdb9"),group)
 		preload("res://venues/gent/parked_bike.gd").build(group,Vector3(-.35,.18,z+1.8),0.0)
-	var t:=label3(tr("GENT_ZONE_TECHNICAL"),Vector3(0,1.55,-19.3),.25,Color("f2ede2"),group);t.rotation.y=PI
 
 func _fence(a:Vector3,b:Vector3,parent:Node3D)->void:
 	var metal:=mat("8e9695")
@@ -164,7 +163,6 @@ func _press_and_medical()->void:
 	interview_backdrop.position.z=.80;interview_backdrop.rotation.y=PI;mixed_zone.add_child(interview_backdrop)
 	preload("res://podium_sponsor_wall.gd").build(interview_backdrop)
 	box("BackdropBacking",Vector3(0,1.4,1.69),Vector3(3.6,2.4,.10),mat("243b55"),mixed_zone)
-	var mixedsign:=label3(tr("GENT_ZONE_MIXED"),Vector3(0,2.82,1.59),.22,Color("f2ede2"),mixed_zone);mixedsign.rotation.y=PI
 	for x in [-1.3,1.35]:
 		var p:=Vector3(x,1.50,-1.25)
 		box("PressCamera",p,Vector3(.25,.23,.45),mat("182029"),mixed_zone)

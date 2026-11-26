@@ -36,18 +36,17 @@ func _track() -> void:
 		ring("TrackLine",mark[0],mark[0]+0.05,mat(mark[1]),0,-1,0.014)
 	ring("GentFinishWhite",0,venue.track_outer_offset_m,mat("f2ede2"),-0.36,0.72,0.02)
 	ring("GentFinishBlack",0,venue.track_outer_offset_m,mat("14191d"),-0.02,0.04,0.028)
-	# Own panel rhythm, without any photographed sponsor textures or logos.
-	for i in 20:
+	# Photo colour order, using only our existing sponsor artwork.
+	var sponsors=preload("res://venues/gent/gent_sponsors.gd").PANELS
+	for i in sponsors.size():
 		var s: float=(float(i)+0.25)*venue.lap_length_m/20.0
-		var colors: Array[String]=["e7ce6f","dbe5dd","dee8ef","254568","e4d3b8"]
-		if i%4==1:branding_track(s,5.1)
-		else:ring("OriginalTrackPanel",4.7,7.4,mat(colors[i%colors.size()]),s,5.1,0.016)
+		sponsor_track(sponsors[i][0],s,5.1,sponsors[i][1],i)
 	var verts:=PackedVector3Array()
 	for i in 700:
 		var a: Vector3=track.at(venue.lap_length_m*float(i)/700.0,7.8)
 		var b: Vector3=track.at(venue.lap_length_m*float(i+1)/700.0,7.8)
 		verts.append_array(PackedVector3Array([a,b,a+Vector3.UP*0.90,b,b+Vector3.UP*0.90,a+Vector3.UP*0.90]))
-	surface("GentRedOuterBoarding",verts,mat("d82632"))
+	surface("GentRedOuterBoarding",verts,mat(BOARDING_RED))
 	branding_ring("GentWhiteLogoRedOuterBoarding",7.76,.10,.68,28)
 func _hall() -> void:
 	box("GentFloor",Vector3(0,-0.24,0),Vector3(68,0.28,86),mat("343638"))

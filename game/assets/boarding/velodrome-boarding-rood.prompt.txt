@@ -1,0 +1,10 @@
+Asset: velodrome-boarding-rood.png
+Purpose: Gent white Vélodrome sponsor wordmark on red; reused on track and boarding.
+Source reference: game/assets/branding/velodrome_wordmark.png
+Method: built-in image generation/editing, preserving the existing brand lettering.
+
+Prompt:
+Create a production PNG sponsor banner by editing the supplied Vélodrome logo. Preserve the exact italic letterforms, accent on é and racetrack-shaped o. Text: Vélodrome. Flatten the front lettering and the oval track symbol to pure white (#FFFFFF); remove all blue outlines/extrusions, gold, gradients, shadows and bevels. Use one perfectly uniform opaque flat red background sRGB #D82632, edge to edge. Crisp print-ready edges with clear open letter counters, no blur or texture. Wide 4:1 banner, at least 2048 pixels wide, centred white wordmark at its original proportions, with balanced clear red margins. Absolutely no extra text, border, texture, shading or lighting. This is a flat Godot game texture, not a mockup or photographed sign.
+
+Integration:
+The output is 2172 x 724. Its letterforms are used directly. Gent crops generous red margins through UVs, fits artwork without stretching, and maps background to the shared #D82632 boarding material. The PNG is imported losslessly with mipmaps; the banner sampler uses anisotropic filtering. The same white ink is also painted onto the inner apron using its shared orange surface colour. The original source wordmark and other venue banners are unchanged.

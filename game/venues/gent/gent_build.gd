@@ -3,11 +3,27 @@ extends Node3D
 var track: RefCounted
 var venue: Resource
 var materials := {}
+const BOARDING_RED:="d82632"
+const RED_POSTER:Texture2D=preload("res://assets/boarding/velodrome-boarding-rood.png")
 func red_logo_material(aspect:float,two_sided:bool=false)->ShaderMaterial:
-	var key:="white_velodrome_red_"+str(aspect)+str(two_sided)
+	return banner_material(RED_POSTER,aspect,two_sided)
+
+func banner_material(poster:Texture2D,aspect:float,two_sided:bool=false,background:Color=Color("d82632"))->ShaderMaterial:
+	var key:=poster.resource_path+str(aspect)+str(two_sided)+background.to_html()
 	if materials.has(key):return materials[key]
-	var material:=ShaderMaterial.new();material.shader=preload("res://venues/gent/white_logo_red.gdshader")
-	material.set_shader_parameter("wordmark",preload("res://assets/branding/velodrome_wordmark.png"))
+	var material:=ShaderMaterial.new();material.shader=preload("res://venues/gent/gent_banner.gdshader")
+	material.set_shader_parameter("poster",poster)
+	var poster_aspect:=float(poster.get_width())/float(poster.get_height())
+	if poster==RED_POSTER:
+		# Trim only the generous outer red margin through UVs; preserve the PNG.
+		material.set_shader_parameter("art_uv",Vector4(.012,.1906,.9807,.5497))
+		poster_aspect*=.9807/.5497
+		material.set_shader_parameter("white_on_red",true)
+	material.set_shader_parameter("poster_aspect",poster_aspect)
+	var image:=poster.get_image()
+	if image.is_compressed():image.decompress()
+	material.set_shader_parameter("margin_colour",image.get_pixel(maxi(1,image.get_width()/100),maxi(1,image.get_height()/100)))
+	material.set_shader_parameter("boarding_red",background)
 	material.set_shader_parameter("panel_aspect",aspect)
 	material.set_shader_parameter("two_sided_banner",two_sided);materials[key]=material
 	return material
@@ -29,7 +45,22 @@ func branding_ring(label:String,offset:float,lift:float,height:float,count:int,f
 	var panel:=surface(label,vertices,red_logo_material(4.2/height,true),uv)
 	panel.set_meta("brand_panels",count)
 
-func branding_track(start:float,length:float)->void:
+func branding_floor(label:String,count:int)->void:
+	var vertices:=PackedVector3Array();var uv:=PackedVector2Array()
+	var middle_offset:float=-1.15
+	for i in count:
+		var centre:float=venue.lap_length_m*(float(i)+.5)/float(count)
+		var speed:float=track.at(centre+.1,middle_offset).distance_to(track.at(centre-.1,middle_offset))/.2
+		var span:=4.2/maxf(.2,speed)
+		for segment in 24:
+			for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),Vector2(1,0),Vector2(1,1),Vector2(0,1)]:
+				var along:float=(float(segment)+corner.x)/24.0
+				var p:Vector3=track.at(centre+(along-.5)*span,lerpf(-2.20,-.10,corner.y))
+				p.y=.021;vertices.append(p);uv.append(Vector2(1.0-along,1.0-corner.y))
+	var paint:=surface(label,vertices,banner_material(RED_POSTER,4.2/2.10,false,Color(venue.palette.orange)),uv)
+	paint.set_meta("brand_panels",count)
+
+func sponsor_track(poster:Texture2D,start:float,length:float,family:String,slot:int)->void:
 	var vertices:=PackedVector3Array();var uv:=PackedVector2Array()
 	for segment in 40:
 		for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),Vector2(1,0),Vector2(1,1),Vector2(0,1)]:
@@ -38,7 +69,10 @@ func branding_track(start:float,length:float)->void:
 			uv.append(Vector2(1.0-along,1.0-corner.y))
 	var middle:=start+length*.5
 	var width:float=track.at(middle+.1,6.05).distance_to(track.at(middle-.1,6.05))/.2*length
-	surface("GentWhiteLogoRedTrackPanel%d"%roundi(start),vertices,red_logo_material(width/2.7),uv)
+	var panel:=surface("GentTrackSponsor%02d"%slot,vertices,banner_material(poster,width/2.7),uv)
+	panel.set_meta("sponsor_texture",poster.resource_path)
+	panel.set_meta("reference_colour",family)
+	panel.set_meta("slot",slot)
 
 func mat(hex: String, rough := 0.85, glow := 0.0) -> StandardMaterial3D:
 	var key := hex + str(rough) + str(glow)

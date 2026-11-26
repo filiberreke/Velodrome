@@ -23,4 +23,12 @@ De actuele scène is een inrichting-/ontwerpweergave met demonstratierenners. De
 
 Na de fotocorrectie zijn vier nieuwe Godot-renders gemaakt en bekeken. De dekkingstest controleert dat toegankelijke publieksvloer overal binnen 2,1 m van een bezoeker ligt en dat alle werkzones vrij blijven van bezoekers. Bij standaarddichtheid: 1.388 publiekspersonen; eenvoudig: 604. Medewerkers en tribunes staan daar los van.
 
-De geometrie- en inrichtingstest is na deze correctie opnieuw uitgevoerd, inclusief cameraoriëntatie, de gedeelde backdrop en de branding. Ook de configuratie- en lokalisatietests zijn opnieuw uitgevoerd. De overige regressietests in de tabel zijn uitgevoerd bij de oorspronkelijke Gent-integratie. De CSV is opnieuw opgebouwd voor de renders; de vijf nieuwe zonebenamingen zijn in Nederlands en Engels gecontroleerd.
+De geometrie- en inrichtingstest is na deze correctie opnieuw uitgevoerd, inclusief cameraoriëntatie, de gedeelde backdrop en de branding. Ook de configuratie- en lokalisatietests zijn opnieuw uitgevoerd. De overige regressietests in de tabel zijn uitgevoerd bij de oorspronkelijke Gent-integratie. De CSV is opnieuw opgebouwd voor de renders; de drie behouden paneelbenamingen zijn in Nederlands en Engels gecontroleerd.
+
+## Sponsor- en tekstcorrectie
+
+Na de bannerwijziging zijn de Gent-inrichtingstest en lokalisatietest opnieuw uitgevoerd. Extra controles: alle twintig pistevakken bevatten een bestaand sponsorbeeld of de nieuwe rode Vélodrome-PNG, de kleurverdeling bevat zes families, rode banners delen exact de boardingkleur, de nieuwe PNG is ten minste 2048 px breed en heeft mipmaps, en de zwevende technische/mixed-zonebenamingen ontbreken. Vier echte Godot-renders zijn vernieuwd om scherpte, roodovergang en plaatsing visueel te beoordelen.
+
+Een aparte gerenderde kleurcontrole met identieke vlakken en gelijke belichting meet voor de rode bannerachtergrond en de basisboarding een maximaal kanaalverschil van **0/255** op de vergeleken kleurmonsters. De definitieve overzichts- en detailbeelden zijn daarna opnieuw opgenomen; de ongewenste zwarte opvulranden ontbreken.
+
+De middenpleinreclame is daarna naar de rode/oranje vloer verplaatst. De opnieuw geslaagde inrichtingstest controleert dat alle vertices van die opdruk op vloerhoogte liggen, de achtergrondkleur gelijk is aan de binnenstrook en de oude reclamevlakken in de omheining ontbreken. De vier screenshots tonen deze definitieve plaatsing.

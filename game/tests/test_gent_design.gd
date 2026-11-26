@@ -43,11 +43,15 @@ func run()->void:
 	check(not scene.arena.has_node("InfinityScreen") and scene.find_child("Rennersboxen",true,false)==null,"No automatic Vélodrome decor import")
 	check(scene.arena.seat_count>2000 and scene.arena.spectator_count>1000,"Own Gent terraces and crowd")
 	check(scene.arena.get_node("GentWhiteLogoRedOuterBoarding").get_meta("brand_panels")==28,"White Vélodrome logo on red repeats around the outer boarding")
-	check(scene.arena.infield.get_node("GentWhiteLogoRedInfieldBoarding").get_meta("brand_panels")==24,"White Vélodrome logo on red repeats around the infield")
-	check(scene.arena.find_children("GentWhiteLogoRedTrackPanel*","MeshInstance3D",false,false).size()==5,"Red Vélodrome panels on the track replace the reference sponsor locations")
+	var floor_logo=scene.arena.infield.get_node("GentWhiteLogoInnerWalkway")
+	check(floor_logo.get_meta("brand_panels")==24,"White Vélodrome logo is painted on the inner apron floor")
+	check(scene.arena.infield.find_child("GentWhiteLogoRedInfieldBoarding",false,false)==null,"No advertisements hang in the infield fence")
+	check(floor_logo.material_override.get_shader_parameter("boarding_red")==scene.arena.infield.get_node("GentOrangeInnerWalkway").material_override.albedo_color,"Floor lettering shares the apron background colour")
+	for vertex in floor_logo.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:check(absf(vertex.y-.021)<.0001,"Inner sponsor artwork lies flat on the floor")
+	check_sponsor_panels(scene.arena)
 	for locale in ["nl","en"]:
 		TranslationServer.set_locale(locale)
-		for key in ["GENT_ZONE_PRESS","GENT_ZONE_MEDICAL","GENT_ZONE_MIXED","GENT_ZONE_JURY","GENT_ZONE_TECHNICAL"]:check(tr(key)!=key,"Zone sign translated: "+locale+" "+key)
+		for key in ["GENT_ZONE_PRESS","GENT_ZONE_MEDICAL","GENT_ZONE_JURY"]:check(tr(key)!=key,"Mounted zone sign translated: "+locale+" "+key)
 	for i in 4:
 		scene.set_view(i)
 		check(scene.camera.position.y<16.0 and scene.camera.position.y>0,"Camera inside the hall")
@@ -95,3 +99,27 @@ func check_photo_layout(scene,track)->void:
 	check(screen_finish.x<screen_team.x,"Photo camera puts finish on LEFT and team services on RIGHT")
 	check(screen_finish.x<root.get_visible_rect().size.x*.4,"Finish remains on the left side of the overview")
 	check(scene.camera.position.z< -35,"Photo camera looks from the same near bend")
+	for sign in field.find_children("*","Label3D",true,false):
+		check(not sign.text in ["RENNERS / TECHNIEK","TEAM SERVICES","MIXED ZONE","GENT_ZONE_TECHNICAL","GENT_ZONE_MIXED"],"No floating technical or mixed-zone text")
+
+func check_sponsor_panels(arena)->void:
+	var panels=arena.find_children("GentTrackSponsor*","MeshInstance3D",false,false)
+	check(panels.size()==20,"Every track sponsor slot contains actual artwork")
+	check(arena.find_children("OriginalTrackPanel*","MeshInstance3D",false,false).is_empty(),"No blank colour placeholders remain")
+	var families:Dictionary={}
+	var red_count:=0
+	for panel in panels:
+		var path:String=panel.get_meta("sponsor_texture")
+		var family:String=panel.get_meta("reference_colour")
+		families[family]=true
+		check(ResourceLoader.exists(path),"Sponsor artwork is available: "+path)
+		var material:ShaderMaterial=panel.material_override
+		check(material.get_shader_parameter("poster").resource_path==path,"Track material uses the selected existing banner")
+		if family=="red":
+			red_count+=1
+			check(path=="res://assets/boarding/velodrome-boarding-rood.png","Red slots use the new baked PNG")
+			check(material.get_shader_parameter("boarding_red")==arena.get_node("GentRedOuterBoarding").material_override.albedo_color,"Banner background exactly shares the boarding colour")
+	check(red_count==6 and families.size()==6,"Photo palette includes red, light, yellow, green, blue and dark sponsor slots")
+	var png:Texture2D=load("res://assets/boarding/velodrome-boarding-rood.png")
+	check(png.get_width()>=2048,"Red wordmark PNG has enough source resolution")
+	check(png.get_image().has_mipmaps(),"PNG has mipmaps for clean distant track views")
