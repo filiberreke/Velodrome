@@ -9,6 +9,7 @@ Branch: `feature/multiple-venues`, gebaseerd op `v0.4` / `13c952320324317b72b7b6
 - Iedere spelinstantie krijgt een eigen kopie van de configuratie, inclusief geneste tabellen.
 - Het geometriescript accepteert een profiel en bouwt ook voor een kortere, niet op 5 cm afgeronde baanlengte een gesloten piste. Een synthetisch profiel controleert dit; dit is geen goedgekeurde reconstructie van Gent.
 - **Gent heeft nu een interactieve Godot-ontwerpweergave**, zie [openen en inrichting](gent/GODOT.md). De oorspronkelijke analyse staat in [ontwerp en bouwbrief](gent/ontwerp.md), [referenties](gent/referenties.md), [technische taken](taken.md) en [validatie](validatie.md).
+- De [gerenderde FPS-vergelijking](PERFORMANCE.md) bevat een herhaalbaar protocol, ruwe metingen en gecontroleerde camerabeelden van beide stadions; de beschikbare meetmachine gebruikt software-rendering.
 
 Gent wordt pas als speelbare locatie geregistreerd nadat de ontwerpkeuze is goedgekeurd, de eigen inrichting is gebouwd en alle wedstrijdsystemen de gekozen baanlengte gebruiken. De catalogus geeft voor een onbekend id `null`; zo kan een ontbrekende locatie nooit onbedoeld de aankleding van Vélodrome krijgen.
 
