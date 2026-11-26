@@ -4,7 +4,7 @@
 
 | Controle | Resultaat |
 |---|---|
-| `test_gent_design.gd` | Geslaagd: nominale zesrondenbaan, gesloten lus, 7 m oppervlakbreedte, 52° banking, productiecoördinaten op Vélodrome, twaalf lage open rennerboxen tegenover de finish; jury, bel en uitkragende rondenteller aan de echte finish; twee perszones, centrale medische post en mixed zone; hergebruik van beide zijden van de Vélodrome-backdrop; camera met finish links; wit logo op rode piste-/boardingpanelen; vertaalde zones; publieksdekking in normale en eenvoudige uitvoering |
+| `test_gent_design.gd` | Geslaagd: nominale zesrondenbaan, gesloten lus, 7 m oppervlakbreedte, 52° banking, productiecoördinaten op Vélodrome, twaalf overdekte rennerboxen met bed en gordijnen tegenover de finish, met de openingen naar de piste; jury, bel en uitkragende rondenteller aan de echte finish; twee perszones, centrale medische post en mixed zone; hergebruik van beide zijden van de Vélodrome-backdrop; camera met finish links; wit logo op rode piste-/boardingpanelen; vertaalde zones; publieksdekking in normale en eenvoudige uitvoering |
 | `test_venue_configuration.gd` | Opnieuw geslaagd na de fotocorrectie: beide locatieprofielen en de standaardconfiguratie |
 | `test_official_ready.gd` | Geslaagd: bestaande official behoudt zijn vier clips, props en resetgedrag na extractie naar gedeeld script |
 | `test_finish_line_race.gd` | Geslaagd: echte Vélodrome-puntenkoers met start, sprints, official en finish |
@@ -34,3 +34,5 @@ Een aparte gerenderde kleurcontrole met identieke vlakken en gelijke belichting 
 De middenpleinreclame is daarna naar de rode/oranje vloer verplaatst. De opnieuw geslaagde inrichtingstest controleert dat alle vertices van die opdruk op vloerhoogte liggen, de achtergrondkleur gelijk is aan de binnenstrook en de oude reclamevlakken in de omheining ontbreken. De vier screenshots tonen deze definitieve plaatsing.
 
 De vloerlogo’s zijn vervolgens 180° gedraaid, zodat ze vanaf de buitenzijde leesbaar zijn. De Gent-inrichtingstest is opnieuw geslaagd. Standpunt 3 kijkt nu loodrecht op de rij rennerboxen vanaf de buitenste tribune, over de piste heen. De capturer maakt daarnaast een dichter frontaal detailbeeld vanaf dezelfde zijde (`05-rennersboxen-frontaal-detail.jpg`); beide zijn echte Godot-renders.
+
+De laatste boxcorrectie hergebruikt de bestaande Vélodrome-bed-/gordijnconstructie via een Gent-variant met vast dak. De opnieuw geslaagde Gent-test controleert dat elke box die gedeelde constructie gebruikt, twee gordijnen en een dak heeft, en dat de ingang van het publiek weg naar de piste wijst. De materiaalperken van de nationale Vélodrome-boxen worden niet overgenomen. De vijf screenshots zijn vernieuwd om het interieur vanaf de piste te beoordelen.

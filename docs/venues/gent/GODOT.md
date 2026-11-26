@@ -20,13 +20,13 @@ De correctie van 26 november 2026 volgt de foto en toelichting van de projecteig
 | Plaats in het foto-overzicht | Godot-inrichting |
 |---|---|
 | Links naast de finish | Met dranghekken afgeschermde juryzone, werktafel/laptop, official, bel en een kleine tweezijdige rondenteller op een uitkragende arm bij de binnenrand van de piste |
-| Rechts, tegenover de finish | Twaalf lage open rennerboxen, rustbanken, dekens, flesplanken, stoelen en verhoogde fietsenrekken; technische strook met werkbanken, koffers, rollers, fietsen en medewerkers |
+| Rechts, tegenover de finish | Twaalf overdekte rennerboxen met een bed, matras, kussen, deken, materiaalplank en geplooide gordijnen; de openingen wijzen naar de piste. Technische strook met werkbanken, koffers, rollers, fietsen en medewerkers |
 | Nabije bocht, links en rechts | Twee open perswerkplekken met zwarte tafelrokken, laptops, notities, stoelen en journalisten |
 | Tussen de perswerkplekken | Mixed zone met camera's op statieven, interviewfiguren en de **bestaande tweezijdige wit/blauwe Vélodrome-backdrop**, rechtstreeks gebouwd door `podium_sponsor_wall.gd` |
 | Centraal vooraan in de bocht | Medische post met herkenbaar groen kruis, behandeltafel, materiaal en medewerkers in fluorescerende kledij |
 | Overige bruikbare binnenvloer | Publiekszone, met enkele kleine statafels; geen grote centrale bareilanden |
 
-De eerdere hoge grijze cabines met zittende figuren zijn vervangen door lage open servicevakken. De figuren in die cabines zijn verwijderd. De grote centrale bareilanden uit het vorige ontwerp zijn eveneens verwijderd.
+De Gent-boxen gebruiken nu de bestaande bed-/gordijnconstructie uit `rennersboxen/rider_box.gd`. De Gent-variant voegt een vast dak, een genummerde voorlijst en een fietsenrek boven het dak toe. De bedden hebben dezelfde matras van 2,00 × 0,85 m, kussens, gevouwen beddengoed en materiaalplanken als Vélodrome. De sober grijze panelen en effen geplooide gordijnen behouden de eigen Gent-afwerking. De ingang met gordijnen staat aan de pistezijde; de achterwand scheidt de box van techniek en publiek. De grote centrale bareilanden blijven verwijderd.
 
 In wereldcoördinaten ligt de finish op +X, de rennerzone op -X en de nabije bocht op -Z. De jurypositie en uitkragende rondenteller zijn afgeleid van de echte baanpositie van de finish, niet los op zicht geplaatst. De rondenteller toont in deze ontwerpweergave het voorbeeldcijfer 6.
 
@@ -49,7 +49,7 @@ De expliciete volgorde staat in `gent_sponsors.gd`. De afbeeldingen worden zonde
 
 De zwevende zonebenamingen **Renners/techniek** en **Mixed zone** zijn verwijderd. Alleen tekst die zichtbaar op een fysiek paneel, bord of display hoort te staan, blijft behouden (zoals de boxnummers, pers-/jurybordjes, medische post en rondenteller).
 
-De baan blijft 166⅔ m met maximaal 52° banking en zeven meter houtoppervlak, een blauwe strook en een oranje binnenzone. De eigen gele tribunes, rechthoekige hal, vlak plafond en wanddecoratie blijven onderdeel van Gent. De bestaande official behoudt zijn vier animaties en attributen; de tv-box behoudt beide presentatoren op zijn eigen platform bij de aankomsttribune. Er worden geen Vélodrome-tenten of nationale rennerhuisjes overgenomen.
+De baan blijft 166⅔ m met maximaal 52° banking en zeven meter houtoppervlak, een blauwe strook en een oranje binnenzone. De eigen gele tribunes, rechthoekige hal, vlak plafond en wanddecoratie blijven onderdeel van Gent. De bestaande official behoudt zijn vier animaties en attributen; de tv-box behoudt beide presentatoren op zijn eigen platform bij de aankomsttribune. De nationale themabekleding, tenten en grote materiaalperken van Vélodrome worden niet automatisch overgenomen; de bed-/gordijnconstructie wordt op uitdrukkelijk verzoek wel hergebruikt voor de Gent-boxen.
 
 Bij standaarddichtheid bevat de bruikbare publieksvloer 1.388 bezoekers, in de eenvoudige uitvoering 604. Medewerkers en tribunes staan los van die telling. Publiek wordt per sector met afstandsafhankelijke detailniveaus weergegeven. De bezetting respecteert de medische, pers-, interview-, jury- en rennerzones.
 

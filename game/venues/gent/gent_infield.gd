@@ -54,28 +54,14 @@ func _floor() -> void:
 	branding_floor("GentWhiteLogoInnerWalkway",24)
 func _cabins() -> void:
 	for i in 12:
-		var cabin:=Node3D.new();cabin.name="GentRiderCabin%02d"%(i+1)
-		# Open service bays on the straight OPPOSITE the finish, as in the photo.
-		cabin.position=Vector3(-8.35,0,-18.0+float(i)*3.15);cabin.rotation.y=PI/2;add_child(cabin);cabins.append(cabin)
+		var cabin:=preload("res://venues/gent/gent_rider_box.gd").new();cabin.name="GentRiderCabin%02d"%(i+1)
+		cabin.pair_number=i+1;cabin.visual_seed=166000+i
+		cabin.fabric_hex=["6c7d78","63767b","7d7d6f"][i%3]
+		cabin.curtain_open=[.90,.84,.76,.88][i%4]
+		# Local +Z entrance faces world -X: toward the piste, away from public.
+		cabin.position=Vector3(-8.35,0,-18.0+float(i)*3.15);cabin.rotation.y=-PI/2;add_child(cabin);cabins.append(cabin)
 		cabin.set_meta("pair_number",i+1)
-		var grey:=mat("a4aaa8");var dark:=mat("323738");var curtain:=mat("757c73")
-		box("LowCabinBack",Vector3(0,.40,-.92),Vector3(3.04,.80,.08),grey,cabin)
-		for side in [-1.0,1.0]:
-			box("PlainDivider",Vector3(side*1.49,.48,0),Vector3(.06,.96,1.90),grey,cabin)
-		# No seated crowd poses in cells: equipment, a folding cot and a towel
-		# make the purpose legible. Spare bikes hang above the trackside rack.
-		box("RestBench",Vector3(0,.46,-.28),Vector3(2.65,.13,.78),mat("827965"),cabin)
-		for x in [-1.05,1.05]:beam("CotLeg",Vector3(x,.05,-.62),Vector3(x,.43,.08),.04,dark,cabin)
-		box("FoldedBlanket",Vector3(.64,.56,-.27),Vector3(.65,.12,.70),curtain,cabin)
-		box("BottleShelf",Vector3(0,.85,-.76),Vector3(2.70,.055,.26),dark,cabin)
-		box("NumberPlate",Vector3(.93,1.08,.98),Vector3(.46,.32,.035),mat("e0e1d8"),cabin)
-		label3("%02d"%(i+1),Vector3(.93,1.09,1.008),.20,Color("243b55"),cabin)
-		for k in 3:
-			box("Bottle",Vector3(-.7+k*.42,.99,-.74),Vector3(.09,.24,.09),mat("d2c7a4" if k==0 else "647c84"),cabin)
-		beam("BikeRackPost",Vector3(1.45,0,-.92),Vector3(1.45,2.45,-.92),.055,dark,cabin)
-		beam("BikeRackBeam",Vector3(-1.55,2.40,-.92),Vector3(1.55,2.40,-.92),.065,dark,cabin)
-		preload("res://venues/gent/parked_bike.gd").build(cabin,Vector3(0,1.15,-.82),PI/2)
-		_chair(cabin,Vector3(.55,0,1.25))
+		_chair(cabin,Vector3(.78,0,.62))
 	_fence(Vector3(-4.6,0,-20.8),Vector3(-4.6,0,3.5),self)
 	_fence(Vector3(-4.6,0,5.0),Vector3(-4.6,0,19.2),self)
 func _technical_zone() -> void:

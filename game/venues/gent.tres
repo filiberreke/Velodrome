@@ -25,5 +25,5 @@ track_light_energy = 1.4
 track_light_range_m = 36.0
 track_light_attenuation = 0.8
 track_light_specular = 0.12
-scenery = PackedStringArray("gent_yellow_stands", "gent_flat_hall", "gent_open_rider_bays", "gent_technical_zone", "gent_infield_crowd", "gent_orange_walkway", "gent_press_zones", "gent_medical_post", "gent_mixed_zone", "gent_jury_zone", "gent_white_logo_red_branding", "gent_rectangular_scoreboard")
+scenery = PackedStringArray("gent_yellow_stands", "gent_flat_hall", "gent_roofed_rider_cabins", "gent_technical_zone", "gent_infield_crowd", "gent_orange_walkway", "gent_press_zones", "gent_medical_post", "gent_mixed_zone", "gent_jury_zone", "gent_white_logo_red_branding", "gent_rectangular_scoreboard")
 shared_actors = {"race_official": "res://assets/crowd/velodrome_official.glb", "race_official_fallback": "res://assets/crowd/flag_official.glb", "broadcast_suite": "res://assets/broadcast/euromax_cycling_box.glb"}

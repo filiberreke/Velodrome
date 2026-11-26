@@ -1,4 +1,5 @@
 extends SceneTree
+const SharedRiderBox=preload("res://rennersboxen/rider_box.gd")
 var failures:=0
 func check(ok:bool,message:String)->void:
 	if not ok:failures+=1;push_error(message)
@@ -26,8 +27,13 @@ func run()->void:
 	check(scene.arena.infield.cabins.size()==12,"Twelve own sober cabins")
 	for cabin in scene.arena.infield.cabins:
 		check(cabin.position.x<0 and track.at(0,0).x>0,"Cabins are opposite the finish, on the right of the photo view")
-		check(cabin.has_node("LowCabinBack") and cabin.has_node("RestBench") and cabin.has_node("BikeRackBeam"),"Open service bay contains cot and raised bike rack")
-		check(cabin.get_node("LowCabinBack").mesh.size.y<1,"Low open bays replace tall cells")
+		check(cabin is SharedRiderBox,"Gent reuses the existing Vélodrome bed-and-curtain cabin")
+		check(cabin.has_node("Geometry/GentRoof") and cabin.has_node("Geometry/GentFrontFascia"),"Cabin has a fixed roof and front header")
+		check(cabin._curtains.size()==2 and cabin.curtain_open>.5,"Both pleated curtains leave the bed visible")
+		var front:Vector3=cabin.to_global(Vector3(0,1,1.25))
+		var back:Vector3=cabin.to_global(Vector3(0,1,-1.25))
+		check(front.x<back.x and front.x< -9.5,"Curtained opening faces the track, away from the public")
+		check(not cabin.include_equipment and not cabin.include_barriers,"National equipment yards are not copied into Gent")
 	check_photo_layout(scene,track)
 	check_infield_coverage(scene.arena.infield,900)
 	var simple_field=preload("res://venues/gent/gent_infield.gd").new();root.add_child(simple_field)
