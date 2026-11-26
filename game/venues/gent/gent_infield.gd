@@ -7,26 +7,34 @@ var crowd: RefCounted
 var rng:=RandomNumberGenerator.new()
 var public_positions:Array[Vector3]=[]
 var public_boundary:=PackedVector2Array()
-var bar_footprints:Array[Rect2]=[]
 var table_positions:Array[Vector2]=[]
-const CABIN_FOOTPRINT:=Rect2(5.15,-24.6,3.3,33.1)
-const TECHNICAL_FOOTPRINT:=Rect2(0.0,8.6,5.25,12.8)
-const CREW_PASSAGE:=Rect2(3.9,-25.0,1.25,33.8)
-const CROSS_PASSAGE_Z:=5.0
-const CROSS_PASSAGE_HALF_WIDTH:=0.55
+# The photo is viewed from -Z: finish (+X) is LEFT, team services (-X)
+# are RIGHT. The near bend is -Z. All other usable floor is public.
+const TECHNICAL_FOOTPRINT:=Rect2(-10.0,-21.0,5.5,40.5)
+const JURY_FOOTPRINT:=Rect2(6.65,-13.2,3.5,8.3)
+const MEDICAL_FOOTPRINT:=Rect2(-2.4,-32.4,4.8,5.5)
+const PRESS_LEFT_FOOTPRINT:=Rect2(2.45,-27.2,5.4,5.6)
+const PRESS_RIGHT_FOOTPRINT:=Rect2(-7.85,-27.2,5.4,5.6)
+const MIXED_FOOTPRINT:=Rect2(-2.45,-26.9,4.9,5.3)
+var restricted_footprints:Array[Rect2]=[TECHNICAL_FOOTPRINT,JURY_FOOTPRINT,MEDICAL_FOOTPRINT,PRESS_LEFT_FOOTPRINT,PRESS_RIGHT_FOOTPRINT,MIXED_FOOTPRINT]
+var jury_zone:Node3D
+var medical_zone:Node3D
+var mixed_zone:Node3D
+var press_zones:Array[Node3D]=[]
+var lap_display:Node3D
+var interview_backdrop:Node3D
 func build(host: Node3D, profile: Resource, route: RefCounted, kit: RefCounted, simple: bool, density: float) -> void:
 	venue=profile;track=route;crowd=kit;rng.seed=20261121
 	_floor()
 	_cabins()
 	_technical_zone()
-	_bar()
+	_press_and_medical()
+	_jury()
 	_hospitality_tables()
 	_technical_staff()
 	_public(simple,density)
 	official=preload("res://venues/race_official.gd").new();official.name="GentRaceOfficial"
 	official.game=host;official.official_lap_m=venue.lap_length_m;add_child(official);official._build_flag_official()
-	box("JuryDesk",Vector3(9.0,.5,-10),Vector3(1.2,1,3),mat("343b43"))
-	box("JuryDeskTop",Vector3(9.0,1.03,-10),Vector3(1.5,.08,3.2),mat("d8d1c4"))
 func _floor() -> void:
 	var v:=PackedVector3Array()
 	for i in 600:
@@ -34,7 +42,7 @@ func _floor() -> void:
 		var b: Vector3=track.at(venue.lap_length_m*float(i+1)/600,0)
 		a.y=-.01;b.y=-.01;v.append_array(PackedVector3Array([Vector3(0,-.01,0),a,b]))
 	surface("GentOwnInfieldFloor",v,mat("393a38"))
-	ring("GentRedInnerWalkway",-2.25,-.05,mat("d82632"),0,-1,.015,true)
+	ring("GentOrangeInnerWalkway",-2.25,-.05,mat("f25225"),0,-1,.015,true)
 	# Infield rail in its own layout, with a controlled opening at the straight.
 	for i in 220:
 		var s: float=venue.lap_length_m*float(i)/220
@@ -43,97 +51,161 @@ func _floor() -> void:
 		var q: Vector3=track.at(s+venue.lap_length_m/220,-2.4);q.y=0
 		beam("GentInfieldHandrail",p+Vector3.UP*1.08,q+Vector3.UP*1.08,.055,mat("b7b0a1"))
 		if i%3==0:beam("GentRailPost",p,p+Vector3.UP*1.08,.055,mat("6c7477"))
+	branding_ring("GentWhiteLogoRedInfieldBoarding",-2.43,.08,.55,24,true)
 func _cabins() -> void:
-	var people: Dictionary={}
 	for i in 12:
 		var cabin:=Node3D.new();cabin.name="GentRiderCabin%02d"%(i+1)
-		# Own finish-side row. Vélodrome's nine national houses sit on -X.
-		cabin.position=Vector3(7.05,0,-23.1+float(i)*2.75);cabin.rotation.y=-PI/2;add_child(cabin);cabins.append(cabin)
+		# Open service bays on the straight OPPOSITE the finish, as in the photo.
+		cabin.position=Vector3(-8.35,0,-18.0+float(i)*3.15);cabin.rotation.y=PI/2;add_child(cabin);cabins.append(cabin)
 		cabin.set_meta("pair_number",i+1)
 		var grey:=mat("a4aaa8");var dark:=mat("323738");var curtain:=mat("757c73")
-		box("LowCabinBack",Vector3(0,.93,-.92),Vector3(2.64,1.86,.08),grey,cabin)
+		box("LowCabinBack",Vector3(0,.40,-.92),Vector3(3.04,.80,.08),grey,cabin)
 		for side in [-1.0,1.0]:
-			box("PlainDivider",Vector3(side*1.30,.97,0),Vector3(.06,1.94,1.90),grey,cabin)
-			beam("CurtainSupport",Vector3(side*1.30,0,.92),Vector3(side*1.30,2.22,.92),.035,dark,cabin)
-		beam("CurtainRod",Vector3(-1.32,2.22,.92),Vector3(1.32,2.22,.92),.035,dark,cabin)
-		# Pleated curtains are gathered to the side, leaving the bench visible.
-		for k in 8:
-			box("CurtainPleat",Vector3(-1.17+k*.05,1.15,.92+sin(k*1.7)*.035),Vector3(.065,2.03,.035),curtain,cabin)
-		box("RestBench",Vector3(0,.50,-.32),Vector3(2.42,.13,.78),mat("827965"),cabin)
-		box("BenchBase",Vector3(0,.24,-.46),Vector3(2.32,.46,.51),grey,cabin)
-		box("BottleShelf",Vector3(0,1.27,-.76),Vector3(2.33,.055,.26),dark,cabin)
-		box("NumberPlate",Vector3(.85,1.97,1.0),Vector3(.48,.42,.035),mat("e0e1d8"),cabin)
-		label3("%02d"%(i+1),Vector3(.85,1.98,1.026),.23,Color("243b55"),cabin)
+			box("PlainDivider",Vector3(side*1.49,.48,0),Vector3(.06,.96,1.90),grey,cabin)
+		# No seated crowd poses in cells: equipment, a folding cot and a towel
+		# make the purpose legible. Spare bikes hang above the trackside rack.
+		box("RestBench",Vector3(0,.46,-.28),Vector3(2.65,.13,.78),mat("827965"),cabin)
+		for x in [-1.05,1.05]:beam("CotLeg",Vector3(x,.05,-.62),Vector3(x,.43,.08),.04,dark,cabin)
+		box("FoldedBlanket",Vector3(.64,.56,-.27),Vector3(.65,.12,.70),curtain,cabin)
+		box("BottleShelf",Vector3(0,.85,-.76),Vector3(2.70,.055,.26),dark,cabin)
+		box("NumberPlate",Vector3(.93,1.08,.98),Vector3(.46,.32,.035),mat("e0e1d8"),cabin)
+		label3("%02d"%(i+1),Vector3(.93,1.09,1.008),.20,Color("243b55"),cabin)
 		for k in 3:
-			box("Bottle",Vector3(-.7+k*.42,1.4,-.74),Vector3(.09,.24,.09),mat("d2c7a4" if k==0 else "647c84"),cabin)
-		if i%2==0:
-			preload("res://venues/gent/parked_bike.gd").build(cabin,Vector3(-.45,0,1.8),0.0)
-		var towel:=box("Towel",Vector3(.40,.60,-.23),Vector3(.54,.035,.60),mat("c7b9a2"),cabin);towel.rotation.y=.18
-		# Folding chair in front of each cabin, no national flags or team house.
-		box("LooseChairSeat",Vector3(.63,.45,1.38),Vector3(.43,.065,.43),mat("68736f"),cabin)
-		box("LooseChairBack",Vector3(.63,.77,1.58),Vector3(.43,.43,.055),mat("68736f"),cabin)
-		for x in [.46,.80]:beam("ChairLeg",Vector3(x,.05,1.18),Vector3(x,.74,1.62),.026,dark,cabin)
-		if i%3!=2:
-			for k in 2:
-				var pos: Vector3=cabin.to_global(Vector3(-.55+k*.85,0,-.36))
-				var basis:=Basis(Vector3.UP,-PI/2)
-				Crowd.add_to_group(people,Crowd.SEATED[(i+k)%Crowd.SEATED.size()],Transform3D(basis,pos),crowd.staff_look(rng,Color("335986" if i%2==0 else "c8ac41"),.12))
-	crowd.emit_group(self,people,"GentCabinRiders",[[0,0.0,0.0]])
-	# Controlled crew passage between the public half and the cabins.
-	for z in range(-25,12,2):
-		if abs(z-5)<3:continue
-		beam("CrewRail",Vector3(3.9,1.0,z),Vector3(3.9,1.0,z+1.8),.04,mat("8d9693"))
-		beam("CrewRailPost",Vector3(3.9,0,z),Vector3(3.9,1.0,z),.04,mat("8d9693"))
+			box("Bottle",Vector3(-.7+k*.42,.99,-.74),Vector3(.09,.24,.09),mat("d2c7a4" if k==0 else "647c84"),cabin)
+		beam("BikeRackPost",Vector3(1.45,0,-.92),Vector3(1.45,2.45,-.92),.055,dark,cabin)
+		beam("BikeRackBeam",Vector3(-1.55,2.40,-.92),Vector3(1.55,2.40,-.92),.065,dark,cabin)
+		preload("res://venues/gent/parked_bike.gd").build(cabin,Vector3(0,1.15,-.82),PI/2)
+		_chair(cabin,Vector3(.55,0,1.25))
+	_fence(Vector3(-4.6,0,-20.8),Vector3(-4.6,0,3.5),self)
+	_fence(Vector3(-4.6,0,5.0),Vector3(-4.6,0,19.2),self)
 func _technical_zone() -> void:
-	var group:=Node3D.new();group.name="GentTechnicalZone";group.position=Vector3(2.6,0,15.0);add_child(group)
-	box("TechnicalFloor",Vector3(0,.01,0),Vector3(4.6,.035,12.0),mat("282d2c"),group)
-	for side in [-1.0,1.0]:
-		for z in [-5.7,0.0,5.7]:
-			beam("TechnicalPost",Vector3(side*2.2,0,z),Vector3(side*2.2,2.9,z),.07,mat("9ba4a3"),group)
-		beam("TechnicalTop",Vector3(side*2.2,2.9,-5.7),Vector3(side*2.2,2.9,5.7),.09,mat("9ba4a3"),group)
-	for z in [-5.7,0.0,5.7]:beam("TechnicalCrossMember",Vector3(-2.2,2.9,z),Vector3(2.2,2.9,z),.09,mat("9ba4a3"),group)
-	for i in 4:
-		box("WorkBench",Vector3(-1.7,.85,-4.6+i*2.7),Vector3(.75,.1,1.8),mat("b9b8af"),group)
-		for z in [-4.7+i*2.7]:
-			box("RollerBase",Vector3(.55,.08,z),Vector3(.8,.08,1.45),mat("43809b"),group)
-			for dz in [-.5,.4]:box("Roller",Vector3(.55,.15,z+dz),Vector3(.74,.14,.14),mat("b8bdb9"),group)
-	for i in 3:
-		preload("res://venues/gent/parked_bike.gd").build(group,Vector3(.55,.18,-4.7+i*2.7),0.0)
-	var t:=label3("RENNERS",Vector3(0,2.65,-5.78),.4,Color("f2ede2"),group);t.rotation.y=PI
-func _bar() -> void:
-	# Long, staffed counter islands occupy the middle rather than a tiny bar
-	# surrounded by unused floor. The transverse crossing remains open.
-	_bar_island("GentInfieldBar",Vector3(-3.7,0,-7.4),19.0)
-	_bar_island("GentNorthBar",Vector3(-3.7,0,11.5),10.6)
+	var group:=Node3D.new();group.name="GentTechnicalZone";group.position=Vector3(-5.8,0,-1.0);add_child(group)
+	box("TechnicalFloor",Vector3(0,.01,0),Vector3(2.2,.035,38.5),mat("282d2c"),group)
+	for i in 6:
+		var z:float=-16.0+float(i)*6.1
+		box("WorkBench",Vector3(.40,.82,z),Vector3(.70,.10,1.6),mat("b9b8af"),group)
+		box("ToolCase",Vector3(.40,1.0,z-.35),Vector3(.5,.25,.38),mat("28343b"),group)
+		box("RollerBase",Vector3(-.35,.08,z+1.8),Vector3(.8,.08,1.45),mat("43809b"),group)
+		for dz in [-.5,.4]:box("Roller",Vector3(-.35,.15,z+1.8+dz),Vector3(.74,.14,.14),mat("b8bdb9"),group)
+		preload("res://venues/gent/parked_bike.gd").build(group,Vector3(-.35,.18,z+1.8),0.0)
+	var t:=label3(tr("GENT_ZONE_TECHNICAL"),Vector3(0,1.55,-19.3),.25,Color("f2ede2"),group);t.rotation.y=PI
 
-func _bar_island(label:String,position:Vector3,length:float)->void:
-	var bar:=Node3D.new();bar.name=label;bar.position=position;add_child(bar)
-	bar_footprints.append(Rect2(position.x-1.95,position.z-length*.5-.25,3.9,length+.5))
-	box("BarWorkFloor",Vector3(0,.015,0),Vector3(3.5,.03,length),mat("282d2c"),bar)
+func _fence(a:Vector3,b:Vector3,parent:Node3D)->void:
+	var metal:=mat("8e9695")
+	beam("BarrierTop",a+Vector3.UP*1.02,b+Vector3.UP*1.02,.04,metal,parent)
+	beam("BarrierBottom",a+Vector3.UP*.20,b+Vector3.UP*.20,.035,metal,parent)
+	var n:=maxi(1,ceili(a.distance_to(b)/.28))
+	for i in n+1:
+		var p:=a.lerp(b,float(i)/float(n))
+		beam("BarrierUpright",p+Vector3.UP*.20,p+Vector3.UP*1.02,.024,metal,parent)
+		if i%7==0:box("BarrierFoot",p+Vector3.UP*.055,Vector3(.48,.08,.48),metal,parent)
+
+func _chair(parent:Node3D,p:Vector3)->void:
+	var dark:=mat("505c61")
+	box("ChairSeat",p+Vector3(0,.45,0),Vector3(.43,.065,.43),dark,parent)
+	box("ChairBack",p+Vector3(0,.76,-.19),Vector3(.43,.43,.055),dark,parent)
+	for x in [-.17,.17]:
+		for z in [-.17,.17]:beam("ChairLeg",p+Vector3(x,.04,z),p+Vector3(x,.44,z),.025,dark,parent)
+
+func _work_table(parent:Node3D,p:Vector3,width:float)->void:
+	box("WorkTableTop",p+Vector3(0,.80,0),Vector3(width,.09,.72),mat("d6d5cd"),parent)
+	box("BlackTableSkirt",p+Vector3(0,.43,0),Vector3(width,.70,.68),mat("24292e"),parent)
+
+func _laptop(parent:Node3D,p:Vector3)->void:
+	box("LaptopKeyboard",p,Vector3(.38,.025,.27),mat("313a42"),parent)
+	box("LaptopLid",p+Vector3(0,.14,.12),Vector3(.38,.28,.025),mat("1a222a"),parent)
+	box("LaptopScreen",p+Vector3(0,.14,.103),Vector3(.33,.23,.008),mat("809eae",.8,.20),parent)
+
+func _press_and_medical()->void:
+	# Two open press work areas flank a mixed-zone passage in the near bend.
 	for side in [-1.0,1.0]:
-		box("BarCounter",Vector3(side*1.4,.51,0),Vector3(.60,1.02,length),mat("4e514b"),bar)
-		box("BarRedFascia",Vector3(side*1.715,.52,0),Vector3(.035,.82,length-.08),mat("a72d35"),bar)
-		box("BarTop",Vector3(side*1.4,1.08,0),Vector3(.78,.12,length+.16),mat("b8ad91"),bar)
-	for end in [-1.0,1.0]:
-		box("BarEndCounter",Vector3(0,.51,end*(length*.5-.27)),Vector3(2.5,1.02,.54),mat("4e514b"),bar)
-		box("BarEndTop",Vector3(0,1.08,end*(length*.5-.27)),Vector3(2.82,.12,.72),mat("b8ad91"),bar)
+		var press:=Node3D.new();press.name="GentPressLeft" if side>0 else "GentPressRight"
+		press.position=Vector3(side*5.1,0,-24.4);add_child(press);press_zones.append(press)
+		box("PressFloor",Vector3(0,.012,0),Vector3(5.2,.025,5.1),mat("292c2d"),press)
+		box("PressLowScreen",Vector3(0,.47,-2.45),Vector3(5.2,.94,.06),mat("222b30"),press)
+		_fence(Vector3(-2.5,0,2.7),Vector3(2.5,0,2.7),press)
+		var people:Dictionary={}
+		for z in [-1.3,1.1]:
+			_work_table(press,Vector3(0,0,z),4.7)
+			for k in 4:
+				var x:float=-1.75+float(k)*1.16
+				_laptop(press,Vector3(x,.86,z))
+				box("PressNotes",Vector3(x+.33,.86,z-.14),Vector3(.21,.018,.25),mat("eee9dc"),press)
+				_chair(press,Vector3(x,0,z-.72))
+				var global_p:=press.position+Vector3(x,0,z-.72)
+				Crowd.add_to_group(people,"seat_m_relaxed" if k%2==0 else "seat_f_phone",Transform3D(Basis.IDENTITY,global_p),crowd.staff_look(rng,Color("4c6575"),.15))
+		var sign:=label3(tr("GENT_ZONE_PRESS"),Vector3(0,.62,-2.49),.27,Color("e8e8df"),press);sign.rotation.y=PI
+		crowd.emit_group(self,people,press.name+"Reporters",[[0,0.0,0.0]])
+
+	medical_zone=Node3D.new();medical_zone.name="GentMedicalZone";medical_zone.position=Vector3(0,0,-29.55);add_child(medical_zone)
+	box("MedicalFloor",Vector3(0,.015,0),Vector3(4.6,.03,5.0),mat("343d3b"),medical_zone)
+	box("MedicalFrontPanel",Vector3(0,.58,-2.38),Vector3(4.5,1.16,.08),mat("e0e3da"),medical_zone)
+	box("MedicalCrossVertical",Vector3(0,.65,-2.43),Vector3(.18,.65,.02),mat("32855c"),medical_zone)
+	box("MedicalCrossHorizontal",Vector3(0,.65,-2.44),Vector3(.65,.18,.02),mat("32855c"),medical_zone)
+	var medsign:=label3(tr("GENT_ZONE_MEDICAL"),Vector3(1.25,.62,-2.43),.19,Color("244e40"),medical_zone);medsign.rotation.y=PI
+	box("FirstAidCot",Vector3(-1.03,.63,0),Vector3(.95,.17,2.05),mat("408c8d"),medical_zone)
+	box("CotPillow",Vector3(-1.03,.75,.63),Vector3(.67,.15,.45),mat("e5e5d9"),medical_zone)
+	for z in [-.7,.7]:beam("MedicalCotLeg",Vector3(-1.03,.05,z),Vector3(-1.03,.58,z),.08,mat("a2acab"),medical_zone)
+	_work_table(medical_zone,Vector3(.9,0,-1.15),1.6)
+	for x in [.5,1.2]:box("MedicalBag",Vector3(x,1.02,-1.15),Vector3(.48,.38,.38),mat("dbb93b"),medical_zone)
+	var medpeople:Dictionary={}
+	for p in [Vector3(.7,0,.4),Vector3(1.45,0,1.35),Vector3(-.9,0,1.65)]:
+		Crowd.add_to_group(medpeople,"stand_m_relaxed",Transform3D(Basis(Vector3.UP,PI),medical_zone.position+p),crowd.staff_look(rng,Color("dbed36"),.8,.18))
+	crowd.emit_group(self,medpeople,"GentMedicalStaff",[[0,0.0,0.0]])
+	_fence(Vector3(-2.35,0,-31.4),Vector3(-2.35,0,-27.3),self)
+	_fence(Vector3(2.35,0,-31.4),Vector3(2.35,0,-27.3),self)
+
+	mixed_zone=Node3D.new();mixed_zone.name="GentMixedZone";mixed_zone.position=Vector3(0,0,-24.1);add_child(mixed_zone)
+	_fence(Vector3(-2.30,0,-2.5),Vector3(-2.30,0,2.4),mixed_zone)
+	_fence(Vector3(2.30,0,-2.5),Vector3(2.30,0,2.4),mixed_zone)
+	# Explicitly reuse Vélodrome's two-sided white/blue interview backdrop.
+	# Its shared builder and original logo textures stay the single source.
+	interview_backdrop=Node3D.new();interview_backdrop.name="VelodromeInterviewBackdrop"
+	interview_backdrop.position.z=.80;interview_backdrop.rotation.y=PI;mixed_zone.add_child(interview_backdrop)
+	preload("res://podium_sponsor_wall.gd").build(interview_backdrop)
+	box("BackdropBacking",Vector3(0,1.4,1.69),Vector3(3.6,2.4,.10),mat("243b55"),mixed_zone)
+	var mixedsign:=label3(tr("GENT_ZONE_MIXED"),Vector3(0,2.82,1.59),.22,Color("f2ede2"),mixed_zone);mixedsign.rotation.y=PI
+	for x in [-1.3,1.35]:
+		var p:=Vector3(x,1.50,-1.25)
+		box("PressCamera",p,Vector3(.25,.23,.45),mat("182029"),mixed_zone)
+		beam("CameraLens",p+Vector3(0,0,.20),p+Vector3(0,0,.42),.17,mat("364953"),mixed_zone)
+		for foot in [Vector3(-.3,0,-.2),Vector3(.3,0,-.2),Vector3(0,0,.3)]:beam("CameraTripod",p-Vector3.UP*.17,Vector3(x,0,-1.25)+foot,.035,mat("59666c"),mixed_zone)
+	var interview:Dictionary={}
+	for p in [Vector3(-.4,0,.25),Vector3(.55,0,.2),Vector3(1.35,0,-1.9)]:
+		Crowd.add_to_group(interview,"stand_f_talk" if p.x<0 else "stand_m_relaxed",Transform3D(Basis(Vector3.UP,PI),mixed_zone.position+p),crowd.staff_look(rng,Color("437496" if p.z>0 else "42494c"),.12))
+	crowd.emit_group(self,interview,"GentMixedZoneInterviews",[[0,0.0,0.0]])
+
+func _jury()->void:
+	var finish:Vector3=track.at(0.0,0.0)
+	jury_zone=Node3D.new();jury_zone.name="GentJuryZone";jury_zone.position=Vector3(finish.x-4.15,0,finish.z);add_child(jury_zone)
+	_fence(Vector3(-1.85,0,-4.35),Vector3(-1.85,0,3.9),jury_zone)
+	_fence(Vector3(-1.85,0,-4.35),Vector3(1.05,0,-4.35),jury_zone)
+	_fence(Vector3(-1.85,0,3.9),Vector3(.25,0,3.9),jury_zone)
+	_work_table(jury_zone,Vector3(-.1,0,-1.65),2.3)
+	_laptop(jury_zone,Vector3(-.5,.86,-1.65))
+	var jurysign:=label3(tr("GENT_ZONE_JURY"),Vector3(-.1,.47,-2.03),.23,Color("e9e9df"),jury_zone);jurysign.rotation.y=PI
 	var people:Dictionary={}
-	for i in floori(length/2.6):
-		var z:float=-length*.5+1.3+float(i)*2.6
-		for side in [-1.0,1.0]:
-			box("TapBase",Vector3(side*1.4,1.19,z),Vector3(.35,.13,.48),mat("9aa6a5"),bar)
-			beam("TapStem",Vector3(side*1.4,1.22,z),Vector3(side*1.4,1.60,z),.045,mat("b8bdb9"),bar)
-			beam("TapSpout",Vector3(side*1.4,1.58,z),Vector3(side*1.23,1.58,z),.04,mat("b8bdb9"),bar)
-			for k in 3:box("Cup",Vector3(side*1.45,1.25,z+.5+k*.16),Vector3(.095,.22,.095),mat("d9c9a4"),bar)
-		box("BarStation",Vector3(0,.72,z),Vector3(1.65,.85,.85),mat("929d9e"),bar)
-		var p:=position+Vector3(0,0,z+.85)
-		var basis:=Basis(Vector3.UP,PI*.5 if i%2==0 else -PI*.5)
-		Crowd.add_to_group(people,"stand_f_relaxed" if i%2==0 else "stand_m_relaxed",Transform3D(basis,p),crowd.staff_look(rng,Color("845798"),.1))
-	crowd.emit_group(self,people,label+"Staff",[[0,0.0,0.0]])
+	for p in [Vector3(-.75,0,-2.45),Vector3(.7,0,1.7)]:
+		_chair(jury_zone,p)
+		Crowd.add_to_group(people,"seat_m_relaxed",Transform3D(Basis.IDENTITY,jury_zone.position+p),crowd.staff_look(rng,Color("3c5267"),.12))
+	crowd.emit_group(self,people,"GentJuryOfficials",[[0,0.0,0.0]])
+	# Cantilever follows the actual finish reference, extending to the inner
+	# edge of the track. Two faces are legible to riders and from the photo view.
+	beam("LapDisplayMast",Vector3(.75,0,.4),Vector3(.75,3.72,.4),.075,mat("38474e"),jury_zone)
+	beam("LapDisplayCantilever",Vector3(.75,3.72,.4),Vector3(3.95,3.72,.4),.085,mat("38474e"),jury_zone)
+	beam("LapDisplayHanger",Vector3(3.8,3.72,.4),Vector3(3.8,3.37,.4),.045,mat("38474e"),jury_zone)
+	lap_display=Node3D.new();lap_display.name="GentLapsToGo";lap_display.position=Vector3(3.8,3.10,.4);jury_zone.add_child(lap_display)
+	box("SmallLapDisplay",Vector3.ZERO,Vector3(1.02,.60,.26),mat("111923"),lap_display)
+	for side in [-1.0,1.0]:
+		var digit:=label3("6",Vector3(0,0,side*.142),.48,Color("f7e9ce"),lap_display);digit.rotation.y=PI if side<0 else 0.0
+	beam("BellPost",Vector3(.70,0,-.6),Vector3(.70,1.65,-.6),.055,mat("67777c"),jury_zone)
+	beam("BellBracket",Vector3(.70,1.65,-.6),Vector3(1.08,1.65,-.6),.055,mat("67777c"),jury_zone)
+	var bell:=MeshInstance3D.new();bell.name="FinishBell";var mesh:=CylinderMesh.new();mesh.top_radius=.09;mesh.bottom_radius=.20;mesh.height=.25;mesh.radial_segments=20
+	bell.mesh=mesh;bell.material_override=mat("bd9b4e",.55);bell.position=Vector3(1.08,1.48,-.6);jury_zone.add_child(bell)
+	beam("BellClapper",Vector3(1.08,1.45,-.6),Vector3(1.08,1.29,-.6),.035,mat("514e40"),jury_zone)
 
 func _hospitality_tables()->void:
-	# Both curved ends and the former empty finish-side corner are used.
-	for p in [Vector2(-4,-26.3),Vector2(1,-29.2),Vector2(5.0,-27),Vector2(-7.9,20),Vector2(-5.0,26.1),Vector2(.0,27.8),Vector2(5.2,25.5),Vector2(8.2,17),Vector2(8.1,11.5),Vector2(-8.5,-18)]:
+	for p in [Vector2(-5,24),Vector2(0,28),Vector2(5.2,25.5),Vector2(8.2,17),Vector2(8.1,9)]:
 		table_positions.append(p)
 		var table:=Node3D.new();table.name="GentStandingTable";table.position=Vector3(p.x,0,p.y);add_child(table)
 		var top:=MeshInstance3D.new();var mesh:=CylinderMesh.new();mesh.top_radius=.44;mesh.bottom_radius=.44;mesh.height=.07;mesh.radial_segments=16
@@ -144,18 +216,14 @@ func _hospitality_tables()->void:
 
 func _technical_staff()->void:
 	var people:Dictionary={}
-	for i in 8:
-		var p:=Vector3(.75+float(i%2)*2.7,0,10.5+float(i/2)*2.65)
+	for i in 12:
+		var p:=Vector3(-6.55+float(i%2)*1.45,0,-18.0+float(i)*3.0)
 		Crowd.add_to_group(people,"stand_m_relaxed" if i%2==0 else "stand_f_relaxed",Transform3D(Basis(Vector3.UP,PI*.5),p),crowd.staff_look(rng,Color("436173"),.12))
 	crowd.emit_group(self,people,"GentTechnicalStaff",[[0,0.0,0.0]])
 
 func _public_floor_free(p:Vector2)->bool:
 	if not Geometry2D.is_point_in_polygon(p,public_boundary):return false
-	if CABIN_FOOTPRINT.has_point(p) or TECHNICAL_FOOTPRINT.has_point(p) or CREW_PASSAGE.has_point(p):return false
-	if absf(p.y-CROSS_PASSAGE_Z)<CROSS_PASSAGE_HALF_WIDTH:return false
-	# Keep the official's jury desk and the equipment passage accessible.
-	if Rect2(8.05,-12.1,2.0,4.2).has_point(p):return false
-	for bounds in bar_footprints:
+	for bounds in restricted_footprints:
 		if bounds.has_point(p):return false
 	for centre in table_positions:
 		if centre.distance_to(p)<.68:return false

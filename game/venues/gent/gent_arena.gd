@@ -40,16 +40,15 @@ func _track() -> void:
 	for i in 20:
 		var s: float=(float(i)+0.25)*venue.lap_length_m/20.0
 		var colors: Array[String]=["e7ce6f","dbe5dd","dee8ef","254568","e4d3b8"]
-		ring("OriginalTrackPanel",4.7,7.4,mat(colors[i%colors.size()]),s,5.1,0.016)
+		if i%4==1:branding_track(s,5.1)
+		else:ring("OriginalTrackPanel",4.7,7.4,mat(colors[i%colors.size()]),s,5.1,0.016)
 	var verts:=PackedVector3Array()
 	for i in 700:
 		var a: Vector3=track.at(venue.lap_length_m*float(i)/700.0,7.8)
 		var b: Vector3=track.at(venue.lap_length_m*float(i+1)/700.0,7.8)
 		verts.append_array(PackedVector3Array([a,b,a+Vector3.UP*0.90,b,b+Vector3.UP*0.90,a+Vector3.UP*0.90]))
 	surface("GentRedOuterBoarding",verts,mat("d82632"))
-	for s in [10.0,50.0,94.0,137.0]:
-		var p: Vector3=track.at(s,7.76)+Vector3.UP*0.48
-		var t:=label3("GENT",p,0.62,Color("f2ede2")); t.basis=Basis(Vector3.UP.cross(-track.outward(s)),Vector3.UP,-track.outward(s))
+	branding_ring("GentWhiteLogoRedOuterBoarding",7.76,.10,.68,28)
 func _hall() -> void:
 	box("GentFloor",Vector3(0,-0.24,0),Vector3(68,0.28,86),mat("343638"))
 	# A rectangular low ceiling, not the radial crown of Vélodrome.
@@ -135,9 +134,9 @@ func _broadcast() -> void:
 			beam("BroadcastSupport",p+Vector3(dx,-3.4,dz),p+Vector3(dx,-.22,dz),.12,mat("48525b"))
 	suite.set_speaking(0,true);suite.set_speaking(1,true)
 func _scoreboard() -> void:
-	var board:=Node3D.new();board.name="GentScoreboard";board.position=Vector3(0,11.8,-37.7);add_child(board)
+	var board:=Node3D.new();board.name="GentScoreboard";board.position=Vector3(0,11.8,37.7);board.rotation.y=PI;add_child(board)
 	box("ScoreboardFrame",Vector3.ZERO,Vector3(8.0,3.2,.3),mat("121b29"),board)
 	label3("GENT",Vector3(0,.7,.18),.65,Color("f2ede2"),board)
 	label3("166,67 m    •    6 = 1 km",Vector3(0,-.05,.18),.33,Color("d4a63d"),board)
 	label3("01     24       02     18       03     12",Vector3(0,-.8,.18),.3,Color("f2ede2"),board)
-	for x in [-3.4,3.4]:beam("ScoreboardSuspension",board.position+Vector3(x,1.6,0),Vector3(x,16,-37.7),.055,mat("555d65"))
+	for x in [-3.4,3.4]:beam("ScoreboardSuspension",board.position+Vector3(x,1.6,0),Vector3(x,16,37.7),.055,mat("555d65"))

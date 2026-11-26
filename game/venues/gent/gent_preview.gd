@@ -73,9 +73,10 @@ func set_view(index:int)->void:
 	camera_index=posmod(index,4)
 	var eye:Vector3;var target:Vector3;var fov:=76.0
 	match camera_index:
-		0:eye=Vector3(-24,13.0,34);target=Vector3(0,3.0,-3);fov=86.0
-		1:eye=Vector3(17,3.4,-18);target=Vector3(12,2.4,8);fov=86.0
-		2:eye=Vector3(4.45,2.2,-24.8);target=Vector3(7.0,1.15,-13);fov=78.0
+		# Reference photo: near bend in front, finish LEFT, team bays RIGHT.
+		0:eye=Vector3(10,12.0,-40);target=Vector3(-4.5,1.0,-7);fov=68.0
+		1:eye=Vector3(18,6.0,-20);target=Vector3(9.3,1.9,-8.8);fov=72.0
+		2:eye=Vector3(-2.8,5.0,-25);target=Vector3(-7.8,1.3,1);fov=72.0
 		_:eye=Vector3(22,10.9,-10);target=arena.suite.position+Vector3.UP*1.5;fov=70.0
 	camera.global_position=eye;camera.look_at(target);camera.fov=fov
 	if view_label!=null:view_label.text=tr(["GENT_VIEW_OVERVIEW","GENT_VIEW_TRACK","GENT_VIEW_CABINS","GENT_VIEW_BROADCAST"][camera_index])

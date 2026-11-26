@@ -1,62 +1,63 @@
 # Gent in Godot — ontwerpweergave
 
-Het ontwerp is goedgekeurd op 26 november 2026. De nominale lengte is **1000/6 m**: zes ronden zijn exact één kilometer. De scène is gebouwd met de bestaande Godot-engine, gedeelde geometrieberekeningen, het bestaande rennermodel en de bestaande official/tv-box.
+De nominale lengte is **1000/6 m**: zes ronden zijn exact één kilometer. De scène gebruikt Godot, de gedeelde geometrieberekeningen en de bestaande renners, official en tv-box.
 
 ## Openen
 
-Start het spel en kies onderaan het hoofdmenu **Gent — bekijk het nieuwe stadion**. Of open `res://venues/gent/gent_preview.tscn` rechtstreeks in Godot en voer deze scène uit.
+Kies in het hoofdmenu **Gent — bekijk het nieuwe stadion**, of voer `res://venues/gent/gent_preview.tscn` uit.
 
-- `1`–`4`: overzicht, piste, rennersboxen, tv-box.
+- `1`–`4`: foto-overzicht, jury/finish, rennerzone, tv-box.
 - `C` of pijltjestoetsen: volgend/vorig standpunt.
 - `H`: bediening verbergen.
 - `Esc` of Terug: hoofdmenu.
 
-Deze weergave is bedoeld om de inrichting te beoordelen. Renners rijden een demonstratieronde; er worden geen wedstrijdresultaten, ritten of trainercommando's gegenereerd. De wedstrijdformats zijn nog niet omgezet naar de korte baan. De speelbare standaardlocatie blijft Vélodrome.
+Dit is een ontwerpweergave met demonstratierenners. Wedstrijdformats zijn nog niet omgezet naar de korte baan; de speelbare standaardlocatie blijft Vélodrome.
 
-## Uitgewerkte inrichting
+## Indeling volgens de aangeleverde overzichtsfoto
 
-- Baan van 166⅔ m, 52° banking, zeven meter houtoppervlak en aparte blauwe strook.
-- Doorlopende rode buitenboarding en rode binnenzone met een eigen leuning/toegang.
-- Nieuwe gele zitvakken, eigen tribuneverdeling en publiek per Gent-sector.
-- Rechthoekige hal, vlak plafond met balken/paneelraster en praktische lichtpanelen.
-- Originele wandvlakken en merkneutrale baandecoratie; de sponsorafbeeldingen van Vélodrome worden niet ingeladen.
-- **Twaalf sobere rennercabines op de aankomsthelft van het middenplein (+X).** De bestaande negen nationale huisjes op de overzijde van Vélodrome worden niet gebruikt.
-- Lage grijze wanden, open banken, flesplanken, nummerbordjes, gordijnroeden met opzijgeschoven gordijnen en losse stoelen. Fietsen zijn afzonderlijk geplaatste gedeelde fietsmeshes.
-- Een aparte technische zone met eenvoudig metalen raamwerk, werkbanken en rollers; een afgeschermde doorgang voor de renners scheidt die helft van het publiek.
-- Twee lange centrale bareilanden met tapplaatsen en personeel, statafels in beide uiteinden en publiek over de volledige bruikbare ovale vloer. De technische zone bevat eigen medewerkers. Smalle doorgangen naar de cabines en een dwarsverbinding blijven vrij.
-- De bestaande official met vier animaties/attributen is losgemaakt naar `venues/race_official.gd`. Zowel Vélodrome als Gent gebruiken die controller. Gent stelt zijn eigen rondelengte in.
-- De bestaande tv-box met beide presentatoren staat op een eigen platform bij de aankomsttribune, op ware grootte.
+De correctie van 26 november 2026 volgt de foto en toelichting van de projecteigenaar. De eerste camera kijkt vanuit dezelfde nabije bocht: **finish links, rennerzone rechts, pers en medische post vooraan**. De uitsnede is 16:9. Het grote scorebord staat aan de verre zaalwand en blokkeert het beeld niet.
 
-## Correctie middenplein — 26 november 2026
+| Plaats in het foto-overzicht | Godot-inrichting |
+|---|---|
+| Links naast de finish | Met dranghekken afgeschermde juryzone, werktafel/laptop, official, bel en een kleine tweezijdige rondenteller op een uitkragende arm bij de binnenrand van de piste |
+| Rechts, tegenover de finish | Twaalf lage open rennerboxen, rustbanken, dekens, flesplanken, stoelen en verhoogde fietsenrekken; technische strook met werkbanken, koffers, rollers, fietsen en medewerkers |
+| Nabije bocht, links en rechts | Twee open perswerkplekken met zwarte tafelrokken, laptops, notities, stoelen en journalisten |
+| Tussen de perswerkplekken | Mixed zone met camera's op statieven, interviewfiguren en de **bestaande tweezijdige wit/blauwe Vélodrome-backdrop**, rechtstreeks gebouwd door `podium_sponsor_wall.gd` |
+| Centraal vooraan in de bocht | Medische post met herkenbaar groen kruis, behandeltafel, materiaal en medewerkers in fluorescerende kledij |
+| Overige bruikbare binnenvloer | Publiekszone, met enkele kleine statafels; geen grote centrale bareilanden |
 
-De grote lege zone is vervangen door een verdeling over de volledige binnencontour. Bij de standaarddichtheid telt het middenplein 1.344 publiekspersonen; de eenvoudige uitvoering 596, op dezelfde beschikbare vloer. De plaatsing houdt rekening met counters, statafels, rennercabines, technische apparatuur en doorgangen. Publiek wordt per sector met afstandsafhankelijke detailniveaus getekend. De controle scant ook de voormalige lege uiteinden en de hoek aan de aankomstzijde.
+De eerdere hoge grijze cabines met zittende figuren zijn vervangen door lage open servicevakken. De figuren in die cabines zijn verwijderd. De grote centrale bareilanden uit het vorige ontwerp zijn eveneens verwijderd.
 
-## Wat is zeker en wat blijft een interpretatie?
+In wereldcoördinaten ligt de finish op +X, de rennerzone op -X en de nabije bocht op -Z. De jurypositie en uitkragende rondenteller zijn afgeleid van de echte baanpositie van de finish, niet los op zicht geplaatst. De rondenteller toont in deze ontwerpweergave het voorbeeldcijfer 6.
 
-De grijze wanden, gordijnen, banken, planken en losse stoelen zijn geïnspireerd op foto B02; het metalen technische raamwerk en de rollers op B20. De rode zones, gele tribunes, lichte vlakke plafondindruk en zaalwandritmes volgen de andere geselecteerde 2026-beelden in [referenties.md](referenties.md).
+## Branding en overige bouw
 
-De exacte maatvoering, het aantal cabines en hun coördinaten zijn een eigen reconstructie. Er is geen gecontroleerde plattegrond uit 2026 beschikbaar. De aankomstzijde en de scheiding tussen rennerzone en publiek zijn daarom expliciet gekozen, zodat ze op de screenshots kunnen worden bijgestuurd. Een oud artikel uit 2021 is niet als bewijs van de precieze opstelling in 2026 gebruikt.
+De rode vlakken waarvoor de foto witte Lotto-reclame toont, gebruiken het **witte Vélodrome-logo op rood**. De bestaande transparante woordmerktextuur wordt via een gedeelde shader als witte inkt weergegeven, met behoud van de verhoudingen. Dit is toegepast op 28 buitenboardingpanelen, 24 middenpleinpanelen en vijf rode pistepanelen. De originele logo-assets blijven behouden. Andere zichtbare fotoreclame wordt niet gekopieerd.
 
-Het volledige stadion wordt procedureel opgebouwd; er is geen nieuw Blender-model nodig gebleken. De bestaande geanimeerde GLB's blijven behouden.
+De baan blijft 166⅔ m met maximaal 52° banking en zeven meter houtoppervlak, een blauwe strook en een oranje binnenzone. De eigen gele tribunes, rechthoekige hal, vlak plafond en wanddecoratie blijven onderdeel van Gent. De bestaande official behoudt zijn vier animaties en attributen; de tv-box behoudt beide presentatoren op zijn eigen platform bij de aankomsttribune. Er worden geen Vélodrome-tenten of nationale rennerhuisjes overgenomen.
+
+Bij standaarddichtheid bevat de bruikbare publieksvloer 1.388 bezoekers, in de eenvoudige uitvoering 604. Medewerkers en tribunes staan los van die telling. Publiek wordt per sector met afstandsafhankelijke detailniveaus weergegeven. De bezetting respecteert de medische, pers-, interview-, jury- en rennerzones.
+
+## Referentie en maatvoering
+
+De door de projecteigenaar aangeleverde overzichtsfoto en diens expliciete aanwijzingen hebben voor de middenpleinindeling voorrang op de eerdere schetsen. De foto is niet gedateerd en bewijst geen precieze afmetingen. Aantal rennerboxen, exacte maten en coördinaten blijven een reconstructie voor het spel. Eerdere fotobronnen staan in [referenties.md](referenties.md); de oudere ontwerpschetsen zijn geen actuele plaatsingsplattegrond.
+
+Alles is procedureel opgebouwd. De backdrop gebruikt dezelfde bouwer en dezelfde logo's als Vélodrome; er is hiervoor geen nieuw Blender-model nodig.
 
 ## Screenshots en reproductie
 
-De bestanden onder `docs/venues/gent/screenshots/` zijn echte Godot-frames van deze scène, opgenomen met de Compatibility-renderer (OpenGL/Mesa llvmpipe). Geen gegenereerde conceptbeelden of Blender-renders.
+De vier bestanden onder `screenshots/` zijn echte Godot-frames van deze scène, opgenomen op 1600 × 900 met OpenGL Compatibility/Mesa llvmpipe.
 
 ```sh
 godot --path game --script res://tests/capture_gent.gd
 ```
 
-De capturer heeft een werkend display/renderapparaat nodig. `--headless` gebruikt de dummy-renderer en maakt geen bruikbare screenshot. Vaste camera's en stilgezette demonstratierenners maken vergelijking na een wijziging mogelijk. Deze renders zijn geen hardware-FPS-benchmark.
+Een werkend display/renderapparaat is nodig; `--headless` levert geen bruikbare screenshots op. Vaste camera's en stilgezette demonstratierenners maken vergelijking mogelijk. Dit is geen hardware-FPS-benchmark. Zie ook [de validatie](VALIDATIE.md).
 
-Zie ook [validatie en testgrenzen](VALIDATIE.md).
+![Foto-overzicht, finish links en rennerzone rechts](screenshots/01-overzicht.jpg)
 
-## Beelden
+![Jury, bel en uitkragende rondenteller naast de finish](screenshots/02-piste.jpg)
 
-![Overzicht van Gent](screenshots/01-overzicht.jpg)
-
-![Langs de piste](screenshots/02-piste.jpg)
-
-![Sobere rennercabines en vrije doorgang](screenshots/03-rennersboxen.jpg)
+![Open rennerboxen en technische strook](screenshots/03-rennersboxen.jpg)
 
 ![Gedeelde tv-box met presentatoren](screenshots/04-tv-box.jpg)

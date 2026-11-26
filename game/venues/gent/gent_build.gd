@@ -3,6 +3,43 @@ extends Node3D
 var track: RefCounted
 var venue: Resource
 var materials := {}
+func red_logo_material(aspect:float,two_sided:bool=false)->ShaderMaterial:
+	var key:="white_velodrome_red_"+str(aspect)+str(two_sided)
+	if materials.has(key):return materials[key]
+	var material:=ShaderMaterial.new();material.shader=preload("res://venues/gent/white_logo_red.gdshader")
+	material.set_shader_parameter("wordmark",preload("res://assets/branding/velodrome_wordmark.png"))
+	material.set_shader_parameter("panel_aspect",aspect)
+	material.set_shader_parameter("two_sided_banner",two_sided);materials[key]=material
+	return material
+
+func branding_ring(label:String,offset:float,lift:float,height:float,count:int,flat:bool=false)->void:
+	var vertices:=PackedVector3Array();var uv:=PackedVector2Array()
+	for i in count:
+		var centre:float=venue.lap_length_m*(float(i)+.5)/float(count)
+		var speed:float=track.at(centre+.1,offset).distance_to(track.at(centre-.1,offset))/.2
+		var span:=4.2/maxf(.2,speed)
+		for segment in 16:
+			for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),Vector2(1,0),Vector2(1,1),Vector2(0,1)]:
+				var along:float=(float(segment)+corner.x)/16.0
+				var p:Vector3=track.at(centre+(along-.5)*span,offset)
+				if flat:p.y=0.0
+				vertices.append(p+Vector3.UP*(lift+corner.y*height))
+				# The shared shader prints a readable logo on both banner faces.
+				uv.append(Vector2(1.0-along,1.0-corner.y))
+	var panel:=surface(label,vertices,red_logo_material(4.2/height,true),uv)
+	panel.set_meta("brand_panels",count)
+
+func branding_track(start:float,length:float)->void:
+	var vertices:=PackedVector3Array();var uv:=PackedVector2Array()
+	for segment in 40:
+		for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),Vector2(1,0),Vector2(1,1),Vector2(0,1)]:
+			var along:float=(float(segment)+corner.x)/40.0
+			vertices.append(track.at(start+along*length,lerpf(4.7,7.4,corner.y))+Vector3.UP*.025)
+			uv.append(Vector2(1.0-along,1.0-corner.y))
+	var middle:=start+length*.5
+	var width:float=track.at(middle+.1,6.05).distance_to(track.at(middle-.1,6.05))/.2*length
+	surface("GentWhiteLogoRedTrackPanel%d"%roundi(start),vertices,red_logo_material(width/2.7),uv)
+
 func mat(hex: String, rough := 0.85, glow := 0.0) -> StandardMaterial3D:
 	var key := hex + str(rough) + str(glow)
 	if materials.has(key): return materials[key]

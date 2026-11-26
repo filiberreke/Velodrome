@@ -41,3 +41,7 @@ Dag 4 is wel als galerijpagina geraadpleegd, maar niet als bekeken fotoreeks geb
 Het geometrische schema en het palet zijn eigen voorstellen. De grote rode vlakken en gele zitjes zijn sfeerankers; echte reclameteksten en de bestaande wandkunst worden niet gekopieerd. Voor een 3D-bouwer zijn vooral de zichtbare verhoudingen, randen, tribunerijen en het zaalplafond bruikbaar. Scherpe sponsorlogo's zijn geen vereiste referentiedetail.
 
 Bij wijziging van deze brief: behoud het onderscheid tussen brongegeven, foto-observatie en artistieke startwaarde. Een foto bewijst geen exacte maat of materiaalparameter.
+
+## Aanvullende plaatsingsreferentie van de projecteigenaar
+
+Op 26 november 2026 is een overzichtsfoto aangeleverd met expliciete toelichting: finish/jury links, rennerboxen en techniek rechts, perswerkplekken en centrale medische post in de nabije bocht, mixed zone ertussen en publiek op de overige vloer. Deze aanwijzingen bepalen de actuele Godot-indeling en het eerste camerastandpunt. De opnamedatum van de foto is niet vastgesteld. De foto is alleen als referentie bekeken en wordt niet als speltextuur of gekopieerd fotobestand gepubliceerd. Witte Lotto-tekens op rode vlakken worden op verzoek vervangen door het witte Vélodrome-woordmerk op rood; de interviewbackdrop wordt hergebruikt uit Vélodrome.

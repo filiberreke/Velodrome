@@ -2,7 +2,8 @@ extends SceneTree
 ## Real rendered Godot frames. Run with a display/GPU, not --headless.
 func _initialize()->void:call_deferred("run")
 func run()->void:
-	var view:=SubViewport.new();view.size=Vector2i(1600,1000);view.own_world_3d=true
+	TranslationServer.set_locale("nl")
+	var view:=SubViewport.new();view.size=Vector2i(1600,900);view.own_world_3d=true
 	view.render_target_update_mode=SubViewport.UPDATE_ALWAYS;view.msaa_3d=Viewport.MSAA_4X;root.add_child(view)
 	var scene:=preload("res://venues/gent/gent_preview.gd").new();scene.show_ui=false;view.add_child(scene)
 	await process_frame
