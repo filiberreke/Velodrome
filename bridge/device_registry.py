@@ -10,6 +10,7 @@ from pathlib import Path
 from combined_mode import CommandError
 from selection import advertised_name, is_left_ride
 from hr_bridge import HeartRateState
+from openbikecontrol import is_openbikecontrol
 
 ROLES = ('trainer', 'controller', 'heart_rate')
 HR_SERVICE = '0000180d-0000-1000-8000-00805f9b34fb'
@@ -22,7 +23,7 @@ def capabilities(device, adv):
     roles = []
     if FTMS_SERVICE in services:
         roles.append('trainer')
-    if is_left_ride(device, adv):
+    if is_left_ride(device, adv) or is_openbikecontrol(adv):
         roles.append('controller')
     if HR_SERVICE in services:
         roles.append('heart_rate')
@@ -63,7 +64,8 @@ class DeviceRegistry:
                 address = str(device.address)
                 self.inventory[address] = {
                     'address': address, 'name': advertised_name(device, adv) or address,
-                    'roles': roles, 'transport': 'BLE', 'seen': self.clock(), 'device': device}
+                    'roles': roles, 'transport': 'BLE', 'seen': self.clock(), 'device': device,
+                    'openbikecontrol': is_openbikecontrol(adv)}
 
     async def scan_loop(self):
         while True:

@@ -10,6 +10,7 @@ from pathlib import Path
 import sys
 from bleak import BleakClient, BleakScanner
 from ride_protocol import decode_state
+import openbikecontrol
 from steering import SteeringState
 from ride_ble import find_characteristics
 from button_mapping import ButtonMapper
@@ -225,14 +226,16 @@ async def trainer_loop(device, sender, resistance_queue=None, shifter=None, trai
         await asyncio.sleep(RETRY_SECONDS)
 
 
-async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_search=None):
+async def ride_loop(device, sender, mapper, shifter=None, combined=None, device_search=None,
+                    use_initial_device=False):
     previous = set()
     while True:
         try:
-            if device_search is not None:
+            if device_search is not None and not use_initial_device:
                 device = await device_search()
                 # Preserve the proven independent Ride startup spacing.
                 await asyncio.sleep(1.5)
+            use_initial_device = False
             print("Zwift Ride verbinden:", device.name or "(naam via advertentie)", device.address)
             async with BleakClient(device, timeout=18.0) as client:
                 print("Ride BLE link verbonden; zoeken naar Zwift service...")
@@ -428,16 +431,31 @@ async def main(args):
         print(f'UDP-commandos: {COMMAND_HOST}:{COMMAND_PORT}; ERG/helling lease 5 s, ACK is acceptatie, geen hardwarebewijs.')
         mapper = ButtonMapper.load()
         print('Ride knoppenmapping:', mapper.mapping)
-        print('Bridge wacht op apparaten; KICKR en linker Ride verbinden onafhankelijk zodra ze beschikbaar zijn.')
+        print('Bridge wacht op apparaten; trainer en besturing verbinden onafhankelijk.')
         def trainer_task():
             search = DeviceSearch(discovery, lambda rows: devices.choose('trainer', rows,
                                   lambda found: select_device(found, args.trainer)), 'Trainer')
             return trainer_loop(None, sender, combined=combined, device_search=search)
 
-        def controller_task():
+        async def controller_task():
             search = DeviceSearch(discovery, lambda rows: devices.choose('controller', rows,
                                   lambda found: select_left_ride(found, args.ride)), 'Besturing')
-            return ride_loop(None, sender, mapper, combined=combined, device_search=search)
+            device = await search()
+            if not devices.inventory.get(str(device.address), {}).get('openbikecontrol'):
+                # Preserve independent Ride startup spacing and rediscovery.
+                await asyncio.sleep(1.5)
+                await ride_loop(device, sender, mapper, combined=combined, device_search=search,
+                                use_initial_device=True)
+                return
+
+            while True:
+                try:
+                    await openbikecontrol.connect(device, BleakClient, sender.send, combined.on_button)
+                except Exception as exc:
+                    logging.warning('OpenBikeControl verbinding: %s', exc)
+                clear_controller()
+                await asyncio.sleep(RETRY_SECONDS)
+                device = await search()
 
         def clear_trainer():
             sender.connected = False

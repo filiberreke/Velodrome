@@ -35,3 +35,12 @@ python bridge/tools/virtual_bridge_ui.py
 ```
 
 De virtuele bridge is bedoeld voor testen zonder hardware. Zie het [UDP-protocol](UDP_PROTOCOL.md) voor berichten en poorten en de [archiefdocumentatie](../docs/archive/ARCHIEF.md) voor ontwerp- en validatieverslagen.
+
+## BikeControl via Bluetooth
+
+1. Koppel de knoppen van je fiets of afstandsbediening aan BikeControl.
+2. Kies in BikeControl **OpenBikeControl Compatible** als trainingsapp en zet de OpenBikeControl-verbinding via **Bluetooth** aan.
+3. Open **Apparaten** in Vélodrome en selecteer **BikeControl** bij de besturing. Selecteer je smarttrainer afzonderlijk zoals gebruikelijk.
+4. Wijs in BikeControl de acties **Shift Up**, **Shift Down**, **Up**, **Down**, **Left**, **Right**, **Select** en **Back** aan je knoppen toe. Virtueel schakelen werkt wanneer de trainerregeling in actieve SIM-modus staat. De navigatieknoppen gebruiken de bestaande controllerbediening van Vélodrome, inclusief eventueel aangepaste knoptoewijzingen.
+
+Gebruik voor BikeControl een tweede apparaat dat OpenBikeControl via Bluetooth kan aanbieden. Vélodrome gebruikt hiervoor OpenBikeControl v1 over BLE.
