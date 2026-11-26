@@ -6,7 +6,7 @@ De nominale lengte is **1000/6 m**: zes ronden zijn exact één kilometer. De sc
 
 Kies in het hoofdmenu **Gent — bekijk het nieuwe stadion**, of voer `res://venues/gent/gent_preview.tscn` uit.
 
-- `1`–`4`: foto-overzicht, jury/finish, rennerzone, tv-box.
+- `1`–`4`: foto-overzicht, jury/finish, rennerboxen frontaal vanaf de buitenzijde van de piste, tv-box.
 - `C` of pijltjestoetsen: volgend/vorig standpunt.
 - `H`: bediening verbergen.
 - `Esc` of Terug: hoofdmenu.
@@ -45,7 +45,7 @@ Alle twintig pistevakken bevatten nu onze eigen sponsorafbeeldingen. De hoofdkle
 | Blauw | PelotonPredictor, Wielerpraat | 2 |
 | Donker | Eerlijke Stef donker | 1 |
 
-De expliciete volgorde staat in `gent_sponsors.gd`. De afbeeldingen worden zonder uitrekken in de gebogen baanvlakken geplaatst. Op de buitenboarding blijven 28 witte Vélodrome-opdrukken staan, met leesbare opdruk aan beide zijden. De 24 opdrukken bij het middenplein liggen vlak op de rode/oranje binnenstrook, zoals op de foto. Er hangen geen reclamevlakken in de middenpleinomheining; daar blijven alleen de leuning en palen over. De vloeropdruk gebruikt hetzelfde oranje als de onderliggende strook, zodat de witte letters rechtstreeks geschilderd lijken. De overige sponsorassets zijn ongewijzigd hergebruikt.
+De expliciete volgorde staat in `gent_sponsors.gd`. De afbeeldingen worden zonder uitrekken in de gebogen baanvlakken geplaatst. Op de buitenboarding blijven 28 witte Vélodrome-opdrukken staan, met leesbare opdruk aan beide zijden. De 24 opdrukken bij het middenplein liggen vlak op de rode/oranje binnenstrook, zoals op de foto. Er hangen geen reclamevlakken in de middenpleinomheining; daar blijven alleen de leuning en palen over. De vloeropdruk gebruikt hetzelfde oranje als de onderliggende strook, zodat de witte letters rechtstreeks geschilderd lijken. De vloerlogo’s zijn 180° gedraaid en zijn leesbaar vanaf de buitenzijde van de piste. De overige sponsorassets zijn ongewijzigd hergebruikt.
 
 De zwevende zonebenamingen **Renners/techniek** en **Mixed zone** zijn verwijderd. Alleen tekst die zichtbaar op een fysiek paneel, bord of display hoort te staan, blijft behouden (zoals de boxnummers, pers-/jurybordjes, medische post en rondenteller).
 
@@ -61,7 +61,7 @@ Alles is procedureel opgebouwd. De backdrop gebruikt dezelfde bouwer en dezelfde
 
 ## Screenshots en reproductie
 
-De vier bestanden onder `screenshots/` zijn echte Godot-frames van deze scène, opgenomen op 1600 × 900 met OpenGL Compatibility/Mesa llvmpipe.
+De vijf bestanden onder `screenshots/` zijn echte Godot-frames van deze scène, opgenomen op 1600 × 900 met OpenGL Compatibility/Mesa llvmpipe.
 
 ```sh
 godot --path game --script res://tests/capture_gent.gd
@@ -73,6 +73,8 @@ Een werkend display/renderapparaat is nodig; `--headless` levert geen bruikbare 
 
 ![Jury, bel en uitkragende rondenteller naast de finish](screenshots/02-piste.jpg)
 
-![Open rennerboxen en technische strook](screenshots/03-rennersboxen.jpg)
+![Rennerboxen frontaal gezien vanaf de buitenzijde van de piste](screenshots/03-rennersboxen.jpg)
 
 ![Gedeelde tv-box met presentatoren](screenshots/04-tv-box.jpg)
+
+![Frontaal detail van de rennerboxen vanaf de buitenzijde](screenshots/05-rennersboxen-frontaal-detail.jpg)

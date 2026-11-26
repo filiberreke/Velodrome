@@ -20,4 +20,10 @@ func run()->void:
 		var name:String=["01-overzicht","02-piste","03-rennersboxen","04-tv-box"][i]
 		view.get_texture().get_image().save_jpg(output+name+".jpg",0.94)
 		print("GENT_CAPTURE ",output+name+".jpg")
+	# Front-on detail from the outer stands, looking across the track.
+	scene.camera.position=Vector3(-22.5,6.8,-6.975)
+	scene.camera.look_at(Vector3(-8.35,.55,-6.975));scene.camera.fov=34.0
+	for j in 10:await RenderingServer.frame_post_draw
+	view.get_texture().get_image().save_jpg(output+"05-rennersboxen-frontaal-detail.jpg",0.96)
+	print("GENT_CAPTURE ",output+"05-rennersboxen-frontaal-detail.jpg")
 	scene.free();view.free();quit()

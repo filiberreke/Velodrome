@@ -56,7 +56,8 @@ func branding_floor(label:String,count:int)->void:
 			for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),Vector2(1,0),Vector2(1,1),Vector2(0,1)]:
 				var along:float=(float(segment)+corner.x)/24.0
 				var p:Vector3=track.at(centre+(along-.5)*span,lerpf(-2.20,-.10,corner.y))
-				p.y=.021;vertices.append(p);uv.append(Vector2(1.0-along,1.0-corner.y))
+				# Rotate the floor print 180 degrees: readable from the outer stands.
+				p.y=.021;vertices.append(p);uv.append(Vector2(along,corner.y))
 	var paint:=surface(label,vertices,banner_material(RED_POSTER,4.2/2.10,false,Color(venue.palette.orange)),uv)
 	paint.set_meta("brand_panels",count)
 

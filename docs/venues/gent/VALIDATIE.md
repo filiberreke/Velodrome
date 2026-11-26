@@ -32,3 +32,5 @@ Na de bannerwijziging zijn de Gent-inrichtingstest en lokalisatietest opnieuw ui
 Een aparte gerenderde kleurcontrole met identieke vlakken en gelijke belichting meet voor de rode bannerachtergrond en de basisboarding een maximaal kanaalverschil van **0/255** op de vergeleken kleurmonsters. De definitieve overzichts- en detailbeelden zijn daarna opnieuw opgenomen; de ongewenste zwarte opvulranden ontbreken.
 
 De middenpleinreclame is daarna naar de rode/oranje vloer verplaatst. De opnieuw geslaagde inrichtingstest controleert dat alle vertices van die opdruk op vloerhoogte liggen, de achtergrondkleur gelijk is aan de binnenstrook en de oude reclamevlakken in de omheining ontbreken. De vier screenshots tonen deze definitieve plaatsing.
+
+De vloerlogo’s zijn vervolgens 180° gedraaid, zodat ze vanaf de buitenzijde leesbaar zijn. De Gent-inrichtingstest is opnieuw geslaagd. Standpunt 3 kijkt nu loodrecht op de rij rennerboxen vanaf de buitenste tribune, over de piste heen. De capturer maakt daarnaast een dichter frontaal detailbeeld vanaf dezelfde zijde (`05-rennersboxen-frontaal-detail.jpg`); beide zijn echte Godot-renders.
