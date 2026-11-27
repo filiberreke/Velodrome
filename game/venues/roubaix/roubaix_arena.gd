@@ -3,6 +3,7 @@ extends "res://venues/gent/gent_build.gd"
 const Crowd := preload("res://crowd_kit.gd")
 const CommentaryBox := preload("res://commentary_box.gd")
 const Infield := preload("res://venues/roubaix/roubaix_infield.gd")
+const Surroundings := preload("res://venues/roubaix/roubaix_surroundings.gd")
 const BLUE_BANNER := preload("res://assets/boarding/velodrome-boarding.png")
 const WHITE_BANNER := preload("res://assets/boarding/velodrome-boarding-licht.png")
 const BEND_BANNERS := [
@@ -41,6 +42,10 @@ func build(host: Node3D, profile: Resource, route: RefCounted) -> void:
 	infield.build(host, venue, track)
 	_build_stands()
 	_build_surroundings()
+	var neighbourhood := Surroundings.new()
+	neighbourhood.name = "RoubaixNeighbourhood"
+	add_child(neighbourhood)
+	neighbourhood.build(venue, track, crowd, density, road_distance)
 	_infield_public()
 
 func set_track_lighting_training(_training: bool) -> void:
@@ -212,7 +217,7 @@ func _build_stands() -> void:
 	var road_clearance := ROAD_HALF_WIDTH + 0.8
 	for bounds in [[25.0, 73.0], [77.0, 136.0], [142.0, 217.0], [221.0, road_distance - road_clearance],
 			[road_distance + road_clearance, 302.0], [306.0, 369.0], [374.0, 439.0]]:
-		_terrace(bounds[0], bounds[1], 3, false)
+		_terrace(bounds[0], bounds[1], 4, false)
 	var outer: Vector3 = track.outward(0.0)
 	var center: Vector3 = _terrace_point((ROOF_START + ROOF_END) * 0.5, 0)
 	var roof_length := ROOF_END - ROOF_START + 1.0
@@ -301,18 +306,21 @@ func _terrace(start: float, end: float, rows: int, covered: bool) -> void:
 			var drop_b := Vector3.UP * (b.y + 0.045 if row == 0 else 0.43)
 			vertices.append_array(PackedVector3Array([a, b, c, b, d, c, a - drop, a, b, a - drop, b, b - drop_b]))
 		var s := start + 0.35
-		var row_density := 1.0 - pow(1.0 - density, 1.75 if covered else 1.24)
+		var row_density := 1.0 - pow(1.0 - density, 2.1 if covered else 2.9)
 		while s < end - 0.35:
 			var on_media_deck := covered and row >= 5 and absf(s) < MEDIA_HALF_WIDTH
-			if not on_media_deck and fposmod(s - start + 4.8, 13.0) > 1.65 and rng.randf() < row_density:
-				var inward: Vector3 = -track.outward(s)
-				var p := _terrace_point(s, row) - inward * 0.43
+			var aisle := covered and fposmod(s - start + 4.8, 13.0) <= 1.65
+			if not on_media_deck and not aisle and rng.randf() < row_density:
+				var position_s := s if covered else clampf(s + rng.randf_range(-0.17, 0.17), start, end)
+				var inward: Vector3 = -track.outward(position_s)
+				var p := _terrace_point(position_s, row) - inward * (0.43 if covered else rng.randf_range(0.29, 0.64))
 				var variants: Array = Crowd.SEATED if covered else Crowd.STANDING
 				var variant: String = variants[rng.randi_range(0, variants.size() - 1)]
 				if covered: p.y += 0.17
+				else: inward = inward.rotated(Vector3.UP, rng.randf_range(-0.26, 0.26))
 				Crowd.add_to_group(people, variant, Transform3D(Basis(Vector3.UP.cross(inward), Vector3.UP, inward), p), crowd.random_look(rng))
 			var rate: float = track.at(s + 0.10, RIM + 1.5 + row * 0.91).distance_to(track.at(s - 0.10, RIM + 1.5 + row * 0.91)) / 0.20
-			s += 0.65 / maxf(rate, 1.0)
+			s += (0.65 if covered else 0.57) / maxf(rate, 1.0)
 	surface("CoveredGrandstand" if covered else "OpenTerrace", vertices, mat("d2ccc0"))
 	crowd.emit_group(self, people, "RoubaixSpectators", [[1, 0.0, 0.0]] if simple else [[0, 0.0, 35.0], [1, 35.0, 0.0]])
 
@@ -354,16 +362,25 @@ func _build_surroundings() -> void:
 	trees.transform_format = MultiMesh.TRANSFORM_3D
 	trees.use_colors = true
 	trees.mesh = foliage
-	trees.instance_count = 180
-	for i in 90:
-		var s: float = i * venue.lap_length_m / 90
-		var offset := rng.randf_range(18.0, 26.0)
+	var tree_distances := PackedFloat32Array()
+	for i in 79:
+		var s: float = i * venue.lap_length_m / 79
 		var stand_distance: float = wrapf(s, -venue.lap_length_m * 0.5, venue.lap_length_m * 0.5)
-		if stand_distance > ROOF_START - 8.0 and stand_distance < ROOF_END + 8.0: offset += 13.0
+		if (stand_distance < -87.0 or stand_distance > 58.0) and absf(s - road_distance) > 36.0:
+			tree_distances.append(s)
+	trees.instance_count = tree_distances.size() * 2
+	var street_center: Vector3 = track.at(Surroundings.STREET_DISTANCE, Surroundings.STREET_OFFSET)
+	var street_outward: Vector3 = track.outward(Surroundings.STREET_DISTANCE)
+	var street_tangent := Vector3.UP.cross(street_outward)
+	for i in tree_distances.size():
+		var s := tree_distances[i]
+		var offset := rng.randf_range(19.5, 35.0)
 		var p: Vector3 = track.at(s, offset)
+		var street_side := (p - street_center).dot(street_outward)
+		if absf((p - street_center).dot(street_tangent)) < Surroundings.STREET_LENGTH * 0.5 + 4.0 and street_side > -9.5 and street_side < 23.0:
+			p += street_outward * (24.0 - street_side)
 		p.y = -0.04
 		var h := rng.randf_range(4.8, 10.2)
-		if absf(s - road_distance) < ROAD_HALF_WIDTH + 5.2: p += track.outward(s) * 30.0
 		box("TreeTrunk", p + Vector3.UP * h * 0.28, Vector3(0.33, h * 0.56, 0.35), mat("605345"))
 		for j in 2:
 			var scale3 := Vector3(h * rng.randf_range(0.64, 1.04), h * 0.76, h * 0.80)
@@ -385,14 +402,6 @@ func _build_surroundings() -> void:
 		box("FloodlightBar", p + Vector3.UP * 16.58, Vector3(0.31, 0.12, 3.05), mat("56696d"))
 		for z in [-1.22, -0.61, 0, 0.61, 1.22]:
 			box("FloodlightHead", p + Vector3(0, 16.53, z), Vector3(0.49, 0.205, 0.39), mat("dedacc"))
-	for s in [-70.0, 33.0, 180.0, 217.0, 310.0, 423.0]:
-		var p: Vector3 = track.at(s, 16.8)
-		p.y = 2.1
-		box("VenueBuilding", p, Vector3(4.6, 4.2, 8.0), mat("c9bda9"))
-		box("BuildingRoof", p + Vector3.UP * 2.12, Vector3(4.9, 0.24, 8.3), mat("76868a"))
-		for z in [-2.55, 0.0, 2.55]:
-			for side in [-1, 1]:
-				box("FacadeWindow", p + Vector3(2.31 * side, 0.45, z), Vector3(0.045, 1.0, 1.48), mat("577582", 0.43))
 	for i in 12:
 		var s: float = 28.0 + i * 36
 		_flag(_terrace_point(s, 2), i % 3, 3.4)
