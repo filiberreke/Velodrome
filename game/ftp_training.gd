@@ -80,9 +80,10 @@ func _record_activity(at: float, power: float) -> void:
 	activity_samples.append({"time_s":elapsed,"distance_m":activity_distance,"game_speed_kmh":speed,"power_w":power,"cadence_rpm":cadence_rpm,"heart_rate_bpm":heart_rate_bpm if heart_rate_bpm > 0 else null})
 func _complete_activity() -> void:
 	if not selected_activity.is_empty() or activity_samples.size() < 2: return
-	selected_activity = {"version":1,"started_local":activity_started_local,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":String(TranslationServer.translate("FTP_20_MINUTE_FTP")) if twenty_mode else String(TranslationServer.translate("MENU_FTP_RAMP_TEST_2")),"reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp(),"ftp_reference_w":player_profile.ftp()}
+	selected_activity = {"version":1,"started_local":activity_started_local,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","demo":activity_virtual,"title":String(TranslationServer.translate("FTP_20_MINUTE_FTP")) if twenty_mode else String(TranslationServer.translate("MENU_FTP_RAMP_TEST_2")),"reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp(),"ftp_reference_w":player_profile.ftp()}
 	var store := preload("res://training_store.gd").new()
 	upload_status = String(TranslationServer.translate("FTP_TRAINING_SAVED_LOCALLY")) if store.save(selected_activity) else store.error
+	get_node("/root/ActivityUploads").capture_training(selected_activity, activity_virtual)
 
 var ftp_persisted := false
 var ftp_save_message := ""
@@ -93,6 +94,7 @@ var cadence_rpm := -1.0
 var last_speed_kmh := 0.0
 var gear := -1
 var telemetry_ok := false
+var activity_virtual := false
 var bridge_update_needed := false
 var confirmation_since := -1.0
 var confirmation_target := -1
@@ -162,6 +164,7 @@ func _ftp_pause_expired(now: float) -> bool:
 	return (test.running() or twenty_warmup) and signal_state.paused_seconds(now) > FTP_MAX_PAUSE_SECONDS
 func receive(packet: Dictionary, now: float) -> void:
 	if packet.get("type") != "telemetry": return
+	activity_virtual = packet.get("virtual", false) == true
 	var power: Variant = packet.get("power_w")
 	var id: Variant = packet.get("power_sample_id")
 	var age: Variant = packet.get("power_age_s")

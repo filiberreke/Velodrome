@@ -145,6 +145,7 @@ func race_card(parent: Node, spec: Array, discipline_index: int) -> void:
 		elif discipline_index == 2: card.pressed.connect(menu.start_omnium_elimination)
 		else: card.pressed.connect(menu.start_omnium_points)
 	ignore_children(content)
+	if done: page.activity_actions(parent, active, discipline_index)
 
 func ignore_children(node: Control) -> void:
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE

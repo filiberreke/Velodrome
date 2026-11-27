@@ -82,7 +82,7 @@ func enter() -> void:
 	tempo_requests.clear()
 	call_elapsed = 0
 	var stamp := Time.get_datetime_string_from_system().replace(":", "-")
-	activity = {"version":1, "id":stamp + "-%08x" % randi(), "kind":"derny", "title":String(TranslationServer.translate("TRAINING_HISTORY_DERNY_TRAINING")), "started_unix":int(Time.get_unix_time_from_system()), "started_local":Time.get_datetime_string_from_system(false,true), "demo":demo}
+	activity = {"version":1, "id":stamp + "-%08x" % randi(), "kind":"derny", "title":String(TranslationServer.translate("TRAINING_HISTORY_DERNY_TRAINING")), "started_unix":int(Time.get_unix_time_from_system()), "started_local":Time.get_datetime_string_from_system(false,true), "demo":demo or game.trainer_virtual}
 	session.start(start_distance,page.start_speed.value)
 	activity["start_speed_kmh"] = session.start_speed_kmh
 	player_speed = session.target_kmh/3.6
@@ -254,7 +254,9 @@ func _persist(final: bool) -> void:
 	save_status = String(TranslationServer.translate("PISTE_EXERCISE_PAGE_TRAINING_SAVED_IN_THE_GAME")) if saved else "Opslaan mislukt: " + store.error
 	if saved:
 		last_save = total_elapsed
-		if final: saved_final = true
+		if final:
+			saved_final = true
+			game.get_node("/root/ActivityUploads").capture_training(activity, game.trainer_virtual)
 func finish_session(reason: String, show_result: bool = true) -> void:
 	session.stop(reason)
 	_capture_sample()

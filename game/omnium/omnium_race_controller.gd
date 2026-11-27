@@ -82,6 +82,7 @@ func sample(game: Node) -> void:
 		if game.finish_times[i] >= 0.0 and not finish_energy.has(id):
 			finish_energy[id] = {"reserve":clampf(game.x_ai.wprime[i] / maxf(1.0, game.x_ai.wmax[i]), 0.0, 1.0), "wprime_j":game.x_ai.wprime[i], "capacity_j":game.x_ai.wmax[i], "timestamp":now}
 	if not game._all_riders_finished(): return
+	game._archive_completed_ride()
 	committed = manager.finish_attempt(String(attempt.id), result_data(game), finish_energy, now)
 	if committed: error = ""
 	if not committed:
@@ -124,7 +125,7 @@ func result_data(game: Node) -> Dictionary:
 	for i in order(game):
 		var id := String(game.rider_identities[i].id)
 		ids.append(id); times[id] = game.finish_times[i]; credits[id] = laps[i]
-	return {"discipline":discipline(), "order":ids, "finish_times":times, "lap_credits":credits}
+	return {"discipline":discipline(), "order":ids, "finish_times":times, "lap_credits":credits, "activity_id":game.ride_activity_saved, "attempt_id":str(attempt.get("id", ""))}
 
 func prepare_ai(game: Node) -> void:
 	tactics.configure(context, discipline())

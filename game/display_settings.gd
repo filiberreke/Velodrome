@@ -394,6 +394,21 @@ func _build_menu() -> void:
 	account_status.text = "DISPLAY_SETTINGS_ACCOUNT_CONNECTED" if has_account else "DISPLAY_SETTINGS_NO_ACCOUNT_CONNECTED_YET"
 	account_status.add_theme_font_size_override("font_size", 26)
 	box.add_child(account_status)
+	var uploads := get_node("/root/ActivityUploads")
+	var automatic := CheckBox.new()
+	automatic.text = "ACTIVITY_AUTO_UPLOAD"
+	automatic.button_pressed = uploads.auto_upload
+	automatic.toggled.connect(uploads.set_auto_upload)
+	box.add_child(automatic)
+	var refresh_account := func(_message: String):
+		if not is_instance_valid(account_status): return
+		var connected: bool = client.has_account()
+		account_status.text = tr("DISPLAY_SETTINGS_ACCOUNT_CONNECTED") if connected else tr("DISPLAY_SETTINGS_NO_ACCOUNT_CONNECTED_YET")
+		if connected: account_status.text += " " + str(client.tokens.get_value("tokens", "athlete_name", ""))
+	client.status_changed.connect(refresh_account)
+	uploads.status_changed.connect(refresh_account)
+	refresh_account.call("")
+
 	var account_help := Label.new()
 	account_help.text = "SETTINGS_1_COPY_CONFIG_STRAVA_CONFIG_EXAMPLE_CFG_TO_CONFIG_STRAVA_CONFIG_CFG_2_"
 	account_help.add_theme_font_size_override("font_size", 19)

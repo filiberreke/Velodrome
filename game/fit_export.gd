@@ -76,7 +76,7 @@ static func heart_rate_value(value: Variant) -> int:
         return 255
     return int(number)
 
-static func build(samples: Array[Dictionary], start_unix: int, with_gps: bool) -> PackedByteArray:
+static func build(samples: Array[Dictionary], start_unix: int, with_gps: bool, location: Dictionary = {}) -> PackedByteArray:
     if samples.size() < 2:
         return PackedByteArray()
     var fields_file := [[0, 1, 0x00], [1, 2, 0x84], [2, 2, 0x84], [4, 4, 0x86]]
@@ -110,7 +110,7 @@ static func build(samples: Array[Dictionary], start_unix: int, with_gps: bool) -
         var cadence_value: int = clampi(roundi(rpm), 0, 254) if rpm >= 0.0 else 255
         var values: Array = [ts, clampi(roundi(distance * 100.0), 0, 2147483647), clampi(roundi(speed * 1000.0), 0, 65534), power, cadence_value, heart_rate_value(s.get("heart_rate_bpm"))]
         if with_gps:
-            values.append_array(_semicircles_position(distance))
+            values.append_array(_semicircles_position(distance) if location.is_empty() else _location_position(distance, location))
         body.append_array(_message(1, fields_record, values))
     body.append_array(_definition(2, 19, fields_lap))
     body.append_array(_message(2, fields_lap, [end_fit, start_fit, roundi(elapsed * 1000.0), roundi(elapsed * 1000.0), roundi(metres * 100.0), 2, 58]))
@@ -127,3 +127,12 @@ static func build(samples: Array[Dictionary], start_unix: int, with_gps: bool) -
     result.append_array(body)
     result.append_array(_field(_crc(result), 2))
     return result
+
+# Optional real venue coordinates; older callers retain their original virtual track.
+static func _location_position(distance_m: float, location: Dictionary) -> Array[int]:
+    var point := _point_at(distance_m)
+    var latitude := float(location.get("latitude", CENTER_LAT))
+    var longitude := float(location.get("longitude", CENTER_LON))
+    var lat := latitude + point.y / 111320.0
+    var lon := longitude + point.x / (111320.0 * maxf(0.01, cos(deg_to_rad(latitude))))
+    return [roundi(lat / 180.0 * 2147483648.0), roundi(lon / 180.0 * 2147483648.0)]

@@ -624,6 +624,9 @@ var last_record_tick := -1000
 const FALLBACK_SAMPLE_INTERVAL_MS := 200
 var recording_message := ""
 var recording_folder := ""
+var ride_activity_id := ""
+var ride_activity_saved := ""
+var ride_completed := false
 var ride_start_unix: int = 0
 var strava_export_path := ""
 var fit_export_path := ""
@@ -659,6 +662,7 @@ func _ready() -> void:
 	add_child(strava_client)
 	strava_client.status_changed.connect(_on_strava_status)
 	strava_client.activity_created.connect(_on_strava_activity_created)
+	get_node("/root/ActivityUploads").status_changed.connect(_on_strava_status)
 	_build_world()
 	arena = load("res://arena.gd").new()
 	add_child(arena)
@@ -807,6 +811,7 @@ func _riding() -> bool:
 
 func _begin_riding() -> void:
 	running = true
+	ride_activity_id = "race_%d_%08x" % [int(Time.get_unix_time_from_system()), randi()]
 	_reset_pc_energy()
 	if not trainer_seen:
 		watts = demo_launch_watts
@@ -1443,6 +1448,9 @@ func _reset(omnium_archive: Dictionary = {}) -> void:
 	_save_recording("restart")
 	ride_records = []
 	demo_fit_records = []
+	ride_activity_id = ""
+	ride_activity_saved = ""
+	ride_completed = false
 	ride_start_unix = 0
 	strava_export_path = ""
 	fit_export_path = ""
@@ -2601,6 +2609,12 @@ func _build_hud() -> void:
 	menu.exercise_environment_requested.connect(_exercise_environment_requested)
 	menu.madison_environment_requested.connect(_madison_environment_requested)
 	menu.training_upload_requested.connect(_upload_training)
+	get_node("/root/ActivityUploads").status_changed.connect(func(message):
+		menu.derny_page.upload_status = message
+		menu.exercise_page.upload_status = message
+		menu.madison_page.upload_status = message
+		menu.ftp_page.upload_status = message
+	)
 	strava_client.status_changed.connect(func(message):
 		menu.derny_page.upload_status = message
 		menu.exercise_page.upload_status = message
@@ -3033,6 +3047,10 @@ func _confirm_start() -> void:
 # Godot user:// is writable in exported Windows and Linux games.
 # Full real trainer records, including the original measurement times.
 func _save_recording(reason: String) -> void:
+	if reason in ["finish", "elimination"]:
+		recording_active = false
+		ride_completed = true
+		_archive_completed_ride()
 	if recording_saved:
 		return
 	if ride_records.is_empty():
@@ -3165,6 +3183,16 @@ func _confirm_demo_fit_export(with_gps: bool) -> void:
 # Export FIT v1.0. Does not require Strava credentials, Python, or an online connection.
 # The GPS coordinates are fictional; FIT indoor is the default/recommended export.
 func _export_strava_fit(with_gps: bool, demo_confirmed: bool = false) -> void:
+	if with_gps and not ride_activity_saved.is_empty():
+		var uploads := get_node("/root/ActivityUploads")
+		var folder := OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
+		if folder.is_empty(): folder = OS.get_user_data_dir().path_join("recordings")
+		if DirAccess.make_dir_recursive_absolute(folder) != OK:
+			_on_strava_status(tr("ACTIVITY_SAVE_FAILED")); return
+		var destination := folder.path_join(ride_activity_saved + ".fit")
+		var result: Error = uploads.store.export_fit(ride_activity_saved, destination)
+		_on_strava_status(tr("ACTIVITY_EXPORTED") + " " + destination if result == OK else tr("ACTIVITY_SAVE_FAILED"))
+		return
 	var is_demo: bool = ride_records.size() < 2
 	if is_demo and not demo_confirmed:
 		_confirm_demo_fit_export(with_gps)
@@ -4007,6 +4035,16 @@ func _player_activity_samples() -> Array[Dictionary]:
 	return ride_records if ride_records.size() >= 2 else demo_fit_records
 
 func _start_strava_upload() -> void:
+	if ride_completed and ride_records.size() >= 2 and not trainer_virtual:
+		_archive_completed_ride()
+		if not ride_activity_saved.is_empty():
+			var uploads := get_node("/root/ActivityUploads")
+			var entry: Dictionary = uploads.store.load_activity(ride_activity_saved)
+			if entry.get("status") in ["pending", "retry", "failed"] and str(entry.get("upload_id", "")).is_empty():
+				entry.title = strava_desired_title; entry.description = strava_desired_description
+				uploads.store.save(entry)
+			uploads.request_upload(ride_activity_saved)
+		return
 	# Strava needs FIT bytes, not a permanent copy in Windows Downloads.
 	# Only the explicit EXPORT .FIT button writes to Downloads.
 	var is_demo: bool = ride_records.size() < 2
@@ -4345,6 +4383,11 @@ func available_startlist_riders() -> Array[Dictionary]:
 	return result
 
 func _upload_training(activity: Dictionary) -> void:
+	if not activity.get("demo", false):
+		var uploads := get_node("/root/ActivityUploads")
+		var id: String = uploads.capture_training(activity)
+		if not id.is_empty(): uploads.request_upload(id)
+		return
 	var page = setup_panel.ftp_page if activity.get("kind","") == "ftp_test" else setup_panel.derny_page if activity.get("kind","derny") == "derny" else setup_panel.exercise_page
 	if strava_client.working:
 		page.upload_status = String(TranslationServer.translate("STRAVA_A_STRAVA_UPLOAD_IS_ALREADY_IN_PROGRESS"))
@@ -4374,3 +4417,14 @@ func _upload_training(activity: Dictionary) -> void:
 	strava_save_screenshot = false
 	strava_screenshot_path = ""
 	strava_client.begin_export(ProjectSettings.globalize_path("user://training_upload.fit"),strava_desired_title,strava_desired_description)
+
+func _archive_completed_ride() -> void:
+	if not ride_activity_saved.is_empty(): return
+	if not ride_completed or not trainer_seen or trainer_virtual: return
+	if ride_activity_id.is_empty() or ride_records.size() < 2: return
+	var metadata := {"id":ride_activity_id, "kind":"race", "race_mode":race_mode, "started_unix":ride_start_unix, "title":_strava_activity_title(), "description":_strava_activity_description()}
+	if omnium_race.enabled():
+		metadata["omnium_id"] = str(omnium_race.context.id)
+		metadata["discipline"] = omnium_race.discipline()
+		metadata["attempt_id"] = str(omnium_race.attempt.id)
+	ride_activity_saved = get_node("/root/ActivityUploads").capture(metadata, ride_records, true)

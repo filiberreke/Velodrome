@@ -114,7 +114,7 @@ func finish(message: String) -> void:
 			covered += dt
 		var average: float = energy / covered if covered > 0.0 else 0.0
 		var activity := {
-			"version":1, "id":"erg_%d" % activity_started_unix, "kind":"erg_workout",
+			"version":1, "id":"erg_%d" % activity_started_unix, "kind":"erg_workout", "demo":activity_virtual,
 			"title":str(item.get("name","ERG-workout")), "reason":test.reason,
 			"started_unix":activity_started_unix, "started_local":activity_started_local,
 			"duration_s":float(activity_samples[-1].time_s), "distance_m":activity_distance,
@@ -124,6 +124,7 @@ func finish(message: String) -> void:
 		var archive := preload("res://training_store.gd").new()
 		selected_activity = activity
 		upload_status = String(TranslationServer.translate("FTP_TRAINING_SAVED_LOCALLY")) if archive.save(activity) else archive.error
+		get_node("/root/ActivityUploads").capture_training(activity, activity_virtual)
 	_release(now_s())
 	if active_environment:
 		active_environment = false

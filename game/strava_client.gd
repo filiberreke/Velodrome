@@ -24,6 +24,7 @@ func _emit(message: String) -> void:
 func _http(method: int, url: String, headers: PackedStringArray, payload: PackedByteArray) -> Dictionary:
 	var req := HTTPRequest.new()
 	add_child(req)
+	req.timeout = HTTP_TIMEOUT_SECONDS
 	var err: Error = req.request_raw(url, headers, method, payload)
 	if err != OK:
 		req.queue_free()
@@ -34,7 +35,7 @@ func _http(method: int, url: String, headers: PackedStringArray, payload: Packed
 	var raw: String = (response[3] as PackedByteArray).get_string_from_utf8()
 	var json: Variant = JSON.parse_string(raw)
 	var data: Dictionary = json if json is Dictionary else {}
-	return {"ok": http_status >= 200 and http_status < 300, "code": http_status, "data": data, "message": raw.left(300)}
+	return {"ok": http_status >= 200 and http_status < 300, "code": http_status, "data": data, "items": json if json is Array else null, "message": raw.left(300)}
 
 func _config_value(name: String) -> String:
 	return str(config.get_value("strava", name, "")).strip_edges()
@@ -74,6 +75,7 @@ func reconnect() -> void:
 	if _config_value("client_id").is_empty() or _config_value("client_secret").is_empty():
 		_emit(String(TranslationServer.translate("STRAVA_CLIENT_ENTER_CLIENT_ID_AND_CLIENT_SECRET_IN_CONFIG_STRAVA_CONFIG_CFG_FIRST")))
 		return
+	upload_path = ""
 	# No tokens are transmitted or shared here. A fresh OAuth approval replaces them.
 	_show_authorize()
 
@@ -92,7 +94,7 @@ func _show_authorize() -> void:
 		"redirect_uri=" + redirect.uri_encode(),
 		"response_type=code",
 		"approval_prompt=force",
-		"scope=" + "read,activity:write".uri_encode(),
+		"scope=" + "read,activity:read_all,activity:write".uri_encode(),
 	])
 	var url: String = "https://www.strava.com/oauth/authorize?" + "&".join(params)
 	var open_result: Error = OS.shell_open(url)
@@ -146,6 +148,9 @@ func _save_tokens(data: Dictionary) -> void:
 		tokens.set_value("tokens", "access_token", str(data["access_token"]))
 	if data.has("expires_at"):
 		tokens.set_value("tokens", "expires_at", int(data["expires_at"]))
+	if data.get("athlete") is Dictionary:
+		tokens.set_value("tokens", "athlete_id", str(data.athlete.get("id", "")))
+		tokens.set_value("tokens", "athlete_name", (str(data.athlete.get("firstname", "")) + " " + str(data.athlete.get("lastname", ""))).strip_edges())
 	tokens.save(preload("res://config_paths.gd").user_path("strava_tokens.cfg"))
 
 func _form(data: Dictionary) -> PackedByteArray:
@@ -164,7 +169,8 @@ func _exchange_code(code: String) -> void:
 		return
 	_save_tokens(result["data"])
 	working = false
-	_upload_with_refresh(str(result["data"].get("refresh_token", "")))
+	if not upload_path.is_empty(): _upload_with_refresh(str(result["data"].get("refresh_token", "")))
+	else: _emit(tr("DISPLAY_SETTINGS_ACCOUNT_CONNECTED"))
 
 func _upload_with_refresh(refresh: String) -> void:
 	working = true
@@ -231,3 +237,111 @@ func _send_fit(access_token: String) -> void:
 			_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_COULD_NOT_PROCESS_THE_RIDE")) + str(upload_error))
 			return
 	_emit(String(TranslationServer.translate("STRAVA_CLIENT_STRAVA_IS_STILL_PROCESSING_CHECK_YOUR_ACTIVITY_LIST_LATER")))
+
+func has_account() -> bool:
+	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
+	preload("res://config_paths.gd").load_user(tokens, "strava_tokens.cfg")
+	return not str(tokens.get_value("tokens", "refresh_token", _config_value("refresh_token"))).is_empty()
+
+# Queue requests never open OAuth windows. Receipts are committed before each
+# potentially irreversible POST and immediately when Strava returns an upload ID.
+func archive_step(entry: Dictionary, path: String, checkpoint: Callable) -> void:
+	if working: return
+	working = true
+	upload_path = path
+	await _archive_step(entry, path, checkpoint)
+	working = false
+
+func _archive_step(entry: Dictionary, path: String, checkpoint: Callable) -> void:
+	preload("res://config_paths.gd").load_project(config, "strava_config.cfg")
+	preload("res://config_paths.gd").load_user(tokens, "strava_tokens.cfg")
+	var refresh := str(tokens.get_value("tokens", "refresh_token", _config_value("refresh_token")))
+	var auth := await _http(HTTPClient.METHOD_POST, TOKEN_URL, PackedStringArray(["Content-Type: application/x-www-form-urlencoded"]), _form({"client_id":_config_value("client_id"), "client_secret":_config_value("client_secret"), "refresh_token":refresh, "grant_type":"refresh_token"}))
+	if not auth.ok:
+		_archive_failure(entry, auth, checkpoint); return
+	_save_tokens(auth.data)
+	entry["needs_auth"] = false
+	var token := str(auth.data.get("access_token", ""))
+	if token.is_empty():
+		_archive_failure(entry, {"code":401}, checkpoint); return
+	var athlete := str(tokens.get_value("tokens", "athlete_id", ""))
+	if not str(entry.get("athlete_id", "")).is_empty() and entry.athlete_id != athlete:
+		entry["error"] = "account_changed"; entry.status = "failed"; checkpoint.call(entry); return
+	entry["athlete_id"] = athlete
+	var headers := PackedStringArray(["Authorization: Bearer " + token])
+	if not str(entry.get("upload_id", "")).is_empty():
+		var state := await _http(HTTPClient.METHOD_GET, UPLOAD_URL + "/" + str(entry.upload_id), headers, PackedByteArray())
+		if state.ok: _archive_response(entry, state.data, checkpoint)
+		else: _archive_failure(entry, state, checkpoint)
+		return
+	if entry.status in ["uncertain", "submitting"]:
+		# A timed-out POST may have succeeded. Enumerate the entire time window,
+		# using activity:read_all, before considering the identical FIT again.
+		entry.status = "uncertain"
+		for page in range(1, 101):
+			var url := "https://www.strava.com/api/v3/athlete/activities?after=%d&before=%d&per_page=100&page=%d" % [int(entry.started_unix)-86400, int(entry.started_unix)+86400, page]
+			var response := await _http(HTTPClient.METHOD_GET, url, headers, PackedByteArray())
+			var activities: Variant = response.get("items")
+			if not response.ok or not activities is Array:
+				_archive_failure(entry, response, checkpoint); return
+			for activity in activities:
+				if str(activity.get("external_id", "")) == str(entry.id) + ".fit":
+					entry.activity_id = str(int(activity.id)); entry.status = "uploaded"; checkpoint.call(entry); return
+			if activities.size() < 100:
+				# Allow asynchronous processing to settle before retrying an identical
+				# file. Strava also detects duplicate FIT data server-side.
+				if Time.get_unix_time_from_system() - float(entry.get("submitted_at", 0)) < 600:
+					entry.retry_at = Time.get_unix_time_from_system() + 60; checkpoint.call(entry); return
+				entry.status = "pending"; break
+		if entry.status == "uncertain": checkpoint.call(entry); return
+	var bytes := FileAccess.get_file_as_bytes(path)
+	if bytes.is_empty(): entry.status = "failed"; checkpoint.call(entry); return
+	var boundary := "----VelodromeActivityBoundary"
+	var body := PackedByteArray()
+	var fields := {"data_type":"fit", "sport_type":"VirtualRide", "name":entry.title, "description":entry.get("description", ""), "external_id":str(entry.id)+".fit"}
+	for key in fields:
+		body.append_array(("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n" % [boundary, key, fields[key]]).to_utf8_buffer())
+	body.append_array(("--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s.fit\"\r\nContent-Type: application/octet-stream\r\n\r\n" % [boundary, entry.id]).to_utf8_buffer())
+	body.append_array(bytes); body.append_array(("\r\n--%s--\r\n" % boundary).to_utf8_buffer())
+	entry.status = "submitting"; entry["submitted_at"] = Time.get_unix_time_from_system(); entry.attempts = int(entry.attempts) + 1
+	if not checkpoint.call(entry): return
+	var upload_headers := headers.duplicate(); upload_headers.append("Content-Type: multipart/form-data; boundary=" + boundary)
+	var result := await _http(HTTPClient.METHOD_POST, UPLOAD_URL, upload_headers, body)
+	if result.ok:
+		_archive_response(entry, result.data, checkpoint)
+	elif _archive_duplicate(entry, str(result.get("message", ""))):
+		checkpoint.call(entry)
+	else:
+		if int(result.get("code", 0)) == 0 or int(result.get("code", 0)) >= 500: entry.status = "uncertain"
+		else: entry.status = "pending"
+		_archive_failure(entry, result, checkpoint)
+
+func _archive_duplicate(entry: Dictionary, message: String) -> bool:
+	var regex := RegEx.new(); regex.compile("duplicate of activity ([0-9]+)")
+	var match := regex.search(message)
+	if match == null: return false
+	entry.activity_id = match.get_string(1); entry.status = "uploaded"
+	return true
+
+func _archive_response(entry: Dictionary, data: Dictionary, checkpoint: Callable) -> void:
+	if data.get("id") != null: entry.upload_id = str(data.get("id_str", str(int(data.id))))
+	if data.get("activity_id") != null and int(data.activity_id) > 0:
+		entry.activity_id = str(int(data.activity_id)); entry.status = "uploaded"
+	elif data.get("error") != null and not str(data.error).is_empty():
+		if not _archive_duplicate(entry, str(data.error)):
+			entry.status = "failed"; entry["error"] = str(data.error)
+	elif not str(entry.upload_id).is_empty(): entry.status = "processing"
+	else: entry.status = "uncertain"
+	entry.retry_at = Time.get_unix_time_from_system() + 30
+	checkpoint.call(entry)
+
+func _archive_failure(entry: Dictionary, result: Dictionary, checkpoint: Callable) -> void:
+	var code := int(result.get("code", 0))
+	# Preserve uncertainty/processing: failure to query never authorizes another POST.
+	if entry.status not in ["uncertain", "processing", "submitting"]:
+		entry.status = "retry" if code == 0 or code == 429 or code >= 500 else "failed"
+	elif entry.status == "submitting": entry.status = "uncertain"
+	entry["error"] = str(code)
+	entry["needs_auth"] = code in [401, 403]
+	entry.retry_at = Time.get_unix_time_from_system() + (900 if code == 429 else 60)
+	checkpoint.call(entry)

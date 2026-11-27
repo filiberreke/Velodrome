@@ -41,7 +41,7 @@ func enter() -> void:
 	last_power_sample_id = game.setup_panel.ftp_page.sample_id
 	session.peak_w = demo_power if demo else game.setup_panel.ftp_page.measured
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
-	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":page.kind,"title":Exercise.title(page.kind),"started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"initial_speed_kmh":player_speed*3.6,"line_distance":start_distance if page.kind == "free_ride" else line}
+	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":page.kind,"title":Exercise.title(page.kind),"started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo or game.trainer_virtual,"initial_speed_kmh":player_speed*3.6,"line_distance":start_distance if page.kind == "free_ride" else line}
 	if not page.omnium_origin.is_empty():
 		activity["omnium_id"] = page.omnium_origin
 		activity["title"] = "Omnium - Losrijden"
@@ -148,7 +148,9 @@ func _persist(final: bool) -> void:
 	save_status = String(TranslationServer.translate("PISTE_EXERCISE_PAGE_TRAINING_SAVED_IN_THE_GAME")) if saved_ok else "Opslaan mislukt: "+store.error
 	if saved_ok:
 		last_save = total_elapsed
-		if final: saved_final = true
+		if final:
+			saved_final = true
+			game.get_node("/root/ActivityUploads").capture_training(activity, game.trainer_virtual)
 func finish_session(reason: String, show_result: bool = true) -> void:
 	session.stop(reason); _capture_sample(); _persist(true); release_trainer(); hud.hide(); popup.clear()
 	page.show_activity(activity,save_status)

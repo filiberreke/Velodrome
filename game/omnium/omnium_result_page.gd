@@ -7,6 +7,7 @@ const Results := preload("res://omnium/omnium_results.gd")
 
 static func render(page: Node, tournament: Dictionary, index: int) -> void:
 	var result: Dictionary = tournament.results[index]
+	page.activity_actions(page.body, tournament, index)
 	if index == 3:
 		page.body.add_child(page.menu.label("OMNIUM_OMNIUM_RESULT_PAGE_OMNIUM_POINTS_RACE_RESULTS",32))
 		var table := GridContainer.new(); table.name = "OmniumSavedResultTable"; page.body.add_child(table)

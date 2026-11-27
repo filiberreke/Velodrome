@@ -1417,3 +1417,17 @@ RONDE %s   •   SPLIT %s"
 "TRAINING_SAVE_FAILED","Could not save the training session","Training kon niet worden opgeslagen"
 "TRAINING_WRITE_FAILED","Could not write the training session file","Schrijven van training mislukt"
 "TRAINING_UPDATE_FAILED","Could not update the training session","Training kon niet worden bijgewerkt"
+ACTIVITY_AUTO_UPLOAD,Automatically upload to Strava,Automatisch uploaden naar Strava
+ACTIVITY_SAVE_FAILED,Could not save activity,Activiteit opslaan mislukt
+ACTIVITY_UPLOADING,Uploading to Strava…,Uploaden naar Strava…
+ACTIVITY_UPLOADED,Uploaded,Geüpload
+ACTIVITY_PENDING,Saved locally,Lokaal opgeslagen
+ACTIVITY_SUBMITTING,Uploading…,Uploaden…
+ACTIVITY_PROCESSING,Strava is processing the activity,Strava verwerkt de activiteit
+ACTIVITY_UNCERTAIN,Verifying upload with Strava,Upload bij Strava controleren
+ACTIVITY_RETRY,Saved locally; retrying later,Lokaal opgeslagen; later opnieuw proberen
+ACTIVITY_FAILED,Upload failed; you can try again,Upload mislukt; je kunt opnieuw proberen
+ACTIVITY_NO_DATA,FIT export unavailable: no saved ride data,FIT-export niet beschikbaar: geen opgeslagen ritgegevens
+ACTIVITY_VIEW_STRAVA,View Strava,Bekijk Strava
+ACTIVITY_EXPORTED,FIT exported,FIT geëxporteerd
+ACTIVITY_RECONNECT,Reconnect Strava in Settings to verify or retry this upload,Koppel Strava opnieuw in Instellingen om deze upload te controleren of te hervatten

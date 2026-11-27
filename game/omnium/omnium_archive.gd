@@ -37,7 +37,9 @@ func render(page: Node) -> void:
 		name_box.add_child(page.menu.label(String(rider.name),20))
 		for i in range(4): View.cell(page,table,str(value(tournament,String(rider.id),i)) if i < tournament.results.size() else "—",Style.PAPER)
 		View.cell(page,table,str(totals[rider.id]),Style.PALE)
-	for i in range(tournament.results.size()): page.button(String(TranslationServer.translate("OMNIUM_VIEW_RESULTS")) + titles[i+1], page.open_result.bind(i))
+	for i in range(tournament.results.size()):
+		page.button(String(TranslationServer.translate("OMNIUM_VIEW_RESULTS")) + titles[i+1], page.open_result.bind(i))
+		page.activity_actions(page.body, tournament, i)
 func value(tournament: Dictionary, id: String, index: int) -> int:
 	if index >= tournament.results.size(): return 0
 	var result: Dictionary = tournament.results[index]

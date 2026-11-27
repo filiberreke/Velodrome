@@ -255,3 +255,9 @@ func open_archive(tournament: Dictionary) -> void:
 	archived_tournament = tournament.duplicate(true); result_index = -1; archive_view.sort_column = 5; archive_view.descending = true; refresh()
 func open_result(index: int) -> void:
 	result_index = index; refresh(); body.get_parent().set_deferred("scroll_vertical",0)
+
+func activity_actions(parent: Node, tournament: Dictionary, index: int) -> void:
+	var result: Dictionary = tournament.results[index]
+	var row := preload("res://activity_actions.gd").new()
+	row.activity_id = str(result.get("activity_id", ""))
+	parent.add_child(row)

@@ -70,7 +70,7 @@ func enter() -> void:
 	total_elapsed = 0; total_distance = 0; player_speed = speeds[0]; road_grade = 0; grade_filter.reset(); reduction = 0
 	samples = []; last_sample = -1; last_save = 0; saved_final = false; assisted_seconds = 0; too_close = false
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
-	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":"madison","title":"Aflossingstraining","started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"advanced":madison.advanced}
+	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":"madison","title":"Aflossingstraining","started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo or game.trainer_virtual,"advanced":madison.advanced}
 	if not demo:
 		game.setup_panel.ftp_page.reset_session(game._now_s(),game.trainer_control)
 		game.trainer_control.arm()
@@ -265,7 +265,9 @@ func _persist(final: bool) -> void:
 	save_status = String(TranslationServer.translate("TRAINING_ACTIVITY_SAVED")) if ok else "Opslaan mislukt: "+store.error
 	if ok:
 		last_save = total_elapsed
-		if final: saved_final = true
+		if final:
+			saved_final = true
+			game.get_node("/root/ActivityUploads").capture_training(activity, game.trainer_virtual)
 func _score_interrupted(reason: String) -> void:
 	if pending_trial and madison.active and madison.phase in [madison.Phase.GRAB,madison.Phase.SLING]:
 		madison.failure_reason = reason
