@@ -22,9 +22,8 @@ window/stretch/mode="canvas_items"
 
 [internationalization]
 
-locale/test="en"
-locale/fallback="en"
 locale/translations=PackedStringArray("res://translations/translations.en.translation", "res://translations/translations.nl.translation")
+locale/test="en"
 
 [rendering]
 
