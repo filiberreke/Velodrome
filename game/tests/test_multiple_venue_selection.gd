@@ -117,4 +117,5 @@ func check_roubaix_infield(infield: Node3D) -> void:
 		var footprint: Vector2 = zone.get_meta("footprint_m")
 		check(absf(zone.position.x) - footprint.x * 0.5 > 2.5, "Zone leaves the main passage open")
 		check(absf(zone.position.z - 51.0) - footprint.y * 0.5 >= 2.5, "Zone leaves the cross passage open")
-		check(zone.has_node("GateOpening") and infield.has_node(name_text + "Entry"), "Zone gate opens onto the main passage")
+		var gate := zone.get_node_or_null("GateOpening") as Marker3D
+		check(gate != null and is_equal_approx(gate.position.x, -signf(zone.position.x) * footprint.x * 0.5), "Zone gate opens onto the grass passage")

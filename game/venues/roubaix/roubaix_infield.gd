@@ -25,8 +25,6 @@ func build(host: Node3D, profile: Resource, route: RefCounted, crowd: RefCounted
 	var origin: Vector3 = track.at(gate_distance, 0.0)
 	origin.y = 0.015
 	transform = Transform3D(Basis(Vector3.UP.cross(inward), Vector3.UP, inward), origin)
-	box("GravelCrossing", Vector3(0, -0.022, 2.15), Vector3(PASSAGE_WIDTH, 0.05, 4.4), mat("ab9d82"))
-	box("AccessPath", Vector3(0, -0.04, 5.60), Vector3(33.2, 0.045, 3.15), mat("a5a69d"))
 	for index in 3:
 		_waiting_bay(index, -11.0 + index * 11.0)
 	_technical_zone()
@@ -125,12 +123,7 @@ func _tent(parent: Node3D, center: Vector3, fabric := "f1efe2") -> void:
 
 func _event_infield(crowd: RefCounted, density: float) -> void:
 	rng.seed = 19320420
-	_walk("BayPathExtension", Vector2(-19.4, 5.6), Vector2(5.6, 3.15))
-	_walk("RiderBayBypass", Vector2(-20, 13.09), Vector2(4.4, 11.83))
-	_walk("InfieldConnector", Vector2(-12.35, 21.0), Vector2(19.7, 4.0))
-	_walk("MainEventPassage", Vector2(0, 49), Vector2(5.0, 60.0))
-	for side in [-1.0, 1.0]:
-		_walk("CrossEventPassageWest" if side < 0.0 else "CrossEventPassageEast", Vector2(side * 17.75, 51), Vector2(30.5, 5.0))
+	_fence_infield_access()
 
 	var north := _event_zone("SpectatorNorth", Vector2(16, 38), Vector2(24, 21))
 	var south := _event_zone("SpectatorSouth", Vector2(-15.2, 62), Vector2(21, 17))
@@ -153,8 +146,20 @@ func _event_infield(crowd: RefCounted, density: float) -> void:
 	_event_crew(operations, crowd)
 	_event_crew(media, crowd)
 
-func _walk(path_name: String, center: Vector2, size: Vector2) -> void:
-	box(path_name, Vector3(center.x, -0.037, center.y), Vector3(size.x, 0.044, size.y), mat("58664f"))
+func _fence_infield_access() -> void:
+	var bypass := Node3D.new()
+	bypass.name = "RiderBayBypass"
+	add_child(bypass)
+	var half := PASSAGE_WIDTH * 0.5
+	# Keep the gravel crossing and every bay gate clear. Both sides of the
+	# bypass lead into the grass aisle between the four fenced event zones.
+	var outer_edge := PackedVector2Array([Vector2(-half, 4.47), Vector2(-22.2, 4.47), Vector2(-22.2, 23),
+		Vector2(-4.1, 23), Vector2(-4.1, 27.5)])
+	var inner_edge := PackedVector2Array([Vector2(-17.8, 7.2), Vector2(-17.8, 19), Vector2(3.5, 19), Vector2(3.5, 27.5)])
+	for edge in [outer_edge, inner_edge]:
+		for i in range(edge.size() - 1):
+			_barrier(bypass, Vector3(edge[i].x, 0, edge[i].y), Vector3(edge[i + 1].x, 0, edge[i + 1].y))
+	_barrier(bypass, Vector3(half, 0, 4.47), Vector3(16.6, 0, 4.47))
 
 func _event_zone(zone_name: String, center: Vector2, size: Vector2) -> Node3D:
 	var zone := Node3D.new()
@@ -174,9 +179,6 @@ func _event_zone(zone_name: String, center: Vector2, size: Vector2) -> Node3D:
 	gate.name = "GateOpening"
 	gate.position.x = inner_x
 	zone.add_child(gate)
-	var edge := signf(center.x) * 2.5
-	var entry := center.x + inner_x
-	_walk(zone_name + "Entry", Vector2((edge + entry) * 0.5, center.y), Vector2(absf(edge - entry), 3.7))
 	return zone
 
 func _spectator_zone(zone: Node3D, crowd: RefCounted, density: float) -> void:
@@ -197,7 +199,6 @@ func _spectator_zone(zone: Node3D, crowd: RefCounted, density: float) -> void:
 	crowd.emit_group(self, people, zone.name + "Crowd", [[1, 0.0, 0.0]])
 
 func _work_station(zone: Node3D, p: Vector3) -> void:
-	box("Mat", p + Vector3.UP * -0.028, Vector3(2.65, 0.035, 2.16), mat("a0a095"), zone)
 	box("WorkTable", p + Vector3.UP * 0.89, Vector3(1.92, 0.10, 0.81), mat("d9d6c8"), zone)
 	for x in [-0.78, 0.78]:
 		box("TableLeg", p + Vector3(x, 0.42, 0), Vector3(0.075, 0.84, 0.66), mat("62747c"), zone)
