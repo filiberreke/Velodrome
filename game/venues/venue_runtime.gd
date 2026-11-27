@@ -56,7 +56,7 @@ static func build_custom_stadium(game: Node3D) -> void:
 	if outdoor:
 		game.stadium_sun.rotation_degrees = Vector3(-52, -35, 0)
 		game.stadium_sun.light_color = Color("fff1da")
-		game.stadium_sun.light_energy = 1.10
+		game.stadium_sun.light_energy = 0.61
 		game.stadium_sun.shadow_enabled = true
 		game.stadium_sun.directional_shadow_max_distance = 160.0
 	game.add_child(game.stadium_sun)

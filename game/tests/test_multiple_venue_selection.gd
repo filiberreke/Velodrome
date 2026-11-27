@@ -48,6 +48,7 @@ func run() -> void:
 			game._update_visuals(0.0); game._update_hud()
 			check(not game._use_venue("velodrome" if id == "gent" else "gent"), "Venue cannot change during a race")
 			if mode == 5: check(is_equal_approx(game.elimination_rules.interval_m, game.LAP * 2.0), "Elimination uses two actual laps")
+			if id == "roubaix" and mode == 5: check_roubaix_exit(game)
 			game._restart_same_race()
 			check(game.venue.id == id and game.replay_setup.venue_id == id, "Same-race restart retains stadium")
 			print("VENUE_SELECTION ", id, " mode=", mode)
@@ -85,3 +86,16 @@ func run() -> void:
 	await process_frame
 	print("MULTIPLE_VENUE_SELECTION_OK" if failures == 0 else "MULTIPLE_VENUE_SELECTION_FAILED %d" % failures)
 	quit(0 if failures == 0 else 1)
+
+func check_roubaix_exit(game: Game) -> void:
+	var rider := 1
+	var gate: float = fposmod(game.arena.infield.gate_distance, game.LAP)
+	var target: Vector3 = game._elimination_box_target(rider)
+	game.lane_offsets[rider] = game.LANES[0]
+	game.coast_distances[rider] = gate - 0.5
+	game.coast_speeds[rider] = 5.0
+	game.elimination_exit[rider] = {"stage": 0, "start_d": gate - 80.0, "target": target, "gate_z": 0.0}
+	for step in 270:
+		game._update_eliminated_exit(rider, 0.1)
+	var route: Dictionary = game.elimination_exit[rider]
+	check(route.stage == 5 and Vector3(route.position).distance_to(target) < 0.12, "Roubaix elimination riders cross to their assigned bay")

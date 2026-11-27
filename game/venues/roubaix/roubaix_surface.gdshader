@@ -25,19 +25,20 @@ void vertex() {
 
 void fragment() {
 	vec2 surface_position = UV * vec2(12.5, 2.24);
-	float fine = grain(floor(ground_position * 58.0));
+	float grain_fade = 1.0 - smoothstep(0.012, 0.12, length(fwidth(ground_position)));
+	float fine = mix(0.5, grain(floor(ground_position * 58.0)), grain_fade);
 	float variation = weathering(ground_position * 0.31);
 	float shade;
 	if (surface_kind == 0) {
 		float along = fract(surface_position.x / 5.0);
-		float joint = 1.0 - smoothstep(0.001, 0.005 + fwidth(along), min(along, 1.0 - along));
-		shade = 0.90 + 0.12 * variation + 0.045 * fine - 0.16 * joint;
-		shade -= 0.075 * smoothstep(0.55, 0.85, weathering(ground_position * 0.9));
+		float joint = 1.0 - smoothstep(0.002, 0.010 + fwidth(along), min(along, 1.0 - along));
+		shade = 0.90 + 0.12 * variation + 0.062 * fine - 0.23 * joint;
+		shade -= 0.045 * smoothstep(0.55, 0.85, weathering(ground_position * 0.9));
 	} else if (surface_kind == 1) {
 		shade = 0.61 + 0.16 * variation + 0.38 * fine;
 	} else {
 		float mower = smoothstep(-0.08, 0.08, cos(ground_position.y * 0.49));
-		shade = 0.78 + 0.10 * mower + 0.18 * variation + 0.08 * fine;
+		shade = 0.87 + 0.05 * mower + 0.10 * variation + 0.04 * fine;
 	}
 	ALBEDO = tint * shade;
 	ROUGHNESS = 0.98;

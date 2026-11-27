@@ -3391,9 +3391,10 @@ func _update_hud() -> void:
 	minimap.set_progress(distances)
 	# camera changes do not alter race state
 	if arena != null:
-		if race_mode == 4:
-			arena.get("board").text = "ACHTERVOLGING\n%s: %.0f m\n%s: %.0f m" % [_rider_name(0), distances[0], _rider_name(1), distances[1]]
-		else:
+		var board: Label3D = arena.get("board")
+		if race_mode == 4 and board != null:
+			board.text = "ACHTERVOLGING\n%s: %.0f m\n%s: %.0f m" % [_rider_name(0), distances[0], _rider_name(1), distances[1]]
+		elif race_mode != 4 and arena.has_method("set_ranking"):
 			arena.call("set_ranking", distances)
 	# The original result panel is intentionally hidden during the finish replay.
 	# All results move to the dedicated full-screen page after 10 seconds.
@@ -4333,7 +4334,9 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		return
 	var route: Dictionary = elimination_exit[rider]
 	var stage: int = int(route["stage"])
-	if stage == 4:
+	var outdoor_route: bool = venue.outdoor and is_instance_valid(arena)
+	var last_stage := 5 if outdoor_route else 4
+	if stage == last_stage:
 		coast_speeds[rider] = 0.0
 		return
 	if stage == 0:
@@ -4347,19 +4350,18 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
 		var gate := OPPOSITE_STRAIGHT_GATE_M
-		if venue.outdoor and is_instance_valid(arena): gate = fposmod(arena.infield.gate_distance, LAP)
+		if outdoor_route: gate = fposmod(arena.infield.gate_distance, LAP)
 		if travelled >= 75.0 and absf(wrapf(coast_distances[rider] - gate, -LAP * 0.5, LAP * 0.5)) <= 0.4:
 			route["stage"] = 1
 			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
 			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
 	else:
-		# The gate at z=0 is a real gap in the inner boarding. Once inside,
-		# travel along the infield access corridor to the appropriate country cabin.
+		# Follow the stadium's infield access corridor to the assigned waiting place.
 		var current: Vector3 = route["position"]
 		var gate_z: float = float(route["gate_z"])
 		var destination: Vector3 = Vector3(-9.6, 0.15, gate_z) if stage == 1 else (Vector3(-14.1, 0.15, gate_z) if stage == 2 else Vector3(route["target"]))
 		if venue.id == "gent": destination = Vector3(-10.9, .15, gate_z) if stage == 1 else (Vector3(-10.5, .15, route["target"].z) if stage == 2 else Vector3(route["target"]))
-		if venue.outdoor and is_instance_valid(arena):
+		if outdoor_route:
 			var infield: Node3D = arena.infield
 			var slot: int = rider % infield.waiting_spots.size()
 			match stage:
@@ -4376,11 +4378,8 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 			current.y = 0.15
 			route["position"] = current
 		if current.distance_to(destination) < 0.12:
-			if stage < 3: route["stage"] = stage + 1
-			elif stage == 3 and venue.outdoor and is_instance_valid(arena): route["stage"] = 5
-			else:
-				route["stage"] = 4
-				coast_speeds[rider] = 0.0
+			route["stage"] = stage + 1
+			if route["stage"] == last_stage: coast_speeds[rider] = 0.0
 	elimination_exit[rider] = route
 
 func _clear_elimination_feedback() -> void:

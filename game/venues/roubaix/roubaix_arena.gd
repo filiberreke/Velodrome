@@ -48,11 +48,11 @@ func _surface_material(tint: Color, kind: int) -> ShaderMaterial:
 	return result
 
 func _build_track() -> void:
-	box("GrassInfieldAndGround", Vector3(0, -0.17, 0), Vector3(610, 0.25, 660), _surface_material(Color("658746"), 2))
-	ring("GravelApron", -Infield.GRAVEL_WIDTH, 0, _surface_material(Color("80573a"), 1), 0, -1, -0.011, true)
+	box("GrassInfieldAndGround", Vector3(0, -0.17, 0), Vector3(900, 0.25, 900), _surface_material(Color("102006"), 2))
+	ring("GravelApron", -Infield.GRAVEL_WIDTH, 0, _surface_material(Color("3e2317"), 1), 0, -1, -0.011, true)
 	ring("GravelInnerEdge", -Infield.GRAVEL_WIDTH - 0.09, -Infield.GRAVEL_WIDTH, mat("d6ccae"), 0, -1, -0.009, true)
 	ring("BlueApron", 0, venue.apron_width_m, mat("29b3d5"))
-	ring("WeatheredConcrete", venue.apron_width_m, venue.track_outer_offset_m, _surface_material(Color("e4d2ac"), 0))
+	ring("WeatheredConcrete", venue.apron_width_m, venue.track_outer_offset_m, _surface_material(Color("c4af83"), 0))
 	for marking in [[0.20, "454843"], [0.85, "bd6d59"], [2.45, "548eaa"]]:
 		var offset: float = venue.apron_width_m + marking[0]
 		ring("TrackLine", offset, offset + 0.045, mat(marking[1]), 0, -1, 0.012)
@@ -61,7 +61,7 @@ func _build_track() -> void:
 	var bend_center: float = track.phase(0.0) + PI * venue.bend_radius_m * 0.5
 	for bend in 2:
 		for index in 3:
-			var s: float = bend_center + bend * venue.lap_length_m * 0.5 + (index - 1) * 30.0
+			var s: float = bend_center + bend * venue.lap_length_m * 0.5 + (index - 1) * 23.0
 			_track_banner("Bend%dBanner%d" % [bend + 1, index + 1], s, BEND_BANNERS[index])
 	# Sparse event panels follow the occupied banner positions in the reference.
 	var boarding_slots := [-54.0, -47.0, -39.0, -31.0, -22.0, -13.0, -4.0, 5.0, 14.0, 20.0,
@@ -89,7 +89,7 @@ func _track_banner(node_name: String, s: float, texture: Texture2D) -> void:
 	var vertices := PackedVector3Array()
 	var uv := PackedVector2Array()
 	for i in 48:
-		for corner in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]:
+		for corner: Vector2 in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]:
 			var along := (i + corner.x) / 48.0
 			vertices.append(track.at(s + (along - 0.5) * span, lerpf(inner, outer, corner.y)) + Vector3.UP * 0.014)
 			uv.append(Vector2(1.0 - along, 1.0 - corner.y))
@@ -144,7 +144,7 @@ func _build_stands() -> void:
 	var outer: Vector3 = track.outward(0.0)
 	var center: Vector3 = _terrace_point((ROOF_START + ROOF_END) * 0.5, 0)
 	var roof_length := ROOF_END - ROOF_START + 1.0
-	var roof := box("LowMainStandRoof", center + outer * 4.7 + Vector3.UP * 5.7, Vector3(10.6, 0.27, roof_length), mat("d5e0db", 0.73))
+	var roof := box("LowMainStandRoof", center + outer * 4.7 + Vector3.UP * 5.7, Vector3(10.6, 0.27, roof_length), mat("b7c8bd", 0.73))
 	roof.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	box("MainStandFascia", center - outer * 0.62 + Vector3.UP * 5.57, Vector3(0.23, 0.48, roof_length), mat("f2eee1"))
 	box("MainStandBrickBack", center + outer * 8.5 + Vector3.UP * 2.85, Vector3(0.28, 5.75, roof_length), mat("bd8b73"))
@@ -173,7 +173,7 @@ func _terrace(start: float, end: float, rows: int, covered: bool) -> void:
 			var drop_b := Vector3.UP * (b.y + 0.045 if row == 0 else 0.43)
 			vertices.append_array(PackedVector3Array([a, b, c, b, d, c, a - drop, a, b, a - drop, b, b - drop_b]))
 		var s := start + 0.35
-		var row_density := density * (1.0 if covered else 0.88)
+		var row_density := 1.0 - pow(1.0 - density, 1.75 if covered else 1.24)
 		while s < end - 0.35:
 			if fposmod(s - start + 4.8, 13.0) > 1.65 and rng.randf() < row_density:
 				var inward: Vector3 = -track.outward(s)
@@ -200,6 +200,10 @@ func _infield_public() -> void:
 	crowd.emit_group(self, people, "FinishPublic", [[1, 0.0, 0.0]] if simple else [[0, 0.0, 34.0], [1, 34.0, 0.0]])
 	for x in [-36.0, -27.5, 29.0, 34.5]:
 		_flag(infield.to_global(Vector3(x, 0, 5.0)), int(absf(x)) % 3, 3.75)
+	var staff := {}
+	for p in [Vector3(20.8, 0, 11.0), Vector3(24.2, 0, 11.4)]:
+		Crowd.add_to_group(staff, "stand_m_relaxed", Transform3D(infield.global_basis, infield.to_global(p)), crowd.staff_look(rng, Color("344d65"), 0.22))
+	crowd.emit_group(self, staff, "TechnicalStaff", [[0, 0.0, 0.0]])
 
 func _flag(p: Vector3, country: int, height: float) -> void:
 	box("FlagPole", p + Vector3.UP * height * 0.5, Vector3(0.045, height, 0.045), mat("d4d8cf"))
@@ -232,7 +236,7 @@ func _build_surroundings() -> void:
 			var scale3 := Vector3(h * rng.randf_range(0.64, 1.04), h * 0.76, h * 0.80)
 			var center := p + Vector3((j - 0.5) * h * 0.42, h * (0.68 + j * 0.14), 0)
 			trees.set_instance_transform(i * 2 + j, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(scale3), center))
-			trees.set_instance_color(i * 2 + j, Color("304f35").lerp(Color("708957"), rng.randf()))
+			trees.set_instance_color(i * 2 + j, Color("213225").lerp(Color("4b633b"), rng.randf()))
 	var canopy := MultiMeshInstance3D.new()
 	canopy.name = "TreeCanopies"
 	canopy.multimesh = trees

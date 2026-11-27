@@ -72,7 +72,8 @@ func _barrier(parent: Node3D, a: Vector3, b: Vector3) -> void:
 	var metal := mat("879da2", 0.52)
 	var divisions := ceili(a.distance_to(b) / 2.2)
 	for row in [0.19, 0.98]:
-		beam("BarrierRail", a + Vector3.UP * row, b + Vector3.UP * row, 0.044, metal, parent)
+		var rail := box("BarrierRail", (a + b) * 0.5 + Vector3.UP * row, Vector3(0.044, 0.044, a.distance_to(b)), metal, parent)
+		rail.basis = Basis.looking_at(b - a)
 	for i in range(divisions + 1):
 		var p := a.lerp(b, float(i) / divisions)
 		box("BarrierFoot", p + Vector3.UP * 0.043, Vector3(0.34, 0.073, 0.34), metal, parent)
