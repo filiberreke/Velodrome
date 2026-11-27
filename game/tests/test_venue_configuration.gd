@@ -15,7 +15,7 @@ func run() -> void:
 	var venue = Catalog.default_venue()
 	check(venue.id == "velodrome" and venue.display_name == "Vélodrome", "Named default venue")
 	check(venue.validation_errors().is_empty(), "Default venue validates")
-	check(Catalog.available_ids() == PackedStringArray(["velodrome", "gent"]), "Both approved playable venues are exposed")
+	check(Catalog.available_ids() == PackedStringArray(["velodrome", "gent", "roubaix"]), "All playable venues are exposed")
 	check(Catalog.find("gent").id == "gent" and Catalog.find("missing") == null, "Gent has its own profile and missing venues do not alias Vélodrome")
 	venue.stand_tiers[0]["rows"] = 99
 	venue.palette["navy"] = "ffffff"
@@ -34,6 +34,12 @@ func run() -> void:
 	check(game.track_geometry.LAP == game.LAP, "Race and geometry use same venue")
 	check_geometry(venue)
 	check_geometry(Catalog.find("gent"))
+	var roubaix = Catalog.find("roubaix")
+	check(roubaix.validation_errors().is_empty() and roubaix.outdoor, "Roubaix has a valid outdoor profile")
+	check(roubaix.lap_length_m * 2.0 == 1000.0, "Roubaix kilometre is exactly two laps")
+	check(is_equal_approx(roubaix.track_outer_offset_m - roubaix.apron_width_m, 8.25), "Roubaix riding surface is 8.25 m wide")
+	check(roubaix.straight_bank_deg == 12.0 and roubaix.corner_bank_deg == 31.0, "Roubaix banking spans 12 to 31 degrees")
+	check_geometry(roubaix)
 	# A synthetic short profile tests the geometry machinery, not an approved
 	# reconstruction of Gent. Radius/width/transition need a separate art review.
 	var short = Catalog.default_venue()

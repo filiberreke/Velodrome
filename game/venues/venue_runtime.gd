@@ -31,11 +31,20 @@ static func configure(game: Node, profile: Resource) -> void:
 	if is_instance_valid(game.minimap): game.minimap.TRACK_LENGTH = game.LAP
 	if is_instance_valid(game.race_overlay): game.race_overlay.lap_length_m = game.LAP
 
-static func build_gent(game: Node3D) -> void:
+static func build_custom_stadium(game: Node3D) -> void:
+	var outdoor: bool = game.venue.outdoor
 	var world := WorldEnvironment.new()
 	world.environment = Environment.new()
 	world.environment.background_mode = Environment.BG_COLOR
 	world.environment.background_color = Color("242b33")
+	if outdoor:
+		var sky_material := ProceduralSkyMaterial.new()
+		sky_material.sky_top_color = Color("77a9c2")
+		sky_material.sky_horizon_color = Color("e4ede9")
+		sky_material.ground_horizon_color = sky_material.sky_horizon_color
+		world.environment.sky = Sky.new()
+		world.environment.sky.sky_material = sky_material
+		world.environment.background_mode = Environment.BG_SKY
 	world.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	world.environment.ambient_light_color = Color("f5eddf")
 	world.environment.ambient_light_energy = game.venue.race_ambient_energy
@@ -44,9 +53,15 @@ static func build_gent(game: Node3D) -> void:
 	game.add_child(world)
 	game.stadium_sun = DirectionalLight3D.new()
 	game.stadium_sun.light_energy = 0.0
+	if outdoor:
+		game.stadium_sun.rotation_degrees = Vector3(-52, -35, 0)
+		game.stadium_sun.light_color = Color("fff1da")
+		game.stadium_sun.light_energy = 1.10
+		game.stadium_sun.shadow_enabled = true
+		game.stadium_sun.directional_shadow_max_distance = 160.0
 	game.add_child(game.stadium_sun)
 	game.camera = Camera3D.new()
-	game.camera.near = .1; game.camera.far = 180; game.camera.fov = 72
+	game.camera.near = .1; game.camera.far = 420.0 if outdoor else 180.0; game.camera.fov = 72
 	game.add_child(preload("res://interpolation_guard.gd").interpolate(game.camera))
 	game.camera.current = true
 	game.boost_dog = preload("res://boost_dog.gd").new()
@@ -54,7 +69,7 @@ static func build_gent(game: Node3D) -> void:
 	game.countdown_label = Label3D.new()
 	game.countdown_label.hide()
 	game.add_child(game.countdown_label)
-	game.arena = preload("res://venues/gent/gent_arena.gd").new()
+	game.arena = load(game.venue.arena_path).new()
 	var cfg := ConfigFile.new()
 	preload("res://config_paths.gd").load_user(cfg, "display_settings.cfg")
 	game.arena.simple = bool(cfg.get_value("arena", "simple_infield", false))

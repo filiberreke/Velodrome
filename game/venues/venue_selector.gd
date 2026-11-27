@@ -3,7 +3,11 @@ extends VBoxContainer
 signal selected(venue_id: String)
 const Catalog := preload("res://venues/venue_catalog.gd")
 const Style := preload("res://menu_theme.gd")
-const PHOTOS := {"velodrome": preload("res://assets/venues/velodrome-overview.jpg"), "gent": preload("res://assets/venues/gent-overview.jpg")}
+const PHOTOS := {
+	"velodrome": preload("res://assets/venues/velodrome-overview.jpg"),
+	"gent": preload("res://assets/venues/gent-overview.jpg"),
+	"roubaix": preload("res://assets/venues/roubaix-overview.png"),
+}
 const SATURATION := "shader_type canvas_item; uniform float saturation = 1.0; void fragment() { vec4 p = texture(TEXTURE, UV); float gray = dot(p.rgb, vec3(0.2126, 0.7152, 0.0722)); COLOR = vec4(mix(vec3(gray), p.rgb, saturation), p.a); }"
 var tile_size := Vector2(252, 174)
 var selected_id := Catalog.DEFAULT_ID

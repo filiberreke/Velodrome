@@ -1230,7 +1230,9 @@ func select_venue(id: String) -> void:
 	if is_instance_valid(pursuit_options): pursuit_options.library.venue_id = venue_id
 	if is_instance_valid(team_options): team_options.library.venue_id = venue_id
 	if is_instance_valid(laps_input):
-		laps_input.get_meta("caption").text = tr("VENUE_LAPS_CAPTION") % ("166⅔" if venue_id == "gent" else "250")
+		var lap_length: float = preload("res://venues/venue_catalog.gd").resolved(venue_id).lap_length_m
+		var length_label := "166⅔" if is_equal_approx(lap_length, 500.0 / 3.0) else str(roundi(lap_length))
+		laps_input.get_meta("caption").text = tr("VENUE_LAPS_CAPTION") % length_label
 	if is_instance_valid(time_trial_distance):
 		for i in time_trial_distance.item_count: time_trial_distance.set_item_text(i, distance_caption(time_trial_distance.get_item_id(i)))
 	if is_instance_valid(pursuit_flow): pursuit_flow.venue_changed()

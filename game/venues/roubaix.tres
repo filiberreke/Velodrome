@@ -1,0 +1,26 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://venues/venue_definition.gd" id="1"]
+
+[resource]
+resource_name = "Roubaix"
+script = ExtResource("1")
+id = "roubaix"
+display_name = "Roubaix"
+outdoor = true
+lap_length_m = 500.0
+bend_radius_m = 46.0
+transition_m = 36.0
+apron_width_m = 0.78
+track_outer_offset_m = 9.03
+apron_bank_deg = 12.0
+straight_bank_deg = 12.0
+corner_bank_deg = 31.0
+finish_straight_clearance_m = 18.0
+arena_path = "res://venues/roubaix/roubaix_arena.gd"
+infield_path = "res://venues/roubaix/roubaix_infield.gd"
+stand_rim_offset_m = 9.15
+race_ambient_energy = 0.55
+training_ambient_energy = 0.55
+scenery = PackedStringArray("concrete_track", "gravel_apron", "open_air", "covered_main_stand", "open_terraces", "trees", "buildings", "floodlights", "flags", "race_banners", "rider_waiting_bays", "technical_zone")
+shared_actors = {"race_official": "res://assets/crowd/velodrome_official.glb", "race_official_fallback": "res://assets/crowd/flag_official.glb"}

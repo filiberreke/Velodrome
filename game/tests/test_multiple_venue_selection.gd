@@ -35,6 +35,10 @@ func run() -> void:
 				for key in menu.pursuit_flow.venue_picker.tiles: check(controls.has(menu.pursuit_flow.venue_picker.tiles[key].button), "Ride controller can focus stadium tiles")
 			game._confirm_start()
 			check(game.venue.id == id and game.start_state in ["INTRO", "WAIT_STOP"], "%s menu mode %d starts chosen stadium" % [id, mode])
+			if id == "roubaix" and mode == 0:
+				check(game.arena.infield.waiting_spots.size() == 24, "Roubaix has 24 waiting places")
+				check(game.arena.find_children("WaitingBay*", "Node3D", true, false).size() == 3, "Roubaix has three open bays")
+				check(game.arena.find_children("Bend*Banner*", "MeshInstance3D", true, false).size() == 6, "Three ground banners per Roubaix bend")
 			check(is_equal_approx(game.minimap.TRACK_LENGTH, game.LAP), "Minimap uses selected lap")
 			if mode in [1, 2, 7]: check(is_equal_approx(game._race_length(), 1000.0), "Fixed-distance events preserve metres")
 			if mode in [1, 2]:
@@ -50,7 +54,7 @@ func run() -> void:
 	game._reset()
 	check(game._use_venue("velodrome"), "Switch away from previous event outside race")
 	game._restart_same_race()
-	check(game.venue.id == "gent", "Restart restores stored venue even after another stadium was loaded")
+	check(game.venue.id == "roubaix", "Restart restores stored venue even after another stadium was loaded")
 	game._reset()
 	var page = menu.tournament_page
 	page.manager.store.folder = "user://multiple_venue_omnium"

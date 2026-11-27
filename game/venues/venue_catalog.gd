@@ -3,9 +3,10 @@ extends RefCounted
 const DEFAULT_ID := "velodrome"
 const DEFAULT := preload("res://venues/velodrome.tres")
 const GENT := preload("res://venues/gent.tres")
+const ROUBAIX := preload("res://venues/roubaix.tres")
 
 static func available_ids() -> PackedStringArray:
-	return PackedStringArray([DEFAULT_ID, "gent"])
+	return PackedStringArray([DEFAULT_ID, "gent", "roubaix"])
 
 static func default_venue():
 	# Resources are cached by Godot. Each game owns its data and nested arrays.
@@ -13,7 +14,9 @@ static func default_venue():
 
 static func find(venue_id: String):
 	if venue_id == DEFAULT_ID: return default_venue()
-	return GENT.duplicate(true) if venue_id == "gent" else null
+	if venue_id == "gent": return GENT.duplicate(true)
+	if venue_id == "roubaix": return ROUBAIX.duplicate(true)
+	return null
 
 static func resolved(venue_id: String):
 	var result = find(venue_id)

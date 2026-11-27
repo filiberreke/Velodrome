@@ -686,7 +686,7 @@ func _ready() -> void:
 
 func _build_stadium() -> void:
 	var existing := get_children()
-	if venue.id == "gent": VenueRuntime.build_gent(self)
+	if venue.id != VenueCatalog.DEFAULT_ID: VenueRuntime.build_custom_stadium(self)
 	else:
 		_build_world()
 		arena = load(venue.arena_path).new()
@@ -2239,8 +2239,12 @@ func _update_visuals(dt: float) -> void:
 		team_race.hide_badges()
 	if setup_panel != null and setup_panel.visible:
 		# Quiet architectural view, independent of riders and racing cameras.
-		camera.position = Vector3(10, 12, -40) if venue.id == "gent" else Vector3(46, 42, 66)
-		camera.look_at(Vector3(-4.5, 1.0, -7) if venue.id == "gent" else Vector3(0, 1.0, 0))
+		if venue.outdoor:
+			camera.position = _at(-54.0, -32.0) + Vector3.UP * 31.0
+			camera.look_at(_at(5.0, 2.0))
+		else:
+			camera.position = Vector3(10, 12, -40) if venue.id == "gent" else Vector3(46, 42, 66)
+			camera.look_at(Vector3(-4.5, 1.0, -7) if venue.id == "gent" else Vector3(0, 1.0, 0))
 		camera.fov = 68.0
 		camera.rotation.z = 0.0
 		return
@@ -2374,7 +2378,7 @@ func _set_stadium_training_lighting(training: bool) -> void:
 	stadium_training_lighting = training
 	if stadium_environment != null:
 		stadium_environment.ambient_light_energy = venue.training_ambient_energy if training else RACE_AMBIENT_LIGHT_ENERGY
-	if stadium_sun != null:
+	if stadium_sun != null and not venue.outdoor:
 		stadium_sun.light_energy = 0.2 if training else 0.0
 	if arena != null:
 		arena.set_track_lighting_training(training)
@@ -4290,6 +4294,8 @@ func _take_elimination_photo(rider: int, line_m: float) -> void:
 		RenderingServer.frame_post_draw.connect(_grab_finish_photo, CONNECT_ONE_SHOT)
 
 func _elimination_box_target(rider: int) -> Vector3:
+	if venue.outdoor and is_instance_valid(arena):
+		return arena.infield.waiting_spots[rider % arena.infield.waiting_spots.size()]
 	if venue.id == "gent" and is_instance_valid(arena):
 		var cabins: Array = arena.infield.cabins
 		if not cabins.is_empty(): return cabins[rider % cabins.size()].to_global(Vector3(0.0, .15, 2.1))
@@ -4340,7 +4346,9 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var braking: float = 2.2 if travelled > 62.0 else 1.1
 		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
-		if travelled >= 75.0 and absf(fposmod(coast_distances[rider], LAP) - OPPOSITE_STRAIGHT_GATE_M) <= 0.4:
+		var gate := OPPOSITE_STRAIGHT_GATE_M
+		if venue.outdoor and is_instance_valid(arena): gate = fposmod(arena.infield.gate_distance, LAP)
+		if travelled >= 75.0 and absf(wrapf(coast_distances[rider] - gate, -LAP * 0.5, LAP * 0.5)) <= 0.4:
 			route["stage"] = 1
 			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
 			route["heading"] = _direction(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
@@ -4351,6 +4359,13 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var gate_z: float = float(route["gate_z"])
 		var destination: Vector3 = Vector3(-9.6, 0.15, gate_z) if stage == 1 else (Vector3(-14.1, 0.15, gate_z) if stage == 2 else Vector3(route["target"]))
 		if venue.id == "gent": destination = Vector3(-10.9, .15, gate_z) if stage == 1 else (Vector3(-10.5, .15, route["target"].z) if stage == 2 else Vector3(route["target"]))
+		if venue.outdoor and is_instance_valid(arena):
+			var infield: Node3D = arena.infield
+			var slot: int = rider % infield.waiting_spots.size()
+			match stage:
+				1: destination = infield.to_global(Vector3(0.0, 0.135, 5.65))
+				2: destination = infield.entry_points[slot]
+				3: destination = infield.slot_approaches[slot]
 		var vector: Vector3 = destination - current
 		vector.y = 0.0
 		var speed: float = minf(3.1, maxf(0.0, vector.length() * 1.5))
@@ -4362,6 +4377,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 			route["position"] = current
 		if current.distance_to(destination) < 0.12:
 			if stage < 3: route["stage"] = stage + 1
+			elif stage == 3 and venue.outdoor and is_instance_valid(arena): route["stage"] = 5
 			else:
 				route["stage"] = 4
 				coast_speeds[rider] = 0.0

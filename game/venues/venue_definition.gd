@@ -3,6 +3,7 @@ extends Resource
 ## are explicitly listed rather than inherited from the default stadium.
 @export var id := ""
 @export var display_name := ""
+@export var outdoor := false
 @export var lap_length_m := 250.0
 @export var bend_radius_m := 18.0
 @export var transition_m := 36.0

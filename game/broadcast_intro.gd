@@ -279,6 +279,7 @@ func focus_keys() -> Array:
 	return keys
 
 func sample(time: float) -> Dictionary:
+	if game.venue.outdoor: return _outdoor_sample(time)
 	if game.venue.id == "gent": return _gent_sample(time)
 	if game.arena.simple_infield:
 		return chase_pose()
@@ -346,3 +347,15 @@ func _gent_sample(time: float) -> Dictionary:
 	eye = close.position.lerp(eye, opening).lerp(chase.position, reveal)
 	target = close.target.lerp(target, opening).lerp(chase.target, reveal)
 	return {"position": eye, "target": target, "fov": lerpf(68.0, chase.fov, reveal)}
+
+func _outdoor_sample(time: float) -> Dictionary:
+	var chase := chase_pose()
+	if game.arena.simple_infield: return chase
+	if game.race_mode in [4, 5] and time >= OPPONENT_START and time <= OPPONENT_END: return opponent_pose()
+	var progress := clampf(time / duration, 0.0, 1.0)
+	var s := lerpf(-54.0, 37.0, smooth_phase(progress))
+	var eye: Vector3 = game._at(s, -23.0)
+	eye.y = lerpf(16.0, 8.0, progress)
+	var target: Vector3 = game._at(s + 21.0, 3.0) + Vector3.UP
+	var reveal := smooth_phase(clampf((time - (duration - 4.0)) / 4.0, 0.0, 1.0))
+	return {"position": eye.lerp(chase.position, reveal), "target": target.lerp(chase.target, reveal), "fov": lerpf(70.0, chase.fov, reveal)}
