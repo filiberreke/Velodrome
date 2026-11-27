@@ -39,6 +39,13 @@ func run() -> void:
 				check(game.arena.infield.waiting_spots.size() == 24, "Roubaix has 24 waiting places")
 				check(game.arena.find_children("WaitingBay*", "Node3D", true, false).size() == 3, "Roubaix has three open bays")
 				check(game.arena.find_children("Bend*Banner*", "MeshInstance3D", true, false).size() == 6, "Three ground banners per Roubaix bend")
+				var suite := game.arena.get_node("EuroMaxCyclingCommentaryBox") as Node3D
+				check(game.broadcast_intro.suite == suite and suite.voices.size() == 2, "Roubaix broadcast intro uses both animated commentators")
+				check(suite.position.y > 5.0 and game.arena.has_node("BroadcastDeck/TVCameraGallery"), "Both broadcast positions are on the upper deck")
+				var access := game.arena.get_node("RoadAccess") as Node3D
+				var distance: float = access.get_meta("track_distance_m")
+				check(access.has_node("ClosedRoadGate") and access.has_node("RoadApproach"), "Reserved road access stays closed during track races")
+				check(access.position.distance_to(game._at(distance, game.TRACK_OUTER_EDGE)) < 0.01, "Road access meets the opposite straight at the outer edge")
 			check(is_equal_approx(game.minimap.TRACK_LENGTH, game.LAP), "Minimap uses selected lap")
 			if mode in [1, 2, 7]: check(is_equal_approx(game._race_length(), 1000.0), "Fixed-distance events preserve metres")
 			if mode in [1, 2]:

@@ -22,11 +22,17 @@ static func reserves_seat(arena: Node3D, tier: int, s: float, offset: float) -> 
 	return absf(local.x) < RESERVED_HALF_WIDTH and absf(local.z) < RESERVED_HALF_DEPTH
 
 static func build(arena: Node3D) -> Node3D:
+	var suite := build_at(arena, placement(arena))
+	suite.set_meta("finish_distance_m", FINISH_S)
+	suite.set_meta("tier", 2)
+	return suite
+
+static func build_at(arena: Node3D, pose: Transform3D, model_path: String = MODEL_PATH) -> Node3D:
 	var suite := preload("res://commentary_box_controller.gd").new()
 	suite.name = "EuroMaxCyclingCommentaryBox"
-	suite.transform = placement(arena)
+	suite.transform = pose
 	arena.add_child(suite)
-	var model := (load(MODEL_PATH) as PackedScene).instantiate() as Node3D
+	var model := (load(model_path) as PackedScene).instantiate() as Node3D
 	model.name = "BroadcastSuite"
 	suite.add_child(model)
 	suite.setup(model)
@@ -43,6 +49,4 @@ static func build(arena: Node3D) -> Node3D:
 		light.shadow_enabled = false
 		suite.add_child(light)
 	suite.set_meta("channel", "EuroMaxCycling")
-	suite.set_meta("finish_distance_m", FINISH_S)
-	suite.set_meta("tier", 2)
 	return suite

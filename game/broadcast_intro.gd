@@ -357,5 +357,12 @@ func _outdoor_sample(time: float) -> Dictionary:
 	var eye: Vector3 = game._at(s, -23.0)
 	eye.y = lerpf(16.0, 8.0, progress)
 	var target: Vector3 = game._at(s + 21.0, 3.0) + Vector3.UP
+	var fov := 70.0
+	if is_instance_valid(suite):
+		var opening := smooth_phase((time - 4.0) / 4.0)
+		var close := _close_pose()
+		eye = Vector3(close.position).lerp(eye, opening)
+		target = Vector3(close.target).lerp(target, opening)
+		fov = lerpf(close.fov, fov, opening)
 	var reveal := smooth_phase(clampf((time - (duration - 4.0)) / 4.0, 0.0, 1.0))
-	return {"position": eye.lerp(chase.position, reveal), "target": target.lerp(chase.target, reveal), "fov": lerpf(70.0, chase.fov, reveal)}
+	return {"position": eye.lerp(chase.position, reveal), "target": target.lerp(chase.target, reveal), "fov": lerpf(fov, chase.fov, reveal)}

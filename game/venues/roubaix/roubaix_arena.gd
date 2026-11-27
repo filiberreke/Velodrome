@@ -1,6 +1,7 @@
 extends "res://venues/gent/gent_build.gd"
 
 const Crowd := preload("res://crowd_kit.gd")
+const CommentaryBox := preload("res://commentary_box.gd")
 const Infield := preload("res://venues/roubaix/roubaix_infield.gd")
 const BLUE_BANNER := preload("res://assets/boarding/velodrome-boarding.png")
 const WHITE_BANNER := preload("res://assets/boarding/velodrome-boarding-licht.png")
@@ -12,6 +13,8 @@ const BEND_BANNERS := [
 const RIM := 9.15
 const ROOF_START := -57.0
 const ROOF_END := 22.0
+const MEDIA_HALF_WIDTH := 7.8
+const ROAD_HALF_WIDTH := 3.1
 
 var simple := false
 var simple_infield: bool:
@@ -20,6 +23,7 @@ var density := 0.60
 var infield: Node3D
 var crowd: RefCounted
 var rng := RandomNumberGenerator.new()
+var road_distance: float
 
 func build(host: Node3D, profile: Resource, route: RefCounted) -> void:
 	name = "RoubaixArena"
@@ -28,7 +32,9 @@ func build(host: Node3D, profile: Resource, route: RefCounted) -> void:
 	track = route
 	rng.seed = 19252026
 	crowd = Crowd.new()
+	road_distance = venue.lap_length_m * 0.5 + track.phase(0.0) - track.geometry.STRAIGHT * 0.5
 	_build_track()
+	_build_road_access()
 	infield = Infield.new()
 	infield.name = "RoubaixInfield"
 	add_child(infield)
@@ -119,10 +125,18 @@ func _railings() -> void:
 	var rails: Array[Transform3D] = []
 	var rail_colors: Array[Color] = []
 	var steps := 270
+	var gate_start := road_distance - ROAD_HALF_WIDTH
+	var gate_end := road_distance + ROAD_HALF_WIDTH
 	for i in steps:
 		var s: float = venue.lap_length_m * i / steps
+		var next: float = s + venue.lap_length_m / steps
+		if s < gate_start and next > gate_start:
+			next = gate_start
+		elif s >= gate_start and s < gate_end:
+			if next <= gate_end: continue
+			s = gate_end
 		var a: Vector3 = track.at(s, RIM)
-		var b: Vector3 = track.at(s + venue.lap_length_m / steps, RIM)
+		var b: Vector3 = track.at(next, RIM)
 		posts.append(Transform3D(Basis.IDENTITY, a + Vector3.UP * 0.56))
 		post_colors.append(Color("255781"))
 		for h in [0.42, 1.10]:
@@ -132,6 +146,62 @@ func _railings() -> void:
 	instances("BlueRailingPosts", Vector3(0.055, 1.14, 0.065), posts, post_colors)
 	instances("BlueRailingRails", Vector3(0.045, 0.055, 1), rails, rail_colors)
 
+func _build_road_access() -> void:
+	var outward: Vector3 = track.outward(road_distance)
+	var entry: Vector3 = track.at(road_distance, venue.track_outer_offset_m)
+	var access := Node3D.new()
+	access.name = "RoadAccess"
+	access.transform = Transform3D(Basis(Vector3.UP.cross(outward), Vector3.UP, outward), entry)
+	access.set_meta("track_distance_m", road_distance)
+	add_child(access)
+	var street_height := -entry.y - 0.033
+	var ramp_end := 19.0
+	var vertices := PackedVector3Array()
+	for segment in 20:
+		var z0 := ramp_end * segment / 20.0
+		var z1 := ramp_end * (segment + 1) / 20.0
+		var y0 := street_height * smoothstep(0.0, ramp_end, z0)
+		var y1 := street_height * smoothstep(0.0, ramp_end, z1)
+		var a := access.transform * Vector3(-ROAD_HALF_WIDTH, y0, z0)
+		var b := access.transform * Vector3(ROAD_HALF_WIDTH, y0, z0)
+		var c := access.transform * Vector3(-ROAD_HALF_WIDTH, y1, z1)
+		var d := access.transform * Vector3(ROAD_HALF_WIDTH, y1, z1)
+		vertices.append_array(PackedVector3Array([a, b, c, b, d, c]))
+		for side in [-1.0, 1.0]:
+			var x: float = side * ROAD_HALF_WIDTH
+			var top0 := access.transform * Vector3(x, y0, z0)
+			var top1 := access.transform * Vector3(x, y1, z1)
+			var foot0 := access.transform * Vector3(x, street_height - 0.02, z0)
+			var foot1 := access.transform * Vector3(x, street_height - 0.02, z1)
+			vertices.append_array(PackedVector3Array([top0, top1, foot0, top1, foot1, foot0]))
+	surface("RoadAccessRamp", vertices, mat("60615e")).reparent(access)
+	box("RoadApproachAsphalt", Vector3(0, street_height - 0.022, 23.5), Vector3(6.2, 0.04, 9.0), mat("60615e"), access)
+	box("OutsideServiceRoad", Vector3(0, street_height - 0.021, 29.6), Vector3(48.0, 0.04, 5.6), mat("535854"), access)
+	for side in [-1.0, 1.0]:
+		var x: float = side * ROAD_HALF_WIDTH
+		for segment in 10:
+			var z0 := ramp_end * segment / 10.0
+			var z1 := ramp_end * (segment + 1) / 10.0
+			var a := Vector3(x, street_height * smoothstep(0.0, ramp_end, z0) + 0.13, z0)
+			var b := Vector3(x, street_height * smoothstep(0.0, ramp_end, z1) + 0.13, z1)
+			var curb := box("RampEdge", (a + b) * 0.5, Vector3(0.16, 0.25, a.distance_to(b)), mat("a0a29a"), access)
+			curb.basis = Basis.looking_at(b - a)
+	var gate := Node3D.new()
+	gate.name = "ClosedRoadGate"
+	gate.position.z = 0.16
+	access.add_child(gate)
+	for h in [0.17, 1.08]:
+		box("GateRail", Vector3(0, h, 0), Vector3(6.2, 0.05, 0.055), mat("345b76"), gate)
+	for x in [-ROAD_HALF_WIDTH, ROAD_HALF_WIDTH]:
+		box("GatePost", Vector3(x, 0.59, 0), Vector3(0.13, 1.18, 0.13), mat("345b76"), access)
+	for i in 23:
+		box("GatePicket", Vector3(lerpf(-ROAD_HALF_WIDTH, ROAD_HALF_WIDTH, i / 22.0), 0.61, 0), Vector3(0.043, 0.96, 0.05), mat("345b76"), gate)
+	for slot in [["TrackConnection", Vector3.ZERO], ["RoadApproach", Vector3(0, street_height, 26.0)]]:
+		var marker := Marker3D.new()
+		marker.name = slot[0]
+		marker.position = slot[1]
+		access.add_child(marker)
+
 func _terrace_point(s: float, row: int) -> Vector3:
 	var p: Vector3 = track.at(s, RIM + 1.05 + row * 0.91)
 	p.y = track.at(s, RIM).y + 0.15 + row * 0.43
@@ -139,23 +209,81 @@ func _terrace_point(s: float, row: int) -> Vector3:
 
 func _build_stands() -> void:
 	_terrace(ROOF_START, ROOF_END, 9, true)
-	for bounds in [[25.0, 73.0], [77.0, 136.0], [142.0, 217.0], [221.0, 302.0], [306.0, 369.0], [374.0, 439.0]]:
+	var road_clearance := ROAD_HALF_WIDTH + 0.8
+	for bounds in [[25.0, 73.0], [77.0, 136.0], [142.0, 217.0], [221.0, road_distance - road_clearance],
+			[road_distance + road_clearance, 302.0], [306.0, 369.0], [374.0, 439.0]]:
 		_terrace(bounds[0], bounds[1], 3, false)
 	var outer: Vector3 = track.outward(0.0)
 	var center: Vector3 = _terrace_point((ROOF_START + ROOF_END) * 0.5, 0)
 	var roof_length := ROOF_END - ROOF_START + 1.0
-	var roof := box("LowMainStandRoof", center + outer * 4.7 + Vector3.UP * 5.7, Vector3(10.6, 0.27, roof_length), mat("b7c8bd", 0.73))
-	roof.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	box("MainStandFascia", center - outer * 0.62 + Vector3.UP * 5.57, Vector3(0.23, 0.48, roof_length), mat("f2eee1"))
+	for section in [[ROOF_START - 0.5, -MEDIA_HALF_WIDTH, 5.7], [-MEDIA_HALF_WIDTH, MEDIA_HALF_WIDTH, 6.95],
+			[MEDIA_HALF_WIDTH, ROOF_END + 0.5, 5.7]]:
+		var base := _terrace_point((section[0] + section[1]) * 0.5, 0)
+		var span: float = section[1] - section[0]
+		var height: float = section[2]
+		var roof := box("MainStandRoofSection", base + outer * 4.7 + Vector3.UP * height, Vector3(10.6, 0.27, span), mat("b7c8bd", 0.73))
+		roof.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		box("MainStandFascia", base - outer * 0.62 + Vector3.UP * (height - 0.13), Vector3(0.23, 0.48, span), mat("f2eee1"))
 	box("MainStandBrickBack", center + outer * 8.5 + Vector3.UP * 2.85, Vector3(0.28, 5.75, roof_length), mat("bd8b73"))
 	for s in range(-55, 23, 8):
+		if absf(s) < MEDIA_HALF_WIDTH: continue
 		var base := _terrace_point(float(s), 0)
 		box("RoofColumn", base - outer * 0.32 + Vector3.UP * 2.75, Vector3(0.12, 5.50, 0.12), mat("e8e5d9"))
 		box("RoofSeam", base + outer * 4.7 + Vector3.UP * 5.85, Vector3(10.5, 0.025, 0.05), mat("899b97"))
-	for s in [-45.0, -21.0, 4.0, 21.0]:
+	for s in [-MEDIA_HALF_WIDTH, MEDIA_HALF_WIDTH]:
+		var base := _terrace_point(s, 0)
+		box("MediaRoofColumn", base - outer * 0.32 + Vector3.UP * 3.43, Vector3(0.14, 6.86, 0.14), mat("e8e5d9"))
+		box("MediaRoofEndPanel", base + outer * 4.7 + Vector3.UP * 6.32, Vector3(10.5, 1.24, 0.12), mat("aebeb3"))
+	for s in [-45.0, -21.0, 12.0, 21.0]:
 		_flag(_terrace_point(s, 0) + outer * 0.3 + Vector3.UP * 5.83, int(absf(s)) % 3, 1.8)
 	var sign := label3("VÉLODROME DE ROUBAIX", center - outer * 0.77 + Vector3.UP * 5.59, 0.27, Color("294c62"))
 	sign.rotation.y = atan2(-outer.x, -outer.z)
+	_build_media_deck()
+
+func _build_media_deck() -> void:
+	var inward: Vector3 = -track.outward(0.0)
+	var frame := Basis(Vector3.UP.cross(inward), Vector3.UP, inward)
+	var deck: Vector3 = _terrace_point(0.0, 0) - inward * 6.60 + Vector3.UP * (8.0 * 0.43 + 0.11)
+	var stand := Node3D.new()
+	stand.name = "BroadcastDeck"
+	stand.transform = Transform3D(frame, deck)
+	add_child(stand)
+	box("BroadcastPlinth", Vector3(0, -0.83, 0), Vector3(14.1, 1.43, 3.84), mat("687579"), stand)
+	box("BroadcastFloor", Vector3(0, -0.18, 0), Vector3(14.1, 0.16, 3.84), mat("b4b9ae"), stand)
+	var suite := CommentaryBox.build_at(self, Transform3D(frame, stand.to_global(Vector3(-3.45, 0, 0))), venue.shared_actors.broadcast_suite)
+	suite.set_meta("tier", "upper_grandstand")
+	var gallery := Node3D.new()
+	gallery.name = "TVCameraGallery"
+	gallery.position.x = 3.45
+	stand.add_child(gallery)
+	var navy := mat("213c50")
+	var trim := mat("85989f", 0.56)
+	box("GalleryRear", Vector3(0, 1.4, -1.67), Vector3(6.4, 2.8, 0.12), navy, gallery)
+	box("GalleryRoof", Vector3(0, 2.89, 0), Vector3(6.4, 0.14, 3.52), navy, gallery)
+	box("GalleryFront", Vector3(0, 0.43, 1.72), Vector3(6.4, 0.86, 0.11), navy, gallery)
+	box("GalleryFrontRail", Vector3(0, 0.89, 1.72), Vector3(6.4, 0.065, 0.10), trim, gallery)
+	for x in [-3.15, 3.15]:
+		box("GalleryFrame", Vector3(x, 1.45, 1.72), Vector3(0.085, 2.90, 0.085), trim, gallery)
+		box("GallerySide", Vector3(x, 0.44, 0), Vector3(0.10, 0.88, 3.38), navy, gallery)
+	label3("TV  ·  ROUBAIX", Vector3(0, 0.49, 1.79), 0.32, Color("f4f3e9"), gallery)
+	var fill := OmniLight3D.new()
+	fill.position = Vector3(0, 2.45, 1.15)
+	fill.light_color = Color("e7eff8")
+	fill.light_energy = 0.65
+	fill.omni_range = 4.1
+	gallery.add_child(fill)
+	for x in [-1.72, 1.25]:
+		var camera := MeshInstance3D.new()
+		camera.name = "BroadcastCamera"
+		camera.mesh = crowd.prop("tv_camera")
+		camera.position = Vector3(x, 0, 0.87)
+		camera.rotation.y = -0.28 if x < 0.0 else 0.51
+		gallery.add_child(camera)
+	var crew := {}
+	for x in [-1.72, 1.25]:
+		var p := gallery.to_global(Vector3(x, 0, 0.06))
+		Crowd.add_to_group(crew, "stand_m_relaxed", Transform3D(frame, p), crowd.staff_look(rng, Color("2f516d"), 0.24))
+	crowd.emit_group(self, crew, "BroadcastCameraCrew", [[0, 0.0, 0.0]])
 
 func _terrace(start: float, end: float, rows: int, covered: bool) -> void:
 	var vertices := PackedVector3Array()
@@ -175,7 +303,8 @@ func _terrace(start: float, end: float, rows: int, covered: bool) -> void:
 		var s := start + 0.35
 		var row_density := 1.0 - pow(1.0 - density, 1.75 if covered else 1.24)
 		while s < end - 0.35:
-			if fposmod(s - start + 4.8, 13.0) > 1.65 and rng.randf() < row_density:
+			var on_media_deck := covered and row >= 5 and absf(s) < MEDIA_HALF_WIDTH
+			if not on_media_deck and fposmod(s - start + 4.8, 13.0) > 1.65 and rng.randf() < row_density:
 				var inward: Vector3 = -track.outward(s)
 				var p := _terrace_point(s, row) - inward * 0.43
 				var variants: Array = Crowd.SEATED if covered else Crowd.STANDING
@@ -228,9 +357,13 @@ func _build_surroundings() -> void:
 	trees.instance_count = 180
 	for i in 90:
 		var s: float = i * venue.lap_length_m / 90
-		var p: Vector3 = track.at(s, rng.randf_range(18.0, 26.0))
+		var offset := rng.randf_range(18.0, 26.0)
+		var stand_distance: float = wrapf(s, -venue.lap_length_m * 0.5, venue.lap_length_m * 0.5)
+		if stand_distance > ROOF_START - 8.0 and stand_distance < ROOF_END + 8.0: offset += 13.0
+		var p: Vector3 = track.at(s, offset)
 		p.y = -0.04
 		var h := rng.randf_range(4.8, 10.2)
+		if absf(s - road_distance) < ROAD_HALF_WIDTH + 5.2: p += track.outward(s) * 30.0
 		box("TreeTrunk", p + Vector3.UP * h * 0.28, Vector3(0.33, h * 0.56, 0.35), mat("605345"))
 		for j in 2:
 			var scale3 := Vector3(h * rng.randf_range(0.64, 1.04), h * 0.76, h * 0.80)
