@@ -39,7 +39,7 @@ func build(host: Node3D, profile: Resource, route: RefCounted) -> void:
 	infield = Infield.new()
 	infield.name = "RoubaixInfield"
 	add_child(infield)
-	infield.build(host, venue, track)
+	infield.build(host, venue, track, crowd, density)
 	_build_stands()
 	_build_surroundings()
 	var neighbourhood := Surroundings.new()
@@ -330,6 +330,7 @@ func _infield_public() -> void:
 		for i in 114:
 			var x := -38.0 + i * 0.64
 			if absf(x) < 2.05 or rng.randf() >= density: continue
+			if x > -22.5 and x < -15.8: continue
 			var p: Vector3 = infield.to_global(Vector3(x, 0, 4.15 + row * 0.48))
 			if absf(x) < 16.8 and row > 0: continue
 			var variant: String = Crowd.STANDING[rng.randi_range(0, Crowd.STANDING.size() - 1)]

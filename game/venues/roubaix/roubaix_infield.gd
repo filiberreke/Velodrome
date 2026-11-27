@@ -1,6 +1,7 @@
 extends "res://venues/gent/gent_build.gd"
 
 const Bike := preload("res://venues/gent/parked_bike.gd")
+const Crowd := preload("res://crowd_kit.gd")
 const GRAVEL_WIDTH := 3.6
 const PASSAGE_WIDTH := 3.2
 const BAY_WIDTH := 9.8
@@ -12,8 +13,11 @@ var waiting_spots: Array[Vector3] = []
 var entry_points: Array[Vector3] = []
 var slot_approaches: Array[Vector3] = []
 var official: Node3D
+var barrier_pickets: Array[Transform3D] = []
+var barrier_feet: Array[Transform3D] = []
+var rng := RandomNumberGenerator.new()
 
-func build(host: Node3D, profile: Resource, route: RefCounted) -> void:
+func build(host: Node3D, profile: Resource, route: RefCounted, crowd: RefCounted, density: float) -> void:
 	venue = profile
 	track = route
 	gate_distance = venue.transition_m * 0.5 + venue.finish_straight_clearance_m - track.geometry.STRAIGHT * 0.5
@@ -26,9 +30,13 @@ func build(host: Node3D, profile: Resource, route: RefCounted) -> void:
 	for index in 3:
 		_waiting_bay(index, -11.0 + index * 11.0)
 	_technical_zone()
-	for z in [22.0, 28.5]:
-		for x in [-18.0, -11.0, -4.0]:
-			_tent(Vector3(x, 0, z))
+	_event_infield(crowd, density)
+	for batch in [["BarrierFoot", Vector3(0.34, 0.073, 0.34), barrier_feet],
+			["BarrierPicket", Vector3(0.027, 0.79, 0.027), barrier_pickets]]:
+		var colors: Array[Color] = []
+		colors.resize(batch[2].size())
+		colors.fill(Color("879da2"))
+		instances(batch[0], batch[1], batch[2], colors)
 	official = preload("res://venues/race_official.gd").new()
 	official.game = host
 	official.official_lap_m = venue.lap_length_m
@@ -76,10 +84,10 @@ func _barrier(parent: Node3D, a: Vector3, b: Vector3) -> void:
 		rail.basis = Basis.looking_at(b - a)
 	for i in range(divisions + 1):
 		var p := a.lerp(b, float(i) / divisions)
-		box("BarrierFoot", p + Vector3.UP * 0.043, Vector3(0.34, 0.073, 0.34), metal, parent)
+		barrier_feet.append(Transform3D(Basis.IDENTITY, to_local(parent.to_global(p + Vector3.UP * 0.043))))
 	for i in range(divisions * 9 + 1):
 		var p := a.lerp(b, float(i) / (divisions * 9))
-		box("BarrierPicket", p + Vector3.UP * 0.58, Vector3(0.027, 0.79, 0.027), metal, parent)
+		barrier_pickets.append(Transform3D(Basis.IDENTITY, to_local(parent.to_global(p + Vector3.UP * 0.58))))
 
 func _technical_zone() -> void:
 	var area := Node3D.new()
@@ -103,13 +111,119 @@ func _technical_zone() -> void:
 	for i in 3:
 		Bike.build(area, Vector3(-3.1 + 2.9 * i, 0.005, -0.6), PI * 0.38).name = "TechnicalBike%d" % (i + 1)
 
-func _tent(center: Vector3) -> void:
+func _tent(parent: Node3D, center: Vector3, fabric := "f1efe2") -> void:
 	for x in [-2.1, 2.1]:
 		for z in [-1.9, 1.9]:
-			box("TentLeg", center + Vector3(x, 1.16, z), Vector3(0.055, 2.32, 0.055), mat("e4e7de"))
+			box("TentLeg", center + Vector3(x, 1.16, z), Vector3(0.055, 2.32, 0.055), mat("e4e7de"), parent)
 	var corners := [Vector3(-2.25, 2.25, -2.05), Vector3(2.25, 2.25, -2.05), Vector3(2.25, 2.25, 2.05), Vector3(-2.25, 2.25, 2.05)]
 	var vertices := PackedVector3Array()
 	for i in 4:
-		vertices.append_array(PackedVector3Array([center + corners[i], center + corners[(i + 1) % 4], center + Vector3.UP * 3.15]))
-	surface("WhiteEventTent", vertices, mat("f1efe2"))
-	box("EventCounter", center + Vector3(0, 0.51, 0.95), Vector3(2.55, 1.02, 0.48), mat("354f66"))
+		for p in [corners[i], corners[(i + 1) % 4], Vector3.UP * 3.15]:
+			vertices.append(to_local(parent.to_global(center + p)))
+	surface("EventTent", vertices, mat(fabric)).reparent(parent)
+	box("EventCounter", center + Vector3(0, 0.51, 0.95), Vector3(2.55, 1.02, 0.48), mat("354f66"), parent)
+
+func _event_infield(crowd: RefCounted, density: float) -> void:
+	rng.seed = 19320420
+	_walk("BayPathExtension", Vector2(-19.4, 5.6), Vector2(5.6, 3.15))
+	_walk("RiderBayBypass", Vector2(-20, 13.09), Vector2(4.4, 11.83))
+	_walk("InfieldConnector", Vector2(-12.35, 21.0), Vector2(19.7, 4.0))
+	_walk("MainEventPassage", Vector2(0, 49), Vector2(5.0, 60.0))
+	for side in [-1.0, 1.0]:
+		_walk("CrossEventPassageWest" if side < 0.0 else "CrossEventPassageEast", Vector2(side * 17.75, 51), Vector2(30.5, 5.0))
+
+	var north := _event_zone("SpectatorNorth", Vector2(16, 38), Vector2(24, 21))
+	var south := _event_zone("SpectatorSouth", Vector2(-15.2, 62), Vector2(21, 17))
+	_spectator_zone(north, crowd, density)
+	_spectator_zone(south, crowd, density)
+
+	var operations := _event_zone("OperationsWorkZone", Vector2(-16.5, 37.5), Vector2(24, 20))
+	_tent(operations, Vector3(-7.8, 0, -6.2), "e7e6dd")
+	_tent(operations, Vector3(-1.8, 0, -6.2), "e7e6dd")
+	_tent(operations, Vector3(-6.5, 0, 4.3), "3d6481")
+	for x in [-5.1, -1.1, 3.1]:
+		_work_station(operations, Vector3(x, 0, 5.4))
+
+	var media := _event_zone("MediaWorkZone", Vector2(16.9, 64), Vector2(24.5, 20))
+	_tent(media, Vector3(6.45, 0, -6.5))
+	_tent(media, Vector3(6.45, 0, 5.4), "40647c")
+	_media_trailer(media)
+	for z in [-4.5, -1.8, 1.1]:
+		_work_station(media, Vector3(3.7, 0, z))
+	_event_crew(operations, crowd)
+	_event_crew(media, crowd)
+
+func _walk(path_name: String, center: Vector2, size: Vector2) -> void:
+	box(path_name, Vector3(center.x, -0.037, center.y), Vector3(size.x, 0.044, size.y), mat("58664f"))
+
+func _event_zone(zone_name: String, center: Vector2, size: Vector2) -> Node3D:
+	var zone := Node3D.new()
+	zone.name = zone_name
+	zone.position = Vector3(center.x, 0, center.y)
+	zone.set_meta("footprint_m", size)
+	add_child(zone)
+	var half := size * 0.5
+	var inner_x := -signf(center.x) * half.x
+	var outer_x := -inner_x
+	for z in [-half.y, half.y]:
+		_barrier(zone, Vector3(-half.x, 0, z), Vector3(half.x, 0, z))
+	_barrier(zone, Vector3(outer_x, 0, -half.y), Vector3(outer_x, 0, half.y))
+	for side in [-1.0, 1.0]:
+		_barrier(zone, Vector3(inner_x, 0, side * 1.85), Vector3(inner_x, 0, side * half.y))
+	var gate := Marker3D.new()
+	gate.name = "GateOpening"
+	gate.position.x = inner_x
+	zone.add_child(gate)
+	var edge := signf(center.x) * 2.5
+	var entry := center.x + inner_x
+	_walk(zone_name + "Entry", Vector2((edge + entry) * 0.5, center.y), Vector2(absf(edge - entry), 3.7))
+	return zone
+
+func _spectator_zone(zone: Node3D, crowd: RefCounted, density: float) -> void:
+	var people: Dictionary = {}
+	var size: Vector2 = zone.get_meta("footprint_m")
+	var aisle_direction := -signf(zone.position.x)
+	for row in range(floori(size.y / 0.83) - 1):
+		var z := -size.y * 0.5 + 0.80 + row * 0.83
+		for column in range(floori(size.x / 0.81) - 1):
+			var x := -size.x * 0.5 + 0.74 + column * 0.81
+			if absf(z) < 2.22 and x * aisle_direction > -size.x * 0.11: continue
+			var concentration := 1.7 + 0.55 * cos(column * 0.53 + row * 0.45) - 0.31 * sin(row * 0.62)
+			if rng.randf() >= 1.0 - pow(1.0 - density, concentration): continue
+			var p := zone.position + Vector3(x + rng.randf_range(-0.22, 0.22), 0, z + rng.randf_range(-0.24, 0.24))
+			var variant: String = Crowd.STANDING[rng.randi_range(0, Crowd.STANDING.size() - 1)]
+			var facing := Basis(Vector3.UP, PI + rng.randf_range(-0.42, 0.42))
+			Crowd.add_to_group(people, variant, Transform3D(facing, p), crowd.random_look(rng))
+	crowd.emit_group(self, people, zone.name + "Crowd", [[1, 0.0, 0.0]])
+
+func _work_station(zone: Node3D, p: Vector3) -> void:
+	box("Mat", p + Vector3.UP * -0.028, Vector3(2.65, 0.035, 2.16), mat("a0a095"), zone)
+	box("WorkTable", p + Vector3.UP * 0.89, Vector3(1.92, 0.10, 0.81), mat("d9d6c8"), zone)
+	for x in [-0.78, 0.78]:
+		box("TableLeg", p + Vector3(x, 0.42, 0), Vector3(0.075, 0.84, 0.66), mat("62747c"), zone)
+		box("EquipmentCase", p + Vector3(x * 0.78, 1.08, 0), Vector3(0.59, 0.27, 0.48), mat("2f464f"), zone)
+
+func _media_trailer(zone: Node3D) -> void:
+	var p := Vector3(-1.5, 0, -5.4)
+	box("BroadcastTrailer", p + Vector3.UP * 1.63, Vector3(7.5, 2.42, 2.5), mat("e4e3db"), zone)
+	box("BroadcastTrailerRoof", p + Vector3.UP * 2.90, Vector3(7.65, 0.14, 2.60), mat("c9d1cc"), zone)
+	box("TrailerAwning", p + Vector3(0.4, 2.52, 2.09), Vector3(5.68, 0.10, 1.65), mat("f1efe4"), zone)
+	box("TrailerDoor", p + Vector3(-2.85, 1.47, 1.26), Vector3(0.78, 1.91, 0.035), mat("a9b9b8"), zone)
+	for x in [-1.0, 0.18]:
+		for z in [-1.24, 1.24]:
+			box("TrailerTyre", p + Vector3(x, 0.41, z), Vector3(0.83, 0.79, 0.30), mat("292f34"), zone)
+	for z in [1.35, 2.71]:
+		box("AwningLeg", p + Vector3(3.15, 1.24, z), Vector3(0.07, 2.48, 0.07), mat("677a80"), zone)
+	for x in [-2.5, 0, 2.5]:
+		box("RoadCase", p + Vector3(x, 0.37, 3.22), Vector3(0.92, 0.74, 0.65), mat("314b61"), zone)
+
+func _event_crew(zone: Node3D, crowd: RefCounted) -> void:
+	var people: Dictionary = {}
+	for i in 9:
+		var x := -4.4 + float(i % 5) * 2.0 + rng.randf_range(-0.27, 0.27)
+		var z := 2.7 + float(i / 5) * 3.4 + rng.randf_range(-0.28, 0.28)
+		var colour := Color("d09341") if i % 3 == 0 else Color("46677e")
+		var facing := Basis(Vector3.UP, rng.randf_range(-PI, PI))
+		var variant: String = "stand_m_relaxed" if i % 2 == 0 else "stand_f_talk"
+		Crowd.add_to_group(people, variant, Transform3D(facing, zone.position + Vector3(x, 0, z)), crowd.staff_look(rng, colour, 0.18))
+	crowd.emit_group(self, people, zone.name + "Crew", [[1, 0.0, 0.0]])

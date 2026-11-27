@@ -22,5 +22,5 @@ infield_path = "res://venues/roubaix/roubaix_infield.gd"
 stand_rim_offset_m = 9.15
 race_ambient_energy = 0.32
 training_ambient_energy = 0.32
-scenery = PackedStringArray("concrete_track", "gravel_apron", "open_air", "covered_main_stand", "open_terraces", "trees", "buildings", "floodlights", "flags", "race_banners", "rider_waiting_bays", "technical_zone", "broadcast_deck", "road_access", "grandstand_street", "event_village", "bend_concourses")
+scenery = PackedStringArray("concrete_track", "gravel_apron", "open_air", "covered_main_stand", "open_terraces", "trees", "buildings", "floodlights", "flags", "race_banners", "rider_waiting_bays", "technical_zone", "broadcast_deck", "road_access", "grandstand_street", "event_village", "bend_concourses", "infield_event_zones")
 shared_actors = {"race_official": "res://assets/crowd/velodrome_official.glb", "race_official_fallback": "res://assets/crowd/flag_official.glb", "broadcast_suite": "res://assets/broadcast/euromax_cycling_box.glb"}

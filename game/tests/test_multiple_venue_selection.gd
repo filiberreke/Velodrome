@@ -38,6 +38,7 @@ func run() -> void:
 			if id == "roubaix" and mode == 0:
 				check(game.arena.infield.waiting_spots.size() == 24, "Roubaix has 24 waiting places")
 				check(game.arena.find_children("WaitingBay*", "Node3D", true, false).size() == 3, "Roubaix has three open bays")
+				check_roubaix_infield(game.arena.infield)
 				check(game.arena.find_children("Bend*Banner*", "MeshInstance3D", true, false).size() == 6, "Three ground banners per Roubaix bend")
 				var suite := game.arena.get_node("EuroMaxCyclingCommentaryBox") as Node3D
 				check(game.broadcast_intro.suite == suite and suite.voices.size() == 2, "Roubaix broadcast intro uses both animated commentators")
@@ -106,3 +107,14 @@ func check_roubaix_exit(game: Game) -> void:
 		game._update_eliminated_exit(rider, 0.1)
 	var route: Dictionary = game.elimination_exit[rider]
 	check(route.stage == 5 and Vector3(route.position).distance_to(target) < 0.12, "Roubaix elimination riders cross to their assigned bay")
+
+func check_roubaix_infield(infield: Node3D) -> void:
+	check(infield.has_node("TechnicalZone") and infield.has_node("RiderBayBypass"), "Cyclist technical zone and infield bypass are present")
+	for name_text in ["SpectatorNorth", "SpectatorSouth", "OperationsWorkZone", "MediaWorkZone"]:
+		var zone := infield.get_node_or_null(name_text) as Node3D
+		check(zone != null, "Roubaix infield has " + name_text)
+		if zone == null: continue
+		var footprint: Vector2 = zone.get_meta("footprint_m")
+		check(absf(zone.position.x) - footprint.x * 0.5 > 2.5, "Zone leaves the main passage open")
+		check(absf(zone.position.z - 51.0) - footprint.y * 0.5 >= 2.5, "Zone leaves the cross passage open")
+		check(zone.has_node("GateOpening") and infield.has_node(name_text + "Entry"), "Zone gate opens onto the main passage")
