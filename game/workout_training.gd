@@ -122,6 +122,7 @@ func finish(message: String) -> void:
 			"ftp_reference_w":float(ftp_input.value)
 		}
 		var archive := preload("res://training_store.gd").new()
+		activity.merge(activity_venue)
 		selected_activity = activity
 		upload_status = String(TranslationServer.translate("FTP_TRAINING_SAVED_LOCALLY")) if archive.save(activity) else archive.error
 	_release(now_s())

@@ -18,7 +18,7 @@ func _ready() -> void:
 	var box := VBoxContainer.new(); box.add_theme_constant_override("separation",10); mission_panel.add_child(box)
 	mission_title = text("",24); box.add_child(mission_title)
 	mission_text = text("",20); mission_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; box.add_child(mission_text)
-	mission_bar = ProgressBar.new(); mission_bar.show_percentage = false; mission_bar.custom_minimum_size.y = 16; mission_bar.max_value = 250; box.add_child(mission_bar)
+	mission_bar = ProgressBar.new(); mission_bar.show_percentage = false; mission_bar.custom_minimum_size.y = 16; box.add_child(mission_bar)
 	keyboard_hint = text("",16); box.add_child(keyboard_hint)
 	_build_lap_table()
 	map_panel.reparent(self); map_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT); map_panel.offset_left = -400; map_panel.offset_right = -32; map_panel.offset_top = 300; map_panel.offset_bottom = 540; map_panel.show()
@@ -42,15 +42,17 @@ func update_training(scene) -> void:
 	mission_title.text = session.title(session.kind)
 	lap_label.text = "%d:%02d" % [int(session.elapsed)/60,int(session.elapsed)%60]
 	if session.kind == "flying_start":
-		mission_text.text = String(TranslationServer.translate("TRACK_HUD_FLYING_START")) % [maxf(0,250-session.gained_m),session.energy_j/maxf(.001,session.elapsed),session.peak_w,scene.game._at(scene.distance,scene.player_lane_offset).y]
+		mission_text.text = String(TranslationServer.translate("TRACK_HUD_FLYING_START")) % [maxf(0,session.LAP-session.gained_m),session.energy_j/maxf(.001,session.elapsed),session.peak_w,scene.game._at(scene.distance,scene.player_lane_offset).y]
 	elif session.kind == "take_lap":
 		var remaining := maxi(0,ceili(session.time_limit-session.elapsed))
-		mission_text.text = String(TranslationServer.translate("TRACK_HUD_GAIN_LAP")) % [session.target_kmh,session.gained_m,remaining/60,remaining%60]
-	mission_bar.value = clampf(session.gained_m,0,250)
+		mission_text.text = String(TranslationServer.translate("TRACK_HUD_GAIN_LAP")) % [session.target_kmh,session.gained_m,scene.game.VenueCatalog.lap_length_label(session.LAP),remaining/60,remaining%60]
+	mission_bar.max_value = session.LAP
+	mission_bar.value = clampf(session.gained_m,0,session.LAP)
 	var connection_status: String = scene.game.setup_panel.ftp_page.signal_state.status(scene.game._now_s()) if not scene.demo else ""
 	status_panel.visible = not connection_status.is_empty()
 	phase_label.text = connection_status
 	var positions: Array[float] = [scene.distance]
+	map.configure_track(scene.game.track_geometry, scene.game.FINISH_REFERENCE_S)
 	if session.kind == "take_lap":
 		for at in scene.pack_state.distances: positions.append(float(at))
 		map.set_peloton({"front":scene.pack_state.front,"tail":scene.pack_state.tail})

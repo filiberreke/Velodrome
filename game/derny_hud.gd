@@ -64,7 +64,7 @@ func update_training(scene) -> void:
 	slipstream_bar.value = scene.reduction * 100
 	slipstream_label.text = "%d%%" % roundi(scene.reduction*100)
 	var approach: bool = scene.session.phase == "RUNUP"
-	var progress: float = scene.session.runup_distance/250 if approach else scene.session.step_elapsed/60
+	var progress: float = scene.session.runup_distance/scene.session.LAP if approach else scene.session.step_elapsed/60
 	dial.update_dial(scene.motor.speed_mps*3.6,progress,int(ceil(60-scene.session.step_elapsed)),approach,not scene.session.automatic_pacing)
 	phase_label.text = "DERNY_TOO_CLOSE_SPEED_LIMITED"
 	var status: String = scene.game.setup_panel.ftp_page.signal_state.status(scene.game._now_s()) if not scene.demo else ""

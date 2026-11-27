@@ -12,16 +12,15 @@ var saved: Array[Dictionary] = []
 var camp: Node3D
 var coach: Node3D
 var mechanic: Node3D
+var training_floor: Node3D
+var prepared_venue_id := ""
 
 func _ready() -> void:
 	game = get_parent()
 	name = "TrainingEnvironment"
 	visible = false
-	# Reuse the empty floor and safety strip, without copying race-day props.
-	var infield: Node3D = game.arena.get_node("LevendigMiddenterrein")
-	for floor_name in ["Middenterrein vloer", "Veiligheidszone naast de cote d azur"]:
-		var floor_node: Node3D = infield.get_node(floor_name).duplicate()
-		add_child(floor_node)
+	training_floor = Node3D.new()
+	add_child(training_floor)
 	camp = Node3D.new()
 	camp.name = "EigenPloegtent"
 	camp.position = CAMP
@@ -62,15 +61,40 @@ func _ready() -> void:
 	camp.add_child(sign)
 	coach = _staff("Trainer", "coach", "staff_official_m", Vector3(-17.0, 0, -9.0), colour)
 	mechanic = _staff("Mecanicien", "mechanic", "stand_m_relaxed", Vector3(-14.8, 0, -11.5), colour)
+	_prepare_venue()
+	distance = start_distance
+
+func _prepare_venue() -> void:
+	if prepared_venue_id == game.venue.id: return
+	prepared_venue_id = game.venue.id
+	for child in training_floor.get_children(): child.free()
+	var original := game.arena.get_node_or_null("LevendigMiddenterrein") as Node3D
+	if original == null:
+		start_distance = game.OPPOSITE_STRAIGHT_GATE_M
+		var center: Vector3 = game._at(start_distance, -7.0)
+		center.y = 0.0
+		var outward: Vector3 = game._at(start_distance, 0.0) - center
+		outward.y = 0.0
+		outward = outward.normalized()
+		var frame := Basis(Vector3.UP.cross(outward), Vector3.UP, outward)
+		camp.transform = Transform3D(frame, center)
+		coach.transform = Transform3D(frame, camp.transform * Vector3(-3.8, 0, 2.4))
+		mechanic.transform = Transform3D(frame, camp.transform * Vector3(3.2, 0, 1.8))
+		return
+	# Vélodrome keeps its original camp and its two floor meshes.
+	for floor_name in ["Middenterrein vloer", "Veiligheidszone naast de cote d azur"]:
+		training_floor.add_child(original.get_node(floor_name).duplicate())
+	camp.transform = Transform3D(Basis.IDENTITY, CAMP)
+	coach.transform = Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(-17.0, 0, -9.0))
+	mechanic.transform = Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(-14.8, 0, -11.5))
 	# Locate the actual track point alongside the tent, independent of finish offset.
 	var nearest := INF
-	for metre in range(250):
+	for metre in range(ceili(game.LAP)):
 		var point: Vector3 = game._at(float(metre), 1.18)
 		var separation := Vector2(point.x - CAMP.x, point.z - CAMP.z).length_squared()
 		if separation < nearest:
 			nearest = separation
 			start_distance = float(metre)
-	distance = start_distance
 
 func _material(colour: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -107,6 +131,7 @@ func _hide(node: Node3D) -> void:
 	node.hide()
 
 func enter() -> void:
+	_prepare_venue()
 	_enter_training_venue()
 
 func _enter_training_venue() -> void:
@@ -121,6 +146,12 @@ func _enter_training_venue() -> void:
 	for path in ["LevendigMiddenterrein", "EuroMaxCyclingCommentaryBox", "VelodromeStadiumShow"]:
 		var node: Node3D = game.arena.get_node_or_null(path)
 		if node != null: _hide(node)
+	if game.venue.id == "gent":
+		for child in game.arena.infield.get_children():
+			if child is Node3D and not child.has_meta("training_floor"): _hide(child)
+	elif game.venue.outdoor:
+		for path in ["RoubaixInfield", "BroadcastDeck"]:
+			_hide(game.arena.get_node(path))
 	for bike in game.bikes: _hide(bike)
 	show()
 	game.camera_mode = 1 # Wide chase view: keep the rider visible during FTP training.
@@ -131,7 +162,8 @@ func leave() -> void:
 	if not active: return
 	active = false
 	hide()
-	for item in saved:
+	for i in range(saved.size() - 1, -1, -1):
+		var item := saved[i]
 		if is_instance_valid(item.node): item.node.visible = item.visible
 	saved.clear()
 

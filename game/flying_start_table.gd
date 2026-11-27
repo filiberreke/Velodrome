@@ -1,5 +1,6 @@
 extends PanelContainer
 var store
+var venue_id := "velodrome"
 var entries: Array[Dictionary] = []
 var rows: VBoxContainer
 func _ready() -> void:
@@ -17,11 +18,16 @@ func _row(parent: Node, values: Array, heading: bool = false) -> void:
 		label.custom_minimum_size.x = [28,170,110,90,90][i]
 		if i == 1: label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(label)
+func set_venue(id: String) -> void:
+	venue_id = id
+	refresh()
+
 func refresh() -> void:
 	if rows == null or store == null: return
 	entries.clear()
 	for item in store.recent(100000):
 		if item.get("kind") != "flying_start" or not item.get("exercise_success",false): continue
+		if String(item.get("venue_id", "velodrome")) != venue_id: continue
 		var speed: Variant = item.get("entry_speed_kmh")
 		if not (speed is float or speed is int) or not is_finite(float(speed)) or float(speed) <= 0: continue
 		entries.append(item)

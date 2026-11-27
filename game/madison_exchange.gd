@@ -8,6 +8,7 @@ signal animation_parameters(parameters: Dictionary)
 enum Phase { APPROACH, GRAB, SLING, RELEASE, SEPARATE }
 const NAMES := ["APPROACH", "GRAB", "SLING", "RELEASE", "SEPARATE"]
 var advanced := false
+var lap_length_m := 250.0
 var approach_distance := 10.0
 var max_reach := 1.8
 var giver_max_kmh := 55.0
@@ -189,10 +190,11 @@ func step(game, dt: float) -> void:
 	cooldown = maxf(0.0, cooldown - dt)
 	if game.finished or game.finish_times[0] >= 0.0 or game.finish_times[1] >= 0.0:
 		cancel()
-	var gap: float = wrapf(game.distances[receiver] - game.distances[giver], -125.0, 125.0)
+	var half_lap := lap_length_m * 0.5
+	var gap: float = wrapf(game.distances[receiver] - game.distances[giver], -half_lap, half_lap)
 	if not active and cooldown <= 0.0 and not game.finished and game.finish_times[0] < 0.0 and game.finish_times[1] < 0.0:
 		giver = active_rider; receiver = 1 - giver
-		gap = wrapf(game.distances[receiver] - game.distances[giver], -125.0, 125.0)
+		gap = wrapf(game.distances[receiver] - game.distances[giver], -half_lap, half_lap)
 		if gap >= -1.5 and gap <= approach_distance and game.speeds[giver] > game.speeds[receiver] + minimum_closing_mps:
 			active = true
 			precision = 0.0; efficiency = 0.0; sling_t = 0.0; attempted = false

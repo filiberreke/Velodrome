@@ -26,6 +26,9 @@ static func metadata(venue_id: String) -> Dictionary:
 	var profile = resolved(venue_id)
 	return {"venue_id": profile.id, "lap_length_m": profile.lap_length_m, "geometry_version": 1}
 
+static func lap_length_label(length: float) -> String:
+	return "166⅔" if is_equal_approx(length, 500.0 / 3.0) else str(roundi(length))
+
 static func compatible(data: Dictionary, venue_id: String) -> bool:
 	var profile = resolved(venue_id)
 	var length = data.get("lap_length_m", 250.0)

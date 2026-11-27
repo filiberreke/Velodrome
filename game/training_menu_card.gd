@@ -10,6 +10,7 @@ var exercise_previews := {}
 var result_presentation := false
 var help_toggle: Button
 var help_panel: ScrollContainer
+var venue_picker: VBoxContainer
 
 func configure(menu: Control, training: VBoxContainer, controls: Array, artwork: Control) -> void:
 	host = menu
@@ -62,7 +63,7 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 		help_toggle.tooltip_text = String(TranslationServer.translate("TRAINING_MENU_CARD_HIDE_INSTRUCTIONS")) if expanded else String(TranslationServer.translate("TRAINING_MENU_CARD_SHOW_INSTRUCTIONS")))
 	var options := VBoxContainer.new()
 	options.custom_minimum_size.x = 570
-	options.add_theme_constant_override("separation", 16)
+	options.add_theme_constant_override("separation", 10)
 	columns.add_child(options)
 	var heading := Label.new()
 	heading.text = "TRAINING_MENU_CARD_YOUR_TRAINING"
@@ -70,11 +71,17 @@ func configure(menu: Control, training: VBoxContainer, controls: Array, artwork:
 	heading.add_theme_font_size_override("font_size", 30)
 	options.add_child(heading)
 	overview = Label.new()
-	overview.add_theme_font_size_override("font_size", 22)
+	overview.add_theme_font_size_override("font_size", 20)
 	overview.add_theme_color_override("font_color", Style.MUTED)
 	options.add_child(overview)
 	overview.hide()
 	for control in controls: control.reparent(options)
+	venue_picker = preload("res://venues/venue_selector.gd").new()
+	venue_picker.tile_size = Vector2(168, 102)
+	venue_picker.selected_id = menu.venue_id
+	options.add_child(venue_picker)
+	venue_picker.selected.connect(menu.select_venue)
+	menu.training_venue_pickers.append(venue_picker)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 14)
 	page.add_child(actions)

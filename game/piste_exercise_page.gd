@@ -69,7 +69,9 @@ func _refresh() -> void:
 			result.text += String(TranslationServer.translate("TRAINING_SPEED_AT_THE_LINE_2F_KM_H_AVERAGE_POWER_0F_W_MAXIMUM_POWER_0F_W")) % [selected_activity.get("entry_speed_kmh",0),selected_activity.get("mean_power_w",0),selected_activity.get("peak_power_w",0)] if selected_activity.get("exercise_success",false) else String(TranslationServer.translate("TRAINING_NO_COMPLETED_PASSAGE_ACROSS_THE_START_LINE"))
 		elif kind == "free_ride":
 			result.text += String(TranslationServer.translate("TRAINING_DISTANCE_3F_KM_D_COMPLETED_LAPS_AVERAGE_POWER_0F_W_MAXIMUM_POWER_0F_W")) % [float(selected_activity.get("distance_m",0))/1000,selected_activity.get("laps",[]).size(),selected_activity.get("mean_power_w",0),selected_activity.get("peak_power_w",0)]
-		else: result.text += String(TranslationServer.translate("TRAINING_PELOTON_0F_KM_H_1F_250_M_GAINED_PEAK_POWER_0F_W_AVERAGE_0F_W")) % [selected_activity.get("peloton_kmh",30),selected_activity.get("gained_m",0),selected_activity.get("peak_power_w",0),selected_activity.get("mean_power_w",0)]
+		else:
+			var length := preload("res://venues/venue_catalog.gd").lap_length_label(float(selected_activity.get("lap_length_m", 250.0)))
+			result.text += String(TranslationServer.translate("TRAINING_PELOTON_0F_KM_H_1F_250_M_GAINED_PEAK_POWER_0F_W_AVERAGE_0F_W")) % [selected_activity.get("peloton_kmh",30),selected_activity.get("gained_m",0),length,selected_activity.get("peak_power_w",0),selected_activity.get("mean_power_w",0)]
 		result.text += upload_status
 		if selected_activity.get("demo",false): result.text += String(TranslationServer.translate("TRAINING_PC_TEST_RIDE_SIMULATED_ACTIVITY"))
 	elif session.phase == "RESULT": result.text = session.reason
@@ -77,7 +79,7 @@ func _refresh() -> void:
 
 func show_activity(activity: Dictionary, message: String = "TRAINING_ACTIVITY_SAVED") -> void:
 	super.show_activity(activity,message)
-	if kind == "flying_start": records_table.refresh()
+	if kind == "flying_start": records_table.set_venue(String(activity.get("venue_id", "velodrome")))
 
 func set_history_origin(from_history: bool) -> void:
 	if from_history: omnium_origin = ""

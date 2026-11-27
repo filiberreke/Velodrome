@@ -2621,7 +2621,7 @@ func _build_hud() -> void:
 	var developer_labels: Array[Label] = [hud, note, rankings]
 	race_overlay.set_developer_texts(developer_labels)
 	minimap = race_overlay.map
-	minimap.TRACK_LENGTH = LAP
+	minimap.configure_track(track_geometry, FINISH_REFERENCE_S)
 	race_overlay.lap_length_m = LAP
 	# Separate mode gallery and race configuration, above a quiet arena.
 	var menu = preload("res://race_menu.gd").new()
@@ -2915,7 +2915,8 @@ func _set_menu_visible(is_visible: bool) -> void:
 
 func _training_environment_requested(active: bool) -> void:
 	if active:
-		if not _use_venue(VenueCatalog.DEFAULT_ID): return
+		if not _use_venue(setup_panel.venue_id): return
+		setup_panel.ftp_page.activity_venue = VenueCatalog.metadata(venue.id)
 		if training_environment == null:
 			training_environment = preload("res://training_environment.gd").new()
 			InterpolationGuard.interpolate(training_environment)
@@ -2928,7 +2929,8 @@ func _training_environment_requested(active: bool) -> void:
 
 func _workout_environment_requested(active: bool) -> void:
 	if active:
-		if not _use_venue(VenueCatalog.DEFAULT_ID): return
+		if not _use_venue(setup_panel.venue_id): return
+		setup_panel.workout_play_page.activity_venue = VenueCatalog.metadata(venue.id)
 		if training_environment == null:
 			training_environment = preload("res://training_environment.gd").new()
 			InterpolationGuard.interpolate(training_environment)
@@ -2954,13 +2956,13 @@ func _piste_start_blocker() -> String:
 
 func _piste_environment_requested(active: bool) -> void:
 	if active:
-		if not _use_venue(VenueCatalog.DEFAULT_ID): return
 		var page = setup_panel.derny_page
 		var blocker := _piste_start_blocker()
 		if not blocker.is_empty():
 			page.session.phase = "RESULT"
 			page.session.reason = blocker
 			return
+		if not _use_venue(setup_panel.venue_id): return
 		if derny_training_environment == null:
 			derny_training_environment = preload("res://derny_environment.gd").new()
 			add_child(InterpolationGuard.interpolate(derny_training_environment))
@@ -2973,14 +2975,14 @@ func _piste_environment_requested(active: bool) -> void:
 
 func _exercise_environment_requested(active: bool) -> void:
 	if active:
-		var location := VenueCatalog.DEFAULT_ID
+		var location: String = setup_panel.venue_id
 		if not setup_panel.exercise_page.omnium_origin.is_empty(): location = String(setup_panel.tournament_page.manager.state.active.get("venue_id", VenueCatalog.DEFAULT_ID))
-		if not _use_venue(location): return
 		var blocker := _piste_start_blocker()
 		if not blocker.is_empty():
 			setup_panel.exercise_page.session.phase = "RESULT"
 			setup_panel.exercise_page.session.reason = blocker
 			return
+		if not _use_venue(location): return
 		if exercise_training_environment == null:
 			exercise_training_environment = preload("res://piste_exercise_environment.gd").new()
 			add_child(InterpolationGuard.interpolate(exercise_training_environment))
@@ -2993,12 +2995,12 @@ func _exercise_environment_requested(active: bool) -> void:
 
 func _madison_environment_requested(active: bool) -> void:
 	if active:
-		if not _use_venue(VenueCatalog.DEFAULT_ID): return
 		var blocker := _piste_start_blocker()
 		if not blocker.is_empty():
 			setup_panel.madison_page.session.phase = "RESULT"
 			setup_panel.madison_page.session.reason = blocker
 			return
+		if not _use_venue(setup_panel.venue_id): return
 		if madison_training_environment == null:
 			madison_training_environment = preload("res://madison_training_environment.gd").new()
 			add_child(InterpolationGuard.interpolate(madison_training_environment))
@@ -3946,7 +3948,7 @@ func _strava_result_description() -> String:
 		if time_trial_start_type == "flying": lines.append(String(TranslationServer.translate("MENU_FLYING_START_1_LEAD_IN_LAP")))
 		lines.append(tr("STRAVA_FINISH_TIME") % finish_times[0] if finish_times[0] >= 0.0 else String(TranslationServer.translate("MAIN_TIME_TRIAL_NOT_YET_COMPLETED")))
 		if not lap_times[0].is_empty():
-			lines.append(tr("STRAVA_250_M_LAP_TIMES"))
+			lines.append(tr("STRAVA_250_M_LAP_TIMES") % VenueCatalog.lap_length_label(LAP))
 			for lap in range(lap_times[0].size()):
 				lines.append(tr("STRAVA_LAP_TIME") % [lap + 1, float(lap_times[0][lap])])
 		return "\n".join(lines)
@@ -4321,12 +4323,26 @@ func _elimination_box_target(rider: int) -> Vector3:
 	return center + Vector3(-0.35 * float(slot % 2), 0.0, 0.75 * float(slot / 2))
 
 func _elimination_exit_gate(target: Vector3) -> float:
-	if venue.id == "gent": return 0.0
+	if venue.id != VenueCatalog.DEFAULT_ID: return 0.0
 	var gates: Array = preload("res://infield_layout.gd").GATE_Z
 	var best: float = float(gates[0])
 	for z in gates:
 		if absf(target.z - float(z)) < absf(target.z - best): best = float(z)
 	return best
+
+func _race_exit_distance() -> float:
+	if venue.outdoor and is_instance_valid(arena): return fposmod(arena.infield.gate_distance, LAP)
+	return OPPOSITE_STRAIGHT_GATE_M
+
+func _venue_exit_waypoints(rider: int, target: Vector3) -> PackedVector3Array:
+	if not is_instance_valid(arena): return PackedVector3Array()
+	if venue.outdoor:
+		var infield: Node3D = arena.infield
+		var slot: int = rider % infield.waiting_spots.size()
+		return PackedVector3Array([infield.to_global(Vector3(0.0, 0.135, 5.65)), infield.entry_points[slot], infield.slot_approaches[slot], target])
+	if venue.id == "gent":
+		return PackedVector3Array([Vector3(-10.9, 0.15, 0.0), Vector3(-10.5, 0.15, target.z), target])
+	return PackedVector3Array()
 
 func _update_eliminated_exit(rider: int, dt: float) -> void:
 	if race_mode == 3:
@@ -4334,8 +4350,10 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		return
 	var route: Dictionary = elimination_exit[rider]
 	var stage: int = int(route["stage"])
-	var outdoor_route: bool = venue.outdoor and is_instance_valid(arena)
-	var last_stage := 5 if outdoor_route else 4
+	if not route.has("waypoints"):
+		route["waypoints"] = _venue_exit_waypoints(rider, route["target"])
+	var custom_route: PackedVector3Array = route["waypoints"]
+	var last_stage := 4 if custom_route.is_empty() else custom_route.size() + 1
 	if stage == last_stage:
 		coast_speeds[rider] = 0.0
 		return
@@ -4349,8 +4367,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var braking: float = 2.2 if travelled > 62.0 else 1.1
 		coast_speeds[rider] = move_toward(coast_speeds[rider], target_coast_speed, braking * dt)
 		coast_distances[rider] += coast_speeds[rider] * dt / _path_metric(_rider_distance(rider, coast_distances[rider]), lane_offsets[rider])
-		var gate := OPPOSITE_STRAIGHT_GATE_M
-		if outdoor_route: gate = fposmod(arena.infield.gate_distance, LAP)
+		var gate := _race_exit_distance()
 		if travelled >= 75.0 and absf(wrapf(coast_distances[rider] - gate, -LAP * 0.5, LAP * 0.5)) <= 0.4:
 			route["stage"] = 1
 			route["position"] = _at(_rider_distance(rider, coast_distances[rider]) - FRONT_WHEEL_TIP_M, lane_offsets[rider])
@@ -4360,14 +4377,7 @@ func _update_eliminated_exit(rider: int, dt: float) -> void:
 		var current: Vector3 = route["position"]
 		var gate_z: float = float(route["gate_z"])
 		var destination: Vector3 = Vector3(-9.6, 0.15, gate_z) if stage == 1 else (Vector3(-14.1, 0.15, gate_z) if stage == 2 else Vector3(route["target"]))
-		if venue.id == "gent": destination = Vector3(-10.9, .15, gate_z) if stage == 1 else (Vector3(-10.5, .15, route["target"].z) if stage == 2 else Vector3(route["target"]))
-		if outdoor_route:
-			var infield: Node3D = arena.infield
-			var slot: int = rider % infield.waiting_spots.size()
-			match stage:
-				1: destination = infield.to_global(Vector3(0.0, 0.135, 5.65))
-				2: destination = infield.entry_points[slot]
-				3: destination = infield.slot_approaches[slot]
+		if not custom_route.is_empty(): destination = custom_route[stage - 1]
 		var vector: Vector3 = destination - current
 		vector.y = 0.0
 		var speed: float = minf(3.1, maxf(0.0, vector.length() * 1.5))

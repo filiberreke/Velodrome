@@ -23,6 +23,7 @@ func _setup_session() -> void:
 	line_marker = Label3D.new(); line_marker.text = "START · ACHTERVOLGINGSLIJN"; line_marker.font_size = 48; line_marker.pixel_size = .008; line_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED; add_child(line_marker)
 func enter() -> void:
 	if active: leave()
+	_prepare_venue()
 	saved_camera = {"transform":game.camera.transform,"fov":game.camera.fov}
 	demo = not game.trainer_seen; demo_power = 180; control_started = game._now_s()
 	player_lane_offset = LOWEST_LANE if page.kind != "take_lap" else pack_lane
@@ -36,17 +37,18 @@ func enter() -> void:
 	session.LAP = game.LAP
 	session.start(page.kind,start_distance,page.tempo_input.value,0 if page.kind == "free_ride" else page.limit_input.value*60 if page.kind == "take_lap" else 600)
 	if page.kind == "free_ride":
-		var rng := RandomNumberGenerator.new(); rng.randomize(); pacers.reset(rng,start_distance)
+		var rng := RandomNumberGenerator.new(); rng.randomize(); pacers.reset(rng,start_distance,game.LAP)
 	_update_pack_state()
 	reduction = _draft_at(start_distance)
 	last_power_sample_id = game.setup_panel.ftp_page.sample_id
 	session.peak_w = demo_power if demo else game.setup_panel.ftp_page.measured
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
 	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":page.kind,"title":Exercise.title(page.kind),"started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"initial_speed_kmh":player_speed*3.6,"line_distance":start_distance if page.kind == "free_ride" else line}
+	activity.merge(game.VenueCatalog.metadata(game.venue.id))
 	if not page.omnium_origin.is_empty():
 		activity["omnium_id"] = page.omnium_origin
 		activity["title"] = "Omnium - Losrijden"
-	line_marker.position = game._at(line,8.8)+Vector3.UP*1.5; line_marker.visible = page.kind == "flying_start"
+	line_marker.position = game._at(line,game.TRACK_OUTER_EDGE - 0.2)+Vector3.UP*1.5; line_marker.visible = page.kind == "flying_start"
 	if page.kind == "take_lap" and pack_bikes.is_empty(): _build_pack()
 	for bike in pack_bikes: bike.visible = page.kind == "take_lap"
 	if page.kind == "free_ride" and pacer_bikes.is_empty(): _build_pacers()
@@ -144,7 +146,6 @@ func _capture_sample() -> void:
 func _persist(final: bool) -> void:
 	if activity.is_empty(): return
 	activity.merge(session.result(),true)
-	activity.merge(preload("res://venues/venue_catalog.gd").metadata(game.venue.id))
 	activity.merge({"samples":samples,"duration_s":total_elapsed,"distance_m":total_distance,"assisted_seconds":0,"reason":session.reason,"final":final},true)
 	var saved_ok: bool = store.save(activity)
 	save_status = String(TranslationServer.translate("PISTE_EXERCISE_PAGE_TRAINING_SAVED_IN_THE_GAME")) if saved_ok else "Opslaan mislukt: "+store.error

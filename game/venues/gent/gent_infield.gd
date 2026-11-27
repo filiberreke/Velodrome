@@ -26,6 +26,7 @@ var interview_backdrop:Node3D
 func build(host: Node3D, profile: Resource, route: RefCounted, kit: RefCounted, simple: bool, density: float) -> void:
 	venue=profile;track=route;crowd=kit;rng.seed=20261121
 	_floor()
+	for node in get_children(): node.set_meta("training_floor", true)
 	_cabins()
 	_technical_zone()
 	_press_and_medical()

@@ -3,6 +3,9 @@ extends Control
 var progress: Array[float] = [0.0, 0.0, 0.0, 0.0]
 const COLORS := [Color("ffdc46"), Color("54d39b"), Color("52b5fa"), Color("ff7676")]
 var TRACK_LENGTH := 250.0
+var geometry: RefCounted
+var finish_reference := 0.0
+var track_bounds := Rect2()
 var rider_colours: Array[Color] = []
 var peloton: Dictionary = {}
 var leader_id := -1
@@ -28,9 +31,26 @@ func set_progress(values: Array[float]) -> void:
     progress = values.duplicate()
     queue_redraw()
 
+func configure_track(route: RefCounted, finish: float) -> void:
+    if geometry == route and finish_reference == finish: return
+    geometry = route
+    finish_reference = finish
+    TRACK_LENGTH = route.LAP
+    track_bounds = Rect2(_project_track(0.0), Vector2.ZERO)
+    for i in range(1, 128):
+        track_bounds = track_bounds.expand(_project_track(TRACK_LENGTH * i / 128.0))
+    queue_redraw()
+
+func _project_track(distance: float) -> Vector2:
+    var point: Vector2 = geometry.position(finish_reference - distance)
+    return Vector2(point.y, -point.x)
+
 func _point(distance: float) -> Vector2:
-    var t: float = fposmod(distance / TRACK_LENGTH, 1.0)
     var center := Vector2(size.x * 0.5, size.y * 0.53)
+    if geometry != null:
+        var scale_factor := minf(size.x * 0.76 / track_bounds.size.x, size.y * 0.60 / track_bounds.size.y)
+        return center + (_project_track(distance) - track_bounds.get_center()) * scale_factor
+    var t: float = fposmod(distance / TRACK_LENGTH, 1.0)
     var radius_x: float = size.x * 0.38
     var radius_y: float = size.y * 0.30
     # Oval stadium: two straights connected by semicircular turns.

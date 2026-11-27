@@ -1,12 +1,12 @@
 # Stadionkeuze in wedstrijden en omnium
 
-Op `feature/multiple-venues` zijn **Vélodrome** en **Gent** speelbare locaties. De bestaande Vélodrome-configuratie blijft de standaard.
+Op `feature/multiple-venues` zijn **Vélodrome**, **Gent** en **Roubaix** speelbare locaties. Vélodrome is de standaardlocatie.
 
 ## Gebruik
 
 1. Kies een wedstrijdvorm.
 2. Kies op de instellingenpagina een stadiontegel onder **Locatie**. Bij achtervolging staat dit op de pagina met tegenstander en sterkte.
-3. De geselecteerde tegel toont de piste in kleur. De andere tegel en afbeelding zijn grijs. Beide tonen de stadionnaam en een echt Godot-overzichtsbeeld.
+3. De geselecteerde tegel toont de piste in kleur. De andere tegels zijn grijs. Elke tegel toont de stadionnaam en een Godot-overzichtsbeeld.
 4. Start via de bestaande startlijst of startknop. Teruggaan bewaart de gekozen locatie als menuvoorkeur.
 
 Een nieuw omnium krijgt dezelfde keuze bij format en AI-sterkte. Zolang scratch niet gestart is, kan de locatie ook in de bewaarde omniuminstellingen worden veranderd. Na de eerste start blijft ze vast voor alle disciplines en voor hervatten, opnieuw proberen en archiveren. De opwarmrit gebruikt de omniumlocatie.
@@ -16,7 +16,7 @@ Een nieuw omnium krijgt dezelfde keuze bij format en AI-sterkte. Zolang scratch 
 - Baanlengte, straal, overgangen, banking en breedte komen uit het geselecteerde profiel. De bestaande elf rijlijnen en zes startbanen passen ook binnen de Gent-piste.
 - Scratch-rondewinst, peloton, puntenjury, temporace, verkeersafstanden en AI gebruiken dezelfde rondeafstand als de geometrie.
 - Standalone afvalling telt twee werkelijke ronden per afvalling; het verkorte omnium telt één ronde. Afvallingslijnen worden met een integer volgnummer bepaald, zodat afronding op 166⅔ m de laatste jurybeslissing niet kan blokkeren.
-- Keirin rijdt drie ronden achter de derny en drie vrije ronden. Dat is 1500 m in Vélodrome en 1000 m in Gent.
+- Keirin rijdt drie ronden achter de derny en drie vrije ronden. Dat is 1500 m in Vélodrome, 1000 m in Gent en 3000 m in Roubaix.
 - Tijdrit en achtervolging behouden de gekozen meters: 500 m is drie Gent-ronden; 1 km is zes; 4 km is 24. Starts liggen een halve ronde tegenover elkaar. Half-rondesplits, HUD en referentietijden volgen de werkelijke halve ronde.
 - De omniumformats behouden hun oorspronkelijke meters voor scratch, tempo en puntenkoers. De afvallingsfrequentie blijft in ronden gedefinieerd.
 - Minimap, laatste bel, Gent-rondenteller, official, lichtprofiel, introtraject en toegang naar de Gent-boxen gebruiken de actieve locatie.
@@ -59,6 +59,7 @@ Reproduceer de nieuwe controles in een apart gegevenspad, bijvoorbeeld op Linux:
 export XDG_DATA_HOME="$(mktemp -d)"
 godot --headless --language nl --path game --script res://tests/test_multiple_venue_rules.gd
 godot --headless --language nl --path game --script res://tests/test_multiple_venue_selection.gd
+godot --headless --language nl --path game --script res://tests/test_multiple_venue_training.gd
 godot --headless --language nl --path game --script res://tests/test_gent_omnium_races.gd
 godot --headless --language nl --path game --script res://tests/test_venue_records.gd
 # Met een echt display; headless levert geen gerenderde screenshots:

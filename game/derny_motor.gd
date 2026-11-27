@@ -9,9 +9,10 @@ var speed_mps := 0.0
 var power_w := 0.0
 var mean_kmh := -1.0
 var planned_lane := -1.0
+var planned_venue_id := ""
 
 static func _profile(game, lane: float) -> Array:
-	var key := snappedf(lane,.01)
+	var key := [game.venue.id, snappedf(lane,.01)]
 	if profiles.has(key): return profiles[key]
 	var result: Array = []
 	for i in range(SEGMENTS):
@@ -39,7 +40,7 @@ static func _mean_speed(profile: Array, watts: float, initial: float, draft: flo
 	return distance/elapsed*3.6
 
 static func power_for_mean(game, kmh: float, lane: float, draft: float = 0.0) -> float:
-	var key := Vector3(kmh,snappedf(lane,.01),draft)
+	var key := [game.venue.id, kmh, snappedf(lane,.01), draft]
 	if powers.has(key): return powers[key]
 	var profile := _profile(game,lane)
 	var low := 0.0
@@ -52,7 +53,8 @@ static func power_for_mean(game, kmh: float, lane: float, draft: float = 0.0) ->
 	return powers[key]
 
 func configure(game, target_mean_kmh: float, target_lane: float) -> void:
-	if is_equal_approx(mean_kmh,target_mean_kmh) and is_equal_approx(planned_lane,target_lane): return
+	if planned_venue_id == game.venue.id and is_equal_approx(mean_kmh,target_mean_kmh) and is_equal_approx(planned_lane,target_lane): return
+	planned_venue_id = game.venue.id
 	mean_kmh = target_mean_kmh
 	planned_lane = target_lane
 	power_w = power_for_mean(game,mean_kmh,planned_lane)

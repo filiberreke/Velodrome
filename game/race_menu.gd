@@ -52,6 +52,7 @@ var gallery_grid: GridContainer
 var page := 1
 var venue_id := "velodrome"
 var venue_picker: VBoxContainer
+var training_venue_pickers: Array[VBoxContainer] = []
 var selected := 0
 var field_settings := {0: [8, 10], 3: [16, 40], 5: [12, 22], 6: [6, 6], 8: [16, 40]}
 var cards: Array[Button] = []
@@ -694,8 +695,10 @@ func show_derny(new_training: bool = true) -> void:
 
 func show_piste_exercise(kind: String, new_training: bool = true) -> void:
 	# Opening the result of the same ride must preserve its return destination.
-	if new_training: exercise_page.omnium_origin = ""
-	if new_training: exercise_page.prepare_new_training()
+	if new_training:
+		exercise_page.omnium_origin = ""
+		exercise_page.prepare_new_training()
+		if kind == "flying_start": exercise_page.records_table.set_venue(venue_id)
 	exercise_page.configure(kind)
 	_show_section(15,preload("res://piste_exercise_session.gd").title(kind),exercise_page)
 func _exercise_environment(active: bool) -> void:
@@ -1225,15 +1228,16 @@ func distance_caption(metres: int) -> String:
 func select_venue(id: String) -> void:
 	venue_id = preload("res://venues/venue_catalog.gd").resolved(id).id
 	if is_instance_valid(venue_picker): venue_picker.select(venue_id, false)
+	for picker in training_venue_pickers: picker.select(venue_id, false)
 	library.venue_id = venue_id
 	records_store.venue_id = venue_id
 	if is_instance_valid(pursuit_options): pursuit_options.library.venue_id = venue_id
 	if is_instance_valid(team_options): team_options.library.venue_id = venue_id
 	if is_instance_valid(laps_input):
-		var lap_length: float = preload("res://venues/venue_catalog.gd").resolved(venue_id).lap_length_m
-		var length_label := "166⅔" if is_equal_approx(lap_length, 500.0 / 3.0) else str(roundi(lap_length))
-		laps_input.get_meta("caption").text = tr("VENUE_LAPS_CAPTION") % length_label
+		var catalog := preload("res://venues/venue_catalog.gd")
+		laps_input.get_meta("caption").text = tr("VENUE_LAPS_CAPTION") % catalog.lap_length_label(catalog.resolved(venue_id).lap_length_m)
 	if is_instance_valid(time_trial_distance):
 		for i in time_trial_distance.item_count: time_trial_distance.set_item_text(i, distance_caption(time_trial_distance.get_item_id(i)))
 	if is_instance_valid(pursuit_flow): pursuit_flow.venue_changed()
+	if is_instance_valid(exercise_page): exercise_page.records_table.set_venue(venue_id)
 	_save_difficulty("venue_id", venue_id)

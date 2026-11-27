@@ -55,6 +55,7 @@ func _setup_session() -> void:
 	madison.phase_changed.connect(_phase_changed); madison.released.connect(_released)
 func enter() -> void:
 	if active: leave()
+	_prepare_venue()
 	saved_camera = {"transform":game.camera.transform,"fov":game.camera.fov}
 	demo = not game.trainer_seen; demo_power = 300.0; control_started = game._now_s()
 	player_lane_target = 2; player_lane_offset = 2.38
@@ -62,6 +63,7 @@ func enter() -> void:
 	finish_times.fill(-1.0); baseline_speed = 12.0; finished = false
 	trainer_feedback.clear(game._now_s())
 	madison.reset(); madison.advanced = page.difficulty.selected == 1; input_sources.clear(); pending_trial = false
+	madison.lap_length_m = game.LAP
 	exchange_results.clear(); attempt_giver = 0; feedback = ""; feedback_until = 0; _zone_key = ""
 	partner_present = false; respawn_remaining = 0; fade_in_remaining = 0
 	next_spawn_player_distance = start_distance+game.LAP*0.5
@@ -71,6 +73,7 @@ func enter() -> void:
 	samples = []; last_sample = -1; last_save = 0; saved_final = false; assisted_seconds = 0; too_close = false
 	var stamp := Time.get_datetime_string_from_system().replace(":","-")
 	activity = {"version":1,"id":stamp+"-%08x" % randi(),"kind":"madison","title":"Aflossingstraining","started_unix":int(Time.get_unix_time_from_system()),"started_local":Time.get_datetime_string_from_system(false,true),"demo":demo,"advanced":madison.advanced}
+	activity.merge(game.VenueCatalog.metadata(game.venue.id))
 	if not demo:
 		game.setup_panel.ftp_page.reset_session(game._now_s(),game.trainer_control)
 		game.trainer_control.arm()
@@ -161,7 +164,7 @@ func _update_exchange_zone() -> void:
 	mesh.surface_end(); exchange_zone.mesh = mesh
 func _ai_lane() -> float:
 	if (madison.active and madison.giver == 1 and madison.phase in [madison.Phase.RELEASE,madison.Phase.SEPARATE]) or (madison.cooldown > 0 and madison.active_rider == 0):
-		if lane_offsets[1] < lane_offsets[0] and absf(wrapf(distances[0]-distances[1],-125,125)) < 2.2: return lane_offsets[1]
+		if lane_offsets[1] < lane_offsets[0] and absf(wrapf(distances[0]-distances[1],-game.LAP*0.5,game.LAP*0.5)) < 2.2: return lane_offsets[1]
 		return 4.78
 	return clampf(lane_offsets[0]-1.2,1.18,2.38) if madison.active_rider == 1 else 3.58
 func _step(dt: float, power: float) -> void:

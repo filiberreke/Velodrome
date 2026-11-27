@@ -71,7 +71,7 @@ func _tick(g, dt: float) -> void:
 	var next_time := time + dt
 	g.clock = next_time
 	if phase == "PACED":
-		speed = lerpf(25.0, target_kmh(percent), clampf(distance / 625.0, 0.0, 1.0)) / 3.6
+		speed = lerpf(25.0, target_kmh(percent), clampf(distance / (2.5 * g.LAP), 0.0, 1.0)) / 3.6
 		distance += speed * dt / g._path_metric(distance, lane)
 		for slot in range(order.size()):
 			var i: int = order[slot]
@@ -156,7 +156,8 @@ func _free_step(g, dt: float, next_time: float) -> void:
 func update_finish_exit(g, i: int, dt: float) -> void:
 	var route: Dictionary = g.elimination_exit[i]
 	var stage: int = route.stage
-	if stage==3: g.coast_speeds[i]=0.0; return
+	var points: PackedVector3Array = route.get("waypoints", PackedVector3Array())
+	if stage > 0 and stage > points.size(): g.coast_speeds[i]=0.0; return
 	route.elapsed=float(route.get("elapsed",0.0))+dt
 	if stage==0:
 		var before: float = g.coast_distances[i]
@@ -179,15 +180,18 @@ func update_finish_exit(g, i: int, dt: float) -> void:
 			g.lane_offsets[i]=move_toward(g.lane_offsets[i],SAFETY_LANE,.65*dt)
 		g.coast_distances[i]+=(previous+g.coast_speeds[i])*.5*dt/g._path_metric(before,g.lane_offsets[i])
 		# Detect crossing, not a narrow proximity window that could be skipped.
-		var next_gate: float = before+fposmod(g.OPPOSITE_STRAIGHT_GATE_M-before,g.LAP)
+		var next_gate: float = before+fposmod(g._race_exit_distance()-before,g.LAP)
 		if absf(g.lane_offsets[i]-SAFETY_LANE)<.01 and g.coast_distances[i]>=next_gate:
 			route.stage=1
 			route.position=g._at(next_gate-g.FRONT_WHEEL_TIP_M,SAFETY_LANE)
 			route.position.y=.15
 			route.heading=g._direction(next_gate,SAFETY_LANE)
+			points = g._venue_exit_waypoints(i, route.target)
+			if points.is_empty(): points = PackedVector3Array([Vector3(-14.1, .15, 0.0), route.target])
+			route.waypoints = points
 	else:
 		var current: Vector3 = route.position
-		var destination: Vector3 = Vector3(-14.1,.15,0.0) if stage==1 else Vector3(route.target)
+		var destination := points[stage - 1]
 		var delta := destination-current; delta.y=0.0
 		var target_speed := minf(3.0,sqrt(2.0*.8*delta.length()))
 		g.coast_speeds[i]=move_toward(g.coast_speeds[i],target_speed,.8*dt)
@@ -195,8 +199,8 @@ func update_finish_exit(g, i: int, dt: float) -> void:
 			route.heading=delta.normalized()
 			route.position=current.move_toward(destination,g.coast_speeds[i]*dt)
 		if current.distance_to(destination)<.03:
-			if stage==1: route.stage=2
-			elif g.coast_speeds[i]<.1: route.stage=3; g.coast_speeds[i]=0.0
+			if stage < points.size(): route.stage = stage + 1
+			elif g.coast_speeds[i] < .1: route.stage = stage + 1; g.coast_speeds[i] = 0.0
 	g.elimination_exit[i]=route
 
 func _present_pilot(g) -> void:

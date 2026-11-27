@@ -60,6 +60,7 @@ func _setup_session() -> void:
 	hud.hide()
 func enter() -> void:
 	if active: leave()
+	_prepare_venue()
 	saved_camera = {"transform": game.camera.transform, "fov":game.camera.fov}
 	demo = not game.trainer_seen
 	demo_power = 130.0
@@ -83,6 +84,8 @@ func enter() -> void:
 	call_elapsed = 0
 	var stamp := Time.get_datetime_string_from_system().replace(":", "-")
 	activity = {"version":1, "id":stamp + "-%08x" % randi(), "kind":"derny", "title":String(TranslationServer.translate("TRAINING_HISTORY_DERNY_TRAINING")), "started_unix":int(Time.get_unix_time_from_system()), "started_local":Time.get_datetime_string_from_system(false,true), "demo":demo}
+	activity.merge(game.VenueCatalog.metadata(game.venue.id))
+	session.LAP = game.LAP
 	session.start(start_distance,page.start_speed.value)
 	activity["start_speed_kmh"] = session.start_speed_kmh
 	player_speed = session.target_kmh/3.6

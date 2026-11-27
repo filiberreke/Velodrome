@@ -63,6 +63,7 @@ var player_profile = preload("res://player_profile.gd").new()
 var upload_button: Button
 var upload_status := ""
 var selected_activity: Dictionary = {}
+var activity_venue: Dictionary = {}
 var activity_samples: Array[Dictionary] = []
 var activity_distance := 0.0
 var activity_started_unix := 0
@@ -81,6 +82,7 @@ func _record_activity(at: float, power: float) -> void:
 func _complete_activity() -> void:
 	if not selected_activity.is_empty() or activity_samples.size() < 2: return
 	selected_activity = {"version":1,"started_local":activity_started_local,"id":"ftp_%d" % activity_started_unix,"kind":"ftp_test","title":String(TranslationServer.translate("FTP_20_MINUTE_FTP")) if twenty_mode else String(TranslationServer.translate("MENU_FTP_RAMP_TEST_2")),"reason":test.reason,"started_unix":activity_started_unix,"duration_s":float(activity_samples[-1].time_s),"distance_m":activity_distance,"samples":activity_samples.duplicate(true),"ftp_w":test.ftp(),"ftp_reference_w":player_profile.ftp()}
+	selected_activity.merge(activity_venue)
 	var store := preload("res://training_store.gd").new()
 	upload_status = String(TranslationServer.translate("FTP_TRAINING_SAVED_LOCALLY")) if store.save(selected_activity) else store.error
 

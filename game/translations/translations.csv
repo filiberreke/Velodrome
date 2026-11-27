@@ -48,7 +48,7 @@ keys,en,nl
 "RACE_MENU_FOLLOW_THE_PACE_UNLEASH_YOUR_SPRINT","Follow the pace. Unleash your sprint.","Volg het tempo. Ontketen je sprint."
 "RACE_MENU_SIX_RIDERS_RANDOMLY_DRAWN_STARTING_POSITIONS_THREE_LAPS_BEHIND_TH","Six riders, randomly drawn starting positions. Three laps behind the derny, then three unpaced laps. Stay on the wheel and time your sprint.","Zes renners, gelote startposities. Drie ronden begeleid achter de derny, daarna drie vrije ronden. Blijf in het wiel en kies je sprintmoment."
 "RACE_MENU_YOU_AGAINST_THE_CLOCK","You against the clock.","Jij tegen de klok."
-"RACE_MENU_500_M_OR_1_KM_WITH_A_STANDING_OR_FLYING_START_AND_COMPARISONS_EVE","500 m or 1 km with a standing or flying start and comparisons every 125 metres.","500 m of 1 km met staande of vliegende start en vergelijking elke 125 meter."
+"RACE_MENU_500_M_OR_1_KM_WITH_A_STANDING_OR_FLYING_START_AND_COMPARISONS_EVE","500 m or 1 km with a standing or flying start and comparisons every half lap.","500 m of 1 km met staande of vliegende start en vergelijking na elke halve ronde."
 "RACE_MENU_KEEP_THE_PACE_HIGH","Keep the pace high.","Houd het tempo hoog."
 "RACE_MENU_40_LAPS_FROM_LAP_5_THE_FIRST_RIDER_ACROSS_THE_LINE_EARNS_ONE_POIN","40 laps. From lap 5, the first rider across the line earns one point each lap. Gaining or losing a lap earns +20 or −20 points.","40 ronden. Vanaf ronde 5 levert de eerste renner bij elke doorkomst één punt op. Een ronde winnen of verliezen geeft +20 of −20 punten."
 "RACE_MENU_CHOOSE_YOUR_RACE","Choose your race","Kies jouw wedstrijd"
@@ -632,9 +632,9 @@ Average power: %.0f W · maximum power: %.0f W
 ","Afstand: %.3f km · %d voltooide rondes
 Gemiddeld vermogen: %.0f W · maximaal vermogen: %.0f W
 "
-"TRAINING_PELOTON_0F_KM_H_1F_250_M_GAINED_PEAK_POWER_0F_W_AVERAGE_0F_W","Peloton %.0f km/h · %.1f / 250 m gained
+"TRAINING_PELOTON_0F_KM_H_1F_250_M_GAINED_PEAK_POWER_0F_W_AVERAGE_0F_W","Peloton %.0f km/h · %.1f / %s m gained
 Peak power %.0f W · average %.0f W
-","Peloton %.0f km/u · %.1f / 250 m gewonnen
+","Peloton %.0f km/u · %.1f / %s m gewonnen
 Piekvermogen %.0f W · gemiddeld %.0f W
 "
 "TRAINING_PC_TEST_RIDE_SIMULATED_ACTIVITY","
@@ -1139,9 +1139,9 @@ Height on the track: %.1f m","Nog %.0f m tot de achtervolgingslijn
 Gem. %.0f W · max. %.0f W
 Hoogte op de piste: %.1f m"
 "TRACK_HUD_GAIN_LAP","Peloton %.0f km/h
-%.1f / 250 m gained
+%.1f / %s m gained
 %d:%02d remaining","Peloton %.0f km/u
-%.1f / 250 m gewonnen
+%.1f / %s m gewonnen
 Nog %d:%02d"
 "TRACK_HUD_CURRENT_LAP","Lap %d · %s","Ronde %d · %s"
 "RESULT_EXPORT_FIT","Export .FIT","Exporteer .FIT"
@@ -1388,7 +1388,7 @@ RONDE %s   •   SPLIT %s"
 %s","Niveau: %d%%
 %s"
 "STRAVA_FINISH_TIME","Time: %.3f s","Tijd: %.3f s"
-"STRAVA_250_M_LAP_TIMES","Lap times (250 m):","Rondetijden (250 m):"
+"STRAVA_250_M_LAP_TIMES","Lap times (%s m):","Rondetijden (%s m):"
 "STRAVA_LAP_TIME","Lap %d: %.3f s","Ronde %d: %.3f s"
 "STRAVA_RANK","Result: %d/%d","Uitslag: %d/%d"
 "ARENA_YOUR_TEAM","YOUR TEAM","JOUW PLOEG"

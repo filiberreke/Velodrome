@@ -57,6 +57,7 @@ func run() -> void:
 			check(not game._use_venue("velodrome" if id == "gent" else "gent"), "Venue cannot change during a race")
 			if mode == 5: check(is_equal_approx(game.elimination_rules.interval_m, game.LAP * 2.0), "Elimination uses two actual laps")
 			if id == "roubaix" and mode == 5: check_roubaix_exit(game)
+			if id != "velodrome" and mode == 6: check_keirin_exit(game)
 			game._restart_same_race()
 			check(game.venue.id == id and game.replay_setup.venue_id == id, "Same-race restart retains stadium")
 			print("VENUE_SELECTION ", id, " mode=", mode)
@@ -119,3 +120,16 @@ func check_roubaix_infield(infield: Node3D) -> void:
 		check(absf(zone.position.z - 51.0) - footprint.y * 0.5 >= 2.5, "Zone leaves the cross passage open")
 		var gate := zone.get_node_or_null("GateOpening") as Marker3D
 		check(gate != null and is_equal_approx(gate.position.x, -signf(zone.position.x) * footprint.x * 0.5), "Zone gate opens onto the grass passage")
+
+func check_keirin_exit(game: Game) -> void:
+	var rider := 0
+	var gate := game._race_exit_distance()
+	var target := game._elimination_box_target(rider)
+	game.lane_offsets[rider] = game.keirin.SAFETY_LANE
+	game.coast_distances[rider] = gate - 0.25
+	game.coast_speeds[rider] = 4.0
+	game.elimination_exit[rider] = {"stage": 0, "elapsed": 4.0, "target": target}
+	for step in 220: game.keirin.update_finish_exit(game, rider, 0.1)
+	var route: Dictionary = game.elimination_exit[rider]
+	var waypoints: PackedVector3Array = route.get("waypoints", PackedVector3Array())
+	check(not waypoints.is_empty() and route.stage == waypoints.size() + 1 and Vector3(route.position).distance_to(target) < 0.05, "Keirin finishes through the correct venue gate and reaches the waiting place")

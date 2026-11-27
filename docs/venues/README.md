@@ -4,9 +4,13 @@ Branch: `feature/multiple-venues`.
 
 ## Wedstrijden starten
 
-Kies een wedstrijdvorm en daarna bij **Locatie** de tegel **Vélodrome** of **Gent**. Iedere tegel toont een echt overzichtsbeeld van de piste en de naam. De actieve tegel is in kleur; de andere afbeelding en tegel zijn grijs. Bij individuele en ploegenachtervolging staat de keuze bij de tegenstander en sterkte. De keuze wordt bewaard als menuvoorkeur. De bestaande ontwerpweergave van Gent blijft beschikbaar om de inrichting te bekijken.
+Kies een wedstrijdvorm en daarna bij **Locatie** de tegel **Vélodrome**, **Gent** of **Roubaix**. Iedere tegel toont een Godot-overzicht en de naam van de piste. De actieve tegel staat in kleur. De andere tegels zijn grijs. Bij individuele en ploegenachtervolging staat de keuze bij de tegenstander en sterkte. Het menu bewaart de locatiekeuze.
 
 Een nieuw omnium heeft dezelfde tegels bij de spelinstellingen. De locatie blijft instelbaar totdat de eerste discipline begint. Daarna is ze vastgelegd voor het hele toernooi, inclusief hervatten, afbreken/opnieuw proberen en archiveren.
+
+## Trainingen starten
+
+Kies de locatie bij de voorbereiding van vrij rijden, dernytraining, vliegende start, ronde nemen, Madison-aflossingen, de FTP-tests of een ERG-workout. De trainings- en wedstrijdmenu's delen één locatievoorkeur. Bij de opwarming via Omnium geldt de omniumlocatie.
 
 ## Werkelijke baanlengte
 
@@ -14,6 +18,7 @@ Een nieuw omnium heeft dezelfde tegels bij de spelinstellingen. De locatie blijf
 |---|---:|---:|---:|---:|
 | Vélodrome | 250 m | 2 ronden | 4 ronden | 16 ronden |
 | Gent | 1000/6 m | 3 ronden | 6 ronden | 24 ronden |
+| Roubaix | 500 m | 1 ronde | 2 ronden | 8 ronden |
 
 Vrij ingestelde wedstrijden gebruiken het gekozen aantal ronden. Puntenkoers en temporace behouden hun sprintmomenten in ronden. Keirin telt drie ronden achter de derny en drie vrije ronden; afvalling gebruikt twee ronden per afvalling. Een verkort omnium gebruikt één ronde per afvalling en twee slotronden voor het laatste tweetal. De overige omniumafstanden blijven in meters gelijk aan het gekozen format: bijvoorbeeld 5 km scratch = 20 ronden op Vélodrome en 30 op Gent.
 
@@ -21,7 +26,7 @@ Vrij ingestelde wedstrijden gebruiken het gekozen aantal ronden. Puntenkoers en 
 
 `venue_runtime.gd` configureert geometrie, rondetelling, jury, AI, bel, minimap, half-rondesplits en camerareferenties voordat de renners voor een nieuwe wedstrijd worden geplaatst. Een stadion wisselen tijdens een actieve wedstrijd is niet toegestaan. Bij een volgende wedstrijd wordt de vorige aankleding verwijderd en de eigen bouwer van de geselecteerde locatie gebruikt. Gent krijgt dus geen Vélodrome-tenten of supporters als neveneffect.
 
-Prestaties, tijdritreferenties, opgeslagen achtervolgingen en omnium bevatten `venue_id`, `lap_length_m` en `geometry_version`. Referentieritten en records worden op de gekozen locatie gefilterd. Oudere gegevens zonder locatie blijven Vélodrome; er is geen destructieve herschrijving. Trainervermogen en werkelijk afgelegde meters worden niet met de stadionmaten geschaald. De bestaande trainingsmenu's blijven Vélodrome gebruiken; de omniumopwarming volgt de toernooilocatie.
+Prestaties, tijdritreferenties, opgeslagen achtervolgingen, trainingen en omnium bevatten `venue_id`, `lap_length_m` en `geometry_version`. Referentieritten en records worden op de gekozen locatie gefilterd. Oudere gegevens zonder locatie horen bij Vélodrome. Trainervermogen en werkelijk afgelegde meters behouden hun fysieke waarden.
 
 Gent gebruikt zijn eigen jury, rondenteller, tv-box, eigen introtraject en uitgang naar de rennerboxen. De uitslag gebruikt in Gent de finishcamera; er wordt geen bestaand Vélodrome-podium naar het volle Gent-middenplein gekopieerd.
 

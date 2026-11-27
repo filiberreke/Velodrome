@@ -28,7 +28,7 @@ static func configure(game: Node, profile: Resource) -> void:
 	game.pursuit_library.venue_id = profile.id
 	game.team_library.venue_id = profile.id
 	game.performance_records.venue_id = profile.id
-	if is_instance_valid(game.minimap): game.minimap.TRACK_LENGTH = game.LAP
+	if is_instance_valid(game.minimap): game.minimap.configure_track(game.track_geometry, game.FINISH_REFERENCE_S)
 	if is_instance_valid(game.race_overlay): game.race_overlay.lap_length_m = game.LAP
 
 static func build_custom_stadium(game: Node3D) -> void:

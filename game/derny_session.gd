@@ -2,7 +2,7 @@ extends RefCounted
 ## Deterministic pacing and wake geometry. No race state or trainer commands.
 signal speed_changed(kmh: int)
 signal gesture_requested(action: String)
-const LAP := 250.0
+var LAP := 250.0
 const DEFAULT_START_KMH := 30
 const MIN_START_KMH := 10
 const MAX_START_KMH := 60
@@ -66,7 +66,7 @@ func advance(dt: float, metric: float, player_distance: float, player_metric: fl
 	var gap := (derny_distance - player_distance) * maxf(.5, player_metric)
 	look_cooldown -= dt
 	if phase == "RUNUP":
-		runup_distance += travel
+		runup_distance += travel / maxf(.5, metric)
 		target_kmh = lerpf(runup_start_kmh, float(start_speed_kmh), clampf(runup_distance / LAP, 0, 1))
 		if runup_distance >= LAP:
 			phase = "PACE"
