@@ -3,6 +3,7 @@ extends SceneTree
 const Push := preload("res://elimination_push.gd")
 const Motion := preload("res://elimination_motion.gd")
 const Trainer := preload("res://trainer_control.gd")
+const FitExport := preload("res://fit_export.gd")
 const Native := preload("res://tests/measure_elimination_native.gd")
 
 class Game extends Native.Game:
@@ -243,11 +244,68 @@ func test_waiting_at_final_line() -> void:
 	check(absf(Motion.signed_gap(g.distances[0], g.distances[1])) >= Motion.MIN_GAP - 0.00001, "Lapped follower brakes for the actual capped advance at the line")
 	g.free()
 
+func test_frame_intervals() -> void:
+	var reference := {}
+	for frame_time in [1.0 / 60.0, 0.1, 0.4]:
+		var g := make_game([1.18, 1.78, 2.38], [68.0, 68.1, 68.2])
+		g.rider_forms.fill(1.0)
+		g.x_ai.reset(g.rider_profiles, g.rider_forms, g.lane_offsets)
+		g.x_ai.configure_riders(g.rider_identities, g.rider_forms)
+		g._steer_player(1)
+		for frame in range(roundi(5.2 / frame_time)):
+			step(g, frame_time)
+		var outcome := {"distance": g.distances.duplicate(), "lane": g.lane_offsets.duplicate(), "events": g.elimination_push.attempts.duplicate()}
+		check(g._elimination_player_effort() == 0.0 and outcome.events.size() == 1, "One push expires normally at every frame interval")
+		if reference.is_empty():
+			reference = outcome
+		else:
+			for i in range(g.rider_count):
+				check(absf(outcome.distance[i] - reference.distance[i]) < 0.000001 and absf(outcome.lane[i] - reference.lane[i]) < 0.000001, "Race and cascade positions match across frame rates")
+		g.free()
+
+func test_recording_and_simultaneous_input() -> void:
+	var g := make_game([1.18, 1.78, 2.38, 2.98], [68.0, 68.1, 68.2, 68.3])
+	g._steer_player(1)
+	g.x_ai.push_targets[1] = 2.38
+	step(g, 0.35)
+	check(g.elimination_push.attempts.size() == 2 and g.elimination_push.attempts[0].rider == 0 and g.elimination_push.attempts[1].rejection == "busy", "One reservation wins when the player and AI ask in the same tick")
+	g.recording_active = true
+	for sample in [1, 2]:
+		g._process_bridge_packet({"type": "telemetry", "power_w": 320, "speed_kmh": 40, "cadence_rpm": 90, "sample_id": sample, "valid": true})
+		step(g, 1.0)
+	check(g.ride_records.size() == 2 and g.ride_records[1].power_w == 320.0 and not g.ride_records[1].has("grade_pct"), "Live recording keeps trainer watts and omits the synthetic grade")
+	var reduced: Array[Dictionary] = g.ride_records.duplicate(true)
+	var augmented: Array[Dictionary] = g.ride_records.duplicate(true)
+	for sample in reduced:
+		sample.power_w -= Push.POWER_W
+	for sample in augmented:
+		sample["altitude"] = 24.0
+		sample["grade_pct"] = 0.54
+	var fit := FitExport.build(g.ride_records, 1700000000, true)
+	check(not fit.is_empty() and FitExport.build(reduced, 1700000000, true) != fit, "FIT encodes the measured power even during the push")
+	check(FitExport.build(augmented, 1700000000, true) == fit, "The FIT/GPS payload ignores synthetic grade and altitude")
+	g.free()
+
+func test_reserved_corridor() -> void:
+	var lanes: Array[float] = [2.38, 2.98, 3.845]
+	var requested: Array[float] = [2.399, 2.999, 3.826]
+	var distances: Array[float] = [100.0, 100.0, 97.65]
+	var speeds: Array[float] = [10.0, 10.0, 11.8]
+	var done: Array[float] = [-1.0, -1.0, -1.0]
+	var metrics: Array[float] = [1.0, 1.0, 1.0]
+	var resolved := Motion.constrain_lanes(distances, speeds, lanes, requested, done, metrics,
+		1.0 / 60.0, {0: 2.68, 1: 3.28}, 0.3 / 1.15)
+	check(is_equal_approx(resolved[2], lanes[2]), "An outside rider cannot enter a close reserved corridor while the current merge gap still fits")
+	check(is_equal_approx(resolved[1], requested[1]), "The reservation progresses without displacing the outside rider")
+
 func run() -> void:
 	test_movement()
 	test_ai_policy()
 	test_trainer_client()
 	test_scope_and_clock()
 	test_waiting_at_final_line()
+	test_frame_intervals()
+	test_recording_and_simultaneous_input()
+	test_reserved_corridor()
 	print("ELIMINATION_PUSHING checks=", checks, " failures=", failures)
 	quit(int(failures > 0))

@@ -23,7 +23,7 @@ static func moving_apart(a: float, a_next: float, b: float, b_next: float) -> bo
 	var first := a-b; var last := a_next-b_next
 	return absf(first)<LATERAL_CLEARANCE and first*last>=0.0 and absf(last)>absf(first)+0.000001
 
-static func constrain_lanes(distances: Array[float], speeds: Array[float], previous: Array[float], requested: Array[float], done: Array[float], metrics: Array[float], dt: float, reserved: Dictionary = {}) -> Array[float]:
+static func constrain_lanes(distances: Array[float], speeds: Array[float], previous: Array[float], requested: Array[float], done: Array[float], metrics: Array[float], dt: float, reserved: Dictionary = {}, reservation_seconds: float = 0.0) -> Array[float]:
 	var result: Array[float] = requested.duplicate()
 	var has_reservation := not reserved.is_empty()
 	if not has_reservation and requested == previous:
@@ -32,11 +32,29 @@ static func constrain_lanes(distances: Array[float], speeds: Array[float], previ
 		for a in range(previous.size()):
 			if done[a]>=0.0: continue
 			for b in range(a+1,previous.size()):
-				if done[b]>=0.0 or laterally_separate(previous[a],result[a],previous[b],result[b]): continue
-				if moving_apart(previous[a],result[a],previous[b],result[b]): continue
+				if done[b] >= 0.0: continue
+				var path_a := result[a]
+				var path_b := result[b]
+				if has_reservation:
+					path_a = reserved.get(a, path_a)
+					path_b = reserved.get(b, path_b)
+				if laterally_separate(previous[a],path_a,previous[b],path_b): continue
+				if moving_apart(previous[a],path_a,previous[b],path_b): continue
 				var gap := signed_gap(distances[a],distances[b])
-				var relative := speeds[b]/metrics[b]-speeds[a]/metrics[a]
-				var future := gap+relative*dt
+				var reference_a := speeds[a] / metrics[a]
+				var reference_b := speeds[b] / metrics[b]
+				if has_reservation and reserved.has(a) != reserved.has(b):
+					# Reserve the sweep against nearby lane changes for its full
+					# remaining duration. A wheel can brake during that window.
+					var approach := maxf(reference_a, reference_b) * reservation_seconds
+					if absf(gap) < MERGE_GAP + approach:
+						if reserved.has(a):
+							result[b] = previous[b]
+						else:
+							result[a] = previous[a]
+						continue
+				var relative := reference_b - reference_a
+				var future := gap + relative * dt
 				if gap*future>0.0 and minf(absf(gap),absf(future))>=MERGE_GAP: continue
 				# Existing legal followers may move apart without a new-merge buffer.
 				var first: float = previous[a]-previous[b]; var last: float = result[a]-result[b]

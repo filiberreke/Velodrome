@@ -1854,7 +1854,8 @@ func _move_lanes(dt: float) -> Array[float]:
 	if race_mode == 2:
 		if not elimination_push.ends.is_empty():
 			elimination_push.glide(previous_lanes, lane_offsets, finish_times, LANE_CHANGE_MPS * dt)
-		lane_offsets = EliminationMotion.constrain_lanes(distances, speeds, previous_lanes, lane_offsets, finish_times, metrics, dt, elimination_push.ends)
+		lane_offsets = EliminationMotion.constrain_lanes(distances, speeds, previous_lanes, lane_offsets, finish_times, metrics, dt, elimination_push.ends,
+			elimination_push.remaining_m / LANE_CHANGE_MPS)
 		for i in range(rider_count):
 			if lane_offsets[i] != previous_lanes[i]:
 				heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lanes[i]).y
