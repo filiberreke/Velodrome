@@ -250,8 +250,12 @@ func _deliver_motion(active: Array[int], distances: Array[float], speeds: Array[
 		var speed: float=_predict(i,maxf(0.0,actual-effort),dt,speeds,drafts)
 		if speed>safe_v+0.0000001: speed=safe_v;_speed_caps+=1
 		planned_speeds[i]=speed
-		planned_distances[i]=distances[i]+speed*dt/metric
-		proposed[i]=float(coordinates[i])+speed*dt/metric
+		# The jury can keep a rider active at the last timing line while the
+		# remaining field is still completing a cut. Followers must use the
+		# same capped advance as main.gd, including lapped traffic.
+		var advance := minf(speed * dt / metric, maxf(0.0, final_line_m - distances[i]))
+		planned_distances[i] = distances[i] + advance
+		proposed[i] = float(coordinates[i]) + advance
 		last_motion[i]={"old_d":distances[i],"coordinate":coordinates[i],"metric":metric,"leader":safety_leader,"safe_v":safe_v,"speed":speed,"proposed":proposed[i],"requested":human_power_w if i==0 else requested_power_w[i],"actual":actual,"power_excess":unrestricted-request,"lane":lanes[i]}
 		if i>0: output[i]=actual;power_w[i]=actual
 		done.append(i)

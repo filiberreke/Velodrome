@@ -1928,7 +1928,7 @@ func _elimination_player_effort() -> float:
 	return elimination_push.seconds_left(0, elimination_simulation_time())
 
 func _update_trainer_control() -> void:
-	if race_mode == 2 and DisplayServer.get_name() == "headless":
+	if race_mode == 2 and DisplayServer.get_name() == "headless" and not trainer_virtual:
 		return
 	if trainer_pause_resume:
 		trainer_control.tick(false, 0.0, 1.0, _now_s())

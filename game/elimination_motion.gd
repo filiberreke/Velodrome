@@ -26,6 +26,8 @@ static func moving_apart(a: float, a_next: float, b: float, b_next: float) -> bo
 static func constrain_lanes(distances: Array[float], speeds: Array[float], previous: Array[float], requested: Array[float], done: Array[float], metrics: Array[float], dt: float, reserved: Dictionary = {}) -> Array[float]:
 	var result: Array[float] = requested.duplicate()
 	var has_reservation := not reserved.is_empty()
+	if not has_reservation and requested == previous:
+		return result
 	for iteration in range(3):
 		for a in range(previous.size()):
 			if done[a]>=0.0: continue

@@ -194,9 +194,57 @@ func test_trainer_client() -> void:
 	check(g.trainer_control.commands.is_empty(), "Headless races send no physical trainer commands")
 	g.free()
 
+func test_scope_and_clock() -> void:
+	var g := make_game([1.18, 1.78, 2.38], [50.0, 50.0, 50.0])
+	g.trainer_seen = false
+	g._steer_player(1)
+	step(g, 0.5)
+	var remaining := g._elimination_player_effort()
+	check(absf(remaining - 4.5) < 0.00001, "Pushing works without a trainer")
+	g._pause_race(false)
+	g._physics_process(2.0)
+	check(absf(g._elimination_player_effort() - remaining) < 0.00001, "A paused race does not spend effort time")
+	g.race_paused = false
+	step(g, 4.5)
+	check(g._elimination_player_effort() == 0.0, "Fast-forwarded physics consumes exactly the remaining duration")
+	g.free()
+
+	g = make_game([1.78, 1.18, 2.38, 5.98], [50.0, 50.0, 50.0, 60.0], 1)
+	direct(g, 1, 1.78)
+	step(g, 0.30)
+	check(g.elimination_push.held(0, g.clock) and g.elimination_push.seconds_left(0, g.clock) == 0.0, "Passive hold only prevents steering inward")
+	g._steer_player(1)
+	step(g, 0.15)
+	check(g.elimination_push.attempts[-1].rider == 0 and g.elimination_push.attempts[-1].rejection.is_empty(), "A passive rider can immediately initiate an outward push")
+	g.finish_times[0] = g.clock
+	check(g._elimination_player_effort() == 0.0, "Elimination clears trainer and HUD effort immediately")
+	g.finish_times[0] = -1
+	g.race_mode = 0
+	check(g._elimination_player_effort() == 0.0, "Other race modes ignore stale elimination effort")
+	g.free()
+
+	var old_locale := TranslationServer.get_locale()
+	for locale in ["en", "nl"]:
+		TranslationServer.set_locale(locale)
+		var text := String(TranslationServer.translate("HUD_ELIMINATION_PUSH_EFFORT"))
+		check(text.begins_with("Pushing effort" if locale == "en" else "Duwinspanning"), "Effort text is translated in " + locale)
+	TranslationServer.set_locale(old_locale)
+
+func test_waiting_at_final_line() -> void:
+	var g := make_game([1.18, 1.18, 5.98], [1000.0, 497.962, 400.0])
+	g.race_laps = 4
+	g.speeds.assign([12.0, 10.0, 10.0])
+	g.baseline_speed = 12.0
+	step(g, 1.0 / 60.0)
+	check(g.finish_times[0] < 0.0 and g.distances[0] == 1000.0, "Leader waits for the jury at the last line")
+	check(absf(Motion.signed_gap(g.distances[0], g.distances[1])) >= Motion.MIN_GAP - 0.00001, "Lapped follower brakes for the actual capped advance at the line")
+	g.free()
+
 func run() -> void:
 	test_movement()
 	test_ai_policy()
 	test_trainer_client()
+	test_scope_and_clock()
+	test_waiting_at_final_line()
 	print("ELIMINATION_PUSHING checks=", checks, " failures=", failures)
 	quit(int(failures > 0))
