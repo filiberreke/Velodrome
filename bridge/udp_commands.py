@@ -12,7 +12,7 @@ MAX_PACKET = 1024
 CACHE_SECONDS, CACHE_SIZE = 60.0, 2048
 log = logging.getLogger(__name__)
 SCHEMA = {'set_mode': {'mode'}, 'set_target_power': {'watts', 'ramp_w_per_s'},
-          'set_grade': {'grade_pct', 'ramp_pct_per_s', 'aero_scale'},
+          'set_grade': {'grade_pct', 'ramp_pct_per_s', 'aero_scale', 'push_grade_pct', 'push_duration_ms'},
           'stop': set(), 'status': set(), 'heartbeat': set(), 'shift': {'direction'},
           'devices': set(), 'select_device': {'role', 'address'}}
 REQUIRED = {'shift': {'direction'}, 'select_device': {'role', 'address'}, 'set_mode': {'mode'}, 'set_target_power': {'watts'}, 'set_grade': {'grade_pct'}}

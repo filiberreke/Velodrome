@@ -5,7 +5,8 @@ import time
 from virtual_shift import VirtualShifter, RAMP_PERIOD
 from erg_protocol import encode_target_power, parse_power_range, POWER_RANGE, TARGET_POWER_FEATURE
 from resistance import FEATURE
-from simulation import RoadSimulation, SIMULATION_FEATURE, grade_units, validate_grade_rate, validate_aero_scale
+from simulation import (RoadSimulation, SIMULATION_FEATURE, grade_units, validate_grade_rate,
+                        validate_aero_scale, PUSH_GRADE_MAX, PUSH_DURATION_MAX_MS)
 
 log = logging.getLogger(__name__)
 LEASE_SECONDS = 5.0
@@ -37,6 +38,7 @@ class CombinedMode:
         self.grade_pct = 0.0
         self.aero_scale = 1.0
         self.road = RoadSimulation(clock=clock)
+        self.clear_push()
         self.power_range = None
         self.range_state = 'unknown'
         self.last_error = None
@@ -50,6 +52,10 @@ class CombinedMode:
         self._ramp_at = clock()
         self._credit = 0.0
         self._sim_at = -math.inf
+
+    def clear_push(self):
+        self.push_grade_pct = 0.0
+        self.push_until = 0.0
 
     def selected_gear(self):
         if self.started and not self.disabled and self.mode == self.desired_mode == 'SIM' and self.shifter.enabled:
@@ -104,6 +110,7 @@ class CombinedMode:
         if self.disabled:
             return
         self.disabled = True
+        self.clear_push()
         self.owner = None
         self.revision += 1
         self.last_error = reason
@@ -122,6 +129,7 @@ class CombinedMode:
         self.desired_mode, self.target_w = 'ERG', 0
         self.desired_sim_backend = 'resistance'
         self.grade_pct, self.aero_scale = 0.0, 1.0
+        self.clear_push()
         self.road.reset()
         self.revision += 1
         log.warning('Tijdelijke onderbreking: %s; doelen gewist, wachten op verse data', reason)
@@ -150,6 +158,8 @@ class CombinedMode:
                 'range_state': self.range_state, 'last_error': self.last_error,
                 'simulation_supported': self.simulation_supported,
                 'sim_backend': self.sim_backend, 'desired_sim_backend': self.desired_sim_backend,
+                'push_grade_supported': True,
+                'push_grade_pct': self.push_grade_pct if self.clock() < self.push_until else 0.0,
                 'aero_scale_supported': True, 'aero_scale': self.aero_scale,
                 'grade_pct': self.grade_pct, 'grade_ramp_pct_per_s': self.road.rate,
                 'gear_factor': self.road.factors[self.shifter.gear - 1],
@@ -203,6 +213,7 @@ class CombinedMode:
             self.desired_sim_backend = 'resistance'
             self.grade_pct = 0.0
             self.aero_scale = 1.0
+            self.clear_push()
         elif command == 'set_grade':
             if self.desired_mode != 'SIM':
                 raise CommandError('wrong_mode', 'Helling alleen in SIM; schakel eerst expliciet naar SIM')
@@ -212,9 +223,16 @@ class CombinedMode:
                 grade = grade_units(params.get('grade_pct')) / 100
                 rate = validate_grade_rate(params.get('ramp_pct_per_s', self.road.rate))
                 aero = validate_aero_scale(params.get('aero_scale', 1.0))
+                extra = grade_units(params.get('push_grade_pct', 0.0)) / 100
+                duration = params.get('push_duration_ms', 0)
+                if (type(duration) is not int or not 0 <= duration <= PUSH_DURATION_MAX_MS
+                        or not 0 <= extra <= PUSH_GRADE_MAX or bool(duration) != bool(extra)):
+                    raise ValueError('Ongeldige tijdelijke duwhelling of duur')
             except ValueError as exc:
                 raise CommandError('invalid_grade', str(exc)) from exc
             self.grade_pct, self.road.rate, self.aero_scale = grade, rate, aero
+            self.push_grade_pct = extra
+            self.push_until = self.clock() + duration / 1000 if duration else 0.0
             self.desired_sim_backend = 'simulation'
         elif command == 'set_target_power':
             watts = params.get('watts')
@@ -225,6 +243,7 @@ class CombinedMode:
             self.target_w, self.ramp_w_per_s = watts, rate
             if watts == 0:
                 self.desired_mode = 'ERG'  # Always release, including when in SIM.
+                self.clear_push()
         else:
             raise CommandError('unknown_command', 'Onbekend commando')
         # Console explicitly takes over. Staging a positive target in SIM does
@@ -322,7 +341,10 @@ class CombinedMode:
             return
         if self.mode == 'SIM':
             if self.sim_backend == 'simulation':
-                complete = await self.road.tick(controller, self.grade_pct, self.shifter.gear, self.aero_scale)
+                if self.clock() >= self.push_until:
+                    self.clear_push()
+                complete = await self.road.tick(controller, self.grade_pct, self.shifter.gear,
+                                                self.aero_scale, self.push_grade_pct)
                 if complete and revision == self.revision:
                     self.applied_revision = revision
                 return

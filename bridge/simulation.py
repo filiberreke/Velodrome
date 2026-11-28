@@ -11,6 +11,9 @@ import struct
 import time
 
 SIMULATION_FEATURE = 1 << 13
+PUSH_GRADE_MAX = 1.5
+PUSH_GRADE_RATE = 5.0
+PUSH_DURATION_MAX_MS = 5000
 CONFIG_PATH = Path(__file__).with_name('simulation_config.json')
 
 def finite_number(value, minimum, maximum):
@@ -50,6 +53,13 @@ def model(grade_pct, factor, crr, cw):
     return (math.tan(effective_theta) * 100,
             crr * factor * math.cos(theta) / math.cos(effective_theta), cw * factor**3)
 
+def add_push_grade(base_grade, push_grade):
+    # FTMS uses grade angle. Add the desired gravity force after virtual gearing,
+    # so a gear change only changes the regular road forces.
+    slope = math.sin(math.atan(base_grade / 100)) + push_grade / 100
+    return math.tan(math.asin(slope)) * 100
+
+
 class RoadSimulation:
     def __init__(self, clock=time.monotonic, config_path=CONFIG_PATH):
         config = json.loads(Path(config_path).read_text(encoding='utf-8'))
@@ -75,6 +85,7 @@ class RoadSimulation:
 
     def reset(self):
         self.grade = 0.0
+        self.push_grade = 0.0
         self.factor = 1.0
         self.aero_scale = 1.0
         self.last_time = self.clock()
@@ -90,7 +101,7 @@ class RoadSimulation:
         return {'grade_pct': grade / 100, 'wind_mps': wind / 1000,
                 'crr': crr / 10000, 'cw': cw / 100}
 
-    async def tick(self, controller, target_grade, gear, aero_scale=1.0):
+    async def tick(self, controller, target_grade, gear, aero_scale=1.0, push_grade=0.0):
         aero_scale = validate_aero_scale(aero_scale)
         now = self.clock()
         dt = min(0.35, max(0.0, now - self.last_time))
@@ -103,10 +114,16 @@ class RoadSimulation:
         # Scale only air resistance; gravity, rolling resistance and gearing stay intact.
         # Slew in either direction to avoid a step when entering/leaving a wheel.
         aero = approach(self.aero_scale, aero_scale, 2.0 * dt)
-        packet = encode_simulation(*model(grade, factor, self.crr, self.cw * aero))
+        # Slew the onset and live updates. At expiry the bounded surcharge is
+        # removed on this write without extending the temporary load.
+        extra = approach(self.push_grade, push_grade, PUSH_GRADE_RATE * dt) if push_grade else 0.0
+        base_grade, crr, cw = model(grade, factor, self.crr, self.cw * aero)
+        packet = encode_simulation(add_push_grade(base_grade, extra) if extra else base_grade, crr, cw)
         if packet != self.last_packet:
             await controller.command(packet)
             self.last_packet = packet
         self.grade, self.factor, self.aero_scale = grade, factor, aero
-        return abs(grade - target_grade) < 1e-8 and abs(factor - target_factor) < 1e-8 and abs(aero - aero_scale) < 1e-8
+        self.push_grade = extra
+        return (abs(grade - target_grade) < 1e-8 and abs(factor - target_factor) < 1e-8
+                and abs(aero - aero_scale) < 1e-8 and abs(extra - push_grade) < 1e-8)
 

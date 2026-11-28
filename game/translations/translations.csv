@@ -1433,3 +1433,4 @@ ACTIVITY_EXPORTED,FIT exported,FIT geëxporteerd
 ACTIVITY_RECONNECT,Reconnect Strava in Settings to verify or retry this upload,Koppel Strava opnieuw in Instellingen om deze upload te controleren of te hervatten
 "OMNIUM_TILE_PROGRESS","%d/4 races completed · %d riders","%d/4 wedstrijden voltooid · %d deelnemers"
 "OMNIUM_TILE_NEXT_RACE","Next race: %s","Volgende wedstrijd: %s"
+HUD_ELIMINATION_PUSH_EFFORT,"Pushing effort: −%.0f W (%.1f s)","Duwinspanning: −%.0f W (%.1f s)"

@@ -1,6 +1,8 @@
 extends RefCounted
 ## Elimination-only reservation and longitudinal safety, in reference metres.
 const LAP := 250.0
+const LANE_SPACING := 0.60
+const LANES := [1.18, 1.78, 2.38, 2.98, 3.58, 4.18, 4.78, 5.38, 5.98, 6.58, 7.18]
 const MIN_GAP := 2.0
 const LATERAL_CLEARANCE := 0.55 # Adjacent 0.60 m lines remain separate.
 const MERGE_GAP := MIN_GAP + 0.05
@@ -8,9 +10,9 @@ const MERGE_GAP := MIN_GAP + 0.05
 static func signed_gap(a: float, b: float) -> float:
 	return fposmod(b-a+LAP*0.5,LAP)-LAP*0.5
 
-static func leaves_safely(gap: float, relative_speed: float, duration: float) -> bool:
+static func leaves_safely(gap: float, relative_speed: float, duration: float, clearance: float = MIN_GAP) -> bool:
 	var future := gap+relative_speed*duration
-	return gap*future>0.0 and minf(absf(gap),absf(future))>=MIN_GAP-0.00001
+	return gap*future>0.0 and minf(absf(gap),absf(future))>=clearance-0.00001
 
 static func laterally_separate(a: float, a_next: float, b: float, b_next: float) -> bool:
 	var first := a-b; var last := a_next-b_next
@@ -21,8 +23,9 @@ static func moving_apart(a: float, a_next: float, b: float, b_next: float) -> bo
 	var first := a-b; var last := a_next-b_next
 	return absf(first)<LATERAL_CLEARANCE and first*last>=0.0 and absf(last)>absf(first)+0.000001
 
-static func constrain_lanes(distances: Array[float], speeds: Array[float], previous: Array[float], requested: Array[float], done: Array[float], metrics: Array[float], dt: float) -> Array[float]:
+static func constrain_lanes(distances: Array[float], speeds: Array[float], previous: Array[float], requested: Array[float], done: Array[float], metrics: Array[float], dt: float, reserved: Dictionary = {}) -> Array[float]:
 	var result: Array[float] = requested.duplicate()
+	var has_reservation := not reserved.is_empty()
 	for iteration in range(3):
 		for a in range(previous.size()):
 			if done[a]>=0.0: continue
@@ -37,6 +40,12 @@ static func constrain_lanes(distances: Array[float], speeds: Array[float], previ
 				var first: float = previous[a]-previous[b]; var last: float = result[a]-result[b]
 				if absf(first)<LATERAL_CLEARANCE and leaves_safely(gap,relative,dt): continue
 				if absf(last)>absf(first) and leaves_safely(gap,relative,dt): continue
+				# The group was accepted as one move. A new lateral request
+				# cannot enter its reserved corridor during the glide.
+				if reserved.has(a) or reserved.has(b):
+					if not reserved.has(a): result[a] = previous[a]
+					if not reserved.has(b): result[b] = previous[b]
+					continue
 				var delta: float = last-first
 				if absf(delta)<0.000001: continue
 				var fraction := clampf((absf(first)-LATERAL_CLEARANCE)/absf(delta),0.0,1.0)

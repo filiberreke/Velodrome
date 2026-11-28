@@ -1,6 +1,11 @@
 extends RefCounted
 ## Local bridge SIM client. One mutation in flight; ACK is not hardware proof.
 const PORT := 51725
+const PUSH_MIN_SPEED_MS := 4.0
+const PUSH_MAX_GRADE := 1.5
+const TRAINER_BIKE_MASS_KG := 8.0
+const PUSH_GRADE_DEADBAND := 0.04
+var last_push_grade := 0.0
 var port := PORT
 var socket := PacketPeerUDP.new()
 var session := "g%d-%d" % [Time.get_ticks_usec(), randi()]
@@ -71,6 +76,11 @@ static func route_grade(previous: Vector3, current: Vector3) -> float:
 		return 0.0
 	return snappedf(clampf(100.0 * (current.y - previous.y) / horizontal, -20.0, 20.0), 0.01)
 
+static func push_grade_for(power: float, mass: float, speed: float) -> float:
+	if not is_finite(power) or power <= 0.0 or not is_finite(mass) or mass <= 0.0 or not is_finite(speed) or speed <= 0.0:
+		return 0.0
+	return minf(PUSH_MAX_GRADE, 100.0 * power / (mass * 9.81 * maxf(PUSH_MIN_SPEED_MS, speed)))
+
 func _open() -> bool:
 	if socket.is_bound(): return true
 	if socket.bind(0, "127.0.0.1") != OK: return false
@@ -94,7 +104,8 @@ func _request(command: String, params: Dictionary, now: float, mutation: bool = 
 
 func shift(direction: int, now: float) -> void:
 	if direction not in [-1,1] or not armed or not enabled_before or phase not in ["READY","ACTIVE"]: return
-	if not pending.is_empty() or state.get("desired_mode", "") != "SIM": return
+	if state.get("desired_mode", "") != "SIM": return
+	if not pending.is_empty() and not (state.get("push_grade_supported", false) and pending.packet.command == "set_grade"): return
 	if not _open(): return
 	_request("shift", {"direction":direction}, now)
 
@@ -186,6 +197,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 		owned = false
 		phase = "READY"
 		last_grade = INF
+		last_push_grade = 0.0
 		last_aero = INF
 		last_target = -1
 		return
@@ -235,7 +247,7 @@ func handle_response(packet: Dictionary, now: float) -> void:
 			may_resume = false
 			_block("Trainerbediening overgenomen")
 
-func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int = 0) -> void:
+func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int = 0, push_grade: float = 0.0, push_seconds: float = 0.0) -> void:
 	requested_erg = clampi(erg_watts, 0, 1300)
 	enabled = enabled and armed
 	if not socket.is_bound() and not enabled: return
@@ -248,6 +260,7 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		state = {}
 		last_status = -100.0
 		last_grade = INF
+		last_push_grade = 0.0
 		last_aero = INF
 		last_target = -1
 	if not enabled and enabled_before:
@@ -275,7 +288,11 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		_request("heartbeat", {}, now)
 		last_heartbeat = now
 	if not enabled or phase not in ["READY", "ACTIVE"] or not pending.is_empty(): return
-	if now - last_change < 0.2: return
+	var push_supported: bool = state.get("push_grade_supported", false)
+	var push_ms := clampi(floori(push_seconds * 1000.0), 0, 5000) if push_supported else 0
+	push_grade = snappedf(clampf(push_grade, 0.0, PUSH_MAX_GRADE), 0.01) if push_ms > 0 else 0.0
+	var push_edge := (push_grade > 0.0) != (last_push_grade > 0.0)
+	if now - last_change < 0.2 and not push_edge: return
 	var target_mode := "ERG" if requested_erg > 0 else "SIM"
 	if state.get("desired_mode", "SIM") != target_mode:
 		# Switch modes only within our own session; never take over another controller.
@@ -291,11 +308,15 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		return
 	grade = snappedf(clampf(grade, -20.0, 20.0), 0.01)
 	aero = snappedf(clampf(aero, 0.0, 1.0), 0.01)
-	if absf(grade - last_grade) < 0.05 and (not aero_supported or absf(aero - last_aero) < 0.02): return
+	if not push_edge and absf(push_grade - last_push_grade) < PUSH_GRADE_DEADBAND and absf(grade - last_grade) < 0.05 and (not aero_supported or absf(aero - last_aero) < 0.02): return
 	var params := {"grade_pct": grade, "ramp_pct_per_s": clampf(grade_rate, 0.1, 100.0)}
 	if aero_supported: params["aero_scale"] = aero
+	if push_grade > 0.0:
+		params["push_grade_pct"] = push_grade
+		params["push_duration_ms"] = push_ms
 	_request("set_grade", params, now, true)
 	last_grade = grade
+	last_push_grade = push_grade
 	last_aero = aero
 	last_change = now
 
