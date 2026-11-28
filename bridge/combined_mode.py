@@ -6,7 +6,7 @@ from virtual_shift import VirtualShifter, RAMP_PERIOD
 from erg_protocol import encode_target_power, parse_power_range, POWER_RANGE, TARGET_POWER_FEATURE
 from resistance import FEATURE
 from simulation import (RoadSimulation, SIMULATION_FEATURE, grade_units, validate_grade_rate,
-                        validate_aero_scale, PUSH_GRADE_MAX, PUSH_DURATION_MAX_MS)
+                        validate_aero_scale, add_push_grade, PUSH_GRADE_MAX, PUSH_DURATION_MAX_MS)
 
 log = logging.getLogger(__name__)
 LEASE_SECONDS = 5.0
@@ -148,6 +148,10 @@ class CombinedMode:
         limits = None
         if self.power_range is not None:
             limits = dict(zip(('min_w', 'max_w', 'increment_w'), self.power_range))
+        extra = self.push_grade_pct if self.clock() < self.push_until else 0.0
+        effective_grade = self.road.target(self.grade_pct, self.shifter.gear)[0]
+        if extra:
+            effective_grade = add_push_grade(effective_grade, extra)
         return {'started': self.started, 'disabled': self.disabled,
                 'waiting_for_feedback': self.waiting_for_feedback, 'reconnect_ready': self.reconnect_ready,
                 'mode': self.mode, 'desired_mode': self.desired_mode,
@@ -159,11 +163,11 @@ class CombinedMode:
                 'simulation_supported': self.simulation_supported,
                 'sim_backend': self.sim_backend, 'desired_sim_backend': self.desired_sim_backend,
                 'push_grade_supported': True,
-                'push_grade_pct': self.push_grade_pct if self.clock() < self.push_until else 0.0,
+                'push_grade_pct': extra,
                 'aero_scale_supported': True, 'aero_scale': self.aero_scale,
                 'grade_pct': self.grade_pct, 'grade_ramp_pct_per_s': self.road.rate,
                 'gear_factor': self.road.factors[self.shifter.gear - 1],
-                'effective_grade_pct': round(self.road.target(self.grade_pct, self.shifter.gear)[0], 2),
+                'effective_grade_pct': round(effective_grade, 2),
                 'confirmed_simulation': self.road.confirmed() if self.mode == 'SIM' and self.sim_backend == 'simulation' else None,
                 'udp_owned': self.owner is not None,
                 'udp_owned_by_requester': self.owner is not None and source is not None and self.owner == source,

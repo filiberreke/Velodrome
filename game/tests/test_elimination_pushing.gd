@@ -14,7 +14,7 @@ class Client extends Trainer:
 	func _open() -> bool: return true
 	func _receive(_now: float) -> void: pass
 	func _request(command: String, params: Dictionary, now: float, mutation: bool = false) -> void:
-		var packet := {"command": command, "at": now}
+		var packet := {"command": command, "at": now, "id": str(commands.size())}
 		packet.merge(params)
 		commands.append(packet)
 		if mutation:
@@ -169,6 +169,9 @@ func test_trainer_client() -> void:
 	check(client.commands[-1].grade_pct == 1.1 and client.commands[-1].push_grade_pct == 0.54 and client.commands[-1].push_duration_ms == 5000, "Physical surcharge is separate from normal grade")
 	client.shift(1, 100.1)
 	check(client.commands[-1].command == "shift", "Virtual shift may travel while the grade ACK is pending")
+	var initial_id: String = client.pending.packet.id
+	client.tick(true, 1.1, 0.8, 100.4, 0, 0.54, 4.6)
+	check(client.commands[-1].id != initial_id and client.commands[-1].push_duration_ms <= 4600, "An unacknowledged pulse is replaced with its remaining duration")
 	client.pending = {}
 	client.tick(true, 1.75, 0.8, 101.0, 0, 0.54, 4.0)
 	check(client.commands[-1].grade_pct == 1.75 and client.commands[-1].push_duration_ms == 4000, "Changing the road grade retains only the remaining surcharge")

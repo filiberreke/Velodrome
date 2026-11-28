@@ -273,7 +273,13 @@ func tick(enabled: bool, grade: float, aero: float, now: float, erg_watts: int =
 		_block("Aflossingscommando verlopen", true, now)
 		return
 	if not pending.is_empty() and now >= float(pending.retry_at):
-		if int(pending.tries) >= 3:
+		if pending.packet.has("push_duration_ms"):
+			# A lost ACK must not replay a pulse with its old duration. Let
+			# this tick send the current grade and remaining time under a new id.
+			requests.erase(pending.packet.id)
+			pending = {}
+			last_grade = INF
+		elif int(pending.tries) >= 3:
 			var was_release: bool = pending.packet.command == "set_target_power"
 			pending = {}
 			_block("FTP_NO_RESPONSE_FROM_BRIDGE", owned and not was_release, now)
