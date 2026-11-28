@@ -1,0 +1,43 @@
+{
+ "version": 1,
+ "fps": 30,
+ "duration": 2.0,
+ "frames": 60,
+ "timing": {
+  "out_end": 0.3,
+  "contact": 0.22,
+  "hold_end": 1.5,
+  "take_hold_end": 1.55,
+  "end": 2.0
+ },
+ "clips": [
+  "push_give_L",
+  "push_give_R",
+  "push_take_L",
+  "push_take_R"
+ ],
+ "keyed_bones": [
+  "spine",
+  "chest",
+  "neck",
+  "head",
+  "clavicle.L",
+  "clavicle.R",
+  "upper_arm.L",
+  "upper_arm.R",
+  "forearm.L",
+  "forearm.R",
+  "hand.L",
+  "hand.R"
+ ],
+ "additive": "key = rotation delta from the neutral riding pose (identity = no push)",
+ "side": "L/R = where the OTHER rider is, seen from this rider",
+ "measured": {
+  "rest_shoulder_x": 0.20000000298023224,
+  "give_shoulder_x_peak": 0.24443112313747406,
+  "take_shoulder_x_min": 0.17473481595516205,
+  "max_hand_ik_miss_mm": 0.000365306457046606,
+  "give_chest_rotation_peak_deg": 6.148686981894042,
+  "take_chest_rotation_peak_deg": 3.4780019079226623
+ }
+}

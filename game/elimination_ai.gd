@@ -1,8 +1,12 @@
 extends "res://x_scratch_ai.gd"
 ## Native port of the tested Python elimination policy. No minimum-speed rule.
 const Motion := preload("res://elimination_motion.gd")
+const Push := preload("res://elimination_push.gd")
+var pushing: Push
+var push_targets: Dictionary = {}
+var boxed_since: Dictionary = {}
 const CONTROL_SECONDS := 0.2
-const GRID := [1.18,1.78,2.38,2.98,3.58,4.18,4.78,5.38,5.98,6.58,7.18]
+const GRID := Motion.LANES
 var elimination_interval_m := 500.0
 var elimination_line_m := 500.0
 var final_line_m := 7500.0
@@ -24,6 +28,7 @@ func reset(profiles: Array[int], forms: Array[float], initial_lanes: Array[float
 	super.reset(profiles,forms,initial_lanes)
 	requested_power_w.resize(profiles.size()); requested_power_w.fill(0.0)
 	_wheel_ids.resize(profiles.size()); _wheel_ids.fill(-1)
+	push_targets.clear(); boxed_since.clear()
 	_control_bucket=-1; _power_limits=0; _speed_caps=0; motion_ready=false
 
 static func cycle_urgency(progress: float, interval_m: float = 500.0) -> float:
@@ -80,11 +85,16 @@ func _lane_safe(i: int, candidate: float, active: Array[int], distances: Array[f
 
 func _plan_lines(active: Array[int], distances: Array[float], speeds: Array[float], lanes: Array[float], clock: float, urgency: float, final_pair: bool) -> void:
 	var reserved: Dictionary={0:lane_targets[0]}
+	push_targets.clear()
 	var head: float=distances[active[0]]
 	var remaining: float=elimination_interval_m-fposmod(maxf(0.0,head-rear_reference_offset),elimination_interval_m)
 	for rank in range(active.size()):
 		var i: int=active[rank]
 		if i==0: continue
+		if pushing != null and pushing.ends.has(i):
+			reserved[i] = pushing.endpoint(i, lanes[i])
+			boxed_since.erase(i)
+			continue
 		if clock<lane_lock[i]: reserved[i]=lane_targets[i]; continue
 		var cur: float=lanes[i]
 		var grid_index:=0
@@ -108,10 +118,42 @@ func _plan_lines(active: Array[int], distances: Array[float], speeds: Array[floa
 		if grid_index>=4 and remaining<220.0: choices.append(GRID[grid_index-1])
 		var target: float=cur
 		for candidate in choices:
+			if pushing != null and candidate < cur and pushing.held(i, clock): continue
 			if nearest<7.0 and candidate<cur and grid_index<5 and not (front>=0 and speeds[front]<0.5): continue
 			if _lane_safe(i,candidate,active,distances,speeds,lanes,reserved): target=candidate;break
+		if pushing != null and absf(target - cur) <= 0.05:
+			target = _escape_line(i, rank, active, distances, speeds, lanes, reserved, clock, final_pair)
+		elif pushing != null:
+			boxed_since.erase(i)
 		lane_targets[i]=target;reserved[i]=target
 		if absf(target-cur)>0.05: lane_lock[i]=clock+2.0
+
+func _escape_line(i: int, rank: int, active: Array[int], distances: Array[float],
+		speeds: Array[float], lanes: Array[float], reserved: Dictionary, clock: float, final_pair: bool) -> float:
+	var current := lanes[i]
+	var motion: Dictionary = last_motion.get(i, {})
+	var leader := int(motion.get("leader", -1))
+	if leader < 0 or float(motion.get("power_excess", 0.0)) < Push.AI_MIN_POWER_EXCESS_W:
+		boxed_since.erase(i)
+		return current
+	var wheel_gap := Motion.signed_gap(distances[i], distances[leader])
+	if wheel_gap < 0.0 or wheel_gap > Push.AI_MAX_WHEEL_GAP_M:
+		boxed_since.erase(i)
+		return current
+	var since := float(boxed_since.get_or_add(i, clock))
+	var sprint_distance := elimination_line_m - distances[active[0]] + rear_reference_offset
+	if final_pair or clock - since < Push.AI_BLOCKED_S:
+		return current
+	var outward := minf(GRID[-1], current + Motion.LANE_SPACING)
+	var inward := maxf(GRID[0], current - Motion.LANE_SPACING)
+	for candidate in [outward, inward]:
+		if candidate < current and pushing.held(i, clock): continue
+		if absf(candidate - current) >= Motion.LATERAL_CLEARANCE and _lane_safe(i, candidate, active, distances, speeds, lanes, reserved):
+			boxed_since.erase(i)
+			return candidate
+	if outward > current + Push.EPSILON and sprint_distance >= 0.0 and sprint_distance <= Push.AI_SPRINT_DISTANCE_M and position_risk(rank, active.size()) >= 0.5 and wprime[i] >= Push.POWER_W * Push.DURATION_S and pushing.seconds_left(i, clock) <= Push.EPSILON:
+		push_targets[i] = outward
+	return current
 
 func step(dt: float, clock: float, distances: Array[float], speeds: Array[float], lanes: Array[float], drafts: Array[float], finished: Array[float], profiles: Array[int], laps: int, difficulty: float, credits: Array[int]) -> Array[float]:
 	var output: Array[float]=[];output.resize(distances.size());output.fill(0.0)
@@ -165,11 +207,11 @@ func step(dt: float, clock: float, distances: Array[float], speeds: Array[float]
 				var weight: float=clampf((14.0-clock)/7.0,0.0,1.0)*clampf((11.0-speeds[i])/3.0,0.0,1.0)
 				target=maxf(target,lerpf(cp[i]*(0.76 if drafts[i]>0.12 else 0.91),minf(450.0,maxf(350.0,cp[i]*1.65)),weight))
 			requested_power_w[i]=maxf(0.0,target)
-	_deliver_motion(active,distances,speeds,lanes,drafts,dt,output)
+	_deliver_motion(active,distances,speeds,lanes,drafts,dt,clock - dt,output)
 	motion_ready=true
 	return output
 
-func _deliver_motion(active: Array[int], distances: Array[float], speeds: Array[float], lanes: Array[float], drafts: Array[float], dt: float, output: Array[float]) -> void:
+func _deliver_motion(active: Array[int], distances: Array[float], speeds: Array[float], lanes: Array[float], drafts: Array[float], dt: float, now: float, output: Array[float]) -> void:
 	planned_distances=distances.duplicate();planned_speeds=speeds.duplicate()
 	last_motion.clear()
 	var physical: Dictionary=Motion.physical_order(distances,active)
@@ -177,31 +219,44 @@ func _deliver_motion(active: Array[int], distances: Array[float], speeds: Array[
 	var coordinates: Dictionary=physical.coordinates
 	var proposed: Dictionary={}
 	var done: Array[int]=[]
+	var reserved: bool = pushing != null and not pushing.ends.is_empty()
 	for i in order:
 		var metric: float=_metric(i,lanes[i],lanes)
 		var safe_v:=INF
 		var safety_leader:=-1
 		for j in done:
 			var gap: float=float(coordinates[j])-float(coordinates[i])
-			if gap<40.0 and absf(lanes[j]-lanes[i])<Motion.LATERAL_CLEARANCE:
-				var allowed: float=maxf(0.0,(float(proposed[j])-Motion.MIN_GAP-float(coordinates[i]))*metric/dt)
+			var clearance := Motion.MIN_GAP
+			var same_lane := absf(lanes[j] - lanes[i]) < Motion.LATERAL_CLEARANCE
+			if reserved and not same_lane and (pushing.ends.has(i) or pushing.ends.has(j)) and gap >= Motion.MERGE_GAP - Push.EPSILON:
+				if not Motion.laterally_separate(lanes[i], pushing.endpoint(i, lanes[i]), lanes[j], pushing.endpoint(j, lanes[j])):
+					same_lane = true
+					clearance = Motion.MERGE_GAP
+			if gap<40.0 and same_lane:
+				var allowed: float=maxf(0.0,(float(proposed[j])-clearance-float(coordinates[i]))*metric/dt)
 				if allowed<safe_v: safe_v=allowed;safety_leader=j
 		var request: float=human_power_w if i==0 else minf(requested_power_w[i],power_limit(i,dt))
 		request=maxf(0.0,request)
-		if i>0 and is_finite(safe_v) and _predict(i,request,dt,speeds,drafts)>safe_v:
+		var effort := Push.POWER_W if pushing != null and pushing.seconds_left(i, now) > Push.EPSILON else 0.0
+		var unrestricted := request
+		if i>0 and is_finite(safe_v) and _predict(i,maxf(0.0,request-effort),dt,speeds,drafts)>safe_v:
 			var low:=0.0;var high:=request
 			for iteration in range(12):
 				var middle: float=(low+high)*0.5
-				if _predict(i,middle,dt,speeds,drafts)<=safe_v: low=middle
+				if _predict(i,maxf(0.0,middle-effort),dt,speeds,drafts)<=safe_v: low=middle
 				else: high=middle
 			request=low;_power_limits+=1
 		var actual: float=request if i==0 else _phys_power(i,request,dt)
-		var speed: float=_predict(i,actual,dt,speeds,drafts)
+		var speed: float=_predict(i,maxf(0.0,actual-effort),dt,speeds,drafts)
 		if speed>safe_v+0.0000001: speed=safe_v;_speed_caps+=1
 		planned_speeds[i]=speed
-		planned_distances[i]=distances[i]+speed*dt/metric
-		proposed[i]=float(coordinates[i])+speed*dt/metric
-		last_motion[i]={"old_d":distances[i],"coordinate":coordinates[i],"metric":metric,"leader":safety_leader,"safe_v":safe_v,"speed":speed,"proposed":proposed[i],"requested":human_power_w if i==0 else requested_power_w[i],"actual":actual,"lane":lanes[i]}
+		# The jury can keep a rider active at the last timing line while the
+		# remaining field is still completing a cut. Followers must use the
+		# same capped advance as main.gd, including lapped traffic.
+		var advance := minf(speed * dt / metric, maxf(0.0, final_line_m - distances[i]))
+		planned_distances[i] = distances[i] + advance
+		proposed[i] = float(coordinates[i]) + advance
+		last_motion[i]={"old_d":distances[i],"coordinate":coordinates[i],"metric":metric,"leader":safety_leader,"safe_v":safe_v,"speed":speed,"proposed":proposed[i],"requested":human_power_w if i==0 else requested_power_w[i],"actual":actual,"power_excess":unrestricted-request,"lane":lanes[i]}
 		if i>0: output[i]=actual;power_w[i]=actual
 		done.append(i)
 

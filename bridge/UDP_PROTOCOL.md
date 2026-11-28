@@ -91,6 +91,14 @@ en nieuwe controleaanvraag. De oude 0x04-regeling is dan uit. `set_mode SIM` zet
 backend terug naar `resistance` en maakt de opgeslagen helling 0. `set_mode ERG` wist
 eveneens de hellingkeuze. Nieuwe set_grade vóór voltooiing kan de vorige vervangen.
 
+Een client mag bij `push_grade_supported: true` twee extra velden meesturen.
+`push_grade_pct` ligt tussen 0,01 en 1,50 procentpunt. `push_duration_ms` is een
+geheel getal van 1 tot 5000 en geeft de resterende duur aan. Beide velden horen
+bij elkaar. Een `set_grade` zonder deze velden wist de toeslag. De bridge
+voegt de extra zwaartekrachtcomponent toe na de bestaande virtuele versnelling
+en verwerkt ze via dezelfde FTMS-schrijflus. De toeslag vervalt onafhankelijk
+van de UDP-lease en wordt ook gewist bij moduswissel, vrijgave of verbindingsverlies.
+
 Ook 0% houdt de simulatie, rol-/luchtweerstand, huidige versnelling en UDP-lease actief.
 Een nieuw positief ERG-doel klaarzetten tijdens hellingregeling verandert die regeling
 niet. `set_target_power 0` heeft altijd voorrang als vrijgave: RELEASED na Reset.

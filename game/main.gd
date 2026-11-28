@@ -36,6 +36,11 @@ var tempo_rules = TempoRules.new()
 const EliminationRules := preload("res://elimination_race_rules.gd")
 const EliminationAI := preload("res://elimination_ai.gd")
 const EliminationMotion := preload("res://elimination_motion.gd")
+const EliminationPush := preload("res://elimination_push.gd")
+var elimination_push := EliminationPush.new()
+var elimination_outward_pressed := false
+var elimination_player_offset := 0.0
+var _elimination_trainer_lateral_rise := 0.0
 const ELIMINATION_PHYSICS_STEP := 1.0 / 60.0
 var _elimination_accumulator := 0.0
 var _elimination_epoch := 0.0
@@ -118,7 +123,7 @@ const OPPOSITE_STRAIGHT_GATE_M := fposmod(PURSUIT_START_M + LAP * 0.5, LAP)
 const UDP_PORT := 51723
 # Player selection is finer than AI corridors; physical track geometry is unchanged.
 const PLAYER_LANE_STEP_M := 0.60
-const LANES := [1.18, 1.78, 2.38, 2.98, 3.58, 4.18, 4.78, 5.38, 5.98, 6.58, 7.18]
+const LANES := EliminationMotion.LANES
 # Keep the original starting grid: 0.60 m is too narrow for bicycles abreast.
 const START_LANES := [1.18, 2.38, 3.58, 4.78, 5.98, 7.18]
 const TEAM_EXCHANGE_LANE_M := 3.58
@@ -298,6 +303,10 @@ func _configure_peloton() -> void:
 		if omnium_race.enabled(): omnium_race.prepare_ai(self)
 	if race_mode == 2:
 		var rear_positions: Array[float] = []
+		elimination_push = EliminationPush.new()
+		elimination_outward_pressed = false
+		elimination_player_offset = 0.0
+		x_ai.pushing = elimination_push
 		_elimination_clock_ready = false; _elimination_accumulator = 0.0; _elimination_ticks = 0
 		for distance in distances: rear_positions.append(distance - REAR_TRAILING_EDGE_M)
 		elimination_rules.reset(count, rear_positions, omnium_race.elimination_interval_m() if omnium_race.enabled() else EliminationRules.ELIMINATION_INTERVAL_M)
@@ -1034,6 +1043,7 @@ func _keyboard_race_action(action: String) -> void:
 func _pause_race(show_menu: bool = true) -> void:
 	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
 	race_paused = true
+	_set_elimination_push_animations_paused(true)
 	_clear_look_back()
 	trainer_telemetry_resume = false
 	trainer_pause_resume = false
@@ -1043,6 +1053,7 @@ func _pause_race(show_menu: bool = true) -> void:
 func _resume_race() -> void:
 	if not race_paused: return
 	race_paused = false
+	_set_elimination_push_animations_paused(false)
 	# Finish servicing any pending release before re-probing our own session.
 	trainer_pause_resume = trainer_control.error.is_empty()
 	exit_menu.hide_pause()
@@ -1198,6 +1209,15 @@ func _steer_player(direction: int) -> void:
 	if race_mode == 3:
 		if keirin.phase == "FREE": player_lane = 2 if direction > 0 else 0
 		return
+	if race_mode == 2 and start_state == "RACING":
+		if direction < 0 and elimination_push.held(0, elimination_simulation_time()):
+			return
+		elimination_outward_pressed = direction > 0
+		if absf(elimination_player_offset) > EliminationPush.EPSILON:
+			var grid_position := (_elimination_player_target() - LANES[0]) / EliminationMotion.LANE_SPACING
+			player_lane = clampi(ceili(grid_position) if direction > 0 else floori(grid_position), 0, LANES.size() - 1)
+			elimination_player_offset = 0.0
+			return
 	player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
 
 func _read_bridge() -> void:
@@ -1223,19 +1243,8 @@ func _process_steering(value: Variant) -> void:
 		return
 	steering_direction = direction
 	steering_steps = 1
-	if piste_training != null and piste_training.active and _ride_context() == "piste":
-		piste_training.steer(direction)
-		return
 	# Consume presses during menus/countdown so holding through GO cannot steer.
-	if _ride_context() != "race" or not running or finished or not _riding():
-		return
-	if race_mode == 5:
-		if direction > 0:
-			team_race.request_player_exchange()
-	elif race_mode == 3:
-		if keirin.phase == "FREE": player_lane = 2 if direction > 0 else 0
-	else:
-		player_lane = clampi(player_lane + direction, 0, LANES.size() - 1)
+	_steer_player(direction)
 
 func _process_bridge_json(raw: String) -> void:
 	var parser := JSON.new()
@@ -1790,24 +1799,83 @@ func _ai_choose_power(i: int, dt: float) -> float:
 		ai_lead_seconds[i] += dt
 	return ai_power_w[i] * (ai_difficulty / 80.0)
 
+func _elimination_player_target() -> float:
+	return LANES[player_lane] + elimination_player_offset
+
+func _elimination_try_pushes(dt: float, metrics: Array[float]) -> void:
+	if start_state != "RACING":
+		return
+	var now := clock - dt
+	var sprint_distance: float = elimination_rules.next_line_m - distances.max() + REAR_TRAILING_EDGE_M
+	if elimination_outward_pressed:
+		var target := _elimination_player_target()
+		var previous_attempts := elimination_push.attempts.size()
+		_elimination_try_push(0, target, now, metrics, sprint_distance)
+		if elimination_push.attempts.size() != previous_attempts or finish_times[0] >= 0.0 or target - lane_offsets[0] <= EliminationPush.EPSILON:
+			elimination_outward_pressed = false
+	for rider in x_ai.push_targets:
+		_elimination_try_push(rider, x_ai.push_targets[rider], now, metrics, sprint_distance)
+	x_ai.push_targets.clear()
+
+func _elimination_try_push(rider: int, target: float, now: float, metrics: Array[float], sprint_distance: float) -> void:
+	if not elimination_push.try_start(rider, target, LANES[-1], now, LANE_CHANGE_MPS,
+			lane_offsets, distances, speeds, metrics, finish_times, sprint_distance):
+		return
+	for moved in elimination_push.ends:
+		var destination: float = elimination_push.ends[moved]
+		if moved == 0:
+			if moved != rider:
+				player_lane = clampi(roundi((destination - LANES[0]) / EliminationMotion.LANE_SPACING), 0, LANES.size() - 1)
+				elimination_player_offset = destination - LANES[player_lane]
+				elimination_outward_pressed = false
+		else:
+			x_ai.lane_targets[moved] = destination
+		if not results_completion.active and moved < bikes.size():
+			var visual: Node = bikes[moved].get_child(0)
+			# The track runs counter-clockwise. The outside is the rider's right.
+			if elimination_push.givers.has(moved):
+				visual.shoulder_push("R")
+			else:
+				visual.receive_shoulder_push("L")
+
+func _set_elimination_push_animations_paused(paused: bool) -> void:
+	if race_mode != 2:
+		return
+	for bike in bikes:
+		bike.get_child(0).set_shoulder_push_paused(paused)
+
 func _move_lanes(dt: float) -> Array[float]:
 	if race_mode in [4, 7]:
 		return _pursuit_move_lanes(dt)
 	var heights: Array[float] = []; heights.resize(rider_count); heights.fill(0.0)
 	var previous_lanes: Array[float] = []
-	if race_mode == 2: previous_lanes = lane_offsets.duplicate()
+	var metrics: Array[float] = []
+	if race_mode == 2:
+		previous_lanes = lane_offsets.duplicate()
+		for i in range(rider_count):
+			metrics.append(_path_metric(distances[i], previous_lanes[i]))
+		if elimination_outward_pressed or not x_ai.push_targets.is_empty():
+			_elimination_try_pushes(dt, metrics)
 	if race_mode not in [0, 1, 2]:
 		_ai_decide_lanes(dt)
 	for i in range(rider_count):
-		var previous_height: float = _at(distances[i], lane_offsets[i]).y
+		var previous_lane := lane_offsets[i]
 		var target: float = LANES[player_lane] if i == 0 else (x_ai.lane_targets[i] if race_mode in [0, 1, 2, 8] and x_ai.initialized else ai_lane_targets[i])
-		lane_offsets[i] = move_toward(lane_offsets[i], target, LANE_CHANGE_MPS * dt)
-		heights[i] = _at(distances[i], lane_offsets[i]).y - previous_height
+		if race_mode == 2 and i == 0:
+			target = _elimination_player_target()
+		lane_offsets[i] = move_toward(previous_lane, target, LANE_CHANGE_MPS * dt)
+		if race_mode != 2:
+			heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lane).y
 	if race_mode == 2:
-		var metrics: Array[float] = []
-		for i in range(rider_count): metrics.append(_path_metric(distances[i], previous_lanes[i]))
-		lane_offsets = EliminationMotion.constrain_lanes(distances, speeds, previous_lanes, lane_offsets, finish_times, metrics, dt)
-		for i in range(rider_count): heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lanes[i]).y
+		if not elimination_push.ends.is_empty():
+			elimination_push.glide(previous_lanes, lane_offsets, finish_times, LANE_CHANGE_MPS * dt)
+		lane_offsets = EliminationMotion.constrain_lanes(distances, speeds, previous_lanes, lane_offsets, finish_times, metrics, dt, elimination_push.ends,
+			elimination_push.remaining_m / LANE_CHANGE_MPS)
+		for i in range(rider_count):
+			if lane_offsets[i] != previous_lanes[i]:
+				heights[i] = _at(distances[i], lane_offsets[i]).y - _at(distances[i], previous_lanes[i]).y
+		if elimination_push.ends.has(0):
+			_elimination_trainer_lateral_rise += heights[0]
 	return heights
 
 func _race_length() -> float:
@@ -1870,7 +1938,14 @@ func _winner_index() -> int:
 			best = i
 	return best
 
+func _elimination_player_effort() -> float:
+	if race_mode != 2 or start_state != "RACING" or not running or finished or finish_times[0] >= 0.0:
+		return 0.0
+	return elimination_push.seconds_left(0, elimination_simulation_time())
+
 func _update_trainer_control() -> void:
+	if race_mode == 2 and DisplayServer.get_name() == "headless" and not trainer_virtual:
+		return
 	if trainer_pause_resume:
 		trainer_control.tick(false, 0.0, 1.0, _now_s())
 		if trainer_control.phase == "RELEASING": return
@@ -1896,11 +1971,17 @@ func _update_trainer_control() -> void:
 	# Existing ERG sessions are preserved by the client's initial status check.
 	var use_erg: bool = active and race_mode == 5 and team_resistance_mode == "ERG" and team_race.ours.has_player_pull and not team_race.ours.player_is_out() and team_race.ours.player_rank() > 0 and team_race.ours.phase == ""
 	var erg_target: int = clampi(roundi(team_race.ours.target_watts()), 1, 1300) if use_erg else 0
-	trainer_control.tick(active, trainer_road_grade, 1.0 - _draft_drag_reduction(0), _now_s(), erg_target)
+	var effort := _elimination_player_effort() if active and live and not race_paused else 0.0
+	var push_grade := 0.0
+	if effort > 0.0 and is_finite(player_weight_kg) and player_weight_kg > 0.0:
+		push_grade = TrainerControl.push_grade_for(EliminationPush.POWER_W,
+			player_weight_kg + TrainerControl.TRAINER_BIKE_MASS_KG, trainer_speed_kmh / 3.6)
+	trainer_control.tick(active, trainer_road_grade, 1.0 - _draft_drag_reduction(0), _now_s(), erg_target, push_grade, effort)
 
 func _update_race(dt: float) -> void:
 	var previous: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
 	if race_mode == 2:
+		_elimination_trainer_lateral_rise = 0.0
 		if not _elimination_clock_ready:
 			_elimination_epoch = clock - dt; _elimination_ticks = 0; _elimination_accumulator = 0.0; _elimination_clock_ready = true
 		var frame_clock: float = clock
@@ -1915,6 +1996,10 @@ func _update_race(dt: float) -> void:
 	else:
 		_advance_race(dt)
 	var current: Vector3 = _at(_rider_distance(0, distances[0]), lane_offsets[0])
+	# Keep the road grade tied to the track during a forced lateral glide.
+	# Only an active player's timed surcharge should change trainer effort.
+	if race_mode == 2:
+		current.y -= _elimination_trainer_lateral_rise
 	var grade: float = TrainerControl.route_grade(previous, current)
 	trainer_road_grade = trainer_grade_filter.step(grade, maxf(dt, 0.0))
 	omnium_race.sample(self)
@@ -1974,11 +2059,14 @@ func _advance_race(dt: float) -> void:
 			x_ai.position_metrics = _elimination_motion_metrics
 			x_ai.metric_predictor = Callable(self, "_elimination_metric_for")
 			x_ai.speed_predictor = Callable(self, "_elimination_predict_speed")
-			x_ai.lane_targets[0] = LANES[player_lane]
+			x_ai.lane_targets[0] = elimination_push.endpoint(0, _elimination_player_target())
 		var tactical_positions: Array[float] = _race_positions() if race_mode in [1, 8] else distances
 		if omnium_race.enabled(): omnium_race.tactics.update(self)
 		x_powers = x_ai.step(dt, clock, tactical_positions, speeds, lane_offsets, effective_drafts, finish_times, rider_profiles, race_laps, ai_difficulty, _lap_credits())
-	if race_mode != 2: player_actual_power = _pc_power(dt)
+	if race_mode != 2:
+		player_actual_power = _pc_power(dt)
+	elif not elimination_push.ends.is_empty():
+		elimination_push.advance(LANE_CHANGE_MPS * dt, clock)
 	var new_finisher := false
 	for i in range(rider_count):
 		if finish_times[i] >= 0.0:
@@ -1988,37 +2076,41 @@ func _advance_race(dt: float) -> void:
 			ai_power_w[i] = power
 			ai_energy_j[i] = x_ai.wprime[i]
 			ai_role[i] = x_ai.modes[i]
-		if i == 0:
-			# A parallel non-boosted simulation: this is the speed the player
-			# would have had if the arcade boost had never been activated.
-			baseline_speed = _next_speed(baseline_speed, power, dt, effective_drafts[i])
-			if boost_active:
-				boosted_speed = _next_speed(boosted_speed, BOOST_POWER_W, dt, effective_drafts[i])
-				speeds[i] = maxf(baseline_speed, boosted_speed)
-			elif recovery_left > 0.0:
-				# Remove ONLY the arcade speed excess, not the real pedalling speed.
-				recovery_left = maxf(0.0, recovery_left - dt)
-				var share: float = recovery_left / BOOST_RECOVERY_SECONDS
-				speeds[i] = baseline_speed + recovery_excess * share
-			else:
-				speeds[i] = baseline_speed
-		else:
-			speeds[i] = _next_speed(speeds[i], power, dt, effective_drafts[i])
-		# The surface rises/falls along bends as well as across the lanes.
-		# Compute gravity with an initial path estimate, then actual distance.
-		var previous: float = distances[i]
-		var metric: float = _path_metric(previous, lane_offsets[i])
-		var first_step: float = speeds[i] * dt / metric
-		var slope_dh: float = _at(previous + first_step, lane_offsets[i]).y - _at(previous, lane_offsets[i]).y
-		var lateral_travel: float = absf(lane_offsets[i] - prior_lanes[i])
-		speeds[i] = _banked_speed(speeds[i], slope_dh, lateral_height_changes[i], lateral_travel, dt, power)
-		if i == 0:
-			baseline_speed = _banked_speed(baseline_speed, slope_dh, lateral_height_changes[i], lateral_travel, dt, power)
-			if boost_active:
-				boosted_speed = _banked_speed(boosted_speed, slope_dh, lateral_height_changes[i], lateral_travel, dt, BOOST_POWER_W)
+		var previous := distances[i]
+		var metric: float
 		if race_mode == 2 and x_ai.motion_ready:
+			metric = _elimination_motion_metrics[i]
 			speeds[i] = x_ai.planned_speeds[i]
-			if i == 0: baseline_speed = speeds[i]
+			if i == 0:
+				baseline_speed = speeds[i]
+		else:
+			metric = _path_metric(previous, lane_offsets[i])
+			if i == 0:
+				# A parallel non-boosted simulation: this is the speed the player
+				# would have had if the arcade boost had never been activated.
+				baseline_speed = _next_speed(baseline_speed, power, dt, effective_drafts[i])
+				if boost_active:
+					boosted_speed = _next_speed(boosted_speed, BOOST_POWER_W, dt, effective_drafts[i])
+					speeds[i] = maxf(baseline_speed, boosted_speed)
+				elif recovery_left > 0.0:
+					# Remove ONLY the arcade speed excess, not the real pedalling speed.
+					recovery_left = maxf(0.0, recovery_left - dt)
+					var share: float = recovery_left / BOOST_RECOVERY_SECONDS
+					speeds[i] = baseline_speed + recovery_excess * share
+				else:
+					speeds[i] = baseline_speed
+			else:
+				speeds[i] = _next_speed(speeds[i], power, dt, effective_drafts[i])
+			# The surface rises/falls along bends as well as across the lanes.
+			# Compute gravity with an initial path estimate, then actual distance.
+			var first_step: float = speeds[i] * dt / metric
+			var slope_dh: float = _at(previous + first_step, lane_offsets[i]).y - _at(previous, lane_offsets[i]).y
+			var lateral_travel: float = absf(lane_offsets[i] - prior_lanes[i])
+			speeds[i] = _banked_speed(speeds[i], slope_dh, lateral_height_changes[i], lateral_travel, dt, power)
+			if i == 0:
+				baseline_speed = _banked_speed(baseline_speed, slope_dh, lateral_height_changes[i], lateral_travel, dt, power)
+				if boost_active:
+					boosted_speed = _banked_speed(boosted_speed, slope_dh, lateral_height_changes[i], lateral_travel, dt, BOOST_POWER_W)
 		if i != 0:
 			ai_stall_time[i] = ai_stall_time[i] + dt if speeds[i] < 0.6 and power >= 80.0 else 0.0
 		var actual_step: float = speeds[i] * dt / metric
@@ -2242,6 +2334,7 @@ func _update_visuals(dt: float) -> void:
 		if race_mode == 5 and i == 0 and team_race.ours.player_is_out() and watts <= 0.0:
 			cadence_visual = 0.0
 		if finish_times[i] >= 0.0:
+			if race_mode == 2: visual.cancel_shoulder_push()
 			# Continue the normal cycling loop at progressively lower cadence while coasting.
 			# beta.16.16: the race winner sits up and raises both arms.
 			visual.call("set_victory", race_mode not in [2, 3] and i == _winner_index())
@@ -3475,6 +3568,10 @@ func _update_compact_hud(order: Array[int]) -> void:
 	if start_state == "NEUTRAL" and (not trainer_seen or connected or _power_hold_active()): notice = neutral_start.notice(self)
 	if race_mode == 3 and start_state == "RACING": notice = String(TranslationServer.translate("RACE_DERNY_1F_KM_H_LEAVES_AFTER_3_LAPS")) % (keirin.speed*3.6) if keirin.phase == "PACED" else String(TranslationServer.translate("RACE_DERNY_OUT_UNPACED_RACE"))
 	if start_state == "RUN_UP" and (not trainer_seen or connected or _power_hold_active()): notice = flying_start.notice(self)
+	var effort := _elimination_player_effort()
+	if effort > 0.0:
+		if not notice.is_empty(): notice += "\n"
+		notice += tr("HUD_ELIMINATION_PUSH_EFFORT") % [EliminationPush.POWER_W, effort]
 	var shown_seconds: float = finish_times[0] if finish_times[0] >= 0.0 else clock
 	var markers: Array[float] = [_rider_distance(0, 0.0)]
 	if race_mode == 4:

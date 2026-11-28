@@ -1,0 +1,34 @@
+godot_script	status	bevinding
+activity_uploads	geslaagd	Exitcode 0
+ai_energy_display	geslaagd	Exitcode 0
+bridge_protocol	mislukt	Dezelfde parsefout in de _reset-override op de basiscommit.
+bridge_steering	mislukt	Dezelfde ongevulde ride_navigation in de testfixture op de basiscommit.
+elimination_corrections	geslaagd	ELIMINATION_CORRECTIONS failures=0
+elimination_gameplay	geslaagd	ELIMINATION_GAMEPLAY failures=0
+elimination_menu_fix	geslaagd	Exitcode 0
+elimination_native	geslaagd	NATIVE_SAFETY minimum_gap=1.99999999999909 pair_checks=97684 / ELIMINATION_NATIVE failures=0
+elimination_native_core	geslaagd	Exitcode 0
+elimination_native_small	geslaagd	Exitcode 0
+elimination_peloton	geslaagd	ELIMINATION_PELOTON failures=0
+elimination_peloton_simulations	geslaagd	ELIMINATION_SIMULATIONS races=27 failures=0
+elimination_positioning	geslaagd	Exitcode 0
+elimination_pushing	geslaagd	ELIMINATION_PUSHING checks=125 failures=0
+elimination_rules	geslaagd	Exitcode 0
+erg_race_hud	geslaagd	Exitcode 0
+inside_lane	geslaagd	Exitcode 0
+inside_lane_launch	geslaagd	Exitcode 0
+inside_lane_races	geslaagd	Exitcode 0
+localization	geslaagd	Exitcode 0
+madison_trainer_feedback	geslaagd	Exitcode 0
+madison_trainer_integration	geslaagd	Exitcode 0
+omnium_elimination_completion	geslaagd	PASS 24-rider elimination CPU completion: exact cached/uncached results and Wprime, frozen player, persistence, enabled buttons and return to omnium
+omnium_elimination_flow	tijdlimiet	Basis en feature falen beide bij finish_table op regel 78 (nl).
+omnium_elimination_intervals	geslaagd	Exitcode 0
+omnium_elimination_native	geslaagd	PASS native omnium elimination: 8 riders, short, 8 laps, 203.0 race seconds, 6 cuts, Wprime and scores saved / PASS native omnium elimination: 8 riders, men, 14 laps, 355.4 race seconds, 6 cuts, Wprime and scores saved / PASS native omnium elimination: 24 riders, short, 24 laps, 605.4 race seconds, 22 cuts, Wprime and scores saved / PASS native omnium elimination: 24 riders, women, 46 laps, 1165.8 race seconds, 22 cuts, Wprime and scores saved
+pc_energy_power	geslaagd	Exitcode 0
+player_lanes	geslaagd	Exitcode 0
+power_meter	mislukt	Dezelfde ERG-helptekstassertie op de basiscommit.
+route_grade_filter	geslaagd	Exitcode 0
+shared_race_traffic	mislukt	Dezelfde uitrijrouteassertie faalt op de basiscommit.
+strava_metadata	geslaagd	Exitcode 0
+trainer_control	geslaagd	Exitcode 0
