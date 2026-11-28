@@ -105,7 +105,7 @@ func _request(command: String, params: Dictionary, now: float, mutation: bool = 
 func shift(direction: int, now: float) -> void:
 	if direction not in [-1,1] or not armed or not enabled_before or phase not in ["READY","ACTIVE"]: return
 	if state.get("desired_mode", "") != "SIM": return
-	if not pending.is_empty() and not (state.get("push_grade_supported", false) and pending.packet.command == "set_grade"): return
+	if not pending.is_empty() and not pending.packet.has("push_duration_ms"): return
 	if not _open(): return
 	_request("shift", {"direction":direction}, now)
 
