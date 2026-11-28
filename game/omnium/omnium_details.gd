@@ -41,7 +41,7 @@ func render(owner_page: Node) -> void:
 	var participants := panel(sidebar)
 	participants.add_child(menu.label("OMNIUM_OMNIUM_DETAILS_RIDERS", 24))
 	participants.add_child(menu.label(String(TranslationServer.translate("OMNIUM_OMNIUM_DETAILS_D_RIDERS_FIXED_OPPONENTS")) % active.riders.size(), 18, Style.MUTED))
-	page.button("Startlijst →", page.edit_active, participants)
+	page.button("RACE_OPEN_START_LIST", page.edit_active, participants)
 	var standings := panel(sidebar)
 	standings.add_child(menu.label("OMNIUM_OMNIUM_DETAILS_OVERALL_STANDINGS", 24))
 	if active.results.is_empty(): standings.add_child(menu.label("OMNIUM_OMNIUM_DETAILS_NO_RACE_RESULTS_YET", 17, Style.MUTED))

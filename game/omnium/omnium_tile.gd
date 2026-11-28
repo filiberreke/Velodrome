@@ -1,6 +1,13 @@
 extends Button
 ## Four existing discipline postcards, sharing the game's visual language.
 const Style := preload("res://menu_theme.gd")
+const LocalizedText := preload("res://localized_text.gd")
+const DISCIPLINE_KEYS := [
+	"RACE_MENU_SCRATCH_RACE",
+	"RACE_MENU_TEMPO_RACE",
+	"RACE_MENU_ELIMINATION_RACE",
+	"RACE_MENU_POINTS_RACE",
+]
 var menu
 var manager
 
@@ -36,9 +43,13 @@ func _ready() -> void:
 		copy.add_child(menu.label("Nieuw omnium samenstellen", 22, Style.BLUE))
 	else:
 		var completed: int = active.results.size()
-		copy.add_child(menu.label("%d/4 wedstrijden voltooid · %d deelnemers" % [completed, active.riders.size()], 22, Style.BLUE))
-		var next_name: String = [String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE")), String(TranslationServer.translate("RACE_MENU_TEMPO_RACE")), String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE")), String(TranslationServer.translate("RACE_MENU_POINTS_RACE"))][mini(completed, 3)]
-		copy.add_child(menu.label("Volgende wedstrijd: " + next_name, 22))
+		var rider_count: int = active.riders.size()
+		var progress: Label = menu.label("", 22, Style.BLUE)
+		copy.add_child(progress)
+		LocalizedText.bind(progress, &"text", func(): return tr("OMNIUM_TILE_PROGRESS") % [completed, rider_count])
+		var next_race: Label = menu.label("", 22)
+		copy.add_child(next_race)
+		LocalizedText.bind(next_race, &"text", func(): return tr("OMNIUM_TILE_NEXT_RACE") % tr(DISCIPLINE_KEYS[mini(completed, DISCIPLINE_KEYS.size() - 1)]))
 		if manager.deadline() > 0:
 			var date := Time.get_datetime_dict_from_unix_time(manager.deadline())
 			copy.add_child(menu.label(String(TranslationServer.translate("OMNIUM_END_DATE")) % [date.day, date.month, int(date.year) % 100], 22, Style.BLUE))
@@ -51,7 +62,8 @@ func _ready() -> void:
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	content.add_child(grid)
-	for item in [[0,String(TranslationServer.translate("RACE_MENU_SCRATCH_RACE"))],[8,String(TranslationServer.translate("RACE_MENU_TEMPO_RACE"))],[5,String(TranslationServer.translate("RACE_MENU_ELIMINATION_RACE"))],[3,String(TranslationServer.translate("RACE_MENU_POINTS_RACE"))]]:
+	var preview_indices := [0, 8, 5, 3]
+	for i in DISCIPLINE_KEYS.size():
 		var panel := PanelContainer.new()
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -59,13 +71,13 @@ func _ready() -> void:
 		grid.add_child(panel)
 		var column := VBoxContainer.new(); panel.add_child(column)
 		var art := TextureRect.new()
-		art.texture = menu.previews[item[0]].get_texture()
+		art.texture = menu.previews[preview_indices[i]].get_texture()
 		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		art.custom_minimum_size = Vector2(220, 150)
 		art.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		column.add_child(art)
-		column.add_child(menu.label(item[1], 20))
+		column.add_child(menu.label(DISCIPLINE_KEYS[i], 20))
 	ignore_children(content)
 
 func ignore_children(node: Control) -> void:
