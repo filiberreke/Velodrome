@@ -12,6 +12,7 @@ const AI_MAX_WHEEL_GAP_M := 4.5
 const EPSILON := 0.00001
 
 var ends: Dictionary = {}
+var givers: Dictionary = {}
 var initiator := -1
 var remaining_m := 0.0
 var held_until: Dictionary = {}
@@ -52,6 +53,7 @@ func try_start(rider: int, target: float, outside: float, clock: float, lateral_
 	var horizon := DISTANCE_M / lateral_speed
 	var group: Array[int] = [rider]
 	var destinations := {rider: lanes[rider] + travel}
+	var pushing_riders := {}
 	var rejection := ""
 	var cursor := 0
 	while cursor < group.size() and rejection.is_empty():
@@ -70,6 +72,7 @@ func try_start(rider: int, target: float, outside: float, clock: float, lateral_
 				rejection = "clearance"
 				break
 			group.append(other)
+			pushing_riders[member] = true
 			destinations[other] = lanes[other] + DISTANCE_M
 		cursor += 1
 	if group.size() == 1:
@@ -91,6 +94,7 @@ func try_start(rider: int, target: float, outside: float, clock: float, lateral_
 		return false
 	initiator = rider
 	ends = destinations
+	givers = pushing_riders
 	remaining_m = DISTANCE_M
 	effort_until[rider] = clock + DURATION_S
 	return true
@@ -109,6 +113,7 @@ func advance(step: float, clock: float) -> void:
 		if rider != initiator:
 			held_until[rider] = clock + PASSIVE_HOLD_S
 	ends.clear()
+	givers.clear()
 	initiator = -1
 
 func statistics() -> Array[Dictionary]:

@@ -4,6 +4,7 @@ const Push := preload("res://elimination_push.gd")
 const Motion := preload("res://elimination_motion.gd")
 const Trainer := preload("res://trainer_control.gd")
 const FitExport := preload("res://fit_export.gd")
+const Visual := preload("res://rider_visual.gd")
 const Native := preload("res://tests/measure_elimination_native.gd")
 
 class Game extends Native.Game:
@@ -298,6 +299,44 @@ func test_reserved_corridor() -> void:
 	check(is_equal_approx(resolved[2], lanes[2]), "An outside rider cannot enter a close reserved corridor while the current merge gap still fits")
 	check(is_equal_approx(resolved[1], requested[1]), "The reservation progresses without displacing the outside rider")
 
+func add_rider_visuals(g: Game) -> Array:
+	var visuals: Array = []
+	for i in range(g.rider_count):
+		var bike := Node3D.new()
+		var visual := Visual.new()
+		bike.add_child(visual)
+		g.add_child(bike)
+		g.bikes.append(bike)
+		visuals.append(visual)
+	return visuals
+
+func test_cascade_animation_roles() -> void:
+	# Rider 3 pushes the player and rider 1. Only the player passes the
+	# push on to rider 2, even though rider 1 was added to the group too.
+	var g := make_game([1.78, 1.78, 2.38, 1.18], [101.1, 98.9, 102.7, 100.0], 1)
+	var visuals := add_rider_visuals(g)
+	direct(g, 3, 1.78)
+	for i in range(visuals.size()):
+		var layer = visuals[i].shoulder_push_layer
+		var gives := i in [0, 3]
+		check(is_instance_valid(layer) and layer.role == ("give" if gives else "take")
+			and layer.side == ("R" if gives else "L"), "Only riders that send the cascade play the outward give animation")
+	check(g.elimination_push.seconds_left(0, 0.0) == 0.0, "Passing on a push animates the player without charging them")
+	g._pause_race(false)
+	check(is_instance_valid(visuals[0].shoulder_push_layer) and visuals[0].shoulder_push_layer.paused, "Pausing the race pauses the cascade animations")
+	g._set_elimination_push_animations_paused(false)
+	check(is_instance_valid(visuals[0].shoulder_push_layer) and not visuals[0].shoulder_push_layer.paused, "Resuming allows the clip to continue")
+	g.free()
+
+	g = make_game([5.98, 6.58, 7.18], [100.0, 100.0, 100.0], 8)
+	visuals = add_rider_visuals(g)
+	g._steer_player(1)
+	step(g, 1.0 / 60.0)
+	check(g.elimination_push.attempts.size() == 1 and g.elimination_push.attempts[0].rejection == "edge", "Outer edge rejects the animated fixture")
+	for visual in visuals:
+		check(not visual.is_shoulder_push_active(), "A rejected cascade does not play either animation")
+	g.free()
+
 func run() -> void:
 	test_movement()
 	test_ai_policy()
@@ -307,5 +346,6 @@ func run() -> void:
 	test_frame_intervals()
 	test_recording_and_simultaneous_input()
 	test_reserved_corridor()
+	test_cascade_animation_roles()
 	print("ELIMINATION_PUSHING checks=", checks, " failures=", failures)
 	quit(int(failures > 0))

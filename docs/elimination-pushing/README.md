@@ -31,6 +31,14 @@ De AI controleert normale uitwijking vóór een duw. Tijdens de finale met twee 
 
 De gameplaywijzigingen staan in `game/elimination_push.gd`, `game/elimination_motion.gd`, `game/elimination_ai.gd` en `game/main.gd`. De toepassing volgt wedstrijdmodus 2, ook wanneer de omniumcontroller deze activeert. De baan gebruikt de bestaande rijlijncoördinaten en bewegingsparameters. De vertalingen staan in `game/translations/translations.csv`. De trainerintegratie staat in `game/trainer_control.gd` en de bridgebestanden `combined_mode.py`, `simulation.py` en `udp_commands.py`. Het wireformaat staat in `bridge/UDP_PROTOCOL.md`.
 
+## Schouderanimaties
+
+De animatielaag speelt bij een geslaagde duw boven op de gewone trapbeweging, zittend en staand. De initiator en iedere renner die de duw doorgeeft spelen de geefclip naar rechts. Andere geraakte renners spelen de ontvangclip voor contact van links. Bij een vertakking speelt iedere deelnemer één clip. Een ontvangclip kan een lopende geefclip niet onderbreken.
+
+De clips starten tegelijk met de reservering. De fysica bepaalt nog steeds wanneer de fietsen uitwijken. De animatie duurt standaard twee seconden en pauzeert samen met de wedstrijd. De meegeleverde GLB en Blender-generator staan onder `game/assets/riders/contact/` en `game/assets/source_blender/contact/`.
+
+De 52 animatiecontroles en 136 afvallingscontroles slaagden in Godot. De animatietest controleert beide rennermodellen, het stuurcontact en de clipprioriteit. De afvallingstest controleert onder meer de rollen in een vertakkende cascade. Twee herhaalde afvallingen met acht renners en seed 17 gaven exact dezelfde wedstrijd- en duwresultaten als de oorspronkelijke featuremeting.
+
 ## Methode
 
 De nulmeting vertrekt van `3ac063782edb69820d0b2adaeb69263befee9ad8`. De eerste wedstrijd liep op die commit voordat de wedstrijdlogica werd gewijzigd. De vergelijkende reeks gebruikt vervolgens dezelfde vaste seeds en deelnemersvormen op beide revisies. Iedere rij in de ruwe gegevens vermeldt haar broncommit.

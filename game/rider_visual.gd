@@ -6,6 +6,11 @@ const HAIR_STYLES: Array[String] = ["low_bun", "ponytail", "short"]
 const HAIR_COLORS := {"blond": Color("d9b56a"), "lichtbruin": Color("9c7a4e"), "kastanjebruin": Color("6e4026"), "donkerbruin": Color("3b2a22"), "zwart": Color("1e1a18"), "rood": Color("b5502e"), "grijs": Color("a7a49d")}
 const FEMALE_PROFILE_SCALE := {"ShoulderWidth": 0.7, "ArmMass": 0.7}
 const PURSUIT_SCENE: PackedScene = preload("res://assets/riders/velodrome_pursuit.glb")
+const ShoulderPush := preload("res://contact/shoulder_push_layer.gd")
+
+## Visual cues for the authored contact and the return to the riding pose.
+signal shoulder_contact(side: String)
+signal shoulder_push_finished(role: String, side: String)
 const SKINSUIT_COVERAGE: Shader = preload("res://skinsuit_coverage.gdshader")
 const BASE_CADENCE: float = 60.0
 const BLEND_SECONDS: float = 0.25
@@ -47,6 +52,7 @@ var stopped: bool = false
 var victory_started: bool = false
 var victory_left: float = 0.0
 var exchange_overlay: Node
+var shoulder_push_layer: ShoulderPush
 var body_mesh: MeshInstance3D
 
 func _ready() -> void:
@@ -362,6 +368,7 @@ func set_decal(slot: String, texture: Texture2D) -> void:
 ## Winner's salute: both arms up for VICTORY_SECONDS after crossing the line (keeps pedalling).
 func set_victory(active: bool) -> void:
 	if active and not victory_started:
+		cancel_shoulder_push()
 		victory_started = true
 		victory_left = VICTORY_SECONDS
 	elif not active:
@@ -431,6 +438,7 @@ func get_pov_sway() -> float:
 func finish_pose(_winner: bool) -> void:
 	if stopped:
 		return
+	cancel_shoulder_push()
 	stopped = true
 	standing_active = false
 	standing_amount = 0.0
@@ -496,3 +504,50 @@ func get_visible_hair_style() -> String:
 		var node := _hair_mesh(name)
 		if node != null and node.visible: return name
 	return ""
+
+
+## Give a shoulder push to the rider on `side` ("L" = this rider's left, "R" = right). The furthest point is
+## held so the whole move lasts `duration` seconds (default 2.0, minimum 1.25); pushing out and returning keep
+## their authored speed. Only the upper body moves; the bike and the actual sideways movement stay in Godot.
+## Returns false when not possible (pursuit bike, victory salute, finished, Madison exchange in progress).
+func shoulder_push(side: String, duration: float = 2.0) -> bool:
+	return _start_shoulder_push("give", side, duration)
+
+## Play the companion reaction on the same timeline as the giver's clip.
+func receive_shoulder_push(from_side: String, duration: float = 2.0) -> bool:
+	return _start_shoulder_push("take", from_side, duration)
+
+func is_shoulder_push_active() -> bool:
+	return shoulder_push_layer != null and is_instance_valid(shoulder_push_layer) and not shoulder_push_layer.done
+
+func set_shoulder_push_paused(paused: bool) -> void:
+	if is_shoulder_push_active():
+		shoulder_push_layer.paused = paused
+
+func cancel_shoulder_push() -> void:
+	if is_shoulder_push_active():
+		shoulder_push_layer.done = true
+		shoulder_push_layer.queue_free()
+	shoulder_push_layer = null
+
+func _start_shoulder_push(role: String, side: String, duration: float) -> bool:
+	if rig_scene == null or bool(get_meta("pursuit_mode", false)) or stopped or victory_left > 0.0:
+		return false
+	if exchange_overlay != null and is_instance_valid(exchange_overlay):
+		return false
+	var skeleton := rig_scene.find_child("Skeleton3D", true, false) as Skeleton3D
+	if skeleton == null:
+		return false
+	if role == "take" and is_shoulder_push_active() and shoulder_push_layer.role == "give":
+		return false
+	var layer := ShoulderPush.new()
+	layer.name = "ShoulderPush"
+	if not layer.setup(role, side, duration):
+		layer.free()
+		return false
+	cancel_shoulder_push()
+	layer.contact.connect(func(s: String) -> void: shoulder_contact.emit(s))
+	layer.finished.connect(func(r: String, s: String) -> void: shoulder_push_finished.emit(r, s))
+	skeleton.add_child(layer)
+	shoulder_push_layer = layer
+	return true

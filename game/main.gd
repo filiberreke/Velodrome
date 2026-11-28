@@ -1043,6 +1043,7 @@ func _keyboard_race_action(action: String) -> void:
 func _pause_race(show_menu: bool = true) -> void:
 	if race_paused or finished or start_state in ["SETUP", "INTRO"]: return
 	race_paused = true
+	_set_elimination_push_animations_paused(true)
 	_clear_look_back()
 	trainer_telemetry_resume = false
 	trainer_pause_resume = false
@@ -1052,6 +1053,7 @@ func _pause_race(show_menu: bool = true) -> void:
 func _resume_race() -> void:
 	if not race_paused: return
 	race_paused = false
+	_set_elimination_push_animations_paused(false)
 	# Finish servicing any pending release before re-probing our own session.
 	trainer_pause_resume = trainer_control.error.is_empty()
 	exit_menu.hide_pause()
@@ -1828,6 +1830,19 @@ func _elimination_try_push(rider: int, target: float, now: float, metrics: Array
 				elimination_outward_pressed = false
 		else:
 			x_ai.lane_targets[moved] = destination
+		if not results_completion.active and moved < bikes.size():
+			var visual: Node = bikes[moved].get_child(0)
+			# The track runs counter-clockwise. The outside is the rider's right.
+			if elimination_push.givers.has(moved):
+				visual.shoulder_push("R")
+			else:
+				visual.receive_shoulder_push("L")
+
+func _set_elimination_push_animations_paused(paused: bool) -> void:
+	if race_mode != 2:
+		return
+	for bike in bikes:
+		bike.get_child(0).set_shoulder_push_paused(paused)
 
 func _move_lanes(dt: float) -> Array[float]:
 	if race_mode in [4, 7]:
@@ -2319,6 +2334,7 @@ func _update_visuals(dt: float) -> void:
 		if race_mode == 5 and i == 0 and team_race.ours.player_is_out() and watts <= 0.0:
 			cadence_visual = 0.0
 		if finish_times[i] >= 0.0:
+			if race_mode == 2: visual.cancel_shoulder_push()
 			# Continue the normal cycling loop at progressively lower cadence while coasting.
 			# beta.16.16: the race winner sits up and raises both arms.
 			visual.call("set_victory", race_mode not in [2, 3] and i == _winner_index())
